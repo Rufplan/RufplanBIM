@@ -8,3 +8,11 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+geo = "0.33.1"
+serde = { version = "1.0.229", features = ["derive"] }
+studio-core.workspace = true
+studio-geom.workspace = true
+studio-regen.workspace = true
+ts-rs = "12.0.1"
