@@ -2,7 +2,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
+import type { CloudStatus } from "./bindings/CloudStatus";
 import type { CommandError } from "./bindings/CommandError";
 import type { CoreVersion } from "./bindings/CoreVersion";
 import type { DisplayList } from "./bindings/DisplayList";
@@ -14,12 +16,16 @@ import type { Table } from "./bindings/Table";
 import type { DimensionPreview } from "./bindings/DimensionPreview";
 import type { PropertySheet } from "./bindings/PropertySheet";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
+import type { PublishOptions } from "./bindings/PublishOptions";
+import type { PublishResult } from "./bindings/PublishResult";
+import type { RufplanLink } from "./bindings/RufplanLink";
 import type { Pt } from "./bindings/Pt";
 import type { SnapResult } from "./bindings/SnapResult";
 import type { ViewInfo } from "./bindings/ViewInfo";
 
 export type {
   AppState,
+  CloudStatus,
   CommandError,
   CoreVersion,
   DisplayList,
@@ -31,6 +37,9 @@ export type {
   Table,
   DimensionPreview,
   ProjectStatus,
+  PublishOptions,
+  PublishResult,
+  RufplanLink,
   Pt,
   SnapResult,
   ViewInfo,
@@ -105,6 +114,24 @@ export const ipc = {
   redo: (): S => invoke("redo"),
   /** Returns false (and stays open) if there are unsaved changes and `force` is false. */
   exit: (force: boolean) => invoke<boolean>("app_exit", { force }),
+
+  // Rufplan.io account and publishing (ADR-016).
+  /** Signed-in state; the first call signs in again from the stored token. */
+  cloudStatus: () => invoke<CloudStatus>("cloud_status"),
+  cloudSignIn: (email: string, password: string) =>
+    invoke<CloudStatus>("cloud_sign_in", { email, password }),
+  /** Opens the system browser and resolves when it comes back. */
+  cloudSignInGoogle: () => invoke<CloudStatus>("cloud_sign_in_google"),
+  cloudSignOut: () => invoke<CloudStatus>("cloud_sign_out"),
+  /** Rufplan projects the user owns. */
+  cloudProjects: () => invoke<RufplanLink[]>("cloud_projects"),
+  /** `null` unlinks. */
+  linkRufplan: (link: RufplanLink | null): S => invoke("link_rufplan", { link }),
+  publishOptions: () => invoke<PublishOptions>("publish_options"),
+  publishToRufplan: (name: string, deliverable: string) =>
+    invoke<PublishResult>("publish_to_rufplan", { name, deliverable }),
+  /** Opens a rufplan.io page in the browser. */
+  openRufplan: (url: string) => openUrl(url),
 
   /** Native menu clicks, forwarded by Rust as the menu item id. */
   onMenu: (handler: (id: string) => void): Promise<UnlistenFn> =>

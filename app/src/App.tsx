@@ -16,6 +16,7 @@ import { Ribbon } from "./components/Ribbon";
 import { ProjectBrowser } from "./components/ProjectBrowser";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { StatusBar, Workspace } from "./components/Workspace";
+import { RufplanDialog } from "./components/RufplanDialog";
 import logo from "./assets/rufplan-logo-white.svg";
 
 function isTyping(target: EventTarget | null) {
@@ -102,7 +103,8 @@ export function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || useAppStore.getState().confirm) return;
+      const ui = useAppStore.getState();
+      if (isTyping(e.target) || ui.confirm || ui.rufplan) return;
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -156,6 +158,7 @@ export function App() {
         <Welcome />
       )}
       <ConfirmDialog />
+      <RufplanDialog />
     </div>
   );
 }

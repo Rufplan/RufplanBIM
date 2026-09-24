@@ -82,6 +82,8 @@ pub struct AppState {
     pub redo: Option<String>,
     /// Issued sets, oldest first.
     pub issuances: Vec<NamedItem>,
+    /// The Rufplan.io project this model publishes to.
+    pub rufplan: Option<studio_core::RufplanLink>,
 }
 
 #[derive(Debug, Default)]
@@ -249,6 +251,7 @@ impl Session {
                     .map(|(id, name)| NamedItem { id, name })
                     .collect()
             },
+            rufplan: ops::rufplan_link(doc),
         })
     }
 

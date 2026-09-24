@@ -83,6 +83,25 @@ export const Icons = {
       <path d="M8 10v5M11 10v5M11 10h3M11 12.5h2.5M18 10h-2.5v5H18" strokeWidth="1.2" />
     </I>
   ),
+  account: (
+    <I>
+      <circle cx="12" cy="8.5" r="3.8" />
+      <path d="M4.5 20c1.2-4 4.2-5.6 7.5-5.6s6.3 1.6 7.5 5.6" />
+    </I>
+  ),
+  link: (
+    <I>
+      <path d="M10 14l4-4" />
+      <path d="M8.5 11.5l-2 2a3.2 3.2 0 004.5 4.5l2-2M15.5 12.5l2-2A3.2 3.2 0 0013 6l-2 2" />
+    </I>
+  ),
+  publish: (
+    <I>
+      <path d="M12 16V4M7 9l5-5 5 5" />
+      <path d="M4 14v6h16v-6" />
+      <path d="M8 20h8" stroke="#3ECFF7" strokeWidth="2.4" />
+    </I>
+  ),
   room: (
     <I>
       <path d="M3 4h18v16H3z" strokeWidth="2.2" />

@@ -1,5 +1,6 @@
 //! Rufplan Studio desktop shell. Tauri commands here are thin wrappers over core crates.
 
+mod cloud;
 mod commands;
 mod menu;
 mod session;
@@ -10,6 +11,8 @@ use tauri::{Emitter, Manager, WindowEvent};
 pub fn run() -> anyhow::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .manage(cloud::CloudState::default())
         .manage({
             let mut session = session::Session::default();
             commands::open_from_args(&mut session);
@@ -73,6 +76,14 @@ pub fn run() -> anyhow::Result<()> {
             commands::undo,
             commands::redo,
             commands::app_exit,
+            cloud::cloud_status,
+            cloud::cloud_sign_in,
+            cloud::cloud_sign_in_google,
+            cloud::cloud_sign_out,
+            cloud::cloud_projects,
+            cloud::link_rufplan,
+            cloud::publish_options,
+            cloud::publish_to_rufplan,
         ])
         .run(tauri::generate_context!())?;
     Ok(())

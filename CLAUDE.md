@@ -92,9 +92,13 @@ Read these before writing code:
   floors, ceilings; floor plans, ceiling plans, elevations and 3D; Rufplan styling; design
   stages. The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
 - Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the sample house.
-- M3 met (except the 3D section box); M4 met pending the owner's scale-ruler print check
-  (stage sheet sets and issuances still open). Next: M5 (IFC export, Rufplan publish) or
-  the M1 gaps (ParamValue map, regen graph, indexes, property test).
+- M3 met (except the 3D section box); M4 met pending the owner's scale-ruler print check.
+- M5 built (ADR-016): IFC4 export (validated by IfcOpenShell in CI), Rufplan sign-in,
+  project link and Publish into Rufplan's existing deliverables (no schema change).
+  Owner actions pending: allow-list the Google redirect URL; allow `application/x-step` in
+  the `project-media` bucket so the IFC uploads too. Next: the M1 gaps (ParamValue map,
+  regen graph, indexes, property test).
+- Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
 - Last updated: 2026-09-24

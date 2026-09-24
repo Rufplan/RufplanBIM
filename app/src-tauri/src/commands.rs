@@ -58,7 +58,7 @@ type CommandResult<T> = Result<T, CommandError>;
 type StateResult = CommandResult<Option<AppState>>;
 
 /// Today's date as YYYY-MM-DD (UTC), for title blocks.
-fn today() -> String {
+pub(crate) fn today() -> String {
     let days = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() / 86_400) as i64;
@@ -91,14 +91,16 @@ fn now_ms() -> i64 {
         .map_or(0, |d| d.as_millis() as i64)
 }
 
-fn lock<'a>(state: &'a State<'_, SessionState>) -> CommandResult<MutexGuard<'a, Session>> {
+pub(crate) fn lock<'a>(
+    state: &'a State<'_, SessionState>,
+) -> CommandResult<MutexGuard<'a, Session>> {
     state
         .lock()
         .map_err(|_| anyhow::anyhow!("project state is unavailable after an earlier crash").into())
 }
 
 /// Updates the window title and returns the new state.
-fn finish(window: &WebviewWindow, session: &Session) -> StateResult {
+pub(crate) fn finish(window: &WebviewWindow, session: &Session) -> StateResult {
     let state = session.state();
     let title = match &state {
         Some(s) => format!(

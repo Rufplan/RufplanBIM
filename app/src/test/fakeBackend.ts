@@ -70,6 +70,7 @@ export function appState(path: string | null, dirty = false): AppState {
     undo: null,
     redo: null,
     issuances: [],
+    rufplan: null,
   };
 }
 
@@ -107,6 +108,35 @@ export function installFakeBackend(): FakeBackend {
           return { viewType: "Plan", scale: 48, bounds: [0, 0, 10000, 8000], items: [] };
         case "properties":
           return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
+        case "cloud_status":
+          return { configured: true, signedIn: false, email: null, name: null };
+        case "cloud_sign_in":
+          return { configured: true, signedIn: true, email: a.email, name: "Ada Arch" };
+        case "cloud_projects":
+          return [
+            { id: "p1", name: "Lake House", slug: "lake-house" },
+            { id: "p2", name: "Studio Loft", slug: "studio-loft" },
+          ];
+        case "link_rufplan":
+          if (fake.state) fake.state = { ...fake.state, rufplan: a.link as AppState["rufplan"] };
+          return fake.state;
+        case "publish_options":
+          return {
+            phaseKind: "sd",
+            stage: "SD",
+            sheetCount: 4,
+            deliverables: [
+              { id: "sd30", label: "30% Schematic Design" },
+              { id: "sd60", label: "60% Schematic Design" },
+            ],
+          };
+        case "publish_to_rufplan":
+          return {
+            state: fake.state,
+            url: "https://rufplan.io/projects/lake-house",
+            published: ["New Project - SD Set.pdf"],
+            skipped: ["New Project - SD Set.ifc: mime type application/x-step is not supported"],
+          };
         case "plugin:dialog|open":
           return fake.openPath;
         case "plugin:dialog|save":

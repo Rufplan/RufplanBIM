@@ -92,11 +92,11 @@ A3.0 sections + door schedule) that prints at true scale when measured with a sc
 Awaiting the owner's scale-ruler check on a print.*
 
 ## M5 — Interop and Rufplan link
-- [ ] IFC4 export: IfcProject/Site/Building/BuildingStorey, IfcWall, IfcSlab, IfcDoor, IfcWindow, IfcSpace, materials, property sets
-- [ ] CI test validates exported IFC with IfcOpenShell (Python, dev-only)
-- [ ] Supabase auth via system browser + deep link (see SYNC_AND_RUFPLAN.md)
-- [ ] Link a Studio project to a Rufplan project
-- [ ] Publish: upload PDF set + IFC + manifest; creates an issuance record visible on Rufplan, tagged with its design stage
+- [x] IFC4 export: IfcProject/Site/Building/BuildingStorey, IfcWall, IfcSlab, IfcDoor, IfcWindow, IfcSpace, materials, property sets (ADR-016)
+- [x] CI test validates exported IFC with IfcOpenShell (Python, dev-only)
+- [x] Supabase auth: email/password, and Google via system browser + loopback redirect (ADR-016; owner must allow-list the redirect URL)
+- [x] Link a Studio project to a Rufplan project
+- [x] Publish: uploads the stage set PDF (+ IFC) as a Rufplan deliverable in the matching phase tab and records the issuance. IFC upload waits on the owner allowing `application/x-step` in the `project-media` bucket (ADR-016)
 
 **Acceptance:** sign in, link, publish; the published set appears on the Rufplan project and the
 IFC opens correctly in an IFC viewer (e.g., That Open Engine / web-ifc on the Rufplan side).

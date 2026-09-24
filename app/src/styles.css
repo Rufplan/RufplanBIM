@@ -793,3 +793,102 @@ button:disabled {
   background: var(--white);
   padding: 2px 4px;
 }
+
+/* Rufplan dialog */
+.rp-modal {
+  width: 460px;
+}
+.rp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rp-close {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted);
+}
+.rp-form {
+  display: contents;
+}
+.rp-field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.rp-field span {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.rp-field input,
+.rp-field select {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font: inherit;
+  background: var(--white);
+}
+.rp-field input:focus,
+.rp-field select:focus {
+  outline: 2px solid var(--cyan);
+  outline-offset: -1px;
+}
+.rp-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+.rp-modal .modal-message + .rp-note {
+  margin: -12px 0 16px;
+}
+.rp-error {
+  color: #c0392b;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.rp-list {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.rp-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.rp-option + .rp-option {
+  border-top: 1px solid var(--border);
+}
+.rp-option.on {
+  border-left-color: var(--cyan);
+  background: var(--paper);
+}
+.rp-option input {
+  grid-row: span 2;
+  accent-color: var(--ink);
+}
+.rp-option span:first-of-type {
+  font-weight: 600;
+}
+.rp-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.rp-files {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 13px;
+}
+.rb-clip {
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

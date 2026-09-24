@@ -26,6 +26,9 @@ studio-views.workspace = true
 studio-regen.workspace = true
 studio-geom.workspace = true
 studio-sheets.workspace = true
+keyring = "4.2.0"
+tauri-plugin-opener = "2"
+studio-sync = { version = "0.0.1", path = "../../crates/studio-sync" }
 
 [lints]
 workspace = true

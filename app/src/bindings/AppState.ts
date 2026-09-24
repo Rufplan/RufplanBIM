@@ -2,6 +2,7 @@
 import type { ElementId } from "./ElementId";
 import type { NamedItem } from "./NamedItem";
 import type { ProjectStatus } from "./ProjectStatus";
+import type { RufplanLink } from "./RufplanLink";
 import type { StageItem } from "./StageItem";
 import type { ViewInfo } from "./ViewInfo";
 
@@ -16,4 +17,8 @@ revision: number, views: Array<ViewInfo>, levels: Array<NamedItem>, wallTypes: A
 /**
  * Issued sets, oldest first.
  */
-issuances: Array<NamedItem>, };
+issuances: Array<NamedItem>, 
+/**
+ * The Rufplan.io project this model publishes to.
+ */
+rufplan: RufplanLink | null, };

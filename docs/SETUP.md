@@ -74,3 +74,14 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
 Never put the service-role key anywhere in this repository.
+
+## Rufplan sign-in (M5)
+Sign-in and Publish need the Rufplan Supabase **anon** key at build time (never the
+service-role key). Put it in the gitignored `app/.env.local`:
+```
+RUFPLAN_SUPABASE_ANON_KEY=<anon key from Supabase → Project Settings → API>
+```
+or set `RUFPLAN_SUPABASE_ANON_KEY` in the environment. Builds without it run normally with
+the Rufplan tab showing that sign-in isn't configured. For CI release builds, add it as a
+repository secret. Google sign-in also needs `http://127.0.0.1:53682/auth/callback` in the
+Supabase Auth redirect allow-list (ADR-016).

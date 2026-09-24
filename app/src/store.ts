@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AppState, ElementId } from "./ipc";
+import type { AppState, CloudStatus, ElementId } from "./ipc";
 
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
@@ -53,6 +53,9 @@ export interface Confirm {
   resolve: (choice: "save" | "discard" | "cancel") => void;
 }
 
+/** Which Rufplan dialog is open. */
+export type RufplanDialogMode = "account" | "link" | "publish";
+
 interface UiState {
   app: AppState | null;
   error: string | null;
@@ -66,6 +69,8 @@ interface UiState {
   prompt: string;
   cursor: string;
   confirm: Confirm | null;
+  rufplan: RufplanDialogMode | null;
+  cloud: CloudStatus | null;
 
   /** `fresh` = a different project was just created or opened. */
   setApp: (app: AppState | null, fresh?: boolean) => void;
@@ -78,6 +83,8 @@ interface UiState {
   setPrompt: (prompt: string) => void;
   setCursor: (cursor: string) => void;
   setConfirm: (confirm: Confirm | null) => void;
+  setRufplan: (mode: RufplanDialogMode | null) => void;
+  setCloud: (cloud: CloudStatus | null) => void;
 }
 
 const firstId = (items: { id: ElementId }[] | undefined, current: ElementId | null) =>
@@ -94,6 +101,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   prompt: "",
   cursor: "",
   confirm: null,
+  rufplan: null,
+  cloud: null,
 
   setApp: (app, fresh = false) => {
     const s = get();
@@ -155,6 +164,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setPrompt: (prompt) => set({ prompt }),
   setCursor: (cursor) => set({ cursor }),
   setConfirm: (confirm) => set({ confirm }),
+  setRufplan: (rufplan) => set({ rufplan }),
+  setCloud: (cloud) => set({ cloud }),
 }));
 
 /** Info about the active view, if any. */

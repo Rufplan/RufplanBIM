@@ -238,6 +238,17 @@ pub struct StageChange {
     pub note: String,
 }
 
+/// The Rufplan.io project a model publishes to (ADR-016).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct RufplanLink {
+    /// `open_projects.id`.
+    pub id: String,
+    pub name: String,
+    /// For the project page URL, rufplan.io/projects/<slug>.
+    pub slug: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ElementData {
     Level {
@@ -298,6 +309,8 @@ pub enum ElementData {
         address: String,
         current_stage: Option<ElementId>,
         stage_history: Vec<StageChange>,
+        #[serde(default)]
+        rufplan: Option<RufplanLink>,
     },
     DoorType {
         name: String,

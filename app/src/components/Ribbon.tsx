@@ -8,6 +8,7 @@ import {
   placeOnActiveSheet,
   tagAll,
 } from "../fileActions";
+import { refreshCloud } from "../rufplan";
 import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
@@ -50,8 +51,8 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-type Tab = "Architecture" | "Annotate" | "View";
-const TABS: Tab[] = ["Architecture", "Annotate", "View"];
+type Tab = "Architecture" | "Annotate" | "View" | "Rufplan";
+const TABS: Tab[] = ["Architecture", "Annotate", "View", "Rufplan"];
 
 export function Ribbon() {
   const [tab, setTab] = useState<Tab>("Architecture");
@@ -61,6 +62,9 @@ export function Ribbon() {
   const view3d = app?.views.find((v) => v.viewType === "ThreeD");
   const activeIsSheet = useAppStore((s) => activeViewInfo(s)?.viewType === "Sheet");
   const activeIsPlan = useAppStore((s) => activeViewInfo(s)?.viewType === "Plan");
+  const cloud = useAppStore((s) => s.cloud);
+  const setRufplan = useAppStore((s) => s.setRufplan);
+  const linked = app?.rufplan ?? null;
   // Drawing views go on one sheet only; schedules can repeat; 3D and sheets can't be placed.
   const placeable = (app?.views ?? []).filter(
     (v) =>
@@ -76,7 +80,10 @@ export function Ribbon() {
             role="tab"
             aria-selected={tab === t}
             className={`rb-tab${tab === t ? " active" : ""}`}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t);
+              if (t === "Rufplan" && !useAppStore.getState().cloud) void refreshCloud();
+            }}
           >
             {t}
           </button>
@@ -220,6 +227,37 @@ export function Ribbon() {
               </button>
             </Group>
           </>
+        )}
+        {tab === "Rufplan" && (
+          <Group title="Rufplan.io">
+            <button
+              className="rb-btn"
+              onClick={() => setRufplan("account")}
+              title={cloud?.signedIn ? `Signed in as ${cloud.email ?? ""}` : "Sign in to Rufplan"}
+            >
+              {Icons.account}
+              <span className="rb-clip">
+                {cloud?.signedIn ? (cloud.name ?? "Account") : "Sign In"}
+              </span>
+            </button>
+            <button
+              className="rb-btn"
+              onClick={() => setRufplan("link")}
+              title={linked ? `Linked to ${linked.name}` : "Link this model to a Rufplan project"}
+            >
+              {Icons.link}
+              <span className="rb-clip">{linked ? linked.name : "Link Project"}</span>
+            </button>
+            <button
+              className="rb-btn"
+              onClick={() => setRufplan("publish")}
+              disabled={!linked}
+              title="Publish the current stage's set (PDF + IFC) to the linked Rufplan project"
+            >
+              {Icons.publish}
+              <span>Publish</span>
+            </button>
+          </Group>
         )}
       </div>
     </div>

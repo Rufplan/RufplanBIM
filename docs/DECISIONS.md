@@ -210,3 +210,41 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
   list every issue that included the sheet (date, stage, name) as a revision-style block.
 - **Sheet notes:** text notes can sit on sheets, with printed sizes from 3/32" to 1".
   Title blocks gain a key plan (the lowest level's wall outline) and a north arrow.
+
+## ADR-016 M5: IFC4 export and publishing to Rufplan without schema changes — Accepted (2026-09-24)
+- **IFC4 export** is hand-written STEP in `studio-io::ifc` (ADR-007): project, site, building,
+  storeys; walls as extruded footprints with `IfcOpeningElement` voids that doors and windows
+  fill; floors as `IfcSlab .FLOOR.`, ceilings as `IfcCovering .CEILING.`, rooms as `IfcSpace`
+  with `Qto_SpaceBaseQuantities.NetFloorArea`; materials by type; `Pset_WallCommon`,
+  `Pset_DoorCommon`, `Pset_WindowCommon`. Lengths in mm. GlobalIds are the element UUID in
+  IFC base-64; derived objects (openings, relationships, psets) use UUID v5 of the element id,
+  so re-exports are byte-stable apart from the header timestamp. CI writes the sample model
+  and validates it with IfcOpenShell (`tools/validate_ifc.py`); locally it was also checked
+  with web-ifc (all 31 products produce geometry and walls are cut).
+- **No new tables.** Instead of the proposed `studio_projects` / `studio_issuances`, Publish
+  writes into what Rufplan's own "Upload Design Set" flow already uses: files go to the
+  `project-media` bucket at `{uid}/deliverables/{project}/{phase}/{deliverable}/{stamp}-{file}`
+  and each gets a `project_deliverables` row (PDF in slot `drawings` with `sheet_count`, IFC in
+  discipline slot `A`). RLS already allows the owner (and visible-project members) to do
+  this. Design stages map to Rufplan's phase tabs: PD/SD → `sd`, DD → `dd`, CD/BN/CA → `cd`;
+  the user picks a deliverable from Rufplan's catalog (sd30…, dd-owner, permit, ifc…).
+  The issue is also recorded locally as an `Issuance`, like Issue Set.
+- **Known limit:** the `project-media` bucket's `allowed_mime_types` only permits PDF, image
+  and video types, so the IFC upload is refused until the owner adds `application/x-step`
+  (a bucket-config change, not made here). The IFC is therefore optional: the PDF publishes
+  and the result says why the IFC was skipped.
+- **Link:** `ProjectInfo.rufplan: Option<RufplanLink { id, name, slug }>` (serde default, so
+  older files load unchanged); set from the user's `open_projects` (`owner_business_id =
+  auth.uid()`); undoable.
+- **Auth:** `studio-sync` is a small blocking Supabase client (ureq + rustls) behind an
+  `Http` trait so it is tested offline. Email/password sign-in (same accounts as
+  rufplan.io) plus Google via PKCE in the system browser. Deviation from SYNC_AND_RUFPLAN:
+  the redirect is an RFC 8252 **loopback** listener, `http://127.0.0.1:53682/auth/callback`,
+  instead of a `rufplan-studio://` deep link. This needs no deep-link or single-instance
+  plugins. The owner must add that URL to Supabase → Authentication → URL Configuration →
+  Redirect URLs for Google sign-in to work. The refresh token is stored in the OS credential
+  store (`keyring`) and the access token is kept in memory.
+- **Keys:** only the anon key, read at build time from `RUFPLAN_SUPABASE_ANON_KEY` or the
+  gitignored `app/.env.local`. Builds without it (e.g. CI) run with sign-in disabled.
+- **New dependencies:** ureq, sha2, base64, keyring, tauri-plugin-opener (+ npm
+  `@tauri-apps/plugin-opener`, allowed only for `https://rufplan.io/*`).

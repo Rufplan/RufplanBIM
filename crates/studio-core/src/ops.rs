@@ -6,8 +6,8 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Anchor, Category, Compass, DoorFamily, ElementData, ElementId, ScheduleKind, SheetSize,
-    StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
+    Anchor, Category, Compass, DoorFamily, ElementData, ElementId, RufplanLink, ScheduleKind,
+    SheetSize, StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -122,6 +122,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             address: String::new(),
             current_stage: sd,
             stage_history: vec![],
+            rufplan: None,
         });
         Ok(())
     })
@@ -485,6 +486,29 @@ pub fn create_issuance(
             date,
             sheets,
         }))
+    })
+}
+
+/// Links the project to a Rufplan.io project (or unlinks it with `None`).
+pub fn link_rufplan(doc: &mut Document, link: Option<RufplanLink>) -> CoreResult<()> {
+    let info = project_info(doc).ok_or_else(|| CoreError::Invalid("no project info".into()))?;
+    let mut data = doc.data(info)?.clone();
+    if let ElementData::ProjectInfo { rufplan, .. } = &mut data {
+        *rufplan = link.clone();
+    }
+    let label = if link.is_some() {
+        "Link to Rufplan"
+    } else {
+        "Unlink from Rufplan"
+    };
+    doc.transact(label, |tx| tx.set(info, data))
+}
+
+/// The linked Rufplan.io project, if any.
+pub fn rufplan_link(doc: &Document) -> Option<RufplanLink> {
+    project_info(doc).and_then(|i| match doc.data(i) {
+        Ok(ElementData::ProjectInfo { rufplan, .. }) => rufplan.clone(),
+        _ => None,
     })
 }
 
@@ -1320,6 +1344,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             address,
             current_stage,
             stage_history,
+            rufplan,
         } => {
             props.push(text("name", "Project Name", "Project", name));
             props.push(text("number", "Project Number", "Project", number));
@@ -1344,6 +1369,14 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 "Stage Changes",
                 "Design Stage",
                 stage_history.len().to_string(),
+            ));
+            props.push(ro(
+                "rufplan",
+                "Linked Project",
+                "Rufplan",
+                rufplan
+                    .as_ref()
+                    .map_or_else(|| "Not linked".into(), |l| l.name.clone()),
             ));
         }
         ElementData::Dimension {
@@ -2368,6 +2401,20 @@ mod tests {
         );
         assert!(sheet_issues(&doc, b).is_empty());
         assert!(create_issuance(&mut doc, "Empty", "2026-09-24", vec![]).is_err());
+    }
+
+    #[test]
+    fn linking_to_rufplan_is_undoable() {
+        let mut doc = seeded();
+        let link = RufplanLink {
+            id: "p1".into(),
+            name: "House".into(),
+            slug: "house".into(),
+        };
+        link_rufplan(&mut doc, Some(link.clone())).unwrap();
+        assert_eq!(rufplan_link(&doc), Some(link));
+        doc.undo().unwrap();
+        assert_eq!(rufplan_link(&doc), None);
     }
 
     #[test]
