@@ -74,6 +74,7 @@ pub struct AppState {
     pub ceiling_types: Vec<NamedItem>,
     pub door_types: Vec<NamedItem>,
     pub window_types: Vec<NamedItem>,
+    pub roof_types: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
     pub current_stage: Option<ElementId>,
     pub project_info: Option<ElementId>,
@@ -84,6 +85,8 @@ pub struct AppState {
     pub issuances: Vec<NamedItem>,
     /// The Rufplan.io project this model publishes to.
     pub rufplan: Option<studio_core::RufplanLink>,
+    /// User-defined project parameters.
+    pub param_defs: Vec<studio_core::ParamDef>,
 }
 
 #[derive(Debug, Default)]
@@ -158,7 +161,9 @@ impl Session {
             .iter()
             .filter(|e| matches!(e.category(), Category::View | Category::Sheet))
             .filter_map(|e| match &e.data {
-                ElementData::View { name, kind, scale } => {
+                ElementData::View {
+                    name, kind, scale, ..
+                } => {
                     let (view_type, level) = match kind {
                         ViewKind::FloorPlan { level } => (ViewType::Plan, Some(*level)),
                         ViewKind::CeilingPlan { level } => (ViewType::CeilingPlan, Some(*level)),
@@ -228,6 +233,7 @@ impl Session {
             ceiling_types: named(Category::CeilingType),
             door_types: named(Category::DoorType),
             window_types: named(Category::WindowType),
+            roof_types: named(Category::RoofType),
             stages: ops::stages(doc)
                 .into_iter()
                 .map(|(id, name, abbreviation)| StageItem {
@@ -252,6 +258,7 @@ impl Session {
                     .collect()
             },
             rufplan: ops::rufplan_link(doc),
+            param_defs: studio_core::params::defs(doc),
         })
     }
 
@@ -290,7 +297,16 @@ impl Session {
             // Files from before element storage (schema 1) have no content yet.
             ops::seed_default_project(&mut project.doc)?;
             project.doc.clear_history();
-        } else if project.doc.of(Category::DoorType).next().is_none() {
+        } else if project.doc.count(Category::RoofType) == 0 {
+            // Saved before roofs existed: add the built-in roof types.
+            let dirty = project.doc.is_dirty();
+            studio_core::build::ensure_roof_types(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
+        if project.doc.of(Category::DoorType).next().is_none() {
             // Saved before doors and windows existed: add the built-in types. They are
             // written on the next save; there is nothing for the user to review.
             ops::ensure_opening_types(&mut project.doc)?;
@@ -465,6 +481,51 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
     ] {
         let r = ops::create_room(doc, level, ft(x, y))?;
         ops::set_property(doc, r, "name", name, 0)?;
+    }
+    // Exterior walls run clockwise so their layered faces (siding out, gypsum in) face
+    // the right way; flipping keeps every door and window where it is.
+    let mut exterior = vec![];
+    for level in [l1, l2] {
+        for i in 0..4 {
+            exterior.push(wall_on(doc, level, corners[i], corners[(i + 1) % 4])?);
+        }
+    }
+    studio_core::edit::flip_walls(doc, &exterior)?;
+
+    // A stair from Level 1 to Level 2 along the Living room's west wall.
+    studio_core::build::create_stair(
+        doc,
+        l1,
+        ft(2.25, 9.0),
+        ft(2.25, 20.0),
+        studio_core::build::DEFAULT_STAIR_WIDTH,
+    )?;
+
+    // A hip roof on a Roof level at the top of the Level 2 walls, with an 18" overhang;
+    // the eaves drop so the roof bears on the walls' outer face line.
+    let roof_level = ops::create_level(doc, 20.0 * MM_PER_FT)?;
+    ops::set_property(doc, roof_level, "name", "Roof", 0)?;
+    for v in doc
+        .of(Category::View)
+        .filter(|e| e.data.level() == Some(roof_level))
+        .map(|e| e.id)
+        .collect::<Vec<_>>()
+    {
+        ops::set_property(doc, v, "name", "Roof", 0)?;
+    }
+    let model = studio_regen::regenerate(doc);
+    if let Some(outer) = studio_regen::outer_boundary(&model, l2) {
+        let overhang = studio_core::build::DEFAULT_OVERHANG;
+        let slope = studio_core::build::DEFAULT_ROOF_SLOPE;
+        let rt = studio_core::build::default_roof_type(doc).context("missing roof type")?;
+        studio_core::build::create_roof(
+            doc,
+            rt,
+            roof_level,
+            -slope.tan() * overhang,
+            studio_geom::offset_ring(&outer, overhang),
+            slope,
+        )?;
     }
     build_sample_documents(doc, ft)
 }
@@ -703,10 +764,12 @@ mod tests {
         assert_eq!(doc.of(Category::Floor).count(), 2);
         assert_eq!(doc.of(Category::Ceiling).count(), 3);
         assert_eq!(doc.of(Category::Grid).count(), 6);
-        assert_eq!(doc.levels().len(), 2);
+        assert_eq!(doc.levels().len(), 3, "Level 1, Level 2 and Roof");
+        assert_eq!(doc.count(Category::Roof), 1);
+        assert_eq!(doc.count(Category::Stair), 1);
         assert_eq!(doc.of(Category::Door).count(), 3);
         assert_eq!(doc.of(Category::Window).count(), 12);
-        let rooms = studio_regen::regenerate(doc).rooms;
+        let rooms = studio_regen::regenerate(doc).rooms.clone();
         assert_eq!(rooms.len(), 5);
         assert!(
             rooms.iter().all(|r| r.boundary.is_some()),

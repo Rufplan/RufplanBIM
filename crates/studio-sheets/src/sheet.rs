@@ -87,7 +87,10 @@ pub fn viewport_items(
     view: ElementId,
     center: Pt,
 ) -> Option<(Vec<Item>, f64, f64, String, String)> {
-    let ElementData::View { name, kind, scale } = doc.data(view).ok()? else {
+    let ElementData::View {
+        name, kind, scale, ..
+    } = doc.data(view).ok()?
+    else {
         return None;
     };
     if matches!(kind, ViewKind::Schedule { .. }) {
@@ -104,8 +107,14 @@ pub fn viewport_items(
     let s = f64::from(*scale);
     let [x0, y0, x1, y1] = dl.bounds;
     let c = Pt::new((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    // The crop boundary (drawn with the view as its element) never prints.
+    let drawn: Vec<Item> = dl
+        .items
+        .into_iter()
+        .filter(|it| it.el != Some(view))
+        .collect();
     let items = transform(
-        dl.items,
+        drawn,
         |p| center.add(p.sub(c).scale(1.0 / s)),
         1.0 / s,
         Some(viewport),
@@ -117,6 +126,47 @@ pub fn viewport_items(
         name.clone(),
         ops::scale_label(*scale),
     ))
+}
+
+/// Sheet display lists by sheet, with the stamp and date they were made for.
+#[derive(Default)]
+struct SheetCache(std::collections::HashMap<ElementId, (u64, String, std::sync::Arc<DisplayList>)>);
+
+/// Like [`sheet_display_list`], shared from the document's cache while the model is
+/// unchanged (hovering over a sheet picks on every mouse move).
+pub fn sheet_display_list_shared(
+    doc: &Document,
+    sheet: ElementId,
+    date: &str,
+) -> Option<std::sync::Arc<DisplayList>> {
+    use std::sync::{Arc, Mutex};
+    const KEY: &str = "studio-sheets";
+    let cache = doc
+        .derived()
+        .get::<Mutex<SheetCache>>(KEY)
+        .unwrap_or_else(|| {
+            let c = Arc::new(Mutex::new(SheetCache::default()));
+            doc.derived().put(KEY, c.clone());
+            c
+        });
+    let stamp = doc.stamp();
+    if let Some((s, d, dl)) = cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .0
+        .get(&sheet)
+    {
+        if *s == stamp && d == date {
+            return Some(dl.clone());
+        }
+    }
+    let dl = Arc::new(sheet_display_list(doc, sheet, date)?);
+    cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .0
+        .insert(sheet, (stamp, date.to_owned(), dl.clone()));
+    Some(dl)
 }
 
 /// The display list of a sheet, in paper mm. `date` is printed in the title block.

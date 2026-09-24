@@ -23,10 +23,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
 - Files: schema 2 `.rfproj` storing all elements; sample project with a 4-sheet set;
   unsaved-changes prompts.
 
-**Shortcuts still open** (see ADR-011): full regeneration instead of the dependency graph;
-typed fields instead of the `ParamValue` map; JSON display lists; no endpoint dragging; no
-typed lengths while drawing (edit Length in properties afterwards); no room separation
-lines; floors/ceilings don't follow moved walls. Door leaves are thin: select a door by clicking its leaf or swing arc.
+**Shortcuts still open** (see ADR-011): JSON display lists; no room separation lines;
+floors/ceilings don't follow moved walls; roofs need convex footprints; no stair openings
+in floors. (The regeneration graph, parameter map, endpoint dragging and typed lengths landed
+in ADR-017; layered walls, roofs, stairs and crop regions in ADR-018.) Door leaves are thin: select a door by clicking its leaf or swing arc.
 
 ## M0 — Scaffold
 - [x] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test
@@ -40,30 +40,31 @@ lines; floors/ceilings don't follow moved walls. Door leaves are thin: select a 
 **Acceptance:** app launches, creates a project file, reopens it, CI is green.
 
 ## M1 — Model core
-- [ ] `ElementId` (UUID v7), `ParamValue`, `ParamDef`, units module with ft-in formatting/parsing (`12'-6 1/2"` ↔ mm) + tests — *prototype: ElementId and units done; ParamValue/ParamDef not yet*
-- [ ] Element store with category/level indexes — *prototype: store done; indexes are linear scans*
+- [x] `ElementId` (UUID v7), `ParamValue`, `ParamDef`, units module with ft-in formatting/parsing (`12'-6 1/2"` ↔ mm) + tests — *project parameters live in a per-element map; built-ins stay typed fields (ADR-017)*
+- [x] Element store with category/level indexes — *category index (ADR-017); level queries filter a category*
 - [x] Transactions with before-images; undo/redo stack; typed errors
 - [x] Levels, Grids, WallTypes (3 defaults: 6" int stud, 8" ext stud, 12" CMU), Walls (straight)
 - [x] Wall solids via native kernel: footprint polygon × base/top constraint heights
-- [ ] Regen graph: Level → Wall heights; Type → Wall thickness; change propagates — *prototype: propagation works and is tested, via full regeneration; no graph yet*
+- [x] Regen graph: Level → Wall heights; Type → Wall thickness; change propagates — *steps memoized on their inputs, cached by content stamp; equivalence property test (ADR-017)*
 - [x] Design stages (ADR-010): ProjectInfo + ProjectStage elements with the six defaults, set current stage (undoable, logged in stage history), edit stage names/dates; Project Info panel in the UI
-- [ ] Persistence round-trip of all M1 elements (property test: save → load → equal) — *prototype: example-based round-trip test; property test pending*
+- [x] Persistence round-trip of all M1 elements (property test: save → load → equal)
 
 **Acceptance:** tests prove that changing the current stage records history and undo restores it; changing a level's elevation updates wall heights, changing a
 wall type's thickness updates footprints, and undo restores both exactly.
 
 ## M2 — Plan view and editing
 - [x] View element (FloorPlan) with view range; plan generation of cut walls (poché) + projection
-- [ ] Display list format + binary IPC transfer — *prototype: format done; JSON transfer*
+- [ ] Display list format + binary IPC transfer — *format done; JSON, cached per model state; binary deferred (ADR-017)*
 - [x] Canvas 2D renderer: pan, zoom, line weights by scale, selection highlight
-- [ ] Wall tool: chained drawing, typed lengths (ft-in), snapping (endpoint, midpoint, perpendicular, 15° increments, grid intersections) — *prototype: all but typed lengths while drawing*
+- [x] Wall tool: chained drawing, typed lengths (ft-in), snapping (endpoint, midpoint, perpendicular, 15° increments, grid intersections)
 - [x] Wall joins: L (miter), T (butt), cross; clean poché at joins
-- [ ] Selection, drag endpoints, delete, properties panel editing type/instance params — *prototype: all but endpoint dragging*
+- [x] Selection, drag endpoints, delete, properties panel editing type/instance params — *plus temporary dimensions and Copy / Rotate / Mirror / Array / Align / Trim / Offset / Split / Flip (ADR-017)*
 - [x] Project browser: levels, views, sheets tree; open multiple plan views as tabs
 - [x] Undo/redo in UI (Ctrl+Z / Ctrl+Y)
 
 **Acceptance:** draw a 40' × 30' rectangle of exterior walls with two interior walls forming
 T-joins; joins are clean; edit a wall type and see all plans update in < 50 ms for 500 walls.
+*Status 2026-09-24: met — 535 connected walls redraw in ~6.5 ms after a type edit (release build, `bench_500_walls`); binary IPC deferred.*
 
 ## M3 — Hosted elements, floors, rooms, 3D
 - [x] Door and window families (built-in) with types; place on wall with hover preview

@@ -1,13 +1,23 @@
-//! Derived geometry: wall solids with joins, floor and ceiling slabs, room regions.
+//! Derived geometry: wall solids with joins, openings, floor, ceiling and roof solids,
+//! stairs and room regions.
 //!
-//! Prototype strategy: every call regenerates the whole model. For the model sizes of
-//! the prototype this takes well under a millisecond per element; dependency-graph based
-//! incremental regeneration (ARCHITECTURE.md) replaces it when it becomes a bottleneck.
+//! Regeneration is incremental (ADR-017): each expensive step — a wall's footprint, its
+//! pieces around openings, a level's room regions — is memoized on exactly the inputs it
+//! depends on, so an edit recomputes only what it affects (the moved wall and the walls
+//! joined to it, the rooms on its level). Results are cached by the document's content
+//! stamp, so repeated calls for the same state (every mouse move's snap and pick) are free.
+
+pub mod roof;
+
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use studio_core::{
     Category, Document, DoorFamily, ElementData, ElementId, WallFunction, WallTop, WindowFamily,
 };
 use studio_geom::{clip_half_plane, line_intersection, union_all, Poly, Prism, Pt};
+
+pub use roof::{RoofFace, RoofSolid};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WallSolid {
@@ -23,6 +33,9 @@ pub struct WallSolid {
     pub z1: f64,
     /// The wall's solid material: the footprint split around door and window openings.
     pub pieces: Vec<Prism>,
+    /// Offsets of the boundaries between layers from the location line (mm, positive =
+    /// exterior, the wall's left). Empty for a single-layer type.
+    pub layers: Vec<f64>,
 }
 
 impl WallSolid {
@@ -97,6 +110,39 @@ impl SlabSolid {
     }
 }
 
+/// A straight stair run resolved into steps.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StairSolid {
+    pub id: ElementId,
+    pub base_level: ElementId,
+    pub top_level: ElementId,
+    /// Center of the first riser, and the unit climbing direction.
+    pub start: Pt,
+    pub dir: Pt,
+    pub width: f64,
+    pub tread: f64,
+    pub risers: usize,
+    pub riser: f64,
+    /// Height of the base level (mm).
+    pub z0: f64,
+    /// One solid block per tread, from the base level up to the tread's top.
+    pub steps: Vec<Prism>,
+}
+
+impl StairSolid {
+    /// Plan outline corners of the run (start-left, start-right, end-right, end-left).
+    pub fn outline(&self) -> [Pt; 4] {
+        let n = self.dir.perp().scale(self.width / 2.0);
+        let run = self.dir.scale(self.tread * self.steps.len() as f64);
+        let (a, b) = (self.start, self.start.add(run));
+        [a.add(n), a.sub(n), b.sub(n), b.add(n)]
+    }
+    /// Top of the stair: the upper level's height (mm).
+    pub fn z1(&self) -> f64 {
+        self.z0 + self.riser * self.risers as f64
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct GridLine {
     pub id: ElementId,
@@ -140,15 +186,20 @@ impl RoomInfo {
 }
 
 /// Everything derived from the document that views need.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Model {
     pub walls: Vec<WallSolid>,
     pub floors: Vec<SlabSolid>,
     pub ceilings: Vec<SlabSolid>,
+    pub roofs: Vec<RoofSolid>,
+    pub stairs: Vec<StairSolid>,
     pub grids: Vec<GridLine>,
     pub levels: Vec<LevelInfo>,
     pub openings: Vec<OpeningSolid>,
     pub rooms: Vec<RoomInfo>,
+    /// Union of the wall footprints on each level that has walls (room regions are the
+    /// holes).
+    pub regions: HashMap<ElementId, Vec<Poly>>,
 }
 
 impl Model {
@@ -160,6 +211,12 @@ impl Model {
         }
         for s in self.floors.iter().chain(&self.ceilings) {
             pts.extend(&s.base.outer);
+        }
+        for r in &self.roofs {
+            pts.extend(&r.boundary);
+        }
+        for s in &self.stairs {
+            pts.extend(s.outline());
         }
         for g in &self.grids {
             pts.push(g.start);
@@ -180,12 +237,19 @@ impl Model {
             .iter()
             .map(|l| l.elevation)
             .fold(f64::NEG_INFINITY, f64::max);
-        for (a, b) in self.walls.iter().map(|w| (w.z0, w.z1)).chain(
-            self.floors
-                .iter()
-                .chain(&self.ceilings)
-                .map(|s| (s.z0, s.z1)),
-        ) {
+        for (a, b) in self
+            .walls
+            .iter()
+            .map(|w| (w.z0, w.z1))
+            .chain(
+                self.floors
+                    .iter()
+                    .chain(&self.ceilings)
+                    .map(|s| (s.z0, s.z1)),
+            )
+            .chain(self.roofs.iter().map(|r| (r.base, r.peak())))
+            .chain(self.stairs.iter().map(|s| (s.z0, s.z1())))
+        {
             lo = lo.min(a);
             hi = hi.max(b);
         }
@@ -207,10 +271,123 @@ pub fn bounds(pts: &[Pt]) -> Option<(Pt, Pt)> {
     }))
 }
 
-/// Rebuilds all derived geometry from the document.
-pub fn regenerate(doc: &Document) -> Model {
+// ---- Memoized steps ------------------------------------------------------------------
+
+/// A wall end's miter partner: its direction away from the shared point and half width.
+type Partner = Option<(Pt, f64)>;
+
+/// Everything a wall's footprint depends on.
+#[derive(Debug, Clone, PartialEq)]
+struct FootprintKey {
+    start: Pt,
+    end: Pt,
+    thickness: f64,
+    at_start: Partner,
+    at_end: Partner,
+}
+
+/// Everything a wall's pieces depend on.
+#[derive(Debug, Clone, PartialEq)]
+struct PiecesKey {
+    footprint: Poly,
+    z0: f64,
+    z1: f64,
+    openings: Vec<OpeningSolid>,
+}
+
+/// A level's walls (id, footprint, in order) and the union of those footprints.
+type RegionMemo = (Vec<(ElementId, Poly)>, Vec<Poly>);
+
+/// Remembered results of the expensive steps, keyed by what they depend on.
+#[derive(Debug, Default, Clone)]
+struct Memo {
+    footprints: HashMap<ElementId, (FootprintKey, Poly)>,
+    pieces: HashMap<ElementId, (PiecesKey, Vec<Prism>)>,
+    /// Per level: its walls' (id, footprint) in order, and their union.
+    regions: HashMap<ElementId, RegionMemo>,
+}
+
+/// Counts of recomputed steps in the last regeneration, for tests and diagnostics.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct RegenStats {
+    pub footprints: usize,
+    pub pieces: usize,
+    pub regions: usize,
+}
+
+struct CacheEntry {
+    stamp: u64,
+    model: Arc<Model>,
+    memo: Arc<Memo>,
+    stats: RegenStats,
+}
+
+/// A document's recent regenerations, newest last (a few, to cover undo and redo).
+#[derive(Default)]
+struct RegenCache(Vec<Arc<CacheEntry>>);
+const CACHE_SIZE: usize = 4;
+const CACHE_KEY: &str = "studio-regen";
+
+/// The model for the document's current content, from its cache when unchanged and
+/// otherwise rebuilt incrementally from its most recent regeneration.
+pub fn regenerate(doc: &Document) -> Arc<Model> {
+    regenerate_with_stats(doc).0
+}
+
+/// Like [`regenerate`], also returning how much work was redone.
+pub fn regenerate_with_stats(doc: &Document) -> (Arc<Model>, RegenStats) {
+    let stamp = doc.stamp();
+    let cache = doc
+        .derived()
+        .get::<Mutex<RegenCache>>(CACHE_KEY)
+        .unwrap_or_else(|| {
+            let c = Arc::new(Mutex::new(RegenCache::default()));
+            doc.derived().put(CACHE_KEY, c.clone());
+            c
+        });
+    let prev = {
+        let c = cache.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(e) = c.0.iter().find(|e| e.stamp == stamp) {
+            return (e.model.clone(), e.stats);
+        }
+        c.0.last().map(|e| e.memo.clone())
+    };
+    let mut memo = prev.map(|m| (*m).clone()).unwrap_or_default();
+    let mut stats = RegenStats::default();
+    let model = Arc::new(build(doc, &mut memo, &mut stats));
+    let mut c = cache.lock().unwrap_or_else(|e| e.into_inner());
+    c.0.push(Arc::new(CacheEntry {
+        stamp,
+        model: model.clone(),
+        memo: Arc::new(memo),
+        stats,
+    }));
+    if c.0.len() > CACHE_SIZE {
+        c.0.remove(0);
+    }
+    (model, stats)
+}
+
+/// Rebuilds everything from scratch, ignoring the cache (for tests and verification).
+pub fn regenerate_full(doc: &Document) -> Model {
+    build(doc, &mut Memo::default(), &mut RegenStats::default())
+}
+
+struct RawWall {
+    id: ElementId,
+    level: ElementId,
+    start: Pt,
+    end: Pt,
+    thickness: f64,
+    exterior: bool,
+    layers: Vec<f64>,
+    z0: f64,
+    z1: f64,
+}
+
+fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
     let elev = |id: ElementId| doc.level_elevation(id).unwrap_or(0.0);
-    let mut raw = vec![];
+    let mut raw: Vec<RawWall> = vec![];
     for e in doc.of(Category::Wall) {
         let ElementData::Wall {
             type_id,
@@ -223,12 +400,17 @@ pub fn regenerate(doc: &Document) -> Model {
         else {
             continue;
         };
-        let (thickness, exterior) = match doc.data(*type_id) {
+        let (thickness, exterior, layers) = match doc.data(*type_id) {
             Ok(ElementData::WallType {
                 thickness,
                 function,
+                layers,
                 ..
-            }) => (*thickness, *function == WallFunction::Exterior),
+            }) => (
+                *thickness,
+                *function == WallFunction::Exterior,
+                studio_core::compound::layer_boundaries(layers, *thickness),
+            ),
             _ => continue,
         };
         let z0 = elev(*base_level) + base_offset;
@@ -239,58 +421,125 @@ pub fn regenerate(doc: &Document) -> Model {
         if z1 - z0 < 1.0 {
             continue;
         }
-        raw.push((e.id, *base_level, *start, *end, thickness, exterior, z0, z1));
+        raw.push(RawWall {
+            id: e.id,
+            level: *base_level,
+            start: *start,
+            end: *end,
+            thickness,
+            exterior,
+            layers,
+            z0,
+            z1,
+        });
     }
 
+    // Other walls sharing an endpoint with `p` and overlapping `w` in height. Only clean
+    // two-wall corners are mitered; three or more walls fall back to butt ends.
+    let partner = |w: &RawWall, p: Pt| -> Partner {
+        let mut found = raw
+            .iter()
+            .filter(|o| o.id != w.id && o.z0 < w.z1 && o.z1 > w.z0)
+            .filter_map(|o| {
+                if o.start.dist(p) < studio_geom::tol::JOIN {
+                    Some((o.end.sub(o.start).norm(), o.thickness / 2.0))
+                } else if o.end.dist(p) < studio_geom::tol::JOIN {
+                    Some((o.start.sub(o.end).norm(), o.thickness / 2.0))
+                } else {
+                    None
+                }
+            });
+        let first = found.next();
+        if found.next().is_some() {
+            None
+        } else {
+            first
+        }
+    };
+
+    let mut footprints = HashMap::new();
     let mut walls: Vec<WallSolid> = raw
         .iter()
-        .map(|&(id, level, start, end, thickness, exterior, z0, z1)| {
-            let h = thickness / 2.0;
-            let dir = end.sub(start).norm();
-            // Other walls sharing an endpoint with this end and overlapping in height.
-            let partner = |p: Pt| -> Option<(Pt, f64)> {
-                let mut found = raw
-                    .iter()
-                    .filter(|o| o.0 != id && o.6 < z1 && o.7 > z0)
-                    .filter_map(|o| {
-                        if o.2.dist(p) < studio_geom::tol::JOIN {
-                            Some((o.3.sub(o.2).norm(), o.4 / 2.0))
-                        } else if o.3.dist(p) < studio_geom::tol::JOIN {
-                            Some((o.2.sub(o.3).norm(), o.4 / 2.0))
-                        } else {
-                            None
-                        }
-                    });
-                let first = found.next();
-                // Only clean two-wall corners are mitered; 3+ walls fall back to butt ends.
-                if found.next().is_some() {
-                    None
-                } else {
-                    first
+        .map(|w| {
+            let key = FootprintKey {
+                start: w.start,
+                end: w.end,
+                thickness: w.thickness,
+                at_start: partner(w, w.start),
+                at_end: partner(w, w.end),
+            };
+            let footprint = match memo.footprints.get(&w.id) {
+                Some((k, poly)) if *k == key => poly.clone(),
+                _ => {
+                    stats.footprints += 1;
+                    footprint_of(&key)
                 }
             };
-            let (sl, sr) = end_corners(start, dir, h, partner(start));
-            let (el, er) = end_corners(end, dir.scale(-1.0), h, partner(end));
+            footprints.insert(w.id, (key, footprint.clone()));
             WallSolid {
-                id,
-                level,
-                start,
-                end,
-                thickness,
-                exterior,
-                footprint: Poly::simple([sr, el, er, sl].map(snap).to_vec()),
-                z0,
-                z1,
+                id: w.id,
+                level: w.level,
+                start: w.start,
+                end: w.end,
+                thickness: w.thickness,
+                exterior: w.exterior,
+                footprint,
+                z0: w.z0,
+                z1: w.z1,
                 pieces: vec![],
+                layers: w.layers.clone(),
             }
         })
         .collect();
+    memo.footprints = footprints;
 
     let openings = resolve_openings(doc, &walls);
+    let mut pieces_memo = HashMap::new();
     for w in &mut walls {
-        let mine: Vec<&OpeningSolid> = openings.iter().filter(|o| o.host == w.id).collect();
-        w.pieces = wall_pieces(w, &mine);
+        let key = PiecesKey {
+            footprint: w.footprint.clone(),
+            z0: w.z0,
+            z1: w.z1,
+            openings: openings
+                .iter()
+                .filter(|o| o.host == w.id)
+                .cloned()
+                .collect(),
+        };
+        w.pieces = match memo.pieces.get(&w.id) {
+            Some((k, p)) if *k == key => p.clone(),
+            _ => {
+                stats.pieces += 1;
+                let mine: Vec<&OpeningSolid> = key.openings.iter().collect();
+                wall_pieces(w, &mine)
+            }
+        };
+        pieces_memo.insert(w.id, (key, w.pieces.clone()));
     }
+    memo.pieces = pieces_memo;
+
+    let mut regions = HashMap::new();
+    let mut regions_memo = HashMap::new();
+    let mut level_ids: Vec<ElementId> = walls.iter().map(|w| w.level).collect();
+    level_ids.sort();
+    level_ids.dedup();
+    for level in level_ids {
+        let key: Vec<(ElementId, Poly)> = walls
+            .iter()
+            .filter(|w| w.level == level)
+            .map(|w| (w.id, w.footprint.clone()))
+            .collect();
+        let union = match memo.regions.get(&level) {
+            Some((k, u)) if *k == key => u.clone(),
+            _ => {
+                stats.regions += 1;
+                union_all(&key.iter().map(|(_, p)| p.clone()).collect::<Vec<_>>())
+            }
+        };
+        regions.insert(level, union.clone());
+        regions_memo.insert(level, (key, union));
+    }
+    memo.regions = regions_memo;
 
     let slab = |cat: Category| -> Vec<SlabSolid> {
         doc.of(cat)
@@ -334,6 +583,84 @@ pub fn regenerate(doc: &Document) -> Model {
             .collect()
     };
 
+    let roofs = doc
+        .of(Category::Roof)
+        .filter_map(|e| match &e.data {
+            ElementData::Roof {
+                type_id,
+                level,
+                offset,
+                boundary,
+                slope,
+                sloped,
+            } => {
+                let thickness = match doc.data(*type_id).ok()? {
+                    ElementData::RoofType { thickness, .. } => *thickness,
+                    _ => return None,
+                };
+                Some(RoofSolid::build(
+                    e.id,
+                    *level,
+                    boundary,
+                    elev(*level) + offset,
+                    *slope,
+                    sloped,
+                    thickness,
+                ))
+            }
+            _ => None,
+        })
+        .collect();
+
+    let stairs = doc
+        .of(Category::Stair)
+        .filter_map(|e| match &e.data {
+            ElementData::Stair {
+                base_level,
+                top_level,
+                start,
+                end,
+                width,
+                tread,
+                max_riser,
+            } => {
+                let (z0, z1) = (elev(*base_level), elev(*top_level));
+                if z1 - z0 < 1.0 {
+                    return None;
+                }
+                let (risers, riser, _) =
+                    studio_core::build::stair_layout(z1 - z0, *tread, *max_riser);
+                let dir = end.sub(*start).norm();
+                let n = dir.perp().scale(width / 2.0);
+                let steps = (0..risers.saturating_sub(1))
+                    .map(|k| {
+                        let a = start.add(dir.scale(k as f64 * tread));
+                        let b = start.add(dir.scale((k + 1) as f64 * tread));
+                        Prism {
+                            base: Poly::simple(vec![a.sub(n), b.sub(n), b.add(n), a.add(n)]),
+                            z0,
+                            z1: z0 + (k + 1) as f64 * riser,
+                        }
+                    })
+                    .collect();
+                Some(StairSolid {
+                    id: e.id,
+                    base_level: *base_level,
+                    top_level: *top_level,
+                    start: *start,
+                    dir,
+                    width: *width,
+                    tread: *tread,
+                    risers,
+                    riser,
+                    z0,
+                    steps,
+                })
+            }
+            _ => None,
+        })
+        .collect();
+
     let grids = doc
         .of(Category::Grid)
         .filter_map(|e| match &e.data {
@@ -363,11 +690,22 @@ pub fn regenerate(doc: &Document) -> Model {
         walls,
         floors: slab(Category::Floor),
         ceilings: slab(Category::Ceiling),
+        roofs,
+        stairs,
         grids,
         levels,
+        regions,
     };
     model.rooms = resolve_rooms(doc, &model);
     model
+}
+
+fn footprint_of(k: &FootprintKey) -> Poly {
+    let h = k.thickness / 2.0;
+    let dir = k.end.sub(k.start).norm();
+    let (sl, sr) = end_corners(k.start, dir, h, k.at_start);
+    let (el, er) = end_corners(k.end, dir.scale(-1.0), h, k.at_end);
+    Poly::simple([sr, el, er, sl].map(snap).to_vec())
 }
 
 /// Rounds to a 0.0001 mm grid so corners shared by two walls, computed independently,
@@ -379,12 +717,13 @@ fn snap(p: Pt) -> Pt {
 
 fn resolve_openings(doc: &Document, walls: &[WallSolid]) -> Vec<OpeningSolid> {
     let get = |id: ElementId| doc.get(id).map(|e| &e.data);
+    let by_id: HashMap<ElementId, &WallSolid> = walls.iter().map(|w| (w.id, w)).collect();
     let mut out = vec![];
-    for e in doc.iter() {
+    for e in doc.of(Category::Door).chain(doc.of(Category::Window)) {
         let Some(fit) = studio_core::hosting::opening_fit(&get, &e.data) else {
             continue;
         };
-        let Some(w) = walls.iter().find(|w| w.id == fit.host) else {
+        let Some(w) = by_id.get(&fit.host) else {
             continue;
         };
         let (kind, flip_hand, flip_facing) = match (&e.data, e.data.type_id().and_then(&get)) {
@@ -417,6 +756,8 @@ fn resolve_openings(doc: &Document, walls: &[WallSolid]) -> Vec<OpeningSolid> {
             flip_facing,
         });
     }
+    // Id order, as a single pass over all elements would give.
+    out.sort_by_key(|o| o.id);
     out
 }
 
@@ -484,8 +825,6 @@ fn end_corners(p: Pt, u: Pt, h: f64, partner: Option<(Pt, f64)>) -> (Pt, Pt) {
 }
 
 fn resolve_rooms(doc: &Document, model: &Model) -> Vec<RoomInfo> {
-    let mut regions: std::collections::HashMap<ElementId, Vec<Poly>> =
-        std::collections::HashMap::new();
     doc.of(Category::Room)
         .filter_map(|e| match &e.data {
             ElementData::Room {
@@ -493,19 +832,17 @@ fn resolve_rooms(doc: &Document, model: &Model) -> Vec<RoomInfo> {
                 point,
                 name,
                 number,
-            } => {
-                let regs = regions
-                    .entry(*level)
-                    .or_insert_with(|| wall_regions(model, *level));
-                Some(RoomInfo {
-                    id: e.id,
-                    level: *level,
-                    name: name.clone(),
-                    number: number.clone(),
-                    point: *point,
-                    boundary: hole_containing(regs, *point),
-                })
-            }
+            } => Some(RoomInfo {
+                id: e.id,
+                level: *level,
+                name: name.clone(),
+                number: number.clone(),
+                point: *point,
+                boundary: model
+                    .regions
+                    .get(level)
+                    .and_then(|regs| hole_containing(regs, *point)),
+            }),
             _ => None,
         })
         .collect()
@@ -537,44 +874,27 @@ pub fn room_occupying(model: &Model, level: ElementId, pt: Pt) -> Option<&RoomIn
 
 /// Union of the footprints of walls based on `level`.
 pub fn wall_regions(model: &Model, level: ElementId) -> Vec<Poly> {
-    let polys: Vec<Poly> = model
-        .walls
-        .iter()
-        .filter(|w| w.level == level)
-        .map(|w| w.footprint.clone())
-        .collect();
-    union_all(&polys)
+    model.regions.get(&level).cloned().unwrap_or_default()
 }
 
 /// Outer boundary of the largest group of walls on `level` (exterior faces), for
-/// "floor by picking walls".
+/// "floor by picking walls" and "roof by footprint".
 pub fn outer_boundary(model: &Model, level: ElementId) -> Option<Vec<Pt>> {
-    wall_regions(model, level)
-        .into_iter()
+    model
+        .regions
+        .get(&level)?
+        .iter()
         .max_by(|a, b| {
             studio_geom::signed_area(&a.outer)
                 .abs()
                 .total_cmp(&studio_geom::signed_area(&b.outer).abs())
         })
-        .map(|p| p.outer)
+        .map(|p| p.outer.clone())
 }
 
 /// The enclosed room region (inside wall faces) containing `pt` on `level`.
 pub fn room_at(model: &Model, level: ElementId, pt: Pt) -> Option<Vec<Pt>> {
-    let mut best: Option<Vec<Pt>> = None;
-    for region in wall_regions(model, level) {
-        for hole in region.holes {
-            if studio_geom::point_in_ring(pt, &hole) {
-                let smaller = best.as_ref().is_none_or(|b| {
-                    studio_geom::signed_area(&hole).abs() < studio_geom::signed_area(b).abs()
-                });
-                if smaller {
-                    best = Some(hole);
-                }
-            }
-        }
-    }
-    best
+    hole_containing(model.regions.get(&level)?, pt)
 }
 
 /// Crate version from Cargo metadata.
@@ -792,5 +1112,140 @@ mod tests {
         assert!((m.floors[0].z1 - 0.0).abs() < EPS);
         assert!(m.floors[0].z0 < 0.0);
         assert!((m.ceilings[0].z0 - 9.0 * MM_PER_FT).abs() < EPS);
+    }
+
+    /// xorshift64*: deterministic pseudo-random numbers for property tests.
+    struct Rng(u64);
+    impl Rng {
+        fn next(&mut self) -> u64 {
+            self.0 ^= self.0 >> 12;
+            self.0 ^= self.0 << 25;
+            self.0 ^= self.0 >> 27;
+            self.0.wrapping_mul(0x2545_F491_4F6C_DD1D)
+        }
+        fn below(&mut self, n: usize) -> usize {
+            (self.next() % n as u64) as usize
+        }
+        fn range(&mut self, lo: f64, hi: f64) -> f64 {
+            lo + (self.next() % 10_000) as f64 / 10_000.0 * (hi - lo)
+        }
+    }
+
+    /// Property: after any sequence of edits, undos and redos, the incremental model
+    /// equals a model rebuilt from scratch.
+    #[test]
+    fn incremental_regeneration_matches_full_rebuild() {
+        for seed in 1..=12u64 {
+            let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15));
+            let (mut doc, l1, wt) = project();
+            let walls = rectangle(&mut doc, l1, wt);
+            ops::create_room(&mut doc, l1, Pt::new(1000.0, 1000.0)).unwrap();
+            let dt = ops::first_of(&doc, Category::DoorType).unwrap();
+            ops::create_door(&mut doc, dt, walls[0], 3000.0, false).unwrap();
+            for step in 0..25 {
+                let all: Vec<ElementId> = doc.of(Category::Wall).map(|e| e.id).collect();
+                let pick = |rng: &mut Rng| all[rng.below(all.len())];
+                let _ = match rng.below(8) {
+                    0 => {
+                        let a = Pt::new(rng.range(-3000.0, 15000.0), rng.range(-3000.0, 12000.0));
+                        let b = Pt::new(rng.range(-3000.0, 15000.0), rng.range(-3000.0, 12000.0));
+                        ops::create_wall(&mut doc, wt, l1, a, b).map(|_| ())
+                    }
+                    1 => studio_core::modify::move_elements(
+                        &mut doc,
+                        &[pick(&mut rng)],
+                        Pt::new(rng.range(-900.0, 900.0), rng.range(-900.0, 900.0)),
+                    ),
+                    2 if all.len() > 2 => ops::delete(&mut doc, &[pick(&mut rng)]).map(|_| ()),
+                    3 => ops::set_property(&mut doc, wt, "thickness", "10\"", 0),
+                    4 => doc.undo().map(|_| ()),
+                    5 => doc.redo().map(|_| ()),
+                    6 => ops::set_property(&mut doc, pick(&mut rng), "length", "14'", 0),
+                    _ => ops::create_room(
+                        &mut doc,
+                        l1,
+                        Pt::new(rng.range(0.0, 12000.0), rng.range(0.0, 9000.0)),
+                    )
+                    .map(|_| ()),
+                };
+                let inc = regenerate(&doc);
+                let full = regenerate_full(&doc);
+                assert!(*inc == full, "seed {seed}, step {step}: incremental ≠ full");
+            }
+        }
+    }
+
+    #[test]
+    fn unchanged_documents_come_from_cache_and_edits_redo_little() {
+        let (mut doc, l1, wt) = project();
+        let walls = rectangle(&mut doc, l1, wt);
+        // A separate wall on another part of the level, not joined to the rectangle.
+        let far = ops::create_wall(
+            &mut doc,
+            wt,
+            l1,
+            Pt::new(30000.0, 0.0),
+            Pt::new(35000.0, 0.0),
+        )
+        .unwrap();
+        let (a, _) = regenerate_with_stats(&doc);
+        let (b, again) = regenerate_with_stats(&doc);
+        assert!(Arc::ptr_eq(&a, &b), "same stamp → cached model");
+        assert!(again.footprints <= 5);
+        // Moving the free-standing wall recomputes only its own footprint and pieces.
+        studio_core::modify::move_elements(&mut doc, &[far], Pt::new(0.0, 1000.0)).unwrap();
+        let (_, s) = regenerate_with_stats(&doc);
+        assert_eq!((s.footprints, s.pieces, s.regions), (1, 1, 1));
+        // Moving a rectangle wall also re-miters the two walls it meets.
+        studio_core::modify::move_elements(&mut doc, &[walls[1]], Pt::new(600.0, 0.0)).unwrap();
+        let (_, s) = regenerate_with_stats(&doc);
+        assert_eq!(s.footprints, 3, "{s:?}");
+        // Undo returns to a state regenerated before: nothing is recomputed from scratch
+        // beyond what differs from the latest state.
+        doc.undo().unwrap();
+        let (m, _) = regenerate_with_stats(&doc);
+        assert!(*m == regenerate_full(&doc));
+    }
+
+    #[test]
+    fn roofs_stairs_and_layers_are_regenerated() {
+        let (mut doc, l1, wt) = project();
+        rectangle(&mut doc, l1, wt);
+        let m = regenerate(&doc);
+        let outer = outer_boundary(&m, l1).unwrap();
+        let rt = studio_core::build::default_roof_type(&doc).unwrap();
+        let l2 = doc.levels()[1].0;
+        studio_core::build::create_roof(
+            &mut doc,
+            rt,
+            l2,
+            0.0,
+            outer,
+            studio_core::build::DEFAULT_ROOF_SLOPE,
+        )
+        .unwrap();
+        studio_core::build::create_stair(
+            &mut doc,
+            l1,
+            Pt::new(1000.0, 1000.0),
+            Pt::new(1000.0, 5000.0),
+            studio_core::build::DEFAULT_STAIR_WIDTH,
+        )
+        .unwrap();
+        let m = regenerate(&doc);
+        assert_eq!(m.roofs.len(), 1);
+        assert_eq!(m.roofs[0].faces.len(), 4);
+        let s = &m.stairs[0];
+        assert_eq!(s.risers, 18);
+        assert_eq!(s.steps.len(), 17);
+        assert!((s.steps[16].z1 - (s.z1() - s.riser)).abs() < EPS);
+        assert!((s.z1() - 10.0 * MM_PER_FT).abs() < EPS);
+        // The exterior type has four layers → three boundaries inside the wall.
+        assert_eq!(m.walls[0].layers.len(), 3);
+        let (_, hi) = m.z_range();
+        assert!(
+            hi > 10.0 * MM_PER_FT + 1000.0,
+            "roof peak counts in the height range"
+        );
     }
 }

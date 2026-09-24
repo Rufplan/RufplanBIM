@@ -6,8 +6,8 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Anchor, Category, Compass, DoorFamily, ElementData, ElementId, RufplanLink, ScheduleKind,
-    SheetSize, StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
+    Anchor, Category, Compass, CropBox, DoorFamily, ElementData, ElementId, RufplanLink,
+    ScheduleKind, SheetSize, StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -66,6 +66,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
                 name: name.into(),
                 thickness: t * MM_PER_IN,
                 function: f,
+                layers: crate::compound::default_layers(name),
             });
         }
         for (name, t) in [
@@ -90,18 +91,11 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             (Compass::East, "East"),
             (Compass::West, "West"),
         ] {
-            tx.insert(ElementData::View {
-                name: name.into(),
-                kind: ViewKind::Elevation { facing },
-                scale: 96,
-            });
+            tx.insert(ElementData::view(name, ViewKind::Elevation { facing }, 96));
         }
-        tx.insert(ElementData::View {
-            name: "{3D}".into(),
-            kind: ViewKind::ThreeD,
-            scale: 96,
-        });
+        tx.insert(ElementData::view("{3D}", ViewKind::ThreeD, 96));
         seed_schedules(tx);
+        crate::build::seed_roof_types(tx);
         let mut sd = None;
         for (i, (name, abbr)) in DEFAULT_STAGES.iter().enumerate() {
             let id = tx.insert(ElementData::Stage {
@@ -123,6 +117,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             current_stage: sd,
             stage_history: vec![],
             rufplan: None,
+            param_defs: vec![],
         });
         Ok(())
     })
@@ -200,11 +195,11 @@ const SCHEDULES: &[(ScheduleKind, &str)] = &[
 
 fn seed_schedules(tx: &mut Tx<'_>) {
     for (kind, name) in SCHEDULES {
-        tx.insert(ElementData::View {
-            name: (*name).into(),
-            kind: ViewKind::Schedule { kind: *kind },
-            scale: 1,
-        });
+        tx.insert(ElementData::view(
+            *name,
+            ViewKind::Schedule { kind: *kind },
+            1,
+        ));
     }
 }
 
@@ -250,15 +245,15 @@ pub fn create_section(doc: &mut Document, start: Pt, end: Pt) -> CoreResult<Elem
         .count()
         + 1;
     doc.transact("Create section", |tx| {
-        Ok(tx.insert(ElementData::View {
-            name: format!("Section {n}"),
-            kind: ViewKind::Section {
+        Ok(tx.insert(ElementData::view(
+            format!("Section {n}"),
+            ViewKind::Section {
                 start,
                 end,
                 depth: DEFAULT_SECTION_DEPTH,
             },
-            scale: 48,
-        }))
+            48,
+        )))
     })
 }
 
@@ -615,16 +610,16 @@ fn add_level(tx: &mut Tx<'_>, name: &str, elevation: f64) -> ElementId {
         name: name.into(),
         elevation,
     });
-    tx.insert(ElementData::View {
-        name: name.into(),
-        kind: ViewKind::FloorPlan { level: id },
-        scale: 48,
-    });
-    tx.insert(ElementData::View {
-        name: name.into(),
-        kind: ViewKind::CeilingPlan { level: id },
-        scale: 48,
-    });
+    tx.insert(ElementData::view(
+        name,
+        ViewKind::FloorPlan { level: id },
+        48,
+    ));
+    tx.insert(ElementData::view(
+        name,
+        ViewKind::CeilingPlan { level: id },
+        48,
+    ));
     id
 }
 
@@ -770,7 +765,7 @@ pub fn create_ceiling(
 }
 
 /// Next free numeric mark in a category ("1", "2", …).
-fn next_mark(doc: &Document, cat: Category) -> String {
+pub(crate) fn next_mark(doc: &Document, cat: Category) -> String {
     let max = doc
         .of(cat)
         .filter_map(|e| match &e.data {
@@ -830,7 +825,7 @@ fn plan_views_of(tx: &Tx<'_>, level: ElementId) -> Vec<ElementId> {
 }
 
 /// Revit-style "tag on placement": a tag in every floor plan of the target's level.
-fn tag_in_plans(tx: &mut Tx<'_>, target: ElementId) {
+pub(crate) fn tag_in_plans(tx: &mut Tx<'_>, target: ElementId) {
     let Some(level) = target_level(tx, target) else {
         return;
     };
@@ -957,7 +952,7 @@ pub fn create_window(
     })
 }
 
-fn ccw(mut ring: Vec<Pt>) -> Vec<Pt> {
+pub(crate) fn ccw(mut ring: Vec<Pt>) -> Vec<Pt> {
     if studio_geom::signed_area(&ring) < 0.0 {
         ring.reverse();
     }
@@ -1058,6 +1053,8 @@ pub enum PropKind {
     Text,
     Choice,
     ReadOnly,
+    /// A button: setting the property (to any value) performs the action.
+    Action,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -1091,7 +1088,7 @@ pub struct PropertySheet {
     pub properties: Vec<Property>,
 }
 
-fn p(key: &str, label: &str, group: &str, value: String, kind: PropKind) -> Property {
+pub(crate) fn p(key: &str, label: &str, group: &str, value: String, kind: PropKind) -> Property {
     Property {
         key: key.into(),
         label: label.into(),
@@ -1102,19 +1099,19 @@ fn p(key: &str, label: &str, group: &str, value: String, kind: PropKind) -> Prop
     }
 }
 
-fn len(key: &str, label: &str, group: &str, mm: f64) -> Property {
+pub(crate) fn len(key: &str, label: &str, group: &str, mm: f64) -> Property {
     p(key, label, group, format_ft_in(mm), PropKind::Length)
 }
 
-fn text(key: &str, label: &str, group: &str, v: &str) -> Property {
+pub(crate) fn text(key: &str, label: &str, group: &str, v: &str) -> Property {
     p(key, label, group, v.to_owned(), PropKind::Text)
 }
 
-fn ro(key: &str, label: &str, group: &str, v: String) -> Property {
+pub(crate) fn ro(key: &str, label: &str, group: &str, v: String) -> Property {
     p(key, label, group, v, PropKind::ReadOnly)
 }
 
-fn choice(
+pub(crate) fn choice(
     key: &str,
     label: &str,
     group: &str,
@@ -1127,7 +1124,7 @@ fn choice(
     }
 }
 
-fn options_of(doc: &Document, cat: Category) -> Vec<PropOption> {
+pub(crate) fn options_of(doc: &Document, cat: Category) -> Vec<PropOption> {
     let mut v: Vec<PropOption> = doc
         .of(cat)
         .map(|e| PropOption {
@@ -1171,9 +1168,11 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             name,
             thickness,
             function,
+            layers,
         } => {
             props.push(text("name", "Type Name", "Identity Data", name));
             props.push(len("thickness", "Width", "Construction", *thickness));
+            crate::compound::layer_properties(layers, &mut props);
             props.push(choice(
                 "function",
                 "Function",
@@ -1298,7 +1297,13 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 format_area_sf(studio_geom::signed_area(boundary).abs()),
             ));
         }
-        ElementData::View { name, kind, scale } => {
+        ElementData::View {
+            name,
+            kind,
+            scale,
+            crop,
+            show_crop,
+        } => {
             props.push(text("name", "View Name", "Identity Data", name));
             // Schedules have no drawing scale.
             if !matches!(kind, ViewKind::Schedule { .. }) {
@@ -1327,6 +1332,21 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             if let ViewKind::Section { depth, .. } = kind {
                 props.push(len("depth", "Far Clip Offset", "Extents", *depth));
             }
+            if matches!(
+                kind,
+                ViewKind::FloorPlan { .. }
+                    | ViewKind::CeilingPlan { .. }
+                    | ViewKind::Elevation { .. }
+                    | ViewKind::Section { .. }
+            ) {
+                props.push(flag("crop", "Crop View", "Extents", crop.is_some()));
+                props.push(flag(
+                    "show_crop",
+                    "Crop Region Visible",
+                    "Extents",
+                    *show_crop,
+                ));
+            }
             props.push(ro("kind", "View Type", "Identity Data", kind_label.into()));
             if let Some(l) = el.data.level() {
                 props.push(ro(
@@ -1345,8 +1365,30 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             current_stage,
             stage_history,
             rufplan,
+            param_defs,
         } => {
             props.push(text("name", "Project Name", "Project", name));
+            for d in param_defs {
+                props.push(ro(
+                    &format!("def:{}", d.key),
+                    &d.label,
+                    "Project Parameters",
+                    format!(
+                        "{} · {} · {}",
+                        d.kind.label(),
+                        if d.scope == crate::params::ParamScope::Type {
+                            "Type"
+                        } else {
+                            "Instance"
+                        },
+                        d.categories
+                            .iter()
+                            .map(|c| category_label(*c))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                ));
+            }
             props.push(text("number", "Project Number", "Project", number));
             props.push(text("client", "Client Name", "Project", client));
             props.push(text("address", "Project Address", "Project", address));
@@ -1633,7 +1675,11 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 target,
             ));
         }
+        ElementData::Roof { .. } | ElementData::RoofType { .. } | ElementData::Stair { .. } => {
+            crate::build::properties(doc, id, &mut props);
+        }
     }
+    crate::params::param_properties(doc, id, &mut props);
     Ok(PropertySheet {
         id,
         category: el.category(),
@@ -1643,12 +1689,12 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
     })
 }
 
-fn parse_len(v: &str) -> CoreResult<f64> {
+pub(crate) fn parse_len(v: &str) -> CoreResult<f64> {
     parse_length(v)
         .ok_or_else(|| CoreError::Invalid(format!("\"{v}\" is not a length (try 10'-6\")")))
 }
 
-fn parse_id(v: &str) -> CoreResult<ElementId> {
+pub(crate) fn parse_id(v: &str) -> CoreResult<ElementId> {
     v.parse()
         .map_err(|_| CoreError::Invalid(format!("\"{v}\" is not an element id")))
 }
@@ -1664,6 +1710,15 @@ pub fn set_property(
     let data = doc.data(id)?.clone();
     if let (ElementData::ProjectInfo { .. }, "current_stage") = (&data, key) {
         return set_current_stage(doc, parse_id(value)?, "", now_ms);
+    }
+    if let Some(pkey) = key.strip_prefix("param:") {
+        return crate::params::set_value(doc, id, pkey, value);
+    }
+    if matches!(
+        data,
+        ElementData::Roof { .. } | ElementData::RoofType { .. } | ElementData::Stair { .. }
+    ) {
+        return crate::build::set_property(doc, id, key, value);
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -1681,9 +1736,20 @@ pub fn set_property(
             name,
             thickness,
             function,
+            layers,
         } => match key {
+            k if k.starts_with("layer") => {
+                crate::compound::set_layer_property(layers, *thickness, k, value)?;
+                if !layers.is_empty() {
+                    *thickness = layers.iter().map(|l| l.thickness).sum();
+                }
+            }
             "name" => *name = non_empty(value)?,
-            "thickness" => *thickness = positive(parse_len(value)?)?,
+            "thickness" => {
+                let w = positive(parse_len(value)?)?;
+                crate::compound::resize_structure(layers, w)?;
+                *thickness = w;
+            }
             "function" => {
                 *function = if value == "Exterior" {
                     WallFunction::Exterior
@@ -1761,8 +1827,25 @@ pub fn set_property(
             "height" => *height = parse_len(value)?,
             _ => return Err(unknown()),
         },
-        ElementData::View { name, scale, kind } => match key {
+        ElementData::View {
+            name,
+            scale,
+            kind,
+            crop,
+            show_crop,
+        } => match key {
             "name" => *name = non_empty(value)?,
+            "crop" => {
+                *crop = if value == "yes" {
+                    Some(crop.unwrap_or(CropBox {
+                        min: Pt::new(-1.0e5, -1.0e5),
+                        max: Pt::new(1.0e5, 1.0e5),
+                    }))
+                } else {
+                    None
+                };
+            }
+            "show_crop" => *show_crop = value == "yes",
             "depth" => {
                 if let ViewKind::Section { depth, .. } = kind {
                     *depth = positive(parse_len(value)?)?;
@@ -1899,6 +1982,9 @@ pub fn set_property(
             "target" => *target = date(value)?,
             _ => return Err(unknown()),
         },
+        ElementData::Roof { .. } | ElementData::RoofType { .. } | ElementData::Stair { .. } => {
+            return Err(unknown())
+        }
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {
@@ -1953,7 +2039,43 @@ fn yes_no(b: bool) -> String {
     }
 }
 
-fn yes_no_options() -> Vec<PropOption> {
+/// A Yes/No property.
+pub(crate) fn flag(key: &str, label: &str, group: &str, b: bool) -> Property {
+    choice(key, label, group, yes_no(b), yes_no_options())
+}
+
+/// Plural display name of an instance category, for parameter and filter lists.
+pub fn category_label(c: Category) -> &'static str {
+    match c {
+        Category::Wall => "Walls",
+        Category::Door => "Doors",
+        Category::Window => "Windows",
+        Category::Room => "Rooms",
+        Category::Floor => "Floors",
+        Category::Ceiling => "Ceilings",
+        Category::Roof => "Roofs",
+        Category::Stair => "Stairs",
+        Category::Sheet => "Sheets",
+        Category::Grid => "Grids",
+        Category::Level => "Levels",
+        other => other.as_str(),
+    }
+}
+
+/// Instance categories that project parameters can apply to.
+pub const PARAM_CATEGORIES: [Category; 9] = [
+    Category::Wall,
+    Category::Door,
+    Category::Window,
+    Category::Room,
+    Category::Floor,
+    Category::Ceiling,
+    Category::Roof,
+    Category::Stair,
+    Category::Sheet,
+];
+
+pub(crate) fn yes_no_options() -> Vec<PropOption> {
     vec![
         PropOption {
             id: "no".into(),
@@ -1983,7 +2105,7 @@ fn host_label(doc: &Document, host: ElementId) -> String {
     format!("{ty}{len}")
 }
 
-fn non_empty(v: &str) -> CoreResult<String> {
+pub(crate) fn non_empty(v: &str) -> CoreResult<String> {
     let t = v.trim();
     if t.is_empty() {
         Err(CoreError::Invalid("name can't be empty".into()))
@@ -1992,7 +2114,7 @@ fn non_empty(v: &str) -> CoreResult<String> {
     }
 }
 
-fn positive(v: f64) -> CoreResult<f64> {
+pub(crate) fn positive(v: f64) -> CoreResult<f64> {
     if v > 0.0 {
         Ok(v)
     } else {

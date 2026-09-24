@@ -9,7 +9,7 @@ import ifcopenshell
 import ifcopenshell.validate
 
 EXPECTED = {
-    "IfcBuildingStorey": 2,
+    "IfcBuildingStorey": 3,
     "IfcWall": 11,
     "IfcDoor": 3,
     "IfcWindow": 12,
@@ -17,6 +17,9 @@ EXPECTED = {
     "IfcSlab": 2,
     "IfcCovering": 3,
     "IfcSpace": 5,
+    "IfcRoof": 1,
+    "IfcStair": 1,
+    "IfcMaterialLayerSet": 2,
 }
 
 

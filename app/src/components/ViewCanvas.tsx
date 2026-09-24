@@ -3,25 +3,40 @@ import {
   errorMessage,
   ipc,
   type DisplayList,
+  type ElementId,
+  type Handles,
   type OpeningPreview,
   type Pt,
+  type RefLine,
   type SnapResult,
   type ViewInfo,
 } from "../ipc";
 import { apply } from "../fileActions";
-import { useAppStore } from "../store";
+import { SELECTION_TOOLS, useAppStore } from "../store";
 import {
   THEME,
   draw,
+  drawGrips,
   drawOverlay,
   drawPreview,
+  drawRefLine,
+  drawTempDims,
   fit,
+  tempDimBox,
   toModel,
   toScreen,
   zoomAt,
   type Camera,
 } from "../canvas/render";
-import { closesSketch, promptFor, samePt, toolAllowed } from "../tools";
+import {
+  closesSketch,
+  pointAtLength,
+  promptFor,
+  samePt,
+  startsTypedValue,
+  sweep,
+  toolAllowed,
+} from "../tools";
 
 // Cameras survive tab switches.
 const cameras = new Map<string, Camera>();
@@ -54,6 +69,22 @@ function useLatest<A extends unknown[]>(fn: (...args: A) => Promise<void>) {
   }, []);
 }
 
+/** Tools whose next point can be typed as a distance (or, for Rotate, an angle). */
+const TYPED_TOOLS = ["wall", "grid", "move", "copy", "array", "rotate", "stair"];
+
+interface Editor {
+  /** Typing a length (or angle) for the next point, or a temporary dimension's value. */
+  kind: "typed" | "dim";
+  /** The tool it was opened for; switching tools hides it. */
+  tool: string;
+  text: string;
+  x: number;
+  y: number;
+  /** For temporary dimensions: what the value sets. */
+  id?: ElementId;
+  key?: string;
+}
+
 export function ViewCanvas({ view }: { view: ViewInfo }) {
   const revision = useAppStore((s) => s.app?.revision ?? 0);
   const tool = useAppStore((s) => s.tool);
@@ -62,10 +93,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dl, setDl] = useState<DisplayList | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [editor, setEditor] = useState<Editor | null>(null);
   const cam = useRef<Camera | null>(cameras.get(view.id) ?? null);
   const pts = useRef<Pt[]>([]);
   const snapRef = useRef<SnapResult | null>(null);
-  // Placement preview from Rust (door, window or room), drawn at the cursor.
+  // Placement preview from Rust (door, window, room, offset), drawn at the cursor.
   const preview = useRef<{
     items: OpeningPreview["items"];
     valid: boolean;
@@ -74,6 +106,13 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   } | null>(null);
   const hover = useRef<string | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; button: number } | null>(null);
+  // Grips and temporary dimensions of the selection, and a grip being dragged.
+  const handles = useRef<Handles | null>(null);
+  const hoverGrip = useRef<number | null>(null);
+  const gripDrag = useRef<{ index: number; to: Pt | null } | null>(null);
+  // Align's reference line and Trim's first wall.
+  const refLine = useRef<RefLine | null>(null);
+  const firstPick = useRef<{ id: ElementId; at: Pt } | null>(null);
   const frame = useRef(0);
   const redrawRef = useRef<() => void>(() => {});
 
@@ -88,11 +127,35 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const s = useAppStore.getState();
       draw(ctx, dl, cam.current, w, h, { selected: new Set(s.selection), hover: hover.current });
-      // Placing with a Rust-computed preview: openings, rooms, and a dimension's final click.
+      const hd = handles.current;
+      if (s.tool === "select" && hd) {
+        drawTempDims(ctx, cam.current, w, h, gripDrag.current ? [] : hd.dims);
+        drawGrips(ctx, cam.current, w, h, hd.grips, hoverGrip.current);
+        const g = gripDrag.current;
+        const grip = g ? hd.grips[g.index] : undefined;
+        if (g?.to && grip) {
+          drawOverlay(
+            ctx,
+            cam.current,
+            w,
+            h,
+            grip.anchor ? [grip.anchor] : [],
+            g.to,
+            snapRef.current?.kind ?? null,
+            snapRef.current?.label ?? null,
+            false,
+          );
+        }
+      }
+      if (refLine.current) {
+        drawRefLine(ctx, cam.current, w, h, refLine.current.a, refLine.current.b);
+      }
+      // Placing with a Rust-computed preview: openings, rooms, offsets, a dimension's line.
       const placing =
         s.tool === "door" ||
         s.tool === "window" ||
         s.tool === "room" ||
+        s.tool === "offset" ||
         (s.tool === "dimension" && pts.current.length === 2);
       if (placing && preview.current) {
         const { items, valid, label, at } = preview.current;
@@ -101,6 +164,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
         const sn = snapRef.current;
+        // A rubber band from the placed points (Rotate: center and reference ray).
         drawOverlay(
           ctx,
           cam.current,
@@ -131,6 +195,27 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     };
   }, [view.id, revision]);
 
+  // Grips and temporary dimensions follow the selection (and the model).
+  useEffect(() => {
+    let live = true;
+    if (tool !== "select" || selection.length === 0) {
+      handles.current = null;
+      redrawRef.current();
+      return;
+    }
+    ipc.handles(view.id, selection).then(
+      (h) => {
+        if (!live) return;
+        handles.current = h;
+        redrawRef.current();
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [view.id, selection, revision, tool]);
+
   // Track canvas size.
   useEffect(() => {
     const el = wrapRef.current;
@@ -158,15 +243,26 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
 
   useEffect(redraw, [selection, redraw]);
 
-  // Tool changes reset the sketch and prompt. (Not on redraw changes: new display lists
-  // arrive after every edit, and a wall chain must survive them.)
-  useEffect(() => {
+  const resetRefs = useCallback(() => {
     pts.current = [];
     snapRef.current = null;
     preview.current = null;
+    refLine.current = null;
+    firstPick.current = null;
+  }, []);
+  const resetTool = useCallback(() => {
+    resetRefs();
+    setEditor(null);
+  }, [resetRefs]);
+
+  // Tool changes reset the sketch and prompt. (Not on redraw changes: new display lists
+  // arrive after every edit, and a wall chain must survive them.)
+  // (An open typed-value box belongs to the tool that opened it; see `editor.tool`.)
+  useEffect(() => {
+    resetRefs();
     useAppStore.getState().setPrompt(promptFor(tool, 0, view.viewType));
     redrawRef.current();
-  }, [tool, view.viewType]);
+  }, [tool, view.viewType, resetRefs]);
 
   const setCam = (c: Camera) => {
     cam.current = c;
@@ -182,6 +278,28 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const modelAt = (sx: number, sy: number) =>
     cam.current ? toModel(cam.current, size.w, size.h, sx, sy) : { x: 0, y: 0 };
 
+  /** Index of the grip under a screen point, if any. */
+  const gripAt = (sx: number, sy: number): number | null => {
+    const g = handles.current?.grips ?? [];
+    if (!cam.current || useAppStore.getState().tool !== "select") return null;
+    for (let i = 0; i < g.length; i++) {
+      const [gx, gy] = toScreen(cam.current, size.w, size.h, g[i]!.at.x, g[i]!.at.y);
+      if (Math.abs(gx - sx) <= 7 && Math.abs(gy - sy) <= 7) return i;
+    }
+    return null;
+  };
+
+  /** The temporary dimension whose value box is under a screen point, if any. */
+  const tempDimAt = (sx: number, sy: number) => {
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx || !cam.current) return null;
+    for (const d of handles.current?.dims ?? []) {
+      const [bx, by, bw, bh] = tempDimBox(ctx, cam.current, size.w, size.h, d.labelAt, d.value);
+      if (sx >= bx && sx <= bx + bw && sy >= by && sy <= by + bh) return { d, bx, by };
+    }
+    return null;
+  };
+
   const hoverPick = useLatest(async (p: Pt, tol: number) => {
     const id = await ipc.pick(view.id, p, tol);
     if (id !== hover.current) {
@@ -191,8 +309,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   });
 
   const snapAt = useLatest(async (p: Pt, tol: number) => {
-    const from = pts.current[pts.current.length - 1] ?? null;
+    const g = gripDrag.current;
+    const grip = g ? handles.current?.grips[g.index] : undefined;
+    const from = grip ? (grip.anchor ?? null) : (pts.current[pts.current.length - 1] ?? null);
     snapRef.current = await ipc.snap(view.id, p, from, tol);
+    if (g) g.to = snapRef.current.pt;
     redraw();
   });
 
@@ -209,6 +330,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     if (s.tool === "room") {
       const r = await ipc.roomPreview(view.id, p);
       preview.current = r ? { ...r, at: p } : null;
+    } else if (s.tool === "offset") {
+      const o = await ipc.offsetPreview(view.id, p, tol, s.options.offsetDistance);
+      preview.current = o
+        ? { items: o.items, valid: true, label: s.options.offsetDistance, at: p }
+        : null;
     } else {
       const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
       const o = typeId ? await ipc.openingPreview(view.id, typeId, p, tol) : null;
@@ -241,15 +367,17 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
 
   const cancelSketch = useCallback(() => {
     const s = useAppStore.getState();
-    if (pts.current.length === 0 && s.tool !== "select") s.setTool("select");
-    else if (pts.current.length === 0) s.select([]);
-    pts.current = [];
-    snapRef.current = null;
+    if (pts.current.length === 0 && !refLine.current && !firstPick.current) {
+      if (s.tool !== "select") s.setTool("select");
+      else s.select([]);
+    }
+    resetTool();
     s.setPrompt(promptFor(useAppStore.getState().tool, 0, view.viewType));
     redraw();
-  }, [view.viewType, redraw]);
+  }, [view.viewType, redraw, resetTool]);
 
-  // Keyboard events from App (Esc / Enter) reach the active canvas through window events.
+  // Keyboard events from App (Esc / Enter / typed values) reach the active canvas
+  // through window events.
   useEffect(() => {
     const onCancel = () => {
       const s = useAppStore.getState();
@@ -262,15 +390,154 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     };
     const onFinish = () => void finishSketch();
     const onFit = () => dl && size.w && setCam(fit(dl.bounds, size.w, size.h));
+    const onTyped = (e: Event) => {
+      const key = (e as CustomEvent<string>).detail;
+      const s = useAppStore.getState();
+      const hasBase = pts.current.length > 0 && (s.tool !== "rotate" || pts.current.length === 2);
+      if (!TYPED_TOOLS.includes(s.tool) || !hasBase || !startsTypedValue(key)) return;
+      const sn = snapRef.current?.pt;
+      const at = sn && cam.current ? toScreen(cam.current, size.w, size.h, sn.x, sn.y) : null;
+      setEditor({
+        kind: "typed",
+        tool: s.tool,
+        text: key,
+        x: at ? at[0] + 16 : size.w / 2,
+        y: at ? at[1] - 34 : size.h / 2,
+      });
+    };
     window.addEventListener("tool-cancel", onCancel);
     window.addEventListener("tool-finish", onFinish);
     window.addEventListener("view-fit", onFit);
+    window.addEventListener("typed-value", onTyped);
     return () => {
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("tool-finish", onFinish);
       window.removeEventListener("view-fit", onFit);
+      window.removeEventListener("typed-value", onTyped);
     };
   });
+
+  /** Places the tool's next point at `p` (already snapped or typed). */
+  async function placePoint(p: Pt, raw: Pt) {
+    const s = useAppStore.getState();
+    const from = pts.current[pts.current.length - 1] ?? null;
+    const selection = s.selection;
+    const needSelection = () => {
+      s.setError(
+        `Select what to ${s.tool} first, then choose ${s.tool[0]!.toUpperCase()}${s.tool.slice(1)}.`,
+      );
+    };
+    const done = (ok: boolean, keepTool = false) => {
+      pts.current = [];
+      snapRef.current = null;
+      if (ok && !keepTool) s.setTool("select");
+    };
+    switch (s.tool) {
+      case "move":
+      case "copy":
+      case "array": {
+        if (selection.length === 0) needSelection();
+        else if (!from) pts.current = [p];
+        else if (!samePt(from, p)) {
+          const delta = { x: p.x - from.x, y: p.y - from.y };
+          if (s.tool === "move") {
+            done(await apply(() => ipc.moveElements(selection, delta)));
+          } else if (s.tool === "array") {
+            const n = Math.max(2, Math.round(s.options.arrayCount));
+            done(await apply(() => ipc.copyElements(selection, delta, n - 1)));
+          } else {
+            const ok = await apply(() => ipc.copyElements(selection, delta, 1));
+            if (s.options.copyMultiple) pts.current = [from];
+            else done(ok);
+          }
+        }
+        break;
+      }
+      case "rotate": {
+        if (selection.length === 0) needSelection();
+        else if (pts.current.length < 2) {
+          if (!from || !samePt(from, p)) pts.current = [...pts.current, p];
+        } else {
+          const [c, r] = pts.current as [Pt, Pt];
+          const angle = sweep(c, r, p);
+          done(await apply(() => ipc.rotateElements(selection, c, angle, s.options.rotateCopy)));
+        }
+        break;
+      }
+      case "mirror": {
+        if (selection.length === 0) needSelection();
+        else if (!from) pts.current = [p];
+        else if (!samePt(from, p)) {
+          done(await apply(() => ipc.mirrorElements(selection, from, p, s.options.mirrorCopy)));
+        }
+        break;
+      }
+      case "stair": {
+        if (!from) pts.current = [p];
+        else if (!samePt(from, p)) {
+          pts.current = [];
+          await apply(() => ipc.createStair(view.id, from, p));
+        }
+        break;
+      }
+      case "wall": {
+        if (from && !samePt(from, p) && s.toolTypes.wall) {
+          const ok = await apply(() => ipc.createWall(view.id, s.toolTypes.wall!, from, p));
+          pts.current = ok ? [p] : pts.current;
+        } else if (!from) {
+          pts.current = [p];
+        }
+        break;
+      }
+      case "grid": {
+        if (from && !samePt(from, p)) {
+          await apply(() => ipc.createGrid(from, p));
+          pts.current = [];
+        } else {
+          pts.current = [p];
+        }
+        break;
+      }
+      default:
+        void raw;
+    }
+    s.setPrompt(promptFor(useAppStore.getState().tool, pts.current.length, view.viewType));
+    redraw();
+  }
+
+  /** Commits the typed length (or Rotate angle) as the next point. */
+  async function commitTyped(text: string) {
+    setEditor(null);
+    const s = useAppStore.getState();
+    const from = pts.current[pts.current.length - 1];
+    const toward = snapRef.current?.pt;
+    if (!from || !toward) return;
+    if (s.tool === "rotate" && pts.current.length === 2) {
+      const deg = Number(text.replace("°", ""));
+      if (!Number.isFinite(deg)) {
+        s.setError(`"${text}" is not an angle in degrees.`);
+        return;
+      }
+      const [c] = pts.current as [Pt, Pt];
+      const angle = (deg * Math.PI) / 180;
+      pts.current = [];
+      if (await apply(() => ipc.rotateElements(s.selection, c, angle, s.options.rotateCopy)))
+        s.setTool("select");
+      return;
+    }
+    const mm = await ipc.parseLength(text);
+    if (mm === null) {
+      s.setError(`"${text}" is not a length (try 12'-6" or 3.5').`);
+      return;
+    }
+    const p = pointAtLength(from, toward, mm);
+    if (p) await placePoint(p, p);
+  }
+
+  async function commitTempDim(e: Editor) {
+    setEditor(null);
+    if (e.id && e.key) await apply(() => ipc.setTempDimension(e.id!, e.key!, e.text));
+  }
 
   async function click(sx: number, sy: number, shift: boolean) {
     const s = useAppStore.getState();
@@ -278,6 +545,19 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     const raw = modelAt(sx, sy);
     const tol = 12 / cam.current.zoom;
     if (s.tool === "select") {
+      const td = tempDimAt(sx, sy);
+      if (td) {
+        setEditor({
+          kind: "dim",
+          tool: s.tool,
+          text: td.d.value,
+          x: td.bx,
+          y: td.by,
+          id: td.d.id,
+          key: td.d.key,
+        });
+        return;
+      }
       const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
       if (!id) s.select(shift ? s.selection : []);
       else if (shift)
@@ -305,6 +585,53 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       if (r?.valid) await apply(() => ipc.createRoom(view.id, raw));
       else if (r) s.setError(r.label);
       preview.current = null;
+      redraw();
+      return;
+    }
+    if (s.tool === "offset") {
+      await apply(() => ipc.offsetElement(view.id, raw, tol, s.options.offsetDistance));
+      preview.current = null;
+      redraw();
+      return;
+    }
+    if (s.tool === "roof") {
+      await apply(() => ipc.createRoof(view.id, s.toolTypes.roof));
+      return;
+    }
+    if (s.tool === "align") {
+      if (!refLine.current) {
+        refLine.current = await ipc.refLine(view.id, raw, tol, null);
+        if (!refLine.current) s.setError("Click on a wall face, a wall centerline or a grid.");
+      } else {
+        const reference = refLine.current;
+        const refPt = {
+          x: (reference.a.x + reference.b.x) / 2,
+          y: (reference.a.y + reference.b.y) / 2,
+        };
+        refLine.current = null;
+        await apply(() => ipc.align(view.id, refPt, raw, tol));
+      }
+      s.setPrompt(promptFor(s.tool, refLine.current ? 1 : 0, view.viewType));
+      redraw();
+      return;
+    }
+    if (s.tool === "trim" || s.tool === "split") {
+      const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
+      if (!id) {
+        s.setError("Click on a wall.");
+        return;
+      }
+      if (s.tool === "split") {
+        const p = (await ipc.snap(view.id, raw, null, tol)).pt;
+        await apply(() => ipc.splitWall(id, p));
+      } else if (!firstPick.current) {
+        firstPick.current = { id, at: raw };
+      } else {
+        const a = firstPick.current;
+        firstPick.current = null;
+        await apply(() => ipc.trimExtend(a.id, a.at, id, raw));
+      }
+      s.setPrompt(promptFor(s.tool, firstPick.current ? 1 : 0, view.viewType));
       redraw();
       return;
     }
@@ -340,41 +667,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       redraw();
       return;
     }
-    if (s.tool === "move") {
-      const selection = s.selection;
-      if (selection.length === 0) {
-        s.setError("Select what to move first, then choose Move.");
-      } else if (!from) {
-        pts.current = [p];
-      } else {
-        const delta = { x: p.x - from.x, y: p.y - from.y };
-        pts.current = [];
-        snapRef.current = null;
-        if (await apply(() => ipc.moveElements(selection, delta))) s.setTool("select");
-      }
-      s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
-      redraw();
+    if (SELECTION_TOOLS.includes(s.tool) || ["wall", "grid", "stair"].includes(s.tool)) {
+      await placePoint(p, raw);
       return;
     }
     switch (s.tool) {
-      case "wall": {
-        if (from && !samePt(from, p) && s.toolTypes.wall) {
-          const ok = await apply(() => ipc.createWall(view.id, s.toolTypes.wall!, from, p));
-          pts.current = ok ? [p] : pts.current;
-        } else if (!from) {
-          pts.current = [p];
-        }
-        break;
-      }
-      case "grid": {
-        if (from && !samePt(from, p)) {
-          await apply(() => ipc.createGrid(from, p));
-          pts.current = [];
-        } else {
-          pts.current = [p];
-        }
-        break;
-      }
       case "floor":
       case "ceiling": {
         const first = pts.current[0];
@@ -415,7 +712,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     const asView = s.app.views.find((v) => v.id === id);
     const levelPlan = s.app.views.find((v) => v.level === id && v.viewType === "Plan");
     const target = asView ?? levelPlan;
-    if (target) s.openView(target.id);
+    if (target && target.id !== view.id) s.openView(target.id);
   }
 
   return (
@@ -436,6 +733,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         onMouseDown={(e) => {
           const [x, y] = local(e);
           drag.current = { x, y, moved: false, button: e.button };
+          if (e.button === 0) {
+            const g = gripAt(x, y);
+            if (g !== null) gripDrag.current = { index: g, to: null };
+          }
         }}
         onMouseMove={(e) => {
           const [sx, sy] = local(e);
@@ -467,8 +768,24 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
                 : `X ${ft(p.x)}'   ${vertical} ${ft(p.y)}'`,
             );
           const s = useAppStore.getState();
-          if (s.tool === "select") hoverPick(p, 6 / cam.current.zoom);
-          else if (s.tool === "door" || s.tool === "window" || s.tool === "room")
+          if (gripDrag.current) {
+            if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
+            snapAt(p, 12 / cam.current.zoom);
+            return;
+          }
+          if (s.tool === "select") {
+            const g = gripAt(sx, sy);
+            if (g !== hoverGrip.current) {
+              hoverGrip.current = g;
+              redraw();
+            }
+            hoverPick(p, 6 / cam.current.zoom);
+          } else if (
+            s.tool === "door" ||
+            s.tool === "window" ||
+            s.tool === "room" ||
+            s.tool === "offset"
+          )
             previewAt(p, 12 / cam.current.zoom);
           else if (s.tool === "dimension" && pts.current.length === 2) dimensionAt(p);
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
@@ -476,6 +793,17 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         onMouseUp={(e) => {
           const d = drag.current;
           drag.current = null;
+          const g = gripDrag.current;
+          if (g) {
+            gripDrag.current = null;
+            const grip = handles.current?.grips[g.index];
+            snapRef.current = null;
+            if (grip && g.to && d?.moved) {
+              void apply(() => ipc.dragHandle(grip.id, grip.key, g.to!));
+            }
+            redraw();
+            return;
+          }
           if (!d || d.moved) return;
           const [sx, sy] = local(e);
           if (e.button === 0) void click(sx, sy, e.shiftKey);
@@ -492,11 +820,33 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         }}
         onMouseLeave={() => {
           hover.current = null;
-          snapRef.current = null;
+          hoverGrip.current = null;
+          if (!gripDrag.current) snapRef.current = null;
           preview.current = null;
           redraw();
         }}
       />
+      {editor && editor.tool === tool && (
+        <input
+          className={`canvas-input ${editor.kind}`}
+          style={{ left: editor.x, top: editor.y }}
+          aria-label={editor.kind === "dim" ? "Dimension value" : "Typed length"}
+          autoFocus
+          value={editor.text}
+          onFocus={(e) => editor.kind === "dim" && e.target.select()}
+          onChange={(e) => setEditor({ ...editor, text: e.target.value })}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              if (editor.kind === "dim") void commitTempDim(editor);
+              else void commitTyped(editor.text);
+            } else if (e.key === "Escape") {
+              setEditor(null);
+            }
+          }}
+          onBlur={() => setEditor(null)}
+        />
+      )}
       {!dl && <div className="canvas-loading">Generating view…</div>}
     </div>
   );

@@ -6,7 +6,7 @@ pub mod sheet;
 
 pub use pdf::export_pdf;
 pub use schedule::{schedule, Table};
-pub use sheet::sheet_display_list;
+pub use sheet::{sheet_display_list, sheet_display_list_shared};
 
 /// Version of this crate, from Cargo metadata.
 pub fn crate_version() -> &'static str {
@@ -94,7 +94,8 @@ mod tests {
                     && matches!(
                         i.prim,
                         Prim::Fill {
-                            fill: studio_views::FillKind::Poche,
+                            fill: studio_views::FillKind::Poche
+                                | studio_views::FillKind::PocheLight,
                             ..
                         }
                     )

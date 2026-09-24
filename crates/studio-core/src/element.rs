@@ -68,6 +68,9 @@ pub enum Category {
     Viewport,
     Tag,
     Issuance,
+    RoofType,
+    Roof,
+    Stair,
 }
 
 impl Category {
@@ -95,6 +98,9 @@ impl Category {
             Category::Viewport => "Viewport",
             Category::Tag => "Tag",
             Category::Issuance => "Issuance",
+            Category::RoofType => "RoofType",
+            Category::Roof => "Roof",
+            Category::Stair => "Stair",
         }
     }
 }
@@ -104,6 +110,75 @@ impl Category {
 pub enum WallFunction {
     Exterior,
     Interior,
+}
+
+/// What a wall layer does (Revit's layer functions).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum LayerFunction {
+    Structure,
+    Substrate,
+    Insulation,
+    Finish,
+    Membrane,
+    AirGap,
+}
+
+impl LayerFunction {
+    pub const ALL: [LayerFunction; 6] = [
+        LayerFunction::Structure,
+        LayerFunction::Substrate,
+        LayerFunction::Insulation,
+        LayerFunction::Finish,
+        LayerFunction::Membrane,
+        LayerFunction::AirGap,
+    ];
+    pub fn label(self) -> &'static str {
+        match self {
+            LayerFunction::Structure => "Structure",
+            LayerFunction::Substrate => "Substrate",
+            LayerFunction::Insulation => "Insulation",
+            LayerFunction::Finish => "Finish",
+            LayerFunction::Membrane => "Membrane",
+            LayerFunction::AirGap => "Air Gap",
+        }
+    }
+    pub fn parse(s: &str) -> Option<LayerFunction> {
+        LayerFunction::ALL
+            .into_iter()
+            .find(|f| f.label() == s || format!("{f:?}") == s)
+    }
+}
+
+/// One layer of a compound wall type. Layers are listed from the exterior face inward;
+/// the exterior face is on the wall's left, looking from its start to its end (walls drawn
+/// clockwise have their exterior outside, as in Revit).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct WallLayer {
+    /// Material name, e.g. "Gypsum Board".
+    pub name: String,
+    /// mm.
+    pub thickness: f64,
+    pub function: LayerFunction,
+}
+
+/// A view's crop region in view coordinates (mm).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct CropBox {
+    pub min: Pt,
+    pub max: Pt,
+}
+
+impl CropBox {
+    pub fn contains(&self, p: Pt) -> bool {
+        p.x >= self.min.x && p.x <= self.max.x && p.y >= self.min.y && p.y <= self.max.y
+    }
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// Built-in door families (code-defined for v0.1, see DATA_MODEL.md).
@@ -262,8 +337,12 @@ pub enum ElementData {
     },
     WallType {
         name: String,
+        /// Total width, mm; equals the sum of `layers` when there are any.
         thickness: f64,
         function: WallFunction,
+        /// Compound structure, exterior first. Empty = one homogeneous layer.
+        #[serde(default)]
+        layers: Vec<WallLayer>,
     },
     Wall {
         type_id: ElementId,
@@ -301,6 +380,12 @@ pub enum ElementData {
         kind: ViewKind,
         /// Drawing scale denominator, e.g. 48 for 1/4" = 1'-0".
         scale: u32,
+        /// When set, the view shows only what lies inside this region.
+        #[serde(default)]
+        crop: Option<CropBox>,
+        /// Whether the crop boundary is drawn (it is never printed).
+        #[serde(default = "yes")]
+        show_crop: bool,
     },
     ProjectInfo {
         name: String,
@@ -311,6 +396,9 @@ pub enum ElementData {
         stage_history: Vec<StageChange>,
         #[serde(default)]
         rufplan: Option<RufplanLink>,
+        /// User-defined project parameters (ADR-017).
+        #[serde(default)]
+        param_defs: Vec<crate::params::ParamDef>,
     },
     DoorType {
         name: String,
@@ -408,6 +496,37 @@ pub enum ElementData {
         view: ElementId,
         center: Pt,
     },
+    RoofType {
+        name: String,
+        /// Thickness measured square to the roof surface, mm.
+        thickness: f64,
+    },
+    /// A roof by footprint: `boundary` is the eave outline (overhang included), the eaves
+    /// sit at `level + offset`, and each edge flagged in `sloped` rises inward at `slope`
+    /// (radians). Edges that don't slope become gable ends; with none it is a flat roof.
+    Roof {
+        type_id: ElementId,
+        level: ElementId,
+        offset: f64,
+        boundary: Vec<Pt>,
+        slope: f64,
+        /// One flag per boundary edge (edge i runs from point i to point i + 1).
+        sloped: Vec<bool>,
+    },
+    /// A straight stair run from `base_level` up to `top_level`, climbing from `start`
+    /// toward `end` (only the direction of `end` matters: the run length follows from the
+    /// riser count and tread depth). `start` is the center of the first riser.
+    Stair {
+        base_level: ElementId,
+        top_level: ElementId,
+        start: Pt,
+        end: Pt,
+        width: f64,
+        /// Tread depth, mm.
+        tread: f64,
+        /// Largest allowed riser height, mm; the riser count is the smallest that fits.
+        max_riser: f64,
+    },
     /// A design stage (ADR-010).
     Stage {
         name: String,
@@ -452,6 +571,9 @@ impl ElementData {
             ElementData::Viewport { .. } => Category::Viewport,
             ElementData::Tag { .. } => Category::Tag,
             ElementData::Issuance { .. } => Category::Issuance,
+            ElementData::RoofType { .. } => Category::RoofType,
+            ElementData::Roof { .. } => Category::Roof,
+            ElementData::Stair { .. } => Category::Stair,
         }
     }
 
@@ -475,6 +597,12 @@ impl ElementData {
                 vec![*type_id, *level]
             }
             ElementData::Room { level, .. } => vec![*level],
+            ElementData::Roof { type_id, level, .. } => vec![*type_id, *level],
+            ElementData::Stair {
+                base_level,
+                top_level,
+                ..
+            } => vec![*base_level, *top_level],
             ElementData::Dimension { view, .. } | ElementData::TextNote { view, .. } => vec![*view],
             ElementData::Viewport { sheet, view, .. } => vec![*sheet, *view],
             ElementData::Tag { view, target, .. } => vec![*view, *target],
@@ -501,7 +629,10 @@ impl ElementData {
             | ElementData::View { name, .. }
             | ElementData::DoorType { name, .. }
             | ElementData::WindowType { name, .. }
-            | ElementData::Stage { name, .. } => name.clone(),
+            | ElementData::Stage { name, .. }
+            | ElementData::RoofType { name, .. } => name.clone(),
+            ElementData::Roof { .. } => "Roof".into(),
+            ElementData::Stair { .. } => "Stair".into(),
             ElementData::Door { mark, .. } => format!("Door {mark}"),
             ElementData::Window { mark, .. } => format!("Window {mark}"),
             ElementData::Room { name, number, .. } => format!("{name} {number}"),
@@ -525,7 +656,9 @@ impl ElementData {
             ElementData::Wall { base_level, .. } => Some(*base_level),
             ElementData::Floor { level, .. }
             | ElementData::Ceiling { level, .. }
-            | ElementData::Room { level, .. } => Some(*level),
+            | ElementData::Room { level, .. }
+            | ElementData::Roof { level, .. } => Some(*level),
+            ElementData::Stair { base_level, .. } => Some(*base_level),
             ElementData::View {
                 kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
                 ..
@@ -541,8 +674,89 @@ impl ElementData {
             | ElementData::Floor { type_id, .. }
             | ElementData::Ceiling { type_id, .. }
             | ElementData::Door { type_id, .. }
-            | ElementData::Window { type_id, .. } => Some(*type_id),
+            | ElementData::Window { type_id, .. }
+            | ElementData::Roof { type_id, .. } => Some(*type_id),
             _ => None,
+        }
+    }
+
+    /// A new view with no crop region.
+    pub fn view(name: impl Into<String>, kind: ViewKind, scale: u32) -> Self {
+        ElementData::View {
+            name: name.into(),
+            kind,
+            scale,
+            crop: None,
+            show_crop: true,
+        }
+    }
+
+    /// Geometric sanity checks, run on every element a transaction touches.
+    pub fn validate(&self) -> Result<(), crate::CoreError> {
+        let bad = |m: &str| Err(crate::CoreError::Invalid(m.into()));
+        match self {
+            ElementData::Wall { start, end, .. } if start.dist(*end) < 1.0 => {
+                bad("wall is too short")
+            }
+            ElementData::Floor { boundary, .. }
+            | ElementData::Ceiling { boundary, .. }
+            | ElementData::Roof { boundary, .. }
+                if boundary.len() < 3 || studio_geom::signed_area(boundary).abs() < 1.0 =>
+            {
+                bad("boundary must enclose an area")
+            }
+            ElementData::Roof {
+                boundary,
+                sloped,
+                slope,
+                ..
+            } => {
+                if sloped.len() != boundary.len() {
+                    bad("each roof edge needs a slope setting")
+                } else if !(0.0..1.4).contains(slope) {
+                    bad("roof slope must be between 0° and 80°")
+                } else {
+                    Ok(())
+                }
+            }
+            ElementData::WallType {
+                thickness, layers, ..
+            } if !layers.is_empty() => {
+                let sum: f64 = layers.iter().map(|l| l.thickness).sum();
+                if layers.iter().any(|l| l.thickness < 0.0) {
+                    bad("layer thickness can't be negative")
+                } else if (sum - thickness).abs() > 0.01 {
+                    bad("wall type width must equal the sum of its layers")
+                } else if *thickness < 1.0 {
+                    bad("wall type is too thin")
+                } else {
+                    Ok(())
+                }
+            }
+            ElementData::Stair {
+                start,
+                end,
+                width,
+                tread,
+                max_riser,
+                ..
+            } => {
+                if start.dist(*end) < 1.0 {
+                    bad("stair needs a direction")
+                } else if *width < 300.0 {
+                    bad("stair is too narrow")
+                } else if *tread < 100.0 || *max_riser < 50.0 {
+                    bad("stair treads and risers are too small")
+                } else {
+                    Ok(())
+                }
+            }
+            ElementData::View { crop: Some(c), .. }
+                if c.max.x - c.min.x < 10.0 || c.max.y - c.min.y < 10.0 =>
+            {
+                bad("crop region is too small")
+            }
+            _ => Ok(()),
         }
     }
 }
@@ -553,6 +767,9 @@ pub struct Element {
     /// Increments on every committed modification (for sync).
     pub rev: u64,
     pub data: ElementData,
+    /// Project parameter values by key (ADR-017); built-in parameters are fields of `data`.
+    #[serde(default)]
+    pub params: std::collections::BTreeMap<String, crate::params::ParamValue>,
 }
 
 impl Element {
@@ -561,6 +778,7 @@ impl Element {
             id: ElementId::new(),
             rev: 1,
             data,
+            params: Default::default(),
         }
     }
     pub fn category(&self) -> Category {

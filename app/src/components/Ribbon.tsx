@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
+  apply,
   deleteSelection,
   exportIfc,
   exportPdf,
@@ -8,6 +9,7 @@ import {
   placeOnActiveSheet,
   tagAll,
 } from "../fileActions";
+import { ipc } from "../ipc";
 import { refreshCloud } from "../rufplan";
 import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
@@ -51,8 +53,8 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-type Tab = "Architecture" | "Annotate" | "View" | "Rufplan";
-const TABS: Tab[] = ["Architecture", "Annotate", "View", "Rufplan"];
+type Tab = "Architecture" | "Modify" | "Annotate" | "View" | "Manage" | "Rufplan";
+const TABS: Tab[] = ["Architecture", "Modify", "Annotate", "View", "Manage", "Rufplan"];
 
 export function Ribbon() {
   const [tab, setTab] = useState<Tab>("Architecture");
@@ -65,6 +67,8 @@ export function Ribbon() {
   const cloud = useAppStore((s) => s.cloud);
   const setRufplan = useAppStore((s) => s.setRufplan);
   const linked = app?.rufplan ?? null;
+  const selection = useAppStore((s) => s.selection);
+  const setParamsOpen = useAppStore((s) => s.setParamsOpen);
   // Drawing views go on one sheet only; schedules can repeat; 3D and sheets can't be placed.
   const placeable = (app?.views ?? []).filter(
     (v) =>
@@ -118,12 +122,39 @@ export function Ribbon() {
               <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
               <ToolButton tool="grid" label="Grid" icon={Icons.grid} keys="GR" />
             </Group>
+            <Group title="Roof & Stair">
+              <ToolButton tool="roof" label="Roof" icon={Icons.roof} keys="RF — by footprint" />
+              <ToolButton tool="stair" label="Stair" icon={Icons.stair} keys="ST" />
+            </Group>
             <Group title="Room">
               <ToolButton tool="room" label="Room" icon={Icons.room} keys="RM" />
             </Group>
           </>
         )}
-        <Group title="Modify">
+        {tab === "Modify" && (
+          <>
+            <Group title="Modify">
+              <ToolButton tool="copy" label="Copy" icon={Icons.copy} keys="CO — select first" />
+              <ToolButton tool="rotate" label="Rotate" icon={Icons.rotate} keys="RO" />
+              <ToolButton tool="mirror" label="Mirror" icon={Icons.mirror} keys="MM — draw axis" />
+              <ToolButton tool="array" label="Array" icon={Icons.array} keys="AR" />
+              <ToolButton tool="align" label="Align" icon={Icons.align} keys="AL" />
+              <ToolButton tool="trim" label="Trim/Extend" icon={Icons.trim} keys="TR — corner" />
+              <ToolButton tool="offset" label="Offset" icon={Icons.offset} keys="OF" />
+              <ToolButton tool="split" label="Split" icon={Icons.split} keys="SL" />
+              <button
+                className="rb-btn"
+                onClick={() => void apply(() => ipc.flipSelection(selection))}
+                disabled={selection.length === 0}
+                title="Flip walls, doors and windows (Space)"
+              >
+                {Icons.flip}
+                <span>Flip</span>
+              </button>
+            </Group>
+          </>
+        )}
+        <Group title="Move">
           <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
           <button
             className="rb-btn"
@@ -227,6 +258,18 @@ export function Ribbon() {
               </button>
             </Group>
           </>
+        )}
+        {tab === "Manage" && (
+          <Group title="Settings">
+            <button
+              className="rb-btn"
+              onClick={() => setParamsOpen(true)}
+              title="Add your own parameters to categories (like Revit's Project Parameters)"
+            >
+              {Icons.params}
+              <span>Project Parameters</span>
+            </button>
+          </Group>
         )}
         {tab === "Rufplan" && (
           <Group title="Rufplan.io">

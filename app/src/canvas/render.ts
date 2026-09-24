@@ -23,6 +23,7 @@ export const THEME = {
 
 const FILL: Record<FillKind, string> = {
   Poche: "#3b3b3b",
+  PocheLight: "#b4b4ae",
   Paper: "#ffffff",
   Slab: "#efefeb",
   Ceiling: "#f2fbfe",
@@ -291,5 +292,105 @@ export function drawOverlay(
       ctx.fillText(text, sx + 21, sy + 22.5);
     }
   }
+  ctx.restore();
+}
+
+/** Grip squares for the selection (hovered grip filled cyan). */
+export function drawGrips(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  grips: { at: Pt }[],
+  hover: number | null,
+) {
+  ctx.save();
+  ctx.setLineDash([]);
+  grips.forEach((g, i) => {
+    const [sx, sy] = toScreen(cam, w, h, g.at.x, g.at.y);
+    ctx.fillStyle = i === hover ? THEME.cyan : "#ffffff";
+    ctx.strokeStyle = THEME.ink;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(sx - 5, sy - 5, 10, 10);
+    ctx.strokeRect(sx - 5, sy - 5, 10, 10);
+  });
+  ctx.restore();
+}
+
+/** Screen-space box of a temporary dimension's value, for drawing and clicking. */
+export function tempDimBox(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  labelAt: Pt,
+  value: string,
+): [number, number, number, number] {
+  ctx.save();
+  ctx.font = `600 12px "Barlow Condensed", sans-serif`;
+  const tw = ctx.measureText(value).width;
+  ctx.restore();
+  const [sx, sy] = toScreen(cam, w, h, labelAt.x, labelAt.y);
+  return [sx - tw / 2 - 6, sy - 10, tw + 12, 20];
+}
+
+/** Temporary dimensions: thin cyan dimension lines and a clickable value box. */
+export function drawTempDims(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  dims: { items: DisplayList["items"]; labelAt: Pt; value: string }[],
+) {
+  ctx.save();
+  for (const d of dims) {
+    ctx.strokeStyle = THEME.cyan;
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+    for (const item of d.items) {
+      const p = item.prim;
+      if (p.t !== "Line") continue;
+      ctx.beginPath();
+      p.pts.forEach(([x, y], i) => {
+        const [sx, sy] = toScreen(cam, w, h, x, y);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      });
+      ctx.stroke();
+    }
+    const [bx, by, bw, bh] = tempDimBox(ctx, cam, w, h, d.labelAt, d.value);
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = THEME.cyan;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = THEME.ink;
+    ctx.font = `600 12px "Barlow Condensed", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(d.value, bx + bw / 2, by + bh / 2 + 0.5);
+  }
+  ctx.restore();
+}
+
+/** A highlighted reference line (Align's first pick). */
+export function drawRefLine(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  a: Pt,
+  b: Pt,
+) {
+  ctx.save();
+  const [ax, ay] = toScreen(cam, w, h, a.x, a.y);
+  const [bx, by] = toScreen(cam, w, h, b.x, b.y);
+  ctx.strokeStyle = THEME.cyan;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 4]);
+  ctx.beginPath();
+  ctx.moveTo(ax, ay);
+  ctx.lineTo(bx, by);
+  ctx.stroke();
   ctx.restore();
 }

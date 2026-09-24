@@ -8,6 +8,7 @@
 //!
 //! GlobalIds derive from element ids (DATA_MODEL.md), so re-exports keep stable GUIDs.
 
+use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use studio_core::{ops, Document, ElementData, ElementId};
@@ -87,6 +88,80 @@ impl Writer {
         let rel = parent.map_or("$".into(), |p| format!("#{p}"));
         self.add(format!("IFCLOCALPLACEMENT({rel},#{ax})"))
     }
+    /// A body of several extrusions (e.g. a stair's steps), each (ring, z0, depth).
+    fn extrusions(&mut self, ctx: usize, parts: &[(Vec<Pt>, f64, f64)]) -> usize {
+        let mut solids = vec![];
+        for (ring, z0, depth) in parts {
+            let mut ids: Vec<usize> = ring.iter().map(|p| self.point2(*p)).collect();
+            if let Some(first) = ids.first().copied() {
+                ids.push(first);
+            }
+            let poly = self.add(format!("IFCPOLYLINE(({}))", Self::refs(&ids)));
+            let profile = self.add(format!("IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,$,#{poly})"));
+            let o = self.point3(0.0, 0.0, *z0);
+            let pos = self.add(format!("IFCAXIS2PLACEMENT3D(#{o},$,$)"));
+            let up = self.add("IFCDIRECTION((0.,0.,1.))".into());
+            solids.push(self.add(format!(
+                "IFCEXTRUDEDAREASOLID(#{profile},#{pos},#{up},{})",
+                r(*depth)
+            )));
+        }
+        let rep = self.add(format!(
+            "IFCSHAPEREPRESENTATION(#{ctx},'Body','SweptSolid',({}))",
+            Self::refs(&solids)
+        ));
+        self.add(format!("IFCPRODUCTDEFINITIONSHAPE($,$,(#{rep}))"))
+    }
+
+    /// A triangulated body (IFC4 tessellation) from a triangle soup (9 floats per
+    /// triangle), shifted down by `dz`.
+    fn tessellation(&mut self, ctx: usize, tris: &[f32], dz: f64) -> usize {
+        let mut verts: Vec<[i64; 3]> = vec![];
+        let mut index: HashMap<[i64; 3], usize> = HashMap::new();
+        let mut faces: Vec<[usize; 3]> = vec![];
+        for tri in tris.as_chunks::<9>().0 {
+            let mut f = [0usize; 3];
+            for k in 0..3 {
+                // Weld vertices on a 0.01 mm grid.
+                let key = [
+                    (f64::from(tri[3 * k]) * 100.0).round() as i64,
+                    (f64::from(tri[3 * k + 1]) * 100.0).round() as i64,
+                    ((f64::from(tri[3 * k + 2]) - dz) * 100.0).round() as i64,
+                ];
+                f[k] = *index.entry(key).or_insert_with(|| {
+                    verts.push(key);
+                    verts.len()
+                });
+            }
+            if f[0] != f[1] && f[1] != f[2] && f[0] != f[2] {
+                faces.push(f);
+            }
+        }
+        let coords = verts
+            .iter()
+            .map(|v| {
+                format!(
+                    "({},{},{})",
+                    r(v[0] as f64 / 100.0),
+                    r(v[1] as f64 / 100.0),
+                    r(v[2] as f64 / 100.0)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let list = self.add(format!("IFCCARTESIANPOINTLIST3D(({coords}))"));
+        let idx = faces
+            .iter()
+            .map(|f| format!("({},{},{})", f[0], f[1], f[2]))
+            .collect::<Vec<_>>()
+            .join(",");
+        let set = self.add(format!("IFCTRIANGULATEDFACESET(#{list},$,.T.,({idx}),$)"));
+        let rep = self.add(format!(
+            "IFCSHAPEREPRESENTATION(#{ctx},'Body','Tessellation',(#{set}))"
+        ));
+        self.add(format!("IFCPRODUCTDEFINITIONSHAPE($,$,(#{rep}))"))
+    }
+
     /// A body representation: `ring` (plan mm, relative to the placement's origin)
     /// extruded up by `depth` mm from `z0`.
     fn extrusion(&mut self, ctx: usize, ring: &[Pt], z0: f64, depth: f64) -> usize {
@@ -131,6 +206,8 @@ pub struct IfcSummary {
     pub slabs: usize,
     pub coverings: usize,
     pub spaces: usize,
+    pub roofs: usize,
+    pub stairs: usize,
 }
 
 /// Writes the model as an IFC4 STEP file. `timestamp` is ISO 8601 (for the header).
@@ -216,6 +293,8 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
     let mut contained: std::collections::BTreeMap<usize, Vec<usize>> = Default::default();
     let mut spaces_in: std::collections::BTreeMap<usize, Vec<usize>> = Default::default();
     let mut materials: std::collections::BTreeMap<String, Vec<usize>> = Default::default();
+    // Layered wall types → the walls using them.
+    let mut layer_sets: std::collections::BTreeMap<ElementId, Vec<usize>> = Default::default();
     let type_name = |id: ElementId| {
         doc.data(id)
             .ok()
@@ -245,7 +324,14 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             s(&ty)
         ));
         contained.entry(storey).or_default().push(e);
-        materials.entry(ty.clone()).or_default().push(e);
+        let wall_type = doc.data(wall.id).ok().and_then(|d| d.type_id());
+        match wall_type.and_then(|t| doc.data(t).ok()) {
+            Some(ElementData::WallType { layers, .. }) if !layers.is_empty() => layer_sets
+                .entry(wall_type.unwrap_or(wall.id))
+                .or_default()
+                .push(e),
+            _ => materials.entry(ty.clone()).or_default().push(e),
+        }
         summary.walls += 1;
         let ext = w.add(format!(
             "IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN({}),$)",
@@ -382,6 +468,68 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         }
     }
 
+    for roof in &model.roofs {
+        let Some((_, storey, splace, elev)) = storey_of(roof.level) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let shape = w.tessellation(body, &roof.triangles(), elev);
+        let ty = type_name(roof.id);
+        let kind = if roof.is_flat() {
+            ".FLAT_ROOF."
+        } else if roof.faces.len() >= roof.boundary.len() {
+            ".HIP_ROOF."
+        } else {
+            ".GABLE_ROOF."
+        };
+        let e = w.add(format!(
+            "IFCROOF({},$,'Roof',$,{},#{place},#{shape},$,{kind})",
+            s(&ifc_guid(roof.id.0)),
+            s(&ty)
+        ));
+        contained.entry(storey).or_default().push(e);
+        materials.entry(ty).or_default().push(e);
+        summary.roofs += 1;
+    }
+    for stair in &model.stairs {
+        let Some((_, storey, splace, elev)) = storey_of(stair.base_level) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let parts: Vec<(Vec<Pt>, f64, f64)> = stair
+            .steps
+            .iter()
+            .map(|p| (p.base.outer.clone(), p.z0 - elev, p.z1 - p.z0))
+            .collect();
+        let shape = w.extrusions(body, &parts);
+        let e = w.add(format!(
+            "IFCSTAIR({},$,'Stair',$,$,#{place},#{shape},$,.STRAIGHT_RUN_STAIR.)",
+            s(&ifc_guid(stair.id.0))
+        ));
+        contained.entry(storey).or_default().push(e);
+        let risers = w.add(format!(
+            "IFCPROPERTYSINGLEVALUE('NumberOfRiser',$,IFCCOUNTMEASURE({}),$)",
+            stair.risers
+        ));
+        let riser = w.add(format!(
+            "IFCPROPERTYSINGLEVALUE('RiserHeight',$,IFCPOSITIVELENGTHMEASURE({}),$)",
+            r(stair.riser)
+        ));
+        let tread = w.add(format!(
+            "IFCPROPERTYSINGLEVALUE('TreadLength',$,IFCPOSITIVELENGTHMEASURE({}),$)",
+            r(stair.tread)
+        ));
+        let pset = w.add(format!(
+            "IFCPROPERTYSET({},$,'Pset_StairCommon',$,(#{risers},#{riser},#{tread}))",
+            s(&ifc_guid(derived(stair.id.0, "pset")))
+        ));
+        w.add(format!(
+            "IFCRELDEFINESBYPROPERTIES({},$,$,$,(#{e}),#{pset})",
+            s(&ifc_guid(derived(stair.id.0, "pset-rel")))
+        ));
+        summary.stairs += 1;
+    }
+
     // Rooms as spaces: their enclosed area, from the level up to the level above.
     let levels = doc.levels();
     for room in &model.rooms {
@@ -451,6 +599,45 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
                 project_uuid,
                 &format!("material-{name}")
             ))),
+            Writer::refs(items)
+        ));
+    }
+
+    // Compound wall types: one layer set each, exterior layer first.
+    let mut layer_materials: HashMap<String, usize> = HashMap::new();
+    for (type_id, items) in &layer_sets {
+        let Ok(ElementData::WallType { name, layers, .. }) = doc.data(*type_id) else {
+            continue;
+        };
+        let mut ls = vec![];
+        for l in layers {
+            let m = match layer_materials.get(&l.name) {
+                Some(m) => *m,
+                None => {
+                    let m = w.add(format!("IFCMATERIAL({},$,$)", s(&l.name)));
+                    layer_materials.insert(l.name.clone(), m);
+                    m
+                }
+            };
+            ls.push(w.add(format!(
+                "IFCMATERIALLAYER(#{m},{},{},{},$,$,$)",
+                r(l.thickness),
+                if l.function == studio_core::LayerFunction::AirGap {
+                    ".T."
+                } else {
+                    ".F."
+                },
+                s(l.function.label())
+            )));
+        }
+        let set = w.add(format!(
+            "IFCMATERIALLAYERSET(({}),{},$)",
+            Writer::refs(&ls),
+            s(name)
+        ));
+        w.add(format!(
+            "IFCRELASSOCIATESMATERIAL({},$,$,$,({}),#{set})",
+            s(&ifc_guid(derived(type_id.0, "layers"))),
             Writer::refs(items)
         ));
     }
@@ -544,6 +731,18 @@ mod tests {
         )
         .unwrap();
         ops::create_room(&mut doc, l1, Pt::new(3000.0, 3000.0)).unwrap();
+        let l2 = doc.levels()[1].0;
+        let rt = studio_core::build::default_roof_type(&doc).unwrap();
+        let eave = studio_geom::offset_ring(&c, 300.0);
+        studio_core::build::create_roof(&mut doc, rt, l2, 0.0, eave, 0.4).unwrap();
+        studio_core::build::create_stair(
+            &mut doc,
+            l1,
+            Pt::new(1000.0, 1000.0),
+            Pt::new(1000.0, 2000.0),
+            1000.0,
+        )
+        .unwrap();
 
         let (ifc, sum) = export_ifc(&doc, "0.0.1", "2026-09-24T00:00:00");
         assert_eq!(
@@ -555,7 +754,9 @@ mod tests {
                 windows: 1,
                 slabs: 1,
                 coverings: 0,
-                spaces: 1
+                spaces: 1,
+                roofs: 1,
+                stairs: 1,
             }
         );
         assert!(ifc.starts_with("ISO-10303-21;"));
@@ -577,6 +778,12 @@ mod tests {
             "IFCMATERIAL(",
             "Pset_WallCommon",
             "IFCQUANTITYAREA('NetFloorArea'",
+            "IFCROOF(",
+            ".HIP_ROOF.",
+            "IFCTRIANGULATEDFACESET(",
+            "IFCSTAIR(",
+            "Pset_StairCommon",
+            "IFCMATERIALLAYERSET(",
         ] {
             assert!(ifc.contains(entity), "missing {entity}");
         }

@@ -71,6 +71,8 @@ export function appState(path: string | null, dirty = false): AppState {
     redo: null,
     issuances: [],
     rufplan: null,
+    roofTypes: [],
+    paramDefs: [],
   };
 }
 
@@ -108,6 +110,31 @@ export function installFakeBackend(): FakeBackend {
           return { viewType: "Plan", scale: 48, bounds: [0, 0, 10000, 8000], items: [] };
         case "properties":
           return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
+        case "handles":
+          return { grips: [], dims: [] };
+        case "add_project_parameter":
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              paramDefs: [
+                ...fake.state.paramDefs,
+                {
+                  key: String(a.label).toLowerCase().replace(/\W+/g, "_"),
+                  label: a.label as string,
+                  kind: a.kind as AppState["paramDefs"][number]["kind"],
+                  scope: a.typeScope ? "Type" : "Instance",
+                  categories: a.categories as AppState["paramDefs"][number]["categories"],
+                },
+              ],
+            };
+          return fake.state;
+        case "remove_project_parameter":
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              paramDefs: fake.state.paramDefs.filter((d) => d.key !== a.key),
+            };
+          return fake.state;
         case "cloud_status":
           return { configured: true, signedIn: false, email: null, name: null };
         case "cloud_sign_in":

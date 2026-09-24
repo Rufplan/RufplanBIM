@@ -33,6 +33,7 @@ pub enum PdfError {
 fn color(fill: FillKind) -> Option<rgb::Color> {
     Some(match fill {
         FillKind::Poche => rgb::Color::new(0x3b, 0x3b, 0x3b),
+        FillKind::PocheLight => rgb::Color::new(0xb4, 0xb4, 0xae),
         FillKind::Paper => rgb::Color::new(0xff, 0xff, 0xff),
         FillKind::Slab => rgb::Color::new(0xef, 0xef, 0xeb),
         FillKind::Ceiling => rgb::Color::new(0xf2, 0xfb, 0xfe),

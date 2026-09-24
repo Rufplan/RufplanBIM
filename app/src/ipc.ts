@@ -4,6 +4,11 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
+import type { Category } from "./bindings/Category";
+import type { Handles } from "./bindings/Handles";
+import type { OffsetPreview } from "./bindings/OffsetPreview";
+import type { ParamDef } from "./bindings/ParamDef";
+import type { RefLine } from "./bindings/RefLine";
 import type { CloudStatus } from "./bindings/CloudStatus";
 import type { CommandError } from "./bindings/CommandError";
 import type { CoreVersion } from "./bindings/CoreVersion";
@@ -25,6 +30,11 @@ import type { ViewInfo } from "./bindings/ViewInfo";
 
 export type {
   AppState,
+  Category,
+  Handles,
+  OffsetPreview,
+  ParamDef,
+  RefLine,
   CloudStatus,
   CommandError,
   CoreVersion,
@@ -132,6 +142,45 @@ export const ipc = {
     invoke<PublishResult>("publish_to_rufplan", { name, deliverable }),
   /** Opens a rufplan.io page in the browser. */
   openRufplan: (url: string) => openUrl(url),
+
+  // Modify tools, grips and temporary dimensions (ADR-017).
+  /** A typed length in mm, or null if the text isn't one. */
+  parseLength: (text: string) => invoke<number | null>("parse_length", { text }),
+  handles: (view: ElementId, ids: ElementId[]) => invoke<Handles>("handles", { view, ids }),
+  dragHandle: (id: ElementId, key: string, to: Pt): S => invoke("drag_handle", { id, key, to }),
+  setTempDimension: (id: ElementId, key: string, value: string): S =>
+    invoke("set_temp_dimension", { id, key, value }),
+  /** Copy (count 1) or Array (count copies, each `delta` further). */
+  copyElements: (ids: ElementId[], delta: Pt, count: number): S =>
+    invoke("copy_elements", { ids, delta, count }),
+  rotateElements: (ids: ElementId[], center: Pt, angle: number, copy: boolean): S =>
+    invoke("rotate_elements", { ids, center, angle, copy }),
+  mirrorElements: (ids: ElementId[], a: Pt, b: Pt, copy: boolean): S =>
+    invoke("mirror_elements", { ids, a, b, copy }),
+  trimExtend: (a: ElementId, aPick: Pt, b: ElementId, bPick: Pt): S =>
+    invoke("trim_extend", { a, aPick, b, bPick }),
+  offsetPreview: (view: ElementId, point: Pt, tol: number, distance: string) =>
+    invoke<OffsetPreview | null>("offset_preview", { view, point, tol, distance }),
+  offsetElement: (view: ElementId, point: Pt, tol: number, distance: string): S =>
+    invoke("offset_element", { view, point, tol, distance }),
+  splitWall: (id: ElementId, at: Pt): S => invoke("split_wall", { id, at }),
+  flipSelection: (ids: ElementId[]): S => invoke("flip_selection", { ids }),
+  refLine: (view: ElementId, point: Pt, tol: number, skip: ElementId | null) =>
+    invoke<RefLine | null>("ref_line", { view, point, tol, skip }),
+  align: (view: ElementId, reference: Pt, target: Pt, tol: number): S =>
+    invoke("align", { view, reference, target, tol }),
+  // Roofs, stairs and project parameters (ADR-018).
+  createRoof: (view: ElementId, typeId: ElementId | null): S =>
+    invoke("create_roof", { view, typeId }),
+  createStair: (view: ElementId, start: Pt, toward: Pt): S =>
+    invoke("create_stair", { view, start, toward }),
+  addProjectParameter: (
+    label: string,
+    kind: string,
+    typeScope: boolean,
+    categories: Category[],
+  ): S => invoke("add_project_parameter", { label, kind, typeScope, categories }),
+  removeProjectParameter: (key: string): S => invoke("remove_project_parameter", { key }),
 
   /** Native menu clicks, forwarded by Rust as the menu item id. */
   onMenu: (handler: (id: string) => void): Promise<UnlistenFn> =>

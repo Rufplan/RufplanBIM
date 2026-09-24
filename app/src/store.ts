@@ -4,6 +4,16 @@ import type { AppState, CloudStatus, ElementId } from "./ipc";
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
+  | "copy"
+  | "rotate"
+  | "mirror"
+  | "array"
+  | "align"
+  | "trim"
+  | "offset"
+  | "split"
+  | "roof"
+  | "stair"
   | "dimension"
   | "text"
   | "section"
@@ -21,6 +31,16 @@ export type Tool =
   | "level";
 
 export const TOOL_LABELS: Record<Tool, string> = {
+  copy: "Copy",
+  rotate: "Rotate",
+  mirror: "Mirror",
+  array: "Array",
+  align: "Align",
+  trim: "Trim/Extend",
+  offset: "Offset",
+  split: "Split",
+  roof: "Roof",
+  stair: "Stair",
   select: "Select",
   room: "Room",
   move: "Move",
@@ -45,7 +65,25 @@ export interface ToolTypes {
   ceiling: ElementId | null;
   door: ElementId | null;
   window: ElementId | null;
+  roof: ElementId | null;
 }
+
+/** Options-bar settings of the modify tools (like Revit's options bar). */
+export interface ToolOptions {
+  /** Copy: keep placing copies from the same base point. */
+  copyMultiple: boolean;
+  /** Rotate: rotate a copy instead of the selection. */
+  rotateCopy: boolean;
+  /** Mirror: mirror a copy (Revit's default) instead of the selection. */
+  mirrorCopy: boolean;
+  /** Array: number of items including the original. */
+  arrayCount: number;
+  /** Offset distance as typed (feet-inches). */
+  offsetDistance: string;
+}
+
+/** Tools that act on the current selection. */
+export const SELECTION_TOOLS: Tool[] = ["move", "copy", "rotate", "mirror", "array"];
 
 /** A pending Save / Don't Save / Cancel question and what to do after it. */
 export interface Confirm {
@@ -71,6 +109,9 @@ interface UiState {
   confirm: Confirm | null;
   rufplan: RufplanDialogMode | null;
   cloud: CloudStatus | null;
+  options: ToolOptions;
+  /** The Project Parameters dialog is open. */
+  paramsOpen: boolean;
 
   /** `fresh` = a different project was just created or opened. */
   setApp: (app: AppState | null, fresh?: boolean) => void;
@@ -85,6 +126,8 @@ interface UiState {
   setConfirm: (confirm: Confirm | null) => void;
   setRufplan: (mode: RufplanDialogMode | null) => void;
   setCloud: (cloud: CloudStatus | null) => void;
+  setOption: <K extends keyof ToolOptions>(key: K, value: ToolOptions[K]) => void;
+  setParamsOpen: (open: boolean) => void;
 }
 
 const firstId = (items: { id: ElementId }[] | undefined, current: ElementId | null) =>
@@ -97,12 +140,20 @@ export const useAppStore = create<UiState>((set, get) => ({
   activeView: null,
   selection: [],
   tool: "select",
-  toolTypes: { wall: null, floor: null, ceiling: null, door: null, window: null },
+  toolTypes: { wall: null, floor: null, ceiling: null, door: null, window: null, roof: null },
   prompt: "",
   cursor: "",
   confirm: null,
   rufplan: null,
   cloud: null,
+  options: {
+    copyMultiple: false,
+    rotateCopy: false,
+    mirrorCopy: true,
+    arrayCount: 3,
+    offsetDistance: "2'-0\"",
+  },
+  paramsOpen: false,
 
   setApp: (app, fresh = false) => {
     const s = get();
@@ -138,6 +189,7 @@ export const useAppStore = create<UiState>((set, get) => ({
           s.toolTypes.door,
         ),
         window: firstId(app.windowTypes, s.toolTypes.window),
+        roof: firstId(app.roofTypes, s.toolTypes.roof),
       },
     });
   },
@@ -157,15 +209,21 @@ export const useAppStore = create<UiState>((set, get) => ({
       return { openViews, activeView };
     }),
   select: (selection) => set({ selection }),
-  // Move acts on the current selection; other tools start with nothing selected.
+  // Move, Copy, Rotate, Mirror and Array act on the current selection; other tools start
+  // with nothing selected.
   setTool: (tool) =>
-    set({ tool, selection: tool === "select" || tool === "move" ? get().selection : [] }),
+    set({
+      tool,
+      selection: tool === "select" || SELECTION_TOOLS.includes(tool) ? get().selection : [],
+    }),
   setToolType: (kind, id) => set((s) => ({ toolTypes: { ...s.toolTypes, [kind]: id } })),
   setPrompt: (prompt) => set({ prompt }),
   setCursor: (cursor) => set({ cursor }),
   setConfirm: (confirm) => set({ confirm }),
   setRufplan: (rufplan) => set({ rufplan }),
   setCloud: (cloud) => set({ cloud }),
+  setOption: (key, value) => set((s) => ({ options: { ...s.options, [key]: value } })),
+  setParamsOpen: (paramsOpen) => set({ paramsOpen }),
 }));
 
 /** Info about the active view, if any. */

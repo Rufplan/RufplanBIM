@@ -2,6 +2,7 @@
 
 mod cloud;
 mod commands;
+mod editing;
 mod menu;
 mod session;
 
@@ -76,6 +77,24 @@ pub fn run() -> anyhow::Result<()> {
             commands::undo,
             commands::redo,
             commands::app_exit,
+            editing::parse_length,
+            editing::handles,
+            editing::drag_handle,
+            editing::set_temp_dimension,
+            editing::copy_elements,
+            editing::rotate_elements,
+            editing::mirror_elements,
+            editing::trim_extend,
+            editing::offset_preview,
+            editing::offset_element,
+            editing::split_wall,
+            editing::flip_selection,
+            editing::ref_line,
+            editing::align,
+            editing::create_roof,
+            editing::create_stair,
+            editing::add_project_parameter,
+            editing::remove_project_parameter,
             cloud::cloud_status,
             cloud::cloud_sign_in,
             cloud::cloud_sign_in_google,

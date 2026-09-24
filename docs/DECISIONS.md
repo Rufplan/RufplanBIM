@@ -248,3 +248,68 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
   gitignored `app/.env.local`. Builds without it (e.g. CI) run with sign-in disabled.
 - **New dependencies:** ureq, sha2, base64, keyring, tauri-plugin-opener (+ npm
   `@tauri-apps/plugin-opener`, allowed only for `https://rufplan.io/*`).
+
+## ADR-017 Revit-style editing, incremental regeneration, parameter map — Accepted (2026-09-24)
+- **Modify tools** (studio-core `edit`, one transaction each): Copy (CO, with Multiple),
+  Array (AR, linear, count in the options bar), Rotate (RO, click center / from / to, or
+  type degrees; optional copy), Mirror (MM, draw the axis; copies by default like Revit),
+  Align (AL: reference line, then the line to move — wall faces, centerlines, grids),
+  Trim/Extend to Corner (TR), Offset (OF, distance in the options bar, preview on hover),
+  Split (SL) and Flip (Space). Walls carry their hosted doors and windows. A mirrored wall
+  runs the other way so its exterior stays outside, and mirrored doors change hand. New
+  copies continue mark, room-number and grid-name sequences and get tags in plans.
+- **Grips and temporary dimensions** (studio-views `handles`): wall and grid ends,
+  dimension lines and crop-region edges drag; dragging a wall end moves the joint (corner-
+  joined walls follow, T-joined walls stay on the line, openings keep their world
+  position). A selected wall shows its length, and a door or window its clear distances
+  to the wall ends; clicking the value lets the user type a new one.
+- **Typed lengths while drawing:** after the first click of Wall, Grid, Move, Copy, Array
+  or Stair, typing digits opens a length box; Enter places the point that far toward the
+  cursor (Rotate takes degrees).
+- **Incremental regeneration:** documents get a content stamp and a derived-data cache.
+  `regenerate` memoizes each expensive step on exactly its inputs (a wall's footprint on
+  its ends, width and miter partners; its pieces on footprint, heights and openings; a
+  level's room regions on its walls' footprints) — the dependency graph without
+  hand-maintained edges, and correct through undo and redo. Display lists (views and
+  sheets) are cached by stamp, so hover picking and snapping no longer regenerate.
+  Polygon unions cluster touching inputs and merge in a balanced tree. Measured in a
+  release build: a wall-type edit on 535 connected walls redraws the plan in ~6.5 ms;
+  hover pick + snap takes ~0.6 ms (M2's target is 50 ms). A property test checks that
+  incremental results equal a full rebuild over random edit / undo / redo sequences.
+- **Category index** in the element store (`Document::of` no longer scans).
+- **Parameters:** `ParamValue` / `ParamKind` / `ParamDef` (DATA_MODEL.md). Built-in
+  parameters remain typed fields of the element data. User-defined **project parameters**
+  (Manage ▸ Project Parameters: name, type, instance or type, categories) are stored in each
+  element's parameter map, persisted in the existing `params` column (no schema change),
+  shown under "Other" in Properties, undoable, and removed from every element together with
+  their definition.
+- **Deferred:** binary IPC for display lists. With caching, JSON is only sent after an
+  edit and is fast enough; revisit with large models.
+
+## ADR-018 Layered walls, roofs, stairs, crop regions — Accepted (2026-09-24)
+- **Compound wall types:** `WallType.layers` (material, thickness, function), exterior
+  first; the exterior face is the wall's left looking from start to end (clockwise-drawn
+  buildings face out, as in Revit). The built-in types got layer builds that add up to their
+  nominal widths; typing a new Width resizes the structure layer. Layers are edited in
+  Properties (material, function, thickness, move up, delete, add). Plans at 1/4" and larger
+  draw layer lines on a lighter cut fill (Revit's medium detail); IFC exports an
+  `IfcMaterialLayerSet` per type.
+- **Roof by footprint:** `Roof { boundary, level, offset, slope, sloped[edge] }` with a
+  `RoofType` (thickness). Each sloped edge rises inward and owns the part of the footprint
+  where it is the nearest sloped edge line (half-plane clipping). This gives exact hips,
+  ridges and gables for convex footprints; non-convex footprints should be split into convex
+  roofs for now (no straight skeleton yet). The Roof tool covers the view level's walls with
+  an 18" overhang at 6/12, bearing on the walls' tops (on the level at that height when there
+  is one). Plans show the roof plan (dashed when above the cut), elevations draw sloped
+  faces and fascias as polygons, sections cut the slopes, and 3D and IFC (`IfcRoof`,
+  triangulated) get the full solid.
+- **Stairs:** straight runs from a level to the one above; the riser count is the smallest
+  that keeps risers at or under the maximum (7"), with 11" treads and a 3'-6" width. Plans
+  show treads up to the cut, a break line, dashed treads beyond and an UP arrow; the upper
+  level shows DN. Elevations, sections, 3D and IFC (`IfcStair` with `Pset_StairCommon`).
+  Floors don't get stair openings yet.
+- **Crop regions:** `View.crop` / `show_crop`; Crop View in Properties, and edge grips when
+  the view is selected. Lines, fills and text are clipped to the region; the boundary never
+  prints on sheets, and viewports size to the cropped view.
+- The sample gained a Roof level with a hip roof, a stair from Level 1 to Level 2, and
+  clockwise exterior walls so the layered exteriors face out.

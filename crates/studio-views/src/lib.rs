@@ -2,15 +2,22 @@
 //! picking and snapping. Display-list coordinates are model mm (plans: x east, y north;
 //! elevations: u to the viewer's right, z up). Annotation sizes are paper mm × scale.
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
 use serde::Serialize;
 use studio_core::units::{format_area_sf, format_ft_in, MM_PER_IN};
-use studio_core::{Category, Document, ElementData, ElementId, ViewKind};
+use studio_core::{Category, CropBox, Document, ElementData, ElementId, ViewKind};
 use studio_core::{DoorFamily, WindowFamily};
 use studio_geom::{point_in_ring, project_to_segment, Pt};
 use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
 
+pub mod handles;
 pub mod snap;
+pub use handles::{
+    align_delta, handles, offset_preview, ref_line, Grip, Handles, OffsetPreview, RefLine, TempDim,
+};
 pub use snap::{snap, SnapResult};
 
 /// Plan cut plane height above the level, mm (4'-0").
@@ -31,6 +38,8 @@ pub enum Dash {
 pub enum FillKind {
     /// Cut material (walls in plan).
     Poche,
+    /// Lighter cut material, so layer lines show inside layered walls.
+    PocheLight,
     /// Opaque paper-white (painter's hidden-line fill in elevations).
     Paper,
     /// Light slab tone (floors).
@@ -206,9 +215,51 @@ impl Builder {
     }
 }
 
+/// Display lists of a document's views, by view, with the stamp they were made for.
+#[derive(Default)]
+struct DisplayCache(HashMap<ElementId, (u64, Arc<DisplayList>)>);
+const CACHE_KEY: &str = "studio-views";
+
 /// Generates the display list of a 2D view. Returns None for 3D views.
 pub fn display_list(doc: &Document, view: ElementId) -> Option<DisplayList> {
-    let ElementData::View { kind, scale, .. } = doc.data(view).ok()? else {
+    display_list_shared(doc, view).map(|d| (*d).clone())
+}
+
+/// Like [`display_list`], shared from the document's cache when the model is unchanged
+/// (picking and hovering ask for it on every mouse move).
+pub fn display_list_shared(doc: &Document, view: ElementId) -> Option<Arc<DisplayList>> {
+    let cache = doc
+        .derived()
+        .get::<Mutex<DisplayCache>>(CACHE_KEY)
+        .unwrap_or_else(|| {
+            let c = Arc::new(Mutex::new(DisplayCache::default()));
+            doc.derived().put(CACHE_KEY, c.clone());
+            c
+        });
+    let stamp = doc.stamp();
+    if let Some((s, dl)) = cache.lock().unwrap_or_else(|e| e.into_inner()).0.get(&view) {
+        if *s == stamp {
+            return Some(dl.clone());
+        }
+    }
+    let dl = Arc::new(render(doc, view)?);
+    cache
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .0
+        .insert(view, (stamp, dl.clone()));
+    Some(dl)
+}
+
+fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
+    let ElementData::View {
+        kind,
+        scale,
+        crop,
+        show_crop,
+        ..
+    } = doc.data(view).ok()?
+    else {
         return None;
     };
     let model = regenerate(doc);
@@ -244,12 +295,162 @@ pub fn display_list(doc: &Document, view: ElementId) -> Option<DisplayList> {
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
     annotations(doc, &mut b, view);
+    let crop_margin = b.paper(8.0);
+    let (items, bounds) = match crop {
+        Some(c) => {
+            let mut items = crop_items(b.items, c);
+            if *show_crop {
+                let r = [
+                    c.min,
+                    Pt::new(c.max.x, c.min.y),
+                    c.max,
+                    Pt::new(c.min.x, c.max.y),
+                ];
+                // Drawn with the view as its element: selectable, and left off sheets.
+                items.push(Item {
+                    el: Some(view),
+                    prim: Prim::Line {
+                        pts: ring(&r),
+                        closed: true,
+                        w: 1,
+                        dash: Dash::Solid,
+                    },
+                });
+            }
+            let m = crop_margin;
+            (items, [c.min.x - m, c.min.y - m, c.max.x + m, c.max.y + m])
+        }
+        None => (b.items, bounds),
+    };
     Some(DisplayList {
         view_type,
         scale: *scale,
         bounds,
-        items: b.items,
+        items,
     })
+}
+
+/// Clips a segment to a box (Liang–Barsky); None when it lies outside.
+fn clip_segment(a: Pt, b: Pt, c: &CropBox) -> Option<(Pt, Pt)> {
+    let d = b.sub(a);
+    let (mut t0, mut t1) = (0.0f64, 1.0f64);
+    for (p, q) in [
+        (-d.x, a.x - c.min.x),
+        (d.x, c.max.x - a.x),
+        (-d.y, a.y - c.min.y),
+        (d.y, c.max.y - a.y),
+    ] {
+        if p.abs() < 1e-12 {
+            if q < 0.0 {
+                return None;
+            }
+        } else {
+            let r = q / p;
+            if p < 0.0 {
+                t0 = t0.max(r);
+            } else {
+                t1 = t1.min(r);
+            }
+        }
+    }
+    (t0 <= t1).then(|| (a.add(d.scale(t0)), a.add(d.scale(t1))))
+}
+
+/// Everything in `items` that lies inside the crop region, cut at its edges.
+fn crop_items(items: Vec<Item>, c: &CropBox) -> Vec<Item> {
+    let mut out = vec![];
+    let clip_ring = |r: &[[f64; 2]]| -> Vec<[f64; 2]> {
+        let mut pts: Vec<Pt> = r.iter().map(|q| Pt::new(q[0], q[1])).collect();
+        for (p0, n) in [
+            (c.min, Pt::new(1.0, 0.0)),
+            (c.max, Pt::new(-1.0, 0.0)),
+            (c.min, Pt::new(0.0, 1.0)),
+            (c.max, Pt::new(0.0, -1.0)),
+        ] {
+            if pts.len() < 3 {
+                break;
+            }
+            pts = studio_geom::clip_half_plane(&pts, p0, n);
+        }
+        if pts.len() < 3 {
+            vec![]
+        } else {
+            ring(&pts)
+        }
+    };
+    for it in items {
+        match it.prim {
+            Prim::Line {
+                pts,
+                closed,
+                w,
+                dash,
+            } => {
+                let n = pts.len();
+                let segs = if closed { n } else { n.saturating_sub(1) };
+                let mut run: Vec<Pt> = vec![];
+                let flush = |run: &mut Vec<Pt>, out: &mut Vec<Item>| {
+                    if run.len() >= 2 {
+                        out.push(Item {
+                            el: it.el,
+                            prim: Prim::Line {
+                                pts: ring(run),
+                                closed: false,
+                                w,
+                                dash,
+                            },
+                        });
+                    }
+                    run.clear();
+                };
+                let all_inside = pts.iter().all(|q| c.contains(Pt::new(q[0], q[1])));
+                if all_inside {
+                    out.push(Item {
+                        el: it.el,
+                        prim: Prim::Line {
+                            pts,
+                            closed,
+                            w,
+                            dash,
+                        },
+                    });
+                    continue;
+                }
+                for i in 0..segs {
+                    let (a, b) = (pts[i], pts[(i + 1) % n]);
+                    match clip_segment(Pt::new(a[0], a[1]), Pt::new(b[0], b[1]), c) {
+                        Some((p, q)) => {
+                            if run.last().is_none_or(|l| l.dist(p) > 1e-6) {
+                                flush(&mut run, &mut out);
+                                run.push(p);
+                            }
+                            run.push(q);
+                        }
+                        None => flush(&mut run, &mut out),
+                    }
+                }
+                flush(&mut run, &mut out);
+            }
+            Prim::Fill { rings, fill } => {
+                let rings: Vec<Vec<[f64; 2]>> = rings.iter().map(|r| clip_ring(r)).collect();
+                if rings.first().is_some_and(|r| !r.is_empty()) {
+                    out.push(Item {
+                        el: it.el,
+                        prim: Prim::Fill {
+                            rings: rings.into_iter().filter(|r| !r.is_empty()).collect(),
+                            fill,
+                        },
+                    });
+                }
+            }
+            Prim::Text { at, .. } | Prim::Circle { c: at, .. } => {
+                if c.contains(Pt::new(at[0], at[1])) {
+                    out.push(it);
+                }
+            }
+        }
+    }
+    out
 }
 
 /// Default plan extents when the model is empty: 60' × 40' around the origin.
@@ -331,8 +532,35 @@ fn plan(
                 .map(move |p| (w.id, &p.base))
         })
         .collect();
+    // Compound layers show at 1/4" = 1'-0" and larger (Revit's medium detail), on a
+    // lighter cut fill so the layer lines read.
+    let detail = b.scale <= 50.0;
+    let layered = |id: &ElementId| {
+        detail
+            && cut_walls
+                .iter()
+                .any(|w| w.id == *id && !w.layers.is_empty())
+    };
     for (id, base) in &cut_pieces {
-        b.fill(Some(*id), vec![ring(&base.outer)], FillKind::Poche);
+        let fill = if layered(id) {
+            FillKind::PocheLight
+        } else {
+            FillKind::Poche
+        };
+        b.fill(Some(*id), vec![ring(&base.outer)], fill);
+    }
+    if detail {
+        for w in cut_walls.iter().filter(|w| !w.layers.is_empty()) {
+            let n = w.dir().perp();
+            for off in &w.layers {
+                let (a, d) = (w.start.add(n.scale(*off)), w.dir());
+                for p in w.pieces.iter().filter(|p| p.z0 <= cut && p.z1 > cut) {
+                    if let Some((s, e)) = clip_line_convex(a, d, &p.base.outer) {
+                        b.line(Some(w.id), &[s, e], false, 1, Dash::Solid);
+                    }
+                }
+            }
+        }
     }
     let merged = studio_geom::union_all(
         &cut_pieces
@@ -354,6 +582,10 @@ fn plan(
         .filter(|o| cut_ids.contains(&o.host) && o.z0 <= cut && o.z1 > cut)
     {
         opening_symbol(b, Some(o.id), o);
+    }
+    if !ceiling {
+        stairs_in_plan(b, model, level, elev, cut);
+        roofs_in_plan(b, model, level, cut);
     }
     if !ceiling {
         // Tags are elements owned by this view (created on placement, movable, deletable).
@@ -403,6 +635,151 @@ fn plan(
     }
     let (lo, hi) = bounds(&pts).unwrap_or((lo, hi));
     [lo.x - margin, lo.y - margin, hi.x + margin, hi.y + margin]
+}
+
+/// The part of the line through `a` along `d` inside a convex ring, if any.
+fn clip_line_convex(a: Pt, d: Pt, ring_pts: &[Pt]) -> Option<(Pt, Pt)> {
+    let n = ring_pts.len();
+    if n < 3 {
+        return None;
+    }
+    let ccw = studio_geom::signed_area(ring_pts) > 0.0;
+    let (mut t0, mut t1) = (f64::NEG_INFINITY, f64::INFINITY);
+    for i in 0..n {
+        let (p, q) = (ring_pts[i], ring_pts[(i + 1) % n]);
+        let e = q.sub(p);
+        // Inward normal of the edge.
+        let inward = if ccw { e.perp() } else { e.perp().scale(-1.0) };
+        let denom = d.dot(inward);
+        let num = a.sub(p).dot(inward);
+        if denom.abs() < 1e-12 {
+            if num < 0.0 {
+                return None;
+            }
+            continue;
+        }
+        let t = -num / denom;
+        if denom > 0.0 {
+            t0 = t0.max(t);
+        } else {
+            t1 = t1.min(t);
+        }
+    }
+    (t0.is_finite() && t1.is_finite() && t1 - t0 > 0.5)
+        .then(|| (a.add(d.scale(t0)), a.add(d.scale(t1))))
+}
+
+/// Stairs based on this level (treads up to the cut plane, a break line, and an UP
+/// arrow) and stairs arriving from below (all treads and DN).
+fn stairs_in_plan(b: &mut Builder, model: &Model, level: ElementId, elev: f64, cut: f64) {
+    for s in &model.stairs {
+        let up = s.base_level == level;
+        let down = s.top_level == level;
+        if !up && !down {
+            continue;
+        }
+        let el = Some(s.id);
+        let o = s.outline();
+        b.fill(el, vec![ring(&o)], FillKind::Room);
+        let n = s.dir.perp().scale(s.width / 2.0);
+        let run = s.tread * s.steps.len() as f64;
+        // Where the cut plane crosses the run (distance from the first riser).
+        let cut_at = if up {
+            (((cut - elev) / s.riser).floor() * s.tread).clamp(s.tread, run)
+        } else {
+            run
+        };
+        for k in 0..=s.steps.len() {
+            let t = k as f64 * s.tread;
+            let p = s.start.add(s.dir.scale(t));
+            let dash = if up && t > cut_at + 1.0 {
+                Dash::Dashed
+            } else {
+                Dash::Solid
+            };
+            b.line(el, &[p.add(n), p.sub(n)], false, 1, dash);
+        }
+        let side = |a: Pt, t0: f64, t1: f64, dash: Dash, b: &mut Builder| {
+            b.line(
+                el,
+                &[a.add(s.dir.scale(t0)), a.add(s.dir.scale(t1))],
+                false,
+                2,
+                dash,
+            );
+        };
+        for edge in [s.start.add(n), s.start.sub(n)] {
+            side(edge, 0.0, cut_at, Dash::Solid, b);
+            if cut_at < run {
+                side(edge, cut_at, run, Dash::Dashed, b);
+            }
+        }
+        if up && cut_at < run {
+            // Diagonal break line across the run at the cut.
+            let c = s.start.add(s.dir.scale(cut_at));
+            let skew = s.dir.scale(s.tread * 0.8);
+            b.line(
+                el,
+                &[c.add(n).add(skew), c.sub(n).sub(skew)],
+                false,
+                2,
+                Dash::Solid,
+            );
+        }
+        // Walking line with an arrowhead, UP from this level or DN from above.
+        let (from, to) = if up {
+            (
+                s.start.add(s.dir.scale(s.tread * 0.5)),
+                s.start.add(s.dir.scale(cut_at.min(run) - s.tread * 0.5)),
+            )
+        } else {
+            (
+                s.start.add(s.dir.scale(run - s.tread * 0.5)),
+                s.start.add(s.dir.scale(s.tread * 0.5)),
+            )
+        };
+        b.line(el, &[from, to], false, 1, Dash::Solid);
+        let back = from.sub(to).norm();
+        let head = b.paper(2.0);
+        let wing = back.perp().scale(head * 0.5);
+        b.line(
+            el,
+            &[
+                to.add(back.scale(head)).add(wing),
+                to,
+                to.add(back.scale(head)).sub(wing),
+            ],
+            false,
+            1,
+            Dash::Solid,
+        );
+        b.text(
+            el,
+            from.sub(back.scale(b.paper(0.5)))
+                .sub(s.dir.scale(b.paper(3.0))),
+            if up { "UP".into() } else { "DN".into() },
+            2.5,
+            Anchor::Center,
+        );
+    }
+}
+
+/// Roofs based on this level, as in a roof plan: eave outline, hips and ridges. Dashed
+/// when the roof is above the cut plane (seen overhead).
+fn roofs_in_plan(b: &mut Builder, model: &Model, level: ElementId, cut: f64) {
+    for r in model.roofs.iter().filter(|r| r.level == level) {
+        let el = Some(r.id);
+        let dash = if r.base > cut {
+            Dash::Dashed
+        } else {
+            Dash::Solid
+        };
+        b.fill(el, vec![ring(&r.boundary)], FillKind::Room);
+        for f in &r.faces {
+            b.line(el, &f.poly, true, 1, dash);
+        }
+        b.line(el, &r.boundary, true, 2, dash);
+    }
 }
 
 /// Points on a circular arc from angle `a0` sweeping `sweep` radians.
@@ -797,6 +1174,8 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         mid: f64,
         fill: FillKind,
         detail: Option<OpeningKind>,
+        /// A sloped face's outline in (u, z); rectangles leave this empty.
+        poly: Option<Vec<Pt>>,
     }
     let face = |el: ElementId, pts: &[Pt], z0: f64, z1: f64, fill: FillKind| {
         let us: Vec<f64> = pts.iter().map(|p| u_of(*p)).collect();
@@ -813,9 +1192,12 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             mid: pts.iter().map(|p| depth_of(*p)).sum::<f64>() / pts.len().max(1) as f64,
             fill,
             detail: None,
+            poly: None,
         }
     };
     let mut faces: Vec<Face> = vec![];
+    // Cut profiles that aren't rectangles (sloped roofs), drawn with the cut rectangles.
+    let mut cut_polys: Vec<(ElementId, Vec<Pt>)> = vec![];
     // Whole walls, not their pieces: every opening is drawn on top with its own door or
     // glass fill, and piece seams would read as false joints in the facade.
     for w in &model.walls {
@@ -875,6 +1257,99 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             }
         }
     }
+    for s in &model.stairs {
+        for step in &s.steps {
+            match seen(&step.base.outer) {
+                Seen::Beyond => faces.push(face(
+                    s.id,
+                    &step.base.outer,
+                    step.z0,
+                    step.z1,
+                    FillKind::Paper,
+                )),
+                Seen::Cut => {
+                    if let Some((u0, u1)) = cut_interval(&step.base.outer) {
+                        cut_rects.push((s.id, u0, u1, step.z0, step.z1));
+                    }
+                }
+                Seen::Hidden => {}
+            }
+        }
+    }
+    // A 3D polygon as a face in (u, z), with its depth for the painter's sort.
+    let poly_face = |el: ElementId, poly3: &[[f64; 3]]| -> Option<Face> {
+        if poly3.len() < 3 {
+            return None;
+        }
+        let uz: Vec<Pt> = poly3
+            .iter()
+            .map(|v| Pt::new(u_of(Pt::new(v[0], v[1])), v[2]))
+            .collect();
+        if studio_geom::signed_area(&uz).abs() < 1.0 {
+            return None; // Seen edge-on.
+        }
+        let depths: Vec<f64> = poly3
+            .iter()
+            .map(|v| depth_of(Pt::new(v[0], v[1])))
+            .collect();
+        Some(Face {
+            el,
+            u0: uz.iter().map(|p| p.x).fold(f64::INFINITY, f64::min),
+            u1: uz.iter().map(|p| p.x).fold(f64::NEG_INFINITY, f64::max),
+            z0: uz.iter().map(|p| p.y).fold(f64::INFINITY, f64::min),
+            z1: uz.iter().map(|p| p.y).fold(f64::NEG_INFINITY, f64::max),
+            near: depths.iter().copied().fold(f64::INFINITY, f64::min),
+            mid: depths.iter().sum::<f64>() / depths.len() as f64,
+            fill: FillKind::Paper,
+            detail: None,
+            poly: Some(uz),
+        })
+    };
+    for r in &model.roofs {
+        match seen(&r.boundary) {
+            Seen::Beyond => {
+                for s in r.surfaces() {
+                    faces.extend(poly_face(r.id, &s));
+                }
+            }
+            Seen::Cut => {
+                // What lies beyond the cut plane, then the cut profile.
+                for s in r.surfaces() {
+                    let kept = clip3(&s, depth_of);
+                    faces.extend(poly_face(r.id, &kept));
+                }
+                let t = if r.is_flat() {
+                    r.thickness
+                } else {
+                    r.plumb_thickness()
+                };
+                if r.is_flat() {
+                    if let Some((u0, u1)) = cut_interval(&r.boundary) {
+                        cut_rects.push((r.id, u0, u1, r.base, r.base + t));
+                    }
+                }
+                for f in &r.faces {
+                    // Where the face's top surface crosses the cut plane.
+                    let n = f.poly.len();
+                    let mut hits: Vec<Pt> = vec![];
+                    for i in 0..n {
+                        let (a, b) = (f.poly[i], f.poly[(i + 1) % n]);
+                        let (da, db) = (depth_of(a), depth_of(b));
+                        if (da < 0.0) != (db < 0.0) {
+                            let q = a.lerp(b, da / (da - db));
+                            hits.push(Pt::new(u_of(q), r.face_top(f, q)));
+                        }
+                    }
+                    if hits.len() >= 2 {
+                        let (p, q) = (hits[0], hits[1]);
+                        let lo = |v: Pt| Pt::new(v.x, v.y - t);
+                        cut_polys.push((r.id, vec![p, q, lo(q), lo(p)]));
+                    }
+                }
+            }
+            Seen::Hidden => {}
+        }
+    }
     // Painter's algorithm: farthest first so nearer faces cover what they hide. Mitered
     // corners make side walls reach as near as the facade, so ties break on average depth.
     faces.sort_by(|a, b| b.near.total_cmp(&a.near).then(b.mid.total_cmp(&a.mid)));
@@ -899,12 +1374,15 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
     let (zmin, zmax) = model.z_range();
 
     for f in &faces {
-        let r = [
-            Pt::new(f.u0, f.z0),
-            Pt::new(f.u1, f.z0),
-            Pt::new(f.u1, f.z1),
-            Pt::new(f.u0, f.z1),
-        ];
+        let r = match &f.poly {
+            Some(p) => p.clone(),
+            None => vec![
+                Pt::new(f.u0, f.z0),
+                Pt::new(f.u1, f.z0),
+                Pt::new(f.u1, f.z1),
+                Pt::new(f.u0, f.z1),
+            ],
+        };
         b.fill(Some(f.el), vec![ring(&r)], f.fill);
         b.line(Some(f.el), &r, true, 2, Dash::Solid);
         if let Some(kind) = f.detail {
@@ -921,6 +1399,10 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         ];
         b.fill(Some(*el), vec![ring(&r)], FillKind::Poche);
         b.line(Some(*el), &r, true, 4, Dash::Solid);
+    }
+    for (el, r) in &cut_polys {
+        b.fill(Some(*el), vec![ring(r)], FillKind::Poche);
+        b.line(Some(*el), r, true, 4, Dash::Solid);
     }
 
     let ext = b.paper(12.0);
@@ -1009,6 +1491,29 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         maxx,
         zmax + b.paper(30.0),
     ]
+}
+
+/// The part of a planar 3D polygon where `depth` (of its plan position) is ≥ 0.
+fn clip3(poly: &[[f64; 3]], depth: impl Fn(Pt) -> f64) -> Vec<[f64; 3]> {
+    let d: Vec<f64> = poly.iter().map(|v| depth(Pt::new(v[0], v[1]))).collect();
+    let n = poly.len();
+    let mut out = vec![];
+    for i in 0..n {
+        let j = (i + 1) % n;
+        if d[i] >= 0.0 {
+            out.push(poly[i]);
+        }
+        if (d[i] >= 0.0) != (d[j] >= 0.0) {
+            let t = d[i] / (d[i] - d[j]);
+            let (a, b) = (poly[i], poly[j]);
+            out.push([
+                a[0] + (b[0] - a[0]) * t,
+                a[1] + (b[1] - a[1]) * t,
+                a[2] + (b[2] - a[2]) * t,
+            ]);
+        }
+    }
+    out
 }
 
 /// Frame, panel and swing lines of a door or window seen in elevation.
@@ -1435,6 +1940,22 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             positions: s.prism().triangles(),
         });
     }
+    for r in &m.roofs {
+        out.push(Mesh {
+            el: r.id,
+            category: Category::Roof,
+            exterior: true,
+            positions: r.triangles(),
+        });
+    }
+    for s in &m.stairs {
+        out.push(Mesh {
+            el: s.id,
+            category: Category::Stair,
+            exterior: false,
+            positions: s.steps.iter().flat_map(|p| p.triangles()).collect(),
+        });
+    }
     out
 }
 
@@ -1448,6 +1969,7 @@ mod tests {
     use super::*;
     use studio_core::ops;
     use studio_core::units::MM_PER_FT;
+    use studio_core::Compass;
 
     fn building() -> (Document, ElementId) {
         let mut doc = Document::new();
@@ -1517,7 +2039,7 @@ mod tests {
             count(&dl, |p| matches!(
                 p,
                 Prim::Fill {
-                    fill: FillKind::Poche,
+                    fill: FillKind::Poche | FillKind::PocheLight,
                     ..
                 }
             )),
@@ -1566,7 +2088,7 @@ mod tests {
             count(&dl, |p| matches!(
                 p,
                 Prim::Fill {
-                    fill: FillKind::Poche,
+                    fill: FillKind::Poche | FillKind::PocheLight,
                     ..
                 }
             )),
@@ -1593,9 +2115,23 @@ mod tests {
             1
         );
         // ~39'-4" × 29'-4" room: 14 horizontal (2') and 9 vertical (4') grid lines.
+        let ceiling = dl
+            .items
+            .iter()
+            .find(|i| {
+                matches!(
+                    i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Ceiling,
+                        ..
+                    }
+                )
+            })
+            .and_then(|i| i.el);
         let hatch = dl
             .items
             .iter()
+            .filter(|i| i.el == ceiling)
             .filter(|i| matches!(&i.prim, Prim::Line { w: 1, pts, .. } if pts.len() == 2))
             .count();
         assert!((20..=26).contains(&hatch), "{hatch}");
@@ -2021,5 +2557,328 @@ mod tests {
         assert!(ms
             .iter()
             .all(|m| !m.positions.is_empty() && m.positions.len() % 9 == 0));
+    }
+
+    /// A 40' × 30' box of 8" exterior walls on Level 1 with a hip roof on Level 2 and a
+    /// stair from Level 1 to Level 2.
+    fn roofed_house() -> (Document, ElementId, ElementId, ElementId) {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let levels = doc.levels();
+        let (l1, l2) = (levels[0].0, levels[1].0);
+        let wt = doc
+            .of(Category::WallType)
+            .find(|e| e.data.name().starts_with("Exterior - 8"))
+            .unwrap()
+            .id;
+        let ft = studio_core::units::MM_PER_FT;
+        let c = [
+            Pt::new(0.0, 0.0),
+            Pt::new(0.0, 30.0 * ft),
+            Pt::new(40.0 * ft, 30.0 * ft),
+            Pt::new(40.0 * ft, 0.0),
+        ];
+        for i in 0..4 {
+            ops::create_wall(&mut doc, wt, l1, c[i], c[(i + 1) % 4]).unwrap();
+        }
+        let rt = studio_core::build::default_roof_type(&doc).unwrap();
+        let eave = studio_geom::offset_ring(&c, 18.0 * MM_PER_IN);
+        let roof = studio_core::build::create_roof(
+            &mut doc,
+            rt,
+            l2,
+            0.0,
+            eave,
+            studio_core::build::DEFAULT_ROOF_SLOPE,
+        )
+        .unwrap();
+        let stair = studio_core::build::create_stair(
+            &mut doc,
+            l1,
+            Pt::new(2.0 * ft, 8.0 * ft),
+            Pt::new(2.0 * ft, 20.0 * ft),
+            studio_core::build::DEFAULT_STAIR_WIDTH,
+        )
+        .unwrap();
+        (doc, l1, roof, stair)
+    }
+
+    fn view_where(doc: &Document, f: impl Fn(&ViewKind) -> bool) -> ElementId {
+        doc.of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind, .. } if f(kind)))
+            .unwrap()
+            .id
+    }
+
+    #[test]
+    fn roofs_show_sloped_faces_in_elevation_and_cut_in_section() {
+        let (mut doc, _, roof, _) = roofed_house();
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::North
+                }
+            )
+        });
+        let dl = display_list(&doc, south).unwrap();
+        let polys = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(roof))
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Paper,
+                        ..
+                    }
+                )
+            })
+            .count();
+        // Seen from the south: both slopes and both fascias (the hip ends are edge-on).
+        assert_eq!(polys, 4, "roof faces and fascias seen as polygons");
+        let sec = ops::create_section(&mut doc, Pt::new(-3000.0, 4500.0), Pt::new(15000.0, 4500.0))
+            .unwrap();
+        let dl = display_list(&doc, sec).unwrap();
+        let cut = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(roof))
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Poche,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert!(cut >= 2, "both roof slopes cut by the section: {cut}");
+    }
+
+    #[test]
+    fn stair_plan_symbol_and_meshes() {
+        let (doc, l1, roof, stair) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let dl = display_list(&doc, plan).unwrap();
+        let text = |s: &str| {
+            dl.items.iter().any(|i| {
+                i.el == Some(stair) && matches!(&i.prim, Prim::Text { text, .. } if text == s)
+            })
+        };
+        assert!(text("UP"));
+        let dashed = dl.items.iter().any(|i| {
+            i.el == Some(stair)
+                && matches!(
+                    &i.prim,
+                    Prim::Line {
+                        dash: Dash::Dashed,
+                        ..
+                    }
+                )
+        });
+        assert!(dashed, "treads above the cut plane are dashed");
+        let l2 = doc.levels()[1].0;
+        let upper = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l2),
+        );
+        let dl2 = display_list(&doc, upper).unwrap();
+        assert!(dl2
+            .items
+            .iter()
+            .any(|i| i.el == Some(stair)
+                && matches!(&i.prim, Prim::Text { text, .. } if text == "DN")));
+        assert!(
+            dl2.items.iter().any(|i| i.el == Some(roof)),
+            "roof plan on Level 2"
+        );
+        let m = meshes(&doc);
+        assert!(m.iter().any(|x| x.el == roof && !x.positions.is_empty()));
+        assert!(m
+            .iter()
+            .any(|x| x.el == stair && x.positions.len() == 17 * 12 * 9));
+    }
+
+    #[test]
+    fn crop_region_clips_and_bounds_the_view() {
+        let (mut doc, l1, _, _) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let full = display_list(&doc, plan).unwrap();
+        let ft = studio_core::units::MM_PER_FT;
+        studio_core::edit::set_crop(
+            &mut doc,
+            plan,
+            Some(CropBox {
+                min: Pt::new(-2.0 * ft, -2.0 * ft),
+                max: Pt::new(20.0 * ft, 15.0 * ft),
+            }),
+        )
+        .unwrap();
+        let dl = display_list(&doc, plan).unwrap();
+        assert!(dl.items.len() < full.items.len());
+        let inside = |q: &[f64; 2]| q[0] >= -2.0 * ft - 1e-6 && q[0] <= 20.0 * ft + 1e-6;
+        for it in &dl.items {
+            if let Prim::Line { pts, .. } = &it.prim {
+                assert!(pts.iter().all(inside), "every line is clipped");
+            }
+        }
+        assert!(
+            dl.items.iter().any(|i| i.el == Some(plan)),
+            "crop boundary drawn"
+        );
+        assert!(dl.bounds[2] < 25.0 * ft);
+        ops::set_property(&mut doc, plan, "show_crop", "no", 0).unwrap();
+        assert!(!display_list(&doc, plan)
+            .unwrap()
+            .items
+            .iter()
+            .any(|i| i.el == Some(plan)));
+    }
+
+    #[test]
+    fn layers_draw_at_quarter_inch_scale_and_lists_are_cached() {
+        let (mut doc, l1, _, _) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let a = display_list_shared(&doc, plan).unwrap();
+        let b = display_list_shared(&doc, plan).unwrap();
+        assert!(Arc::ptr_eq(&a, &b), "unchanged model → cached display list");
+        let walls: std::collections::HashSet<ElementId> =
+            doc.of(Category::Wall).map(|e| e.id).collect();
+        let layer_lines = |dl: &DisplayList| {
+            dl.items
+                .iter()
+                .filter(|i| i.el.is_some_and(|e| walls.contains(&e)))
+                .filter(|i| matches!(&i.prim, Prim::Line { w: 1, .. }))
+                .count()
+        };
+        // Four walls × three layer boundaries.
+        assert_eq!(layer_lines(&a), 12);
+        ops::set_property(&mut doc, plan, "scale", "96", 0).unwrap();
+        assert_eq!(
+            layer_lines(&display_list(&doc, plan).unwrap()),
+            0,
+            "coarse at 1/8\""
+        );
+    }
+
+    /// M2 acceptance timing: `cargo test --release -p studio-views bench_500_walls -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn bench_500_walls() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = doc
+            .of(Category::WallType)
+            .find(|e| e.data.name().starts_with("Exterior - 8"))
+            .unwrap()
+            .id;
+        // 125 separate 10' × 8' rooms of four walls each: 500 walls.
+        for k in 0..125 {
+            let (x, y) = ((k % 25) as f64 * 4000.0, (k / 25) as f64 * 3500.0);
+            let c = [
+                Pt::new(x, y),
+                Pt::new(x, y + 2400.0),
+                Pt::new(x + 3000.0, y + 2400.0),
+                Pt::new(x + 3000.0, y),
+            ];
+            for i in 0..4 {
+                ops::create_wall(&mut doc, wt, l1, c[i], c[(i + 1) % 4]).unwrap();
+            }
+        }
+        let plan = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1))
+            .unwrap()
+            .id;
+        display_list(&doc, plan).unwrap();
+        let t0 = std::time::Instant::now();
+        ops::set_property(&mut doc, wt, "thickness", "10\"", 0).unwrap();
+        display_list(&doc, plan).unwrap();
+        let type_edit = t0.elapsed();
+        let t1 = std::time::Instant::now();
+        let w = doc.of(Category::Wall).next().unwrap().id;
+        studio_core::modify::move_elements(&mut doc, &[w], Pt::new(100.0, 0.0)).unwrap();
+        display_list(&doc, plan).unwrap();
+        let move_one = t1.elapsed();
+        let t2 = std::time::Instant::now();
+        for _ in 0..100 {
+            snap(&doc, plan, Pt::new(1000.0, 1000.0), None, 50.0);
+            pick(
+                &display_list_shared(&doc, plan).unwrap(),
+                Pt::new(1000.0, 1000.0),
+                50.0,
+            );
+        }
+        let hover = t2.elapsed() / 100;
+        eprintln!("BENCH type edit {type_edit:?}, move one wall {move_one:?}, hover {hover:?}");
+
+        // One connected building: a 25 × 10 grid of 10' × 8' bays (535 walls, T and
+        // cross joins everywhere).
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = doc
+            .of(Category::WallType)
+            .find(|e| e.data.name().starts_with("Interior - 4"))
+            .unwrap()
+            .id;
+        for r in 0..=10 {
+            for c in 0..25 {
+                let y = r as f64 * 2400.0;
+                ops::create_wall(
+                    &mut doc,
+                    wt,
+                    l1,
+                    Pt::new(c as f64 * 3000.0, y),
+                    Pt::new((c + 1) as f64 * 3000.0, y),
+                )
+                .unwrap();
+            }
+        }
+        for c in 0..=25 {
+            for r in 0..10 {
+                let x = c as f64 * 3000.0;
+                ops::create_wall(
+                    &mut doc,
+                    wt,
+                    l1,
+                    Pt::new(x, r as f64 * 2400.0),
+                    Pt::new(x, (r + 1) as f64 * 2400.0),
+                )
+                .unwrap();
+            }
+        }
+        let plan = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1))
+            .unwrap()
+            .id;
+        display_list(&doc, plan).unwrap();
+        let t0 = std::time::Instant::now();
+        ops::set_property(&mut doc, wt, "thickness", "6\"", 0).unwrap();
+        display_list(&doc, plan).unwrap();
+        let type_edit = t0.elapsed();
+        let t1 = std::time::Instant::now();
+        let w = doc.of(Category::Wall).next().unwrap().id;
+        ops::set_property(&mut doc, w, "base_offset", "1\"", 0).unwrap();
+        display_list(&doc, plan).unwrap();
+        eprintln!(
+            "BENCH connected: {} walls, type edit {type_edit:?}, edit one wall {:?}",
+            doc.count(Category::Wall),
+            t1.elapsed()
+        );
     }
 }

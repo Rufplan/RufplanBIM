@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { errorMessage, ipc } from "./ipc";
 import {
+  apply,
   deleteSelection,
   handleMenu,
   newProject,
@@ -10,13 +11,15 @@ import {
   undo,
 } from "./fileActions";
 import { useAppStore } from "./store";
-import { shortcut } from "./tools";
+import { shortcut, startsTypedValue } from "./tools";
 import { TopBar } from "./components/TopBar";
 import { Ribbon } from "./components/Ribbon";
+import { OptionsBar } from "./components/OptionsBar";
 import { ProjectBrowser } from "./components/ProjectBrowser";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { StatusBar, Workspace } from "./components/Workspace";
 import { RufplanDialog } from "./components/RufplanDialog";
+import { ParamsDialog } from "./components/ParamsDialog";
 import logo from "./assets/rufplan-logo-white.svg";
 
 function isTyping(target: EventTarget | null) {
@@ -104,7 +107,7 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const ui = useAppStore.getState();
-      if (isTyping(e.target) || ui.confirm || ui.rufplan) return;
+      if (isTyping(e.target) || ui.confirm || ui.rufplan || ui.paramsOpen) return;
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -118,6 +121,13 @@ export function App() {
         window.dispatchEvent(new Event("tool-cancel"));
       } else if (e.key === "Enter") {
         window.dispatchEvent(new Event("tool-finish"));
+      } else if (e.key === " " && ui.tool === "select" && ui.selection.length > 0) {
+        // Spacebar flips the selected walls, doors and windows, as in Revit.
+        e.preventDefault();
+        void apply(() => ipc.flipSelection(ui.selection));
+      } else if (!ctrl && !e.altKey && startsTypedValue(e.key) && ui.app) {
+        keys.current = "";
+        window.dispatchEvent(new CustomEvent("typed-value", { detail: e.key }));
       } else if (!ctrl && !e.altKey && useAppStore.getState().app) {
         if ((keys.current + e.key).toUpperCase().endsWith("ZF")) {
           keys.current = "";
@@ -147,6 +157,7 @@ export function App() {
       {app ? (
         <>
           <Ribbon />
+          <OptionsBar />
           <div className="main">
             <ProjectBrowser />
             <Workspace />
@@ -159,6 +170,7 @@ export function App() {
       )}
       <ConfirmDialog />
       <RufplanDialog />
+      <ParamsDialog />
     </div>
   );
 }

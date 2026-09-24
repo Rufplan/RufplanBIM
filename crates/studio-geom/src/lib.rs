@@ -197,26 +197,85 @@ pub fn offset_ring(ring: &[Pt], d: f64) -> Vec<Pt> {
 /// Inputs are grown by `tol::LINEAR` first: the boolean engine can leave polygons that
 /// share an edge exactly (e.g. mitered wall corners) as separate pieces, while
 /// overlapping ones always merge. The result is at most 0.01 mm larger than exact.
+///
+/// Inputs whose bounding boxes touch are grouped into clusters (separate buildings or
+/// wings merge independently), and each cluster is merged pairwise in a balanced tree, so
+/// the cost grows about as n·log n rather than n² for n walls.
 pub fn union_all(polys: &[Poly]) -> Vec<Poly> {
     use geo::BooleanOps;
-    let mut acc = geo::MultiPolygon::<f64>::new(vec![]);
-    for p in polys {
-        if p.outer.len() < 3 || signed_area(&p.outer).abs() < 1.0 {
-            continue;
-        }
-        let grown = Poly {
-            outer: offset_ring(&p.outer, tol::LINEAR),
-            holes: p.holes.clone(),
-        };
-        acc = acc.union(&geo::MultiPolygon::new(vec![to_geo(&grown)]));
-    }
-    acc.0
+    let items: Vec<(Pt, Pt, geo::MultiPolygon<f64>)> = polys
         .iter()
-        .map(|g| Poly {
-            outer: from_geo_ring(g.exterior()),
-            holes: g.interiors().iter().map(from_geo_ring).collect(),
+        .filter(|p| p.outer.len() >= 3 && signed_area(&p.outer).abs() >= 1.0)
+        .map(|p| {
+            let grown = Poly {
+                outer: offset_ring(&p.outer, tol::LINEAR),
+                holes: p.holes.clone(),
+            };
+            let (mut lo, mut hi) = (grown.outer[0], grown.outer[0]);
+            for q in &grown.outer {
+                lo = Pt::new(lo.x.min(q.x), lo.y.min(q.y));
+                hi = Pt::new(hi.x.max(q.x), hi.y.max(q.y));
+            }
+            (lo, hi, geo::MultiPolygon::new(vec![to_geo(&grown)]))
         })
-        .collect()
+        .collect();
+    // Union-find over touching bounding boxes.
+    let n = items.len();
+    let mut parent: Vec<usize> = (0..n).collect();
+    fn root(parent: &mut [usize], mut i: usize) -> usize {
+        while parent[i] != i {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        i
+    }
+    let slop = 0.1;
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let (a, b) = (&items[i], &items[j]);
+            if a.0.x <= b.1.x + slop
+                && b.0.x <= a.1.x + slop
+                && a.0.y <= b.1.y + slop
+                && b.0.y <= a.1.y + slop
+            {
+                let (ri, rj) = (root(&mut parent, i), root(&mut parent, j));
+                if ri != rj {
+                    parent[ri.max(rj)] = ri.min(rj);
+                }
+            }
+        }
+    }
+    let mut clusters: Vec<Vec<geo::MultiPolygon<f64>>> = vec![];
+    let mut slot: Vec<Option<usize>> = vec![None; n];
+    for (i, item) in items.into_iter().enumerate() {
+        let r = root(&mut parent, i);
+        let k = *slot[r].get_or_insert_with(|| {
+            clusters.push(vec![]);
+            clusters.len() - 1
+        });
+        clusters[k].push(item.2);
+    }
+    let mut out = vec![];
+    for mut level in clusters {
+        while level.len() > 1 {
+            let mut next = Vec::with_capacity(level.len().div_ceil(2));
+            let mut it = level.into_iter();
+            while let Some(a) = it.next() {
+                next.push(match it.next() {
+                    Some(b) => a.union(&b),
+                    None => a,
+                });
+            }
+            level = next;
+        }
+        if let Some(m) = level.pop() {
+            out.extend(m.0.iter().map(|g| Poly {
+                outer: from_geo_ring(g.exterior()),
+                holes: g.interiors().iter().map(from_geo_ring).collect(),
+            }));
+        }
+    }
+    out
 }
 
 /// Clips a convex or simple ring to the half-plane `(q - p) · n >= 0` (Sutherland–Hodgman).

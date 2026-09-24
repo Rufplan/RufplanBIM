@@ -176,22 +176,21 @@ fn write_file(path: &Path, app_version: &str, doc: &Document) -> Result<()> {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64);
-    let empty_params =
-        rmp_serde::to_vec_named(&std::collections::BTreeMap::<String, String>::new())
-            .map_err(|e| IoError::Encode(e.to_string()))?;
     let mut ins = tx.prepare(
         "INSERT INTO elements (id, category, type_id, level_id, data, params, rev, modified_at) \
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
     )?;
     for el in doc.iter() {
         let data = rmp_serde::to_vec_named(&el.data).map_err(|e| IoError::Encode(e.to_string()))?;
+        let params =
+            rmp_serde::to_vec_named(&el.params).map_err(|e| IoError::Encode(e.to_string()))?;
         ins.execute((
             el.id.as_bytes().as_slice(),
             el.category().as_str(),
             el.data.type_id().map(|t| t.as_bytes().to_vec()),
             el.data.level().map(|l| l.as_bytes().to_vec()),
             data,
-            &empty_params,
+            params,
             el.rev as i64,
             now,
         ))?;
@@ -203,17 +202,18 @@ fn write_file(path: &Path, app_version: &str, doc: &Document) -> Result<()> {
 }
 
 fn read_elements(conn: &Connection) -> Result<Vec<Element>> {
-    let mut q = conn.prepare("SELECT id, data, rev FROM elements")?;
+    let mut q = conn.prepare("SELECT id, data, rev, params FROM elements")?;
     let rows = q.query_map([], |r| {
         Ok((
             r.get::<_, Vec<u8>>(0)?,
             r.get::<_, Vec<u8>>(1)?,
             r.get::<_, i64>(2)?,
+            r.get::<_, Vec<u8>>(3)?,
         ))
     })?;
     let mut out = vec![];
     for row in rows {
-        let (id, data, rev) = row?;
+        let (id, data, rev, params) = row?;
         let bytes: [u8; 16] = id.as_slice().try_into().map_err(|_| IoError::BadElement {
             id: format!("{id:?}"),
             msg: "id is not 16 bytes".into(),
@@ -223,10 +223,16 @@ fn read_elements(conn: &Connection) -> Result<Vec<Element>> {
             id: id.to_string(),
             msg: e.to_string(),
         })?;
+        // Files written before project parameters hold an empty map here.
+        let params = rmp_serde::from_slice(&params).map_err(|e| IoError::BadElement {
+            id: id.to_string(),
+            msg: format!("parameters: {e}"),
+        })?;
         out.push(Element {
             id,
             rev: rev.max(1) as u64,
             data,
+            params,
         });
     }
     Ok(out)
@@ -386,6 +392,89 @@ mod tests {
         let b: Vec<_> = reopened.doc.iter().cloned().collect();
         assert_eq!(a, b);
         assert_eq!(reopened.doc.get(w).unwrap().rev, 2);
+    }
+
+    /// Property: random projects — walls, rooms, roofs, stairs, crop regions, layered
+    /// types and project parameter values — save and load back exactly.
+    #[test]
+    fn random_projects_round_trip_exactly() {
+        use studio_core::{build, ops, params, Category, ParamKind, ParamScope};
+        use studio_geom::Pt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut x = 0x2545_F491_4F6C_DD1Du64;
+        let mut rnd = move |n: u64| {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            x % n
+        };
+        for case in 0..8 {
+            let path = dir.path().join(format!("case{case}.rfproj"));
+            let mut doc = Document::new();
+            ops::seed_default_project(&mut doc).unwrap();
+            let levels = doc.levels();
+            let wt = ops::first_of(&doc, Category::WallType).unwrap();
+            params::add_def(
+                &mut doc,
+                "Fire Rating",
+                ParamKind::Text,
+                ParamScope::Instance,
+                vec![Category::Wall],
+            )
+            .unwrap();
+            params::add_def(
+                &mut doc,
+                "STC",
+                ParamKind::Integer,
+                ParamScope::Type,
+                vec![Category::Wall],
+            )
+            .unwrap();
+            for _ in 0..(3 + rnd(6)) {
+                let a = Pt::new(rnd(20_000) as f64 + 0.25, rnd(20_000) as f64);
+                let b = Pt::new(rnd(20_000) as f64, rnd(20_000) as f64 + 0.5);
+                if let Ok(w) = ops::create_wall(&mut doc, wt, levels[0].0, a, b) {
+                    if rnd(2) == 0 {
+                        params::set_value(&mut doc, w, "fire_rating", &format!("{} HR", rnd(3)))
+                            .unwrap();
+                    }
+                }
+            }
+            params::set_value(&mut doc, wt, "stc", &rnd(60).to_string()).unwrap();
+            ops::set_property(&mut doc, wt, "layer:0:thickness", "2\"", 0).unwrap();
+            let rt = build::default_roof_type(&doc).unwrap();
+            let ring = vec![
+                Pt::new(0.0, 0.0),
+                Pt::new(9000.0 + rnd(3000) as f64, 0.0),
+                Pt::new(9000.0, 7000.0),
+                Pt::new(0.0, 7000.0),
+            ];
+            let roof = build::create_roof(&mut doc, rt, levels[1].0, 3000.0, ring, 0.4).unwrap();
+            ops::set_property(&mut doc, roof, "edge:1", "no", 0).unwrap();
+            build::create_stair(
+                &mut doc,
+                levels[0].0,
+                Pt::new(500.0, 500.0),
+                Pt::new(500.0, 900.0),
+                1000.0,
+            )
+            .unwrap();
+            let plan = doc
+                .of(Category::View)
+                .find(|e| e.data.level() == Some(levels[0].0))
+                .unwrap()
+                .id;
+            ops::set_property(&mut doc, plan, "crop", "yes", 0).unwrap();
+            ops::set_property(&mut doc, plan, "show_crop", "no", 0).unwrap();
+
+            let mut project = Project::new("0.0.1", doc);
+            project.save(&path, "0.0.1").unwrap();
+            let reopened = Project::open(&path).unwrap();
+            let a: Vec<_> = project.doc.iter().cloned().collect();
+            let b: Vec<_> = reopened.doc.iter().cloned().collect();
+            assert_eq!(a, b, "case {case}");
+            assert_eq!(reopened.doc.count(Category::Roof), 1);
+        }
     }
 
     #[test]

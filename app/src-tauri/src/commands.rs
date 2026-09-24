@@ -75,13 +75,16 @@ pub(crate) fn today() -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
-/// The display list of a view or a sheet.
-fn any_display_list(doc: &studio_core::Document, id: ElementId) -> Option<DisplayList> {
+/// The display list of a view or a sheet (views come from the document's cache).
+fn any_display_list(
+    doc: &studio_core::Document,
+    id: ElementId,
+) -> Option<std::sync::Arc<DisplayList>> {
     match doc.data(id).ok()? {
         studio_core::ElementData::Sheet { .. } => {
-            studio_sheets::sheet_display_list(doc, id, &today())
+            studio_sheets::sheet_display_list_shared(doc, id, &today())
         }
-        _ => studio_views::display_list(doc, id),
+        _ => studio_views::display_list_shared(doc, id),
     }
 }
 
@@ -195,7 +198,7 @@ pub fn view_display_list(
     state: State<'_, SessionState>,
 ) -> CommandResult<Option<DisplayList>> {
     let session = lock(&state)?;
-    Ok(any_display_list(session.doc()?, view))
+    Ok(any_display_list(session.doc()?, view).map(|d| (*d).clone()))
 }
 
 #[tauri::command]

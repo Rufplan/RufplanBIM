@@ -102,6 +102,78 @@ export const Icons = {
       <path d="M8 20h8" stroke="#3ECFF7" strokeWidth="2.4" />
     </I>
   ),
+  copy: (
+    <I>
+      <path d="M8 8h11v11H8z" />
+      <path d="M5 16V5h11" />
+    </I>
+  ),
+  rotate: (
+    <I>
+      <path d="M19 12a7 7 0 11-2.05-4.95" />
+      <path d="M19 4v4h-4" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </I>
+  ),
+  mirror: (
+    <I>
+      <path d="M12 3v18" strokeDasharray="3 2" />
+      <path d="M9 7L4 12l5 5z" fill="currentColor" fillOpacity="0.25" />
+      <path d="M15 7l5 5-5 5z" />
+    </I>
+  ),
+  array: (
+    <I>
+      <path d="M3 9h4v6H3zM10 9h4v6h-4zM17 9h4v6h-4z" />
+    </I>
+  ),
+  align: (
+    <I>
+      <path d="M4 3v18" strokeWidth="2.2" />
+      <path d="M8 7h10M8 12h6M8 17h12" />
+      <path d="M11 10l-3 2 3 2" />
+    </I>
+  ),
+  trim: (
+    <I>
+      <path d="M4 18h10V6" strokeWidth="2.4" />
+      <path d="M14 18h6M14 6V2" strokeDasharray="2 2" />
+    </I>
+  ),
+  offset: (
+    <I>
+      <path d="M4 16l12-12" strokeWidth="2.2" />
+      <path d="M8 20l12-12" strokeDasharray="3 2" />
+    </I>
+  ),
+  split: (
+    <I>
+      <path d="M3 12h7M14 12h7" strokeWidth="2.4" />
+      <path d="M13 6l-2 12" />
+    </I>
+  ),
+  flip: (
+    <I>
+      <path d="M4 9h13l-3-3M20 15H7l3 3" />
+    </I>
+  ),
+  roof: (
+    <I>
+      <path d="M2 13L12 5l10 8" strokeWidth="2" />
+      <path d="M5 11v8h14v-8" />
+    </I>
+  ),
+  stair: (
+    <I>
+      <path d="M3 20h4v-4h4v-4h4V8h4V4" strokeWidth="1.8" />
+    </I>
+  ),
+  params: (
+    <I>
+      <path d="M4 5h16v14H4z" />
+      <path d="M7 9h4M7 13h6M7 16h3M14 9h3" strokeWidth="1.2" />
+    </I>
+  ),
   room: (
     <I>
       <path d="M3 4h18v16H3z" strokeWidth="2.2" />

@@ -96,8 +96,13 @@ Read these before writing code:
 - M5 built (ADR-016): IFC4 export (validated by IfcOpenShell in CI), Rufplan sign-in,
   project link and Publish into Rufplan's existing deliverables (no schema change).
   Owner actions pending: allow-list the Google redirect URL; allow `application/x-step` in
-  the `project-media` bucket so the IFC uploads too. Next: the M1 gaps (ParamValue map,
-  regen graph, indexes, property test).
+  the `project-media` bucket so the IFC uploads too.
+- Editing and foundation round (ADR-017, ADR-018): Revit modify tools (Copy, Rotate, Mirror,
+  Array, Align, Trim/Extend, Offset, Split, Flip), grips, temporary dimensions, typed lengths;
+  incremental regeneration with stamp caches (M2's 50 ms target met), category index,
+  project parameters; layered wall types, roofs, stairs and crop regions. M1 and M2 are met
+  except binary IPC. Next: room separation lines, floors following walls, non-convex roofs,
+  stair openings, the 3D section box.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.

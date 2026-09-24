@@ -90,7 +90,7 @@ export function PropertiesPanel() {
 
   // While a placement tool is active, the panel shows which type it will place (like Revit).
   const toolKind: keyof typeof toolTypes | null =
-    tool === "wall" || tool === "door" || tool === "window"
+    tool === "wall" || tool === "door" || tool === "window" || tool === "roof"
       ? tool
       : tool.startsWith("floor")
         ? "floor"
@@ -103,6 +103,7 @@ export function PropertiesPanel() {
     ceiling: app.ceilingTypes,
     door: app.doorTypes,
     window: app.windowTypes,
+    roof: app.roofTypes,
   };
   const toolOptions = toolKind ? typesByKind[toolKind] : [];
 
@@ -112,6 +113,7 @@ export function PropertiesPanel() {
     Ceiling: "ceiling",
     Door: "door",
     Window: "window",
+    Roof: "roof",
   };
   const instanceKind = sheet ? categoryKind[sheet.category] : undefined;
   const instanceTypes = instanceKind ? typesByKind[instanceKind] : null;
@@ -167,6 +169,10 @@ export function PropertiesPanel() {
                     <div className="prop-value">
                       {p.kind === "ReadOnly" ? (
                         <span className="prop-ro">{p.value}</span>
+                      ) : p.kind === "Action" ? (
+                        <button className="prop-action" onClick={() => set(p.key, "")}>
+                          {p.value}
+                        </button>
                       ) : p.kind === "Choice" ? (
                         <select
                           className="prop-input"
