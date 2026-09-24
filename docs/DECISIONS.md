@@ -114,3 +114,29 @@ these shortcuts on purpose; each is listed in the roadmap as remaining work:
 Consequences: the milestone checklists are partly done out of order; ROADMAP.md marks
 exactly what exists. Regeneration and parameter storage must be revisited before the M2
 performance acceptance test.
+
+## ADR-012 Doors and windows — Accepted (2026-09-23)
+Context: M3 hosted elements, built on the ADR-011 prototype.
+Decision:
+- **Types carry the family.** `DoorType { family: DoorFamily, width, height }` and
+  `WindowType { family: WindowFamily, width, height, sill }`, with code-defined
+  families (Single Flush, Double Flush; Fixed, Casement). A separate `Family` element
+  (DATA_MODEL.md) arrives with user-editable families; converting then is a migration.
+- **Position = distance from the host wall's start to the opening's center** (mm), as in
+  DATA_MODEL.md. Openings move with their wall and are deleted with it. When wall-endpoint
+  dragging lands, the drag operation will recompute offsets so openings keep their
+  real-world position (Revit behaviour).
+- **Validation on every commit:** each opening must lie within its wall's length and
+  height and must not overlap another opening in the same wall. Edits that break this
+  (shortening a wall, lowering a level, widening a type) are rejected with a message.
+- **Geometry:** walls are split into prism pieces around openings (full-height pieces,
+  sill and head pieces). Plans cut through the pieces, so openings become gaps in the
+  poché. Door leaves and swings, window sills and glass are view symbols. Elevations draw
+  whole walls with openings on top; 3D gets real holes plus door-leaf and glass panels.
+- **Placement:** Rust computes the preview (nearest cut wall, offset clamped into the
+  wall, rounded to whole inches from the wall start, snapped to the wall's center). The
+  side of the wall under the cursor sets the facing, as in Revit.
+- **Marks** are the next free number per category ("1", "2", …).
+Consequences: no new file schema version is needed, because new element kinds
+deserialize as new enum variants and old files simply have none. Files saved before this
+get the built-in door and window types when opened.

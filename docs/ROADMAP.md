@@ -5,21 +5,23 @@ acceptance criterion passes and is demonstrable to the owner.
 
 ## Prototype slice (ADR-011, 2026-09-23)
 Built ahead of the milestone order at the owner's request. **Works now:**
-- Levels, grids, walls (4 types), floors, and ceilings (new element kind), all undoable.
+- Levels, grids, walls (4 types), doors (3 types), windows (3 types), floors, and ceilings
+  (new element kind), all undoable. Doors and windows: ADR-012.
 - Views: floor plans with cut poché, reflected ceiling plans with ACT grid, four
   elevations with level heads and grid bubbles, 3D with orbit and click-select.
 - Wall joins: mitered L corners; T and cross junctions merged into clean poché.
 - Tools: chained walls with snapping (endpoint, midpoint, intersection, perpendicular,
   nearest, 15° increments); grids; levels (placed in elevations); floors by sketch or
-  pick-walls; ceilings by sketch or auto-room. Revit-style shortcuts (WA, GR, LL, SB …).
+  pick-walls; ceilings by sketch or auto-room; doors and windows with live placement
+  preview. Revit-style shortcuts (WA, DR, WN, GR, LL, SB …).
 - Editing: selection, delete (with dependents), properties panel with ft-in input, type
   switching and type editing, design stage picker, project information.
 - Files: schema 2 `.rfproj` storing all elements; sample project; unsaved-changes prompts.
 
 **Shortcuts still open** (see ADR-011): full regeneration instead of the dependency graph;
 typed fields instead of the `ParamValue` map; JSON display lists; no endpoint dragging; no
-typed lengths while drawing (edit Length in properties afterwards); no doors, windows or
-rooms; no sections.
+typed lengths while drawing (edit Length in properties afterwards); no rooms; no
+sections. Door leaves are thin: select a door by clicking its leaf or swing arc.
 
 ## M0 — Scaffold
 - [x] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test
@@ -59,9 +61,9 @@ wall type's thickness updates footprints, and undo restores both exactly.
 T-joins; joins are clean; edit a wall type and see all plans update in < 50 ms for 500 walls.
 
 ## M3 — Hosted elements, floors, rooms, 3D
-- [ ] Door and window families (built-in) with types; place on wall with hover preview
-- [ ] Openings cut in wall solids and plan poché; swing arcs and symbols in plan
-- [ ] Doors/windows move with host wall; delete with host
+- [x] Door and window families (built-in) with types; place on wall with hover preview
+- [x] Openings cut in wall solids and plan poché; swing arcs and symbols in plan
+- [x] Doors/windows move with host wall; delete with host
 - [x] Floors by sketched boundary or "pick walls"
 - [ ] Rooms: place in bounded region; boundary + area computed; name/number params
 - [ ] 3D view in three.js from wall/floor/opening solids; orbit, section box (basic) — *prototype: walls/floors/ceilings with orbit; no section box or openings yet*
