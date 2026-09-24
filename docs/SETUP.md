@@ -46,6 +46,16 @@ npm test
 npm run tauri build     # installer: target/release/bundle/nsis/Rufplan Studio_<ver>_x64-setup.exe
 ```
 
+## Install on this machine
+```
+cd app
+npm run install:local
+```
+Builds the release installer and installs it per-user (no admin prompt) to
+`%LOCALAPPDATA%\Rufplan Studio`, with a Start menu shortcut. Re-run it to upgrade in place;
+it closes a running copy first. Uninstall from Windows Settings > Apps. Use `npm run tauri dev`
+for day-to-day development and `install:local` when you want the installed app updated.
+
 ## TypeScript bindings
 IPC payload types are Rust structs deriving `ts_rs::TS`. `cargo test` regenerates them into
 `app/src/bindings/` (configured in `.cargo/config.toml`). Commit the regenerated files; CI

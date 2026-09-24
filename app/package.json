@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "install:local": "powershell -ExecutionPolicy Bypass -File ../scripts/install-local.ps1"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

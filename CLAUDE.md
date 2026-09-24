@@ -84,6 +84,7 @@ Read these before writing code:
 - `cd app && npm run tauri dev` (run the app)
 - `cd app && npm test` / `npm run lint` / `npm run format:check`
 - `cd app && npm run tauri build` (NSIS installer in `target/release/bundle/nsis/`)
+- `cd app && npm run install:local` (build + silently install/upgrade the app for this Windows user)
 
 ## Current status
 - Milestone: **M0 — Scaffold** (complete; CI green on GitHub)
