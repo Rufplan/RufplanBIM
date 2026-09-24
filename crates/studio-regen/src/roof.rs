@@ -14,6 +14,8 @@ pub struct RoofFace {
     /// A point on the eave edge and the edge's inward unit normal.
     pub a: Pt,
     pub n: Pt,
+    /// The parts of `poly` not buried under an intersecting roof (see [`resolve_overlaps`]).
+    pub visible: Vec<Vec<Pt>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,6 +31,10 @@ pub struct RoofSolid {
     pub thickness: f64,
     /// Sloped faces; empty for a flat roof.
     pub faces: Vec<RoofFace>,
+    /// Depths of the boundaries between layers, square to the surface (mm).
+    pub layers: Vec<f64>,
+    /// Outlines of the other roofs this one intersects (its fascias inside them are hidden).
+    pub others: Vec<Vec<Pt>>,
 }
 
 impl RoofSolid {
@@ -79,7 +85,12 @@ impl RoofSolid {
                 poly = clip_half_plane(&poly, p0, m.scale(-1.0));
             }
             if poly.len() >= 3 && signed_area(&poly).abs() > 1.0 {
-                faces.push(RoofFace { poly, a: ai, n: ni });
+                faces.push(RoofFace {
+                    visible: vec![poly.clone()],
+                    poly,
+                    a: ai,
+                    n: ni,
+                });
             }
         }
         RoofSolid {
@@ -90,7 +101,26 @@ impl RoofSolid {
             slope,
             thickness,
             faces,
+            layers: vec![],
+            others: vec![],
         }
+    }
+
+    /// Top planes as (plan polygon, gradient m, constant c) with z = m·p + c.
+    fn top_planes(&self) -> Vec<(Vec<Pt>, Pt, f64)> {
+        if self.is_flat() {
+            return vec![(
+                self.boundary.clone(),
+                Pt::default(),
+                self.base + self.thickness,
+            )];
+        }
+        let k = self.slope.tan();
+        let c0 = self.base + self.plumb_thickness();
+        self.faces
+            .iter()
+            .map(|f| (f.poly.clone(), f.n.scale(k), c0 - k * f.a.dot(f.n)))
+            .collect()
     }
 
     pub fn is_flat(&self) -> bool {
@@ -168,12 +198,9 @@ impl RoofSolid {
             out.push(self.boundary.iter().map(|p| [p.x, p.y, z]).collect());
         } else {
             for f in &self.faces {
-                out.push(
-                    f.poly
-                        .iter()
-                        .map(|p| [p.x, p.y, self.face_top(f, *p)])
-                        .collect(),
-                );
+                for v in &f.visible {
+                    out.push(v.iter().map(|p| [p.x, p.y, self.face_top(f, *p)]).collect());
+                }
             }
         }
         let n = self.boundary.len();
@@ -186,6 +213,14 @@ impl RoofSolid {
             let pts = self.edge_breaks(i);
             for w in pts.windows(2) {
                 let (p, q) = (w[0], w[1]);
+                let mid = p.lerp(q, 0.5);
+                if self
+                    .others
+                    .iter()
+                    .any(|o| studio_geom::point_in_ring(mid, o))
+                {
+                    continue; // Buried in the roof it runs into.
+                }
                 let (bp, bq) = (self.underside(p), self.underside(q));
                 out.push(vec![
                     [p.x, p.y, bp],
@@ -250,6 +285,78 @@ impl RoofSolid {
             }
         }
         out
+    }
+}
+
+/// For roofs on the same level that intersect (a main roof and its wings), trims each
+/// face to where it is the top surface, so plans and elevations show proper valleys.
+pub fn resolve_overlaps(roofs: &mut [RoofSolid]) {
+    let n = roofs.len();
+    for i in 0..n {
+        let mut cuts: Vec<Poly> = vec![];
+        let mut others = vec![];
+        for j in 0..n {
+            if i == j || roofs[i].level != roofs[j].level {
+                continue;
+            }
+            let overlaps = roofs[j]
+                .boundary
+                .iter()
+                .any(|p| studio_geom::point_in_ring(*p, &roofs[i].boundary))
+                || roofs[i]
+                    .boundary
+                    .iter()
+                    .any(|p| studio_geom::point_in_ring(*p, &roofs[j].boundary));
+            if overlaps {
+                others.push(roofs[j].boundary.clone());
+            }
+        }
+        if others.is_empty() {
+            continue;
+        }
+        let mine = roofs[i].top_planes();
+        // Where two faces coincide, the earlier roof keeps it.
+        let theirs: Vec<(Vec<Pt>, Pt, f64, f64)> = (0..n)
+            .filter(|&j| j != i && roofs[j].level == roofs[i].level)
+            .flat_map(|j| {
+                let tie = if j < i { 1.0 } else { -1.0 };
+                roofs[j]
+                    .top_planes()
+                    .into_iter()
+                    .map(move |(p, m, c)| (p, m, c, tie))
+            })
+            .collect();
+        let mut visible_per_face = vec![];
+        for (poly, m, c) in &mine {
+            cuts.clear();
+            for (gp, gm, gc, tie) in &theirs {
+                // Where their plane is above mine: (gm - m)·p + (gc - c) > 0.
+                let dm = gm.sub(*m);
+                let dc = gc - c + tie;
+                let region = if dm.dot(dm) < 1e-12 {
+                    if dc > 0.0 {
+                        gp.clone()
+                    } else {
+                        vec![]
+                    }
+                } else {
+                    let p0 = dm.scale(-dc / dm.dot(dm));
+                    clip_half_plane(gp, p0, dm)
+                };
+                if region.len() >= 3 && signed_area(&region).abs() > 1.0 {
+                    cuts.push(Poly::simple(region));
+                }
+            }
+            let vis = studio_geom::difference(&Poly::simple(poly.clone()), &cuts);
+            visible_per_face.push(vis.into_iter().map(|p| p.outer).collect::<Vec<_>>());
+        }
+        let r = &mut roofs[i];
+        r.others = others;
+        if !r.is_flat() {
+            for (f, v) in r.faces.iter_mut().zip(visible_per_face) {
+                f.visible = v;
+            }
+        }
     }
 }
 
@@ -319,6 +426,32 @@ mod tests {
             .filter(|s| s.len() == 4 && s.iter().all(|v| v[0].abs() < EPS))
             .count();
         assert_eq!(gable, 2, "the west gable is split at the ridge");
+    }
+
+    #[test]
+    fn intersecting_hip_roofs_form_valleys() {
+        let slope = 0.5f64.atan();
+        let lvl = ElementId::new();
+        let mk =
+            |b: &[Pt]| RoofSolid::build(ElementId::new(), lvl, b, 0.0, slope, &[true; 4], 200.0);
+        // Main block 12 × 5 m and a wing 5 × 11 m through it (an L).
+        let main = mk(&rect(12000.0, 5000.0));
+        let wing = mk(&[
+            Pt::new(0.0, 0.0),
+            Pt::new(5000.0, 0.0),
+            Pt::new(5000.0, 11000.0),
+            Pt::new(0.0, 11000.0),
+        ]);
+        let mut roofs = vec![main, wing];
+        resolve_overlaps(&mut roofs);
+        let vis: f64 = roofs
+            .iter()
+            .flat_map(|r| r.faces.iter().flat_map(|f| f.visible.iter()))
+            .map(|v| signed_area(v).abs())
+            .sum();
+        // The visible top faces tile the L-shaped outline once: 12×5 + 5×6 m².
+        assert!((vis - (60.0e6 + 30.0e6)).abs() < 1.0e4, "{vis}");
+        assert!(!roofs[0].others.is_empty());
     }
 
     #[test]

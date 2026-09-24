@@ -6,8 +6,9 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Anchor, Category, Compass, CropBox, DoorFamily, ElementData, ElementId, RufplanLink,
-    ScheduleKind, SheetSize, StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
+    Anchor, Category, Compass, CropBox, DoorFamily, ElementData, ElementId, LocationLine,
+    RufplanLink, ScheduleKind, SheetSize, StageChange, ViewKind, WallFunction, WallTop,
+    WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -76,15 +77,18 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             tx.insert(ElementData::FloorType {
                 name: name.into(),
                 thickness: t * MM_PER_IN,
+                layers: crate::compound::default_type_layers(name),
             });
         }
         for (name, t) in [("ACT 2x4 Ceiling", 1.0), ("GWB Ceiling - 5/8\"", 0.625)] {
             tx.insert(ElementData::CeilingType {
                 name: name.into(),
                 thickness: t * MM_PER_IN,
+                layers: vec![],
             });
         }
         seed_opening_types(tx);
+        crate::structure::seed_structure_types(tx);
         for (facing, name) in [
             (Compass::North, "North"),
             (Compass::South, "South"),
@@ -728,8 +732,43 @@ pub fn create_wall(
             base_level: level,
             base_offset: 0.0,
             top,
+            location: LocationLine::Centerline,
+            attach_top: false,
         }))
     })
+}
+
+/// A wall drawn along `a` → `b` by its `location` line (e.g. its exterior finish face).
+/// The wall is stored by its centerline, shifted from the drawn line accordingly.
+pub fn create_wall_located(
+    doc: &mut Document,
+    type_id: ElementId,
+    level: ElementId,
+    a: Pt,
+    b: Pt,
+    location: LocationLine,
+) -> CoreResult<ElementId> {
+    let (width, layers) = match doc.data(type_id)? {
+        ElementData::WallType {
+            thickness, layers, ..
+        } => (*thickness, layers.clone()),
+        _ => return Err(CoreError::Invalid("pick a wall type".into())),
+    };
+    let off = crate::compound::location_offset(&layers, width, location);
+    // The exterior is on the left of a → b; the centerline is `off` to the right of the
+    // location line.
+    let shift = b.sub(a).norm().perp().scale(-off);
+    let id = create_wall(doc, type_id, level, a.add(shift), b.add(shift))?;
+    if location != LocationLine::Centerline {
+        doc.transact("Create wall", |tx| {
+            tx.modify(id, |d| {
+                if let ElementData::Wall { location: l, .. } = d {
+                    *l = location;
+                }
+            })
+        })?;
+    }
+    Ok(id)
 }
 
 pub fn create_floor(
@@ -1136,7 +1175,7 @@ pub(crate) fn options_of(doc: &Document, cat: Category) -> Vec<PropOption> {
     v
 }
 
-fn level_options(doc: &Document) -> Vec<PropOption> {
+pub(crate) fn level_options(doc: &Document) -> Vec<PropOption> {
     doc.levels()
         .into_iter()
         .map(|(id, name, _)| PropOption {
@@ -1193,6 +1232,8 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             base_level,
             base_offset,
             top,
+            location,
+            attach_top,
             ..
         } => {
             props.push(choice(
@@ -1239,11 +1280,43 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 }
             }
             props.push(len("length", "Length", "Dimensions", start.dist(*end)));
+            props.push(choice(
+                "location",
+                "Location Line",
+                "Constraints",
+                location.label().into(),
+                LocationLine::ALL
+                    .iter()
+                    .map(|l| PropOption {
+                        id: l.label().into(),
+                        label: l.label().into(),
+                    })
+                    .collect(),
+            ));
+            props.push(flag(
+                "attach_top",
+                "Top Attached to Roof",
+                "Constraints",
+                *attach_top,
+            ));
         }
-        ElementData::FloorType { name, thickness }
-        | ElementData::CeilingType { name, thickness } => {
+        ElementData::FloorType {
+            name,
+            thickness,
+            layers,
+        }
+        | ElementData::CeilingType {
+            name,
+            thickness,
+            layers,
+        } => {
             props.push(text("name", "Type Name", "Identity Data", name));
             props.push(len("thickness", "Thickness", "Construction", *thickness));
+            crate::compound::layer_properties_in(
+                layers,
+                &mut props,
+                crate::compound::GROUP_TOP_DOWN,
+            );
         }
         ElementData::Floor {
             level,
@@ -1678,6 +1751,14 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::Roof { .. } | ElementData::RoofType { .. } | ElementData::Stair { .. } => {
             crate::build::properties(doc, id, &mut props);
         }
+        ElementData::Column { .. }
+        | ElementData::ColumnType { .. }
+        | ElementData::Beam { .. }
+        | ElementData::BeamType { .. }
+        | ElementData::Railing { .. }
+        | ElementData::RailingType { .. } => {
+            crate::structure::properties(doc, id, &mut props);
+        }
     }
     crate::params::param_properties(doc, id, &mut props);
     Ok(PropertySheet {
@@ -1720,6 +1801,17 @@ pub fn set_property(
     ) {
         return crate::build::set_property(doc, id, key, value);
     }
+    if matches!(
+        data,
+        ElementData::Column { .. }
+            | ElementData::ColumnType { .. }
+            | ElementData::Beam { .. }
+            | ElementData::BeamType { .. }
+            | ElementData::Railing { .. }
+            | ElementData::RailingType { .. }
+    ) {
+        return crate::structure::set_property(doc, id, key, value);
+    }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
     match &mut d {
@@ -1759,10 +1851,28 @@ pub fn set_property(
             }
             _ => return Err(unknown()),
         },
-        ElementData::FloorType { name, thickness }
-        | ElementData::CeilingType { name, thickness } => match key {
+        ElementData::FloorType {
+            name,
+            thickness,
+            layers,
+        }
+        | ElementData::CeilingType {
+            name,
+            thickness,
+            layers,
+        } => match key {
+            k if k.starts_with("layer") => {
+                crate::compound::set_layer_property(layers, *thickness, k, value)?;
+                if !layers.is_empty() {
+                    *thickness = layers.iter().map(|l| l.thickness).sum();
+                }
+            }
             "name" => *name = non_empty(value)?,
-            "thickness" => *thickness = positive(parse_len(value)?)?,
+            "thickness" => {
+                let w = positive(parse_len(value)?)?;
+                crate::compound::resize_structure(layers, w)?;
+                *thickness = w;
+            }
             _ => return Err(unknown()),
         },
         ElementData::Wall {
@@ -1772,7 +1882,14 @@ pub fn set_property(
             base_level,
             base_offset,
             top,
+            location,
+            attach_top,
         } => match key {
+            "location" => {
+                *location = LocationLine::parse(value)
+                    .ok_or_else(|| CoreError::Invalid(format!("unknown location line {value}")))?
+            }
+            "attach_top" => *attach_top = value == "yes",
             "type" => *type_id = parse_id(value)?,
             "base_level" => *base_level = parse_id(value)?,
             "base_offset" => *base_offset = parse_len(value)?,
@@ -1982,9 +2099,15 @@ pub fn set_property(
             "target" => *target = date(value)?,
             _ => return Err(unknown()),
         },
-        ElementData::Roof { .. } | ElementData::RoofType { .. } | ElementData::Stair { .. } => {
-            return Err(unknown())
-        }
+        ElementData::Roof { .. }
+        | ElementData::RoofType { .. }
+        | ElementData::Stair { .. }
+        | ElementData::Column { .. }
+        | ElementData::ColumnType { .. }
+        | ElementData::Beam { .. }
+        | ElementData::BeamType { .. }
+        | ElementData::Railing { .. }
+        | ElementData::RailingType { .. } => return Err(unknown()),
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {

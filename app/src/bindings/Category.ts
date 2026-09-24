@@ -3,4 +3,4 @@
 /**
  * Element category, used for indexing, browser grouping and visibility.
  */
-export type Category = "Level" | "Grid" | "WallType" | "Wall" | "FloorType" | "Floor" | "CeilingType" | "Ceiling" | "View" | "ProjectInfo" | "Stage" | "DoorType" | "Door" | "WindowType" | "Window" | "Room" | "Dimension" | "TextNote" | "Sheet" | "Viewport" | "Tag" | "Issuance" | "RoofType" | "Roof" | "Stair";
+export type Category = "Level" | "Grid" | "WallType" | "Wall" | "FloorType" | "Floor" | "CeilingType" | "Ceiling" | "View" | "ProjectInfo" | "Stage" | "DoorType" | "Door" | "WindowType" | "Window" | "Room" | "Dimension" | "TextNote" | "Sheet" | "Viewport" | "Tag" | "Issuance" | "RoofType" | "Roof" | "Stair" | "ColumnType" | "Column" | "BeamType" | "Beam" | "RailingType" | "Railing";

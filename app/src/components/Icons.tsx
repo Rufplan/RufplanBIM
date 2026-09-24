@@ -163,6 +163,39 @@ export const Icons = {
       <path d="M5 11v8h14v-8" />
     </I>
   ),
+  column: (
+    <I>
+      <path d="M8 3h8M8 21h8M10 3v18M14 3v18" strokeWidth="1.8" />
+    </I>
+  ),
+  columnGrid: (
+    <I>
+      <path d="M3 6h18M3 18h18M6 3v18M18 3v18" strokeWidth="1" strokeDasharray="2 2" />
+      <path
+        d="M4.5 4.5h3v3h-3zM16.5 4.5h3v3h-3zM4.5 16.5h3v3h-3zM16.5 16.5h3v3h-3z"
+        fill="currentColor"
+      />
+    </I>
+  ),
+  beam: (
+    <I>
+      <path d="M3 8h18M3 16h18M12 8v8" strokeWidth="1.8" />
+      <path d="M3 6v4M21 6v4M3 14v4M21 14v4" />
+    </I>
+  ),
+  railing: (
+    <I>
+      <path d="M3 7h18M3 19h18" strokeWidth="1.8" />
+      <path d="M5 7v12M9 7v12M13 7v12M17 7v12" strokeWidth="1.1" />
+    </I>
+  ),
+  attach: (
+    <I>
+      <path d="M3 10L12 4l9 6" strokeWidth="1.8" />
+      <path d="M7 20v-8M17 20v-8M12 20v-9" />
+      <path d="M10 14l2-2 2 2" />
+    </I>
+  ),
   stair: (
     <I>
       <path d="M3 20h4v-4h4v-4h4V8h4V4" strokeWidth="1.8" />

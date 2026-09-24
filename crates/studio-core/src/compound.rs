@@ -1,7 +1,7 @@
 //! Compound wall structure (ADR-018): the layers of a wall type, exterior first.
 
 use crate::document::{CoreError, CoreResult};
-use crate::element::{LayerFunction, WallLayer};
+use crate::element::{LayerFunction, LocationLine, WallLayer};
 use crate::ops::{choice, len, non_empty, p, parse_len, text, PropKind, PropOption, Property};
 use crate::units::MM_PER_IN;
 
@@ -48,6 +48,69 @@ pub fn default_layers(type_name: &str) -> Vec<WallLayer> {
     }
 }
 
+/// Layers of the built-in floor, ceiling and roof types (top / outside first).
+pub fn default_type_layers(type_name: &str) -> Vec<WallLayer> {
+    use LayerFunction::*;
+    if type_name.starts_with("Wood Joist Floor - 12") {
+        vec![
+            layer("Hardwood Flooring", 0.75, Finish),
+            layer("Plywood Subfloor", 0.75, Substrate),
+            layer("Wood I-Joists", 9.875, Structure),
+            layer("Gypsum Board", 0.625, Finish),
+        ]
+    } else if type_name.starts_with("Concrete Slab - 6") {
+        vec![layer("Concrete", 6.0, Structure)]
+    } else if type_name.starts_with("Asphalt Shingle on Rafters - 10") {
+        vec![
+            layer("Asphalt Shingles", 0.25, Finish),
+            layer("Plywood Sheathing", 0.625, Substrate),
+            layer("Wood Rafters with Batt Insulation", 9.125, Structure),
+        ]
+    } else if type_name.starts_with("Flat Membrane on Deck - 12") {
+        vec![
+            layer("Roof Membrane", 0.25, Membrane),
+            layer("Cover Board", 0.5, Substrate),
+            layer("Rigid Insulation", 3.25, Insulation),
+            layer("Concrete Deck", 8.0, Structure),
+        ]
+    } else {
+        vec![]
+    }
+}
+
+/// Offsets of the core's exterior and interior faces from the centerline (mm, positive =
+/// exterior side). The core runs from the first to the last structure layer; with none,
+/// it is the whole wall.
+pub fn core_faces(layers: &[WallLayer], width: f64) -> (f64, f64) {
+    let first = layers
+        .iter()
+        .position(|l| l.function == LayerFunction::Structure);
+    let last = layers
+        .iter()
+        .rposition(|l| l.function == LayerFunction::Structure);
+    match (first, last) {
+        (Some(a), Some(b)) => {
+            let before: f64 = layers[..a].iter().map(|l| l.thickness).sum();
+            let after: f64 = layers[b + 1..].iter().map(|l| l.thickness).sum();
+            (width / 2.0 - before, -width / 2.0 + after)
+        }
+        _ => (width / 2.0, -width / 2.0),
+    }
+}
+
+/// Where a location line sits relative to the centerline (mm, positive = exterior side).
+pub fn location_offset(layers: &[WallLayer], width: f64, loc: LocationLine) -> f64 {
+    let (ce, ci) = core_faces(layers, width);
+    match loc {
+        LocationLine::Centerline => 0.0,
+        LocationLine::CoreCenterline => (ce + ci) / 2.0,
+        LocationLine::FinishExterior => width / 2.0,
+        LocationLine::FinishInterior => -width / 2.0,
+        LocationLine::CoreExterior => ce,
+        LocationLine::CoreInterior => ci,
+    }
+}
+
 fn function_options() -> Vec<PropOption> {
     LayerFunction::ALL
         .iter()
@@ -59,36 +122,43 @@ fn function_options() -> Vec<PropOption> {
 }
 
 const GROUP: &str = "Structure (Exterior to Interior)";
+/// Group label for floor, ceiling and roof layers.
+pub(crate) const GROUP_TOP_DOWN: &str = "Structure (Top to Bottom)";
 
 /// Property rows for editing a wall type's layers.
 pub(crate) fn layer_properties(layers: &[WallLayer], props: &mut Vec<Property>) {
+    layer_properties_in(layers, props, GROUP);
+}
+
+/// Property rows for editing layers, under `group`.
+pub(crate) fn layer_properties_in(layers: &[WallLayer], props: &mut Vec<Property>, group: &str) {
     let n = layers.len();
     for (i, l) in layers.iter().enumerate() {
         let tag = format!("{}.", i + 1);
         props.push(text(
             &format!("layer:{i}:name"),
             &format!("{tag} Material"),
-            GROUP,
+            group,
             &l.name,
         ));
         props.push(choice(
             &format!("layer:{i}:function"),
             &format!("{tag} Function"),
-            GROUP,
+            group,
             l.function.label().into(),
             function_options(),
         ));
         props.push(len(
             &format!("layer:{i}:thickness"),
             &format!("{tag} Thickness"),
-            GROUP,
+            group,
             l.thickness,
         ));
         if i > 0 {
             props.push(p(
                 &format!("layer:{i}:up"),
                 &format!("{tag} Move Toward Exterior"),
-                GROUP,
+                group,
                 "Move Up".into(),
                 PropKind::Action,
             ));
@@ -97,7 +167,7 @@ pub(crate) fn layer_properties(layers: &[WallLayer], props: &mut Vec<Property>) 
             props.push(p(
                 &format!("layer:{i}:remove"),
                 &format!("{tag} Delete Layer"),
-                GROUP,
+                group,
                 "Delete".into(),
                 PropKind::Action,
             ));
@@ -110,7 +180,7 @@ pub(crate) fn layer_properties(layers: &[WallLayer], props: &mut Vec<Property>) 
         } else {
             "Add Layer (Interior Face)"
         },
-        GROUP,
+        group,
         "Add".into(),
         PropKind::Action,
     ));
@@ -247,5 +317,19 @@ mod tests {
         assert_eq!(b.len(), 2);
         assert!((b[0] - (w / 2.0 - 0.625 * MM_PER_IN)).abs() < 1e-9);
         assert!((b[1] + (w / 2.0 - 0.625 * MM_PER_IN)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn location_lines_of_a_layered_wall() {
+        // Exterior 8": siding 1 3/8, sheathing 1/2, stud 5 1/2 (structure), gypsum 5/8.
+        let ls = default_layers("Exterior - 8\" Stud");
+        let w = 8.0 * MM_PER_IN;
+        let off = |l| location_offset(&ls, w, l);
+        assert!((off(LocationLine::FinishExterior) - 4.0 * MM_PER_IN).abs() < 1e-9);
+        assert!((off(LocationLine::FinishInterior) + 4.0 * MM_PER_IN).abs() < 1e-9);
+        assert!((off(LocationLine::CoreExterior) - (4.0 - 1.875) * MM_PER_IN).abs() < 1e-9);
+        assert!((off(LocationLine::CoreInterior) + (4.0 - 0.625) * MM_PER_IN).abs() < 1e-9);
+        assert!((off(LocationLine::CoreCenterline) + 0.625 * MM_PER_IN).abs() < 1e-9);
+        assert_eq!(off(LocationLine::Centerline), 0.0);
     }
 }

@@ -71,6 +71,12 @@ pub enum Category {
     RoofType,
     Roof,
     Stair,
+    ColumnType,
+    Column,
+    BeamType,
+    Beam,
+    RailingType,
+    Railing,
 }
 
 impl Category {
@@ -101,6 +107,12 @@ impl Category {
             Category::RoofType => "RoofType",
             Category::Roof => "Roof",
             Category::Stair => "Stair",
+            Category::ColumnType => "ColumnType",
+            Category::Column => "Column",
+            Category::BeamType => "BeamType",
+            Category::Beam => "Beam",
+            Category::RailingType => "RailingType",
+            Category::Railing => "Railing",
         }
     }
 }
@@ -161,6 +173,94 @@ pub struct WallLayer {
     /// mm.
     pub thickness: f64,
     pub function: LayerFunction,
+}
+
+/// Which line of a wall its drawn points follow (Revit's Location Line). The wall is
+/// stored by its centerline; the location line decides how drawn points map to it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum LocationLine {
+    #[default]
+    Centerline,
+    CoreCenterline,
+    FinishExterior,
+    FinishInterior,
+    CoreExterior,
+    CoreInterior,
+}
+
+impl LocationLine {
+    pub const ALL: [LocationLine; 6] = [
+        LocationLine::Centerline,
+        LocationLine::CoreCenterline,
+        LocationLine::FinishExterior,
+        LocationLine::FinishInterior,
+        LocationLine::CoreExterior,
+        LocationLine::CoreInterior,
+    ];
+    pub fn label(self) -> &'static str {
+        match self {
+            LocationLine::Centerline => "Wall Centerline",
+            LocationLine::CoreCenterline => "Core Centerline",
+            LocationLine::FinishExterior => "Finish Face: Exterior",
+            LocationLine::FinishInterior => "Finish Face: Interior",
+            LocationLine::CoreExterior => "Core Face: Exterior",
+            LocationLine::CoreInterior => "Core Face: Interior",
+        }
+    }
+    pub fn parse(s: &str) -> Option<LocationLine> {
+        LocationLine::ALL
+            .into_iter()
+            .find(|l| l.label() == s || format!("{l:?}") == s)
+    }
+}
+
+/// Plan shape of a stair.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum StairShape {
+    #[default]
+    Straight,
+    /// Two runs at right angles with a square landing, turning left or right.
+    LShaped { left: bool },
+    /// Two runs side by side, doubling back at a landing.
+    UShaped { left: bool },
+}
+
+/// A column's cross-section (mm).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum ColumnShape {
+    Rectangular {
+        width: f64,
+        depth: f64,
+    },
+    Round {
+        diameter: f64,
+    },
+    /// Steel I-shape: overall depth, flange width, flange and web thickness.
+    WideFlange {
+        depth: f64,
+        flange: f64,
+        flange_t: f64,
+        web_t: f64,
+    },
+}
+
+/// A beam's cross-section (mm).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum BeamShape {
+    Rectangular {
+        width: f64,
+        depth: f64,
+    },
+    WideFlange {
+        depth: f64,
+        flange: f64,
+        flange_t: f64,
+        web_t: f64,
+    },
 }
 
 /// A view's crop region in view coordinates (mm).
@@ -352,10 +452,20 @@ pub enum ElementData {
         base_level: ElementId,
         base_offset: f64,
         top: WallTop,
+        /// Which of the wall's lines its drawn points followed.
+        #[serde(default)]
+        location: LocationLine,
+        /// The top follows the underside of the roof above (Revit's Attach Top).
+        #[serde(default)]
+        attach_top: bool,
     },
     FloorType {
         name: String,
+        /// Total, mm; equals the sum of `layers` when there are any.
         thickness: f64,
+        /// Layers from the top down. Empty = one homogeneous layer.
+        #[serde(default)]
+        layers: Vec<WallLayer>,
     },
     /// Floor slab whose top surface sits at `level + offset`.
     Floor {
@@ -367,6 +477,9 @@ pub enum ElementData {
     CeilingType {
         name: String,
         thickness: f64,
+        /// Layers from the top down.
+        #[serde(default)]
+        layers: Vec<WallLayer>,
     },
     /// Ceiling whose underside sits at `level + height`.
     Ceiling {
@@ -500,6 +613,9 @@ pub enum ElementData {
         name: String,
         /// Thickness measured square to the roof surface, mm.
         thickness: f64,
+        /// Layers from the outside (top) in.
+        #[serde(default)]
+        layers: Vec<WallLayer>,
     },
     /// A roof by footprint: `boundary` is the eave outline (overhang included), the eaves
     /// sit at `level + offset`, and each edge flagged in `sloped` rises inward at `slope`
@@ -526,6 +642,54 @@ pub enum ElementData {
         tread: f64,
         /// Largest allowed riser height, mm; the riser count is the smallest that fits.
         max_riser: f64,
+        #[serde(default)]
+        shape: StairShape,
+        /// Risers in the first run of an L- or U-shaped stair (0 = half, rounded down).
+        #[serde(default)]
+        first_run: u32,
+        /// Railings along both sides of each run.
+        #[serde(default = "yes")]
+        railings: bool,
+    },
+    ColumnType {
+        name: String,
+        shape: ColumnShape,
+        /// Structural columns print as cut material; architectural ones as outlines.
+        structural: bool,
+    },
+    /// A vertical column centered at `at`, rotated `rotation` radians, from its base level
+    /// (plus offset) up to its top constraint.
+    Column {
+        type_id: ElementId,
+        base_level: ElementId,
+        base_offset: f64,
+        top: WallTop,
+        at: Pt,
+        rotation: f64,
+    },
+    BeamType {
+        name: String,
+        shape: BeamShape,
+    },
+    /// A beam along `start` → `end` whose top sits at `level + offset`.
+    Beam {
+        type_id: ElementId,
+        level: ElementId,
+        offset: f64,
+        start: Pt,
+        end: Pt,
+    },
+    RailingType {
+        name: String,
+        /// Top of rail above the walking surface, mm.
+        height: f64,
+    },
+    /// A railing along a sketched path on a level.
+    Railing {
+        type_id: ElementId,
+        level: ElementId,
+        offset: f64,
+        path: Vec<Pt>,
     },
     /// A design stage (ADR-010).
     Stage {
@@ -574,6 +738,12 @@ impl ElementData {
             ElementData::RoofType { .. } => Category::RoofType,
             ElementData::Roof { .. } => Category::Roof,
             ElementData::Stair { .. } => Category::Stair,
+            ElementData::ColumnType { .. } => Category::ColumnType,
+            ElementData::Column { .. } => Category::Column,
+            ElementData::BeamType { .. } => Category::BeamType,
+            ElementData::Beam { .. } => Category::Beam,
+            ElementData::RailingType { .. } => Category::RailingType,
+            ElementData::Railing { .. } => Category::Railing,
         }
     }
 
@@ -597,7 +767,21 @@ impl ElementData {
                 vec![*type_id, *level]
             }
             ElementData::Room { level, .. } => vec![*level],
-            ElementData::Roof { type_id, level, .. } => vec![*type_id, *level],
+            ElementData::Roof { type_id, level, .. }
+            | ElementData::Beam { type_id, level, .. }
+            | ElementData::Railing { type_id, level, .. } => vec![*type_id, *level],
+            ElementData::Column {
+                type_id,
+                base_level,
+                top,
+                ..
+            } => {
+                let mut v = vec![*type_id, *base_level];
+                if let WallTop::UpToLevel { level, .. } = top {
+                    v.push(*level);
+                }
+                v
+            }
             ElementData::Stair {
                 base_level,
                 top_level,
@@ -630,7 +814,13 @@ impl ElementData {
             | ElementData::DoorType { name, .. }
             | ElementData::WindowType { name, .. }
             | ElementData::Stage { name, .. }
-            | ElementData::RoofType { name, .. } => name.clone(),
+            | ElementData::RoofType { name, .. }
+            | ElementData::ColumnType { name, .. }
+            | ElementData::BeamType { name, .. }
+            | ElementData::RailingType { name, .. } => name.clone(),
+            ElementData::Column { .. } => "Column".into(),
+            ElementData::Beam { .. } => "Beam".into(),
+            ElementData::Railing { .. } => "Railing".into(),
             ElementData::Roof { .. } => "Roof".into(),
             ElementData::Stair { .. } => "Stair".into(),
             ElementData::Door { mark, .. } => format!("Door {mark}"),
@@ -657,8 +847,12 @@ impl ElementData {
             ElementData::Floor { level, .. }
             | ElementData::Ceiling { level, .. }
             | ElementData::Room { level, .. }
-            | ElementData::Roof { level, .. } => Some(*level),
-            ElementData::Stair { base_level, .. } => Some(*base_level),
+            | ElementData::Roof { level, .. }
+            | ElementData::Beam { level, .. }
+            | ElementData::Railing { level, .. } => Some(*level),
+            ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
+                Some(*base_level)
+            }
             ElementData::View {
                 kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
                 ..
@@ -675,7 +869,10 @@ impl ElementData {
             | ElementData::Ceiling { type_id, .. }
             | ElementData::Door { type_id, .. }
             | ElementData::Window { type_id, .. }
-            | ElementData::Roof { type_id, .. } => Some(*type_id),
+            | ElementData::Roof { type_id, .. }
+            | ElementData::Column { type_id, .. }
+            | ElementData::Beam { type_id, .. }
+            | ElementData::Railing { type_id, .. } => Some(*type_id),
             _ => None,
         }
     }
@@ -755,6 +952,72 @@ impl ElementData {
                 if c.max.x - c.min.x < 10.0 || c.max.y - c.min.y < 10.0 =>
             {
                 bad("crop region is too small")
+            }
+            ElementData::Beam { start, end, .. } if start.dist(*end) < 10.0 => {
+                bad("beam is too short")
+            }
+            ElementData::Railing { path, .. }
+                if path.len() < 2
+                    || path.windows(2).map(|w| w[0].dist(w[1])).sum::<f64>() < 10.0 =>
+            {
+                bad("railing path is too short")
+            }
+            ElementData::ColumnType { shape, .. } => {
+                let ok = match shape {
+                    ColumnShape::Rectangular { width, depth } => *width > 1.0 && *depth > 1.0,
+                    ColumnShape::Round { diameter } => *diameter > 1.0,
+                    ColumnShape::WideFlange {
+                        depth,
+                        flange,
+                        flange_t,
+                        web_t,
+                    } => {
+                        *web_t > 0.0
+                            && *web_t < *flange
+                            && *flange_t > 0.0
+                            && 2.0 * flange_t < *depth
+                    }
+                };
+                if ok {
+                    Ok(())
+                } else {
+                    bad("column size doesn't make a section")
+                }
+            }
+            ElementData::BeamType { shape, .. } => {
+                let ok = match shape {
+                    BeamShape::Rectangular { width, depth } => *width > 1.0 && *depth > 1.0,
+                    BeamShape::WideFlange {
+                        depth,
+                        flange,
+                        flange_t,
+                        web_t,
+                    } => {
+                        *web_t > 0.0
+                            && *web_t < *flange
+                            && *flange_t > 0.0
+                            && 2.0 * flange_t < *depth
+                    }
+                };
+                if ok {
+                    Ok(())
+                } else {
+                    bad("beam size doesn't make a section")
+                }
+            }
+            ElementData::RailingType { height, .. } if *height < 300.0 => bad("railing is too low"),
+            ElementData::FloorType {
+                thickness, layers, ..
+            }
+            | ElementData::CeilingType {
+                thickness, layers, ..
+            }
+            | ElementData::RoofType {
+                thickness, layers, ..
+            } if !layers.is_empty()
+                && (layers.iter().map(|l| l.thickness).sum::<f64>() - thickness).abs() > 0.01 =>
+            {
+                bad("type thickness must equal the sum of its layers")
             }
             _ => Ok(()),
         }

@@ -5,6 +5,7 @@ mod commands;
 mod editing;
 mod menu;
 mod session;
+mod structure;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
@@ -93,6 +94,13 @@ pub fn run() -> anyhow::Result<()> {
             editing::align,
             editing::create_roof,
             editing::create_stair,
+            structure::create_column,
+            structure::columns_at_grids,
+            structure::create_beam,
+            structure::create_railing,
+            structure::attach_wall_tops,
+            structure::create_wall_located,
+            structure::drawing_options,
             editing::add_project_parameter,
             editing::remove_project_parameter,
             cloud::cloud_status,

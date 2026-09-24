@@ -172,8 +172,28 @@ export const ipc = {
   // Roofs, stairs and project parameters (ADR-018).
   createRoof: (view: ElementId, typeId: ElementId | null): S =>
     invoke("create_roof", { view, typeId }),
-  createStair: (view: ElementId, start: Pt, toward: Pt): S =>
-    invoke("create_stair", { view, start, toward }),
+  createStair: (view: ElementId, start: Pt, toward: Pt, shape: string | null = null): S =>
+    invoke("create_stair", { view, start, toward, shape }),
+  // Structure, railings and wall options (ADR-019).
+  createColumn: (view: ElementId, typeId: ElementId | null, at: Pt): S =>
+    invoke("create_column", { view, typeId, at, rotation: null }),
+  columnsAtGrids: (view: ElementId, typeId: ElementId | null): S =>
+    invoke("columns_at_grids", { view, typeId }),
+  createBeam: (view: ElementId, typeId: ElementId | null, start: Pt, end: Pt): S =>
+    invoke("create_beam", { view, typeId, start, end }),
+  createRailing: (view: ElementId, typeId: ElementId | null, path: Pt[]): S =>
+    invoke("create_railing", { view, typeId, path }),
+  attachWallTops: (ids: ElementId[], attach: boolean): S =>
+    invoke("attach_wall_tops", { ids, attach }),
+  createWallLocated: (
+    view: ElementId,
+    typeId: ElementId,
+    start: Pt,
+    end: Pt,
+    location: string,
+  ): S => invoke("create_wall_located", { view, typeId, start, end, location }),
+  /** Location lines and stair shapes as [id, label] pairs. */
+  drawingOptions: () => invoke<[[string, string][], [string, string][]]>("drawing_options"),
   addProjectParameter: (
     label: string,
     kind: string,

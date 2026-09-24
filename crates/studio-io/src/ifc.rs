@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use studio_core::{ops, Document, ElementData, ElementId};
-use studio_geom::Pt;
+use studio_geom::{Poly, Pt};
 use studio_regen::{regenerate, OpeningKind};
 use uuid::Uuid;
 
@@ -88,16 +88,30 @@ impl Writer {
         let rel = parent.map_or("$".into(), |p| format!("#{p}"));
         self.add(format!("IFCLOCALPLACEMENT({rel},#{ax})"))
     }
-    /// A body of several extrusions (e.g. a stair's steps), each (ring, z0, depth).
-    fn extrusions(&mut self, ctx: usize, parts: &[(Vec<Pt>, f64, f64)]) -> usize {
+    fn polyline(&mut self, ring: &[Pt]) -> usize {
+        let mut ids: Vec<usize> = ring.iter().map(|p| self.point2(*p)).collect();
+        if let Some(first) = ids.first().copied() {
+            ids.push(first);
+        }
+        self.add(format!("IFCPOLYLINE(({}))", Self::refs(&ids)))
+    }
+    /// A plan profile, with voids when the polygon has holes (a floor's stair opening).
+    fn profile(&mut self, poly: &Poly) -> usize {
+        let outer = self.polyline(&poly.outer);
+        if poly.holes.is_empty() {
+            return self.add(format!("IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,$,#{outer})"));
+        }
+        let inner: Vec<usize> = poly.holes.iter().map(|h| self.polyline(h)).collect();
+        self.add(format!(
+            "IFCARBITRARYPROFILEDEFWITHVOIDS(.AREA.,$,#{outer},({}))",
+            Self::refs(&inner)
+        ))
+    }
+    /// A body of several extrusions (e.g. a stair's steps), each (base, z0, depth).
+    fn extrusions(&mut self, ctx: usize, parts: &[(Poly, f64, f64)]) -> usize {
         let mut solids = vec![];
-        for (ring, z0, depth) in parts {
-            let mut ids: Vec<usize> = ring.iter().map(|p| self.point2(*p)).collect();
-            if let Some(first) = ids.first().copied() {
-                ids.push(first);
-            }
-            let poly = self.add(format!("IFCPOLYLINE(({}))", Self::refs(&ids)));
-            let profile = self.add(format!("IFCARBITRARYCLOSEDPROFILEDEF(.AREA.,$,#{poly})"));
+        for (base, z0, depth) in parts {
+            let profile = self.profile(base);
             let o = self.point3(0.0, 0.0, *z0);
             let pos = self.add(format!("IFCAXIS2PLACEMENT3D(#{o},$,$)"));
             let up = self.add("IFCDIRECTION((0.,0.,1.))".into());
@@ -208,6 +222,9 @@ pub struct IfcSummary {
     pub spaces: usize,
     pub roofs: usize,
     pub stairs: usize,
+    pub columns: usize,
+    pub beams: usize,
+    pub railings: usize,
 }
 
 /// Writes the model as an IFC4 STEP file. `timestamp` is ISO 8601 (for the header).
@@ -295,6 +312,21 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
     let mut materials: std::collections::BTreeMap<String, Vec<usize>> = Default::default();
     // Layered wall types → the walls using them.
     let mut layer_sets: std::collections::BTreeMap<ElementId, Vec<usize>> = Default::default();
+    // The element's type, when it has a layer build-up.
+    let layered_type = |id: ElementId| {
+        let t = doc.data(id).ok()?.type_id()?;
+        match doc.data(t).ok()? {
+            ElementData::WallType { layers, .. }
+            | ElementData::FloorType { layers, .. }
+            | ElementData::CeilingType { layers, .. }
+            | ElementData::RoofType { layers, .. }
+                if !layers.is_empty() =>
+            {
+                Some(t)
+            }
+            _ => None,
+        }
+    };
     let type_name = |id: ElementId| {
         doc.data(id)
             .ok()
@@ -310,12 +342,19 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             continue;
         };
         let place = w.placement(Some(splace), 0.0);
-        let shape = w.extrusion(
-            body,
-            &wall.footprint.outer,
-            wall.z0 - elev,
-            wall.z1 - wall.z0,
-        );
+        let shape = if wall.top_profile.is_some() {
+            // Under a sloped roof: the top follows the roof.
+            let tris =
+                studio_geom::prism_triangles_to(&wall.footprint, wall.z0, |p| wall.top_at(p));
+            w.tessellation(body, &tris, elev)
+        } else {
+            w.extrusion(
+                body,
+                &wall.footprint.outer,
+                wall.z0 - elev,
+                wall.z1 - wall.z0,
+            )
+        };
         let ty = type_name(wall.id);
         let e = w.add(format!(
             "IFCWALL({},$,{},$,{},#{place},#{shape},$,.STANDARD.)",
@@ -441,12 +480,21 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
 
     // Floors and ceilings.
     for (slabs, is_floor) in [(&model.floors, true), (&model.ceilings, false)] {
+        let mut seen_ids = std::collections::HashSet::new();
         for slab in slabs {
+            if !seen_ids.insert(slab.id) {
+                continue; // Further parts of a slab split by an opening.
+            }
             let Some((_, storey, splace, elev)) = storey_of(slab.level) else {
                 continue;
             };
             let place = w.placement(Some(splace), 0.0);
-            let shape = w.extrusion(body, &slab.base.outer, slab.z0 - elev, slab.z1 - slab.z0);
+            let parts: Vec<(Poly, f64, f64)> = slabs
+                .iter()
+                .filter(|p| p.id == slab.id)
+                .map(|p| (p.base.clone(), p.z0 - elev, p.z1 - p.z0))
+                .collect();
+            let shape = w.extrusions(body, &parts);
             let ty = type_name(slab.id);
             let e = if is_floor {
                 summary.slabs += 1;
@@ -464,7 +512,10 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
                 ))
             };
             contained.entry(storey).or_default().push(e);
-            materials.entry(ty).or_default().push(e);
+            match layered_type(slab.id) {
+                Some(t) => layer_sets.entry(t).or_default().push(e),
+                None => materials.entry(ty).or_default().push(e),
+            }
         }
     }
 
@@ -488,7 +539,10 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             s(&ty)
         ));
         contained.entry(storey).or_default().push(e);
-        materials.entry(ty).or_default().push(e);
+        match layered_type(roof.id) {
+            Some(t) => layer_sets.entry(t).or_default().push(e),
+            None => materials.entry(ty).or_default().push(e),
+        }
         summary.roofs += 1;
     }
     for stair in &model.stairs {
@@ -496,14 +550,19 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             continue;
         };
         let place = w.placement(Some(splace), 0.0);
-        let parts: Vec<(Vec<Pt>, f64, f64)> = stair
+        let parts: Vec<(Poly, f64, f64)> = stair
             .steps
             .iter()
-            .map(|p| (p.base.outer.clone(), p.z0 - elev, p.z1 - p.z0))
+            .map(|p| (p.base.clone(), p.z0 - elev, p.z1 - p.z0))
             .collect();
         let shape = w.extrusions(body, &parts);
+        let kind = match stair.runs.as_slice() {
+            [a, b] if a.dir.dot(b.dir) < -0.5 => ".HALF_TURN_STAIR.",
+            [_, _] => ".QUARTER_TURN_STAIR.",
+            _ => ".STRAIGHT_RUN_STAIR.",
+        };
         let e = w.add(format!(
-            "IFCSTAIR({},$,'Stair',$,$,#{place},#{shape},$,.STRAIGHT_RUN_STAIR.)",
+            "IFCSTAIR({},$,'Stair',$,$,#{place},#{shape},$,{kind})",
             s(&ifc_guid(stair.id.0))
         ));
         contained.entry(storey).or_default().push(e);
@@ -528,6 +587,92 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             s(&ifc_guid(derived(stair.id.0, "pset-rel")))
         ));
         summary.stairs += 1;
+    }
+
+    for col in &model.columns {
+        let Some((_, storey, splace, elev)) = storey_of(col.level) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let shape = w.extrusions(body, &[(col.base.clone(), col.z0 - elev, col.z1 - col.z0)]);
+        let ty = type_name(col.id);
+        let e = w.add(format!(
+            "IFCCOLUMN({},$,{},$,{},#{place},#{shape},$,.COLUMN.)",
+            s(&ifc_guid(col.id.0)),
+            s(&ty),
+            s(&ty)
+        ));
+        contained.entry(storey).or_default().push(e);
+        materials.entry(ty).or_default().push(e);
+        let lb = w.add(format!(
+            "IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN({}),$)",
+            if col.structural { ".T." } else { ".F." }
+        ));
+        let pset = w.add(format!(
+            "IFCPROPERTYSET({},$,'Pset_ColumnCommon',$,(#{lb}))",
+            s(&ifc_guid(derived(col.id.0, "pset")))
+        ));
+        w.add(format!(
+            "IFCRELDEFINESBYPROPERTIES({},$,$,$,(#{e}),#{pset})",
+            s(&ifc_guid(derived(col.id.0, "pset-rel")))
+        ));
+        summary.columns += 1;
+    }
+    for beam in &model.beams {
+        let Some((_, storey, splace, elev)) = storey_of(beam.level) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let parts: Vec<(Poly, f64, f64)> = beam
+            .prisms
+            .iter()
+            .map(|p| (p.base.clone(), p.z0 - elev, p.z1 - p.z0))
+            .collect();
+        let shape = w.extrusions(body, &parts);
+        let ty = type_name(beam.id);
+        let e = w.add(format!(
+            "IFCBEAM({},$,{},$,{},#{place},#{shape},$,.BEAM.)",
+            s(&ifc_guid(beam.id.0)),
+            s(&ty),
+            s(&ty)
+        ));
+        contained.entry(storey).or_default().push(e);
+        materials.entry(ty).or_default().push(e);
+        summary.beams += 1;
+    }
+    for rail in &model.railings {
+        let Some((_, storey, splace, elev)) = storey_of(rail.level) else {
+            continue;
+        };
+        let on_stair = model.stairs.iter().any(|s| s.id == rail.id);
+        let mut tris: Vec<f32> = rail
+            .boxes
+            .iter()
+            .flat_map(studio_geom::box_triangles)
+            .collect();
+        tris.extend(rail.posts.iter().flat_map(|p| p.triangles()));
+        if tris.is_empty() {
+            continue;
+        }
+        let place = w.placement(Some(splace), 0.0);
+        let shape = w.tessellation(body, &tris, elev);
+        // A stair's handrails are their own railing, with a GUID derived from the stair.
+        let (guid, name, kind) = if on_stair {
+            (
+                derived(rail.id.0, "railing"),
+                "Handrail".to_owned(),
+                ".HANDRAIL.",
+            )
+        } else {
+            (rail.id.0, type_name(rail.id), ".GUARDRAIL.")
+        };
+        let e = w.add(format!(
+            "IFCRAILING({},$,{},$,$,#{place},#{shape},$,{kind})",
+            s(&ifc_guid(guid)),
+            s(&name)
+        ));
+        contained.entry(storey).or_default().push(e);
+        summary.railings += 1;
     }
 
     // Rooms as spaces: their enclosed area, from the level up to the level above.
@@ -603,11 +748,17 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         ));
     }
 
-    // Compound wall types: one layer set each, exterior layer first.
+    // Compound types: one layer set each, exterior (or top) layer first.
     let mut layer_materials: HashMap<String, usize> = HashMap::new();
     for (type_id, items) in &layer_sets {
-        let Ok(ElementData::WallType { name, layers, .. }) = doc.data(*type_id) else {
-            continue;
+        let (name, layers) = match doc.data(*type_id) {
+            Ok(
+                ElementData::WallType { name, layers, .. }
+                | ElementData::FloorType { name, layers, .. }
+                | ElementData::CeilingType { name, layers, .. }
+                | ElementData::RoofType { name, layers, .. },
+            ) => (name, layers),
+            _ => continue,
         };
         let mut ls = vec![];
         for l in layers {
@@ -743,6 +894,46 @@ mod tests {
             1000.0,
         )
         .unwrap();
+        // The upper floor, opened by the stair; structure and a guardrail.
+        let joist = doc
+            .of(Category::FloorType)
+            .find(|e| e.data.name().starts_with("Wood Joist"))
+            .unwrap()
+            .id;
+        ops::create_floor(
+            &mut doc,
+            joist,
+            l2,
+            studio_regen::outer_boundary(&m, l1).unwrap(),
+        )
+        .unwrap();
+        studio_core::structure::ensure_structure_types(&mut doc).unwrap();
+        let named = |doc: &Document, cat: Category, name: &str| {
+            doc.of(cat)
+                .find(|e| e.data.name().starts_with(name))
+                .unwrap()
+                .id
+        };
+        let ct = named(&doc, Category::ColumnType, "Steel W10");
+        studio_core::structure::create_column(&mut doc, ct, l1, Pt::new(4000.0, 3000.0), 0.0)
+            .unwrap();
+        let bt = named(&doc, Category::BeamType, "Glulam");
+        studio_core::structure::create_beam(
+            &mut doc,
+            bt,
+            l2,
+            Pt::new(0.0, 3000.0),
+            Pt::new(w, 3000.0),
+        )
+        .unwrap();
+        let rt = named(&doc, Category::RailingType, "Guardrail");
+        studio_core::structure::create_railing(
+            &mut doc,
+            rt,
+            l2,
+            vec![Pt::new(1600.0, 1000.0), Pt::new(1600.0, 5000.0)],
+        )
+        .unwrap();
 
         let (ifc, sum) = export_ifc(&doc, "0.0.1", "2026-09-24T00:00:00");
         assert_eq!(
@@ -752,11 +943,14 @@ mod tests {
                 walls: 4,
                 doors: 1,
                 windows: 1,
-                slabs: 1,
+                slabs: 2,
                 coverings: 0,
                 spaces: 1,
                 roofs: 1,
                 stairs: 1,
+                columns: 1,
+                beams: 1,
+                railings: 2,
             }
         );
         assert!(ifc.starts_with("ISO-10303-21;"));
@@ -784,6 +978,13 @@ mod tests {
             "IFCSTAIR(",
             "Pset_StairCommon",
             "IFCMATERIALLAYERSET(",
+            "IFCCOLUMN(",
+            "Pset_ColumnCommon",
+            "IFCBEAM(",
+            "IFCRAILING(",
+            ".HANDRAIL.",
+            "IFCARBITRARYPROFILEDEFWITHVOIDS(",
+            "'Wood Joist Floor",
         ] {
             assert!(ifc.contains(entity), "missing {entity}");
         }

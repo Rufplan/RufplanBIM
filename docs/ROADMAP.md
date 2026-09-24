@@ -23,10 +23,18 @@ Built ahead of the milestone order at the owner's request. **Works now:**
 - Files: schema 2 `.rfproj` storing all elements; sample project with a 4-sheet set;
   unsaved-changes prompts.
 
+- Structure and circulation (ADR-019): columns (placed or at grid intersections), beams,
+  railings, L- and U-shaped stairs with landings and handrails, stair openings in floors.
+- Envelope and assemblies (ADR-019): walls attached to roofs, roofs over L/T/U plans with
+  valleys, wall location lines, layered floor and roof types, finish wraps at ends and
+  openings, and cut patterns.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; no room separation lines;
-floors/ceilings don't follow moved walls; roofs need convex footprints; no stair openings
-in floors. (The regeneration graph, parameter map, endpoint dragging and typed lengths landed
-in ADR-017; layered walls, roofs, stairs and crop regions in ADR-018.) Door leaves are thin: select a door by clicking its leaf or swing arc.
+floors/ceilings don't follow moved walls; roofs on non-right-angled, non-convex footprints
+need sketching per face (no straight skeleton); no material library (cut patterns follow
+layer names); column and beam joins aren't cleaned up against walls. (The regeneration
+graph, parameter map, endpoint dragging and typed lengths landed in ADR-017; layered walls,
+roofs, stairs and crop regions in ADR-018.) Door leaves are thin: select a door by clicking its leaf or swing arc.
 
 ## M0 — Scaffold
 - [x] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test

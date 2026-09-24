@@ -29,12 +29,19 @@ export const SHORTCUTS: Record<string, Tool> = {
   SL: "split",
   RF: "roof",
   ST: "stair",
+  // Revit uses CL for columns, which is Ceiling here; SC is "structural column".
+  SC: "column",
+  BM: "beam",
+  RA: "railing",
 };
 
 /** Tools that need a plan view (they place elements on the view's level). */
 export const PLAN_TOOLS: Tool[] = [
   "roof",
   "stair",
+  "column",
+  "beam",
+  "railing",
   "wall",
   "door",
   "window",
@@ -48,7 +55,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (tool === "level") return view === "Elevation" || view === "Section";
   if (tool === "room" || tool === "section" || tool === "stair") return view === "Plan";
-  if (tool === "roof") return view === "Plan";
+  if (tool === "roof" || tool === "column" || tool === "beam" || tool === "railing")
+    return view === "Plan";
   // Move works in plan coordinates, and on sheets for viewports.
   if (tool === "move") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
   if (tool === "text" && view === "Sheet") return true;
@@ -104,8 +112,18 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Click anywhere to put a hip roof over this level's walls (18\" overhang, 6/12). Edit its edges and slope in Properties.";
     case "stair":
       return n === 0
-        ? "Click the center of the first riser."
+        ? "Click the center of the first riser. Pick the shape (straight, L or U) in the options bar."
         : "Click toward where the stair climbs to the level above.";
+    case "column":
+      return "Click to place a column; it snaps to grid intersections. Columns rise to the level above.";
+    case "beam":
+      return n === 0
+        ? "Click the beam's start. It frames the floor above this plan."
+        : "Click the beam's end, or type a length and press Enter.";
+    case "railing":
+      return n < 2
+        ? "Click the railing path's points."
+        : "Click the next point, or press Enter to finish the railing. Esc cancels.";
     case "select":
       return "Click to select. Double-click an elevation marker or level to open its view. Drag with the middle or right mouse button to pan; scroll to zoom.";
     case "wall":

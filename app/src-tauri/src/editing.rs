@@ -294,7 +294,8 @@ pub fn align(
 }
 
 /// Roof by footprint from the walls of the view's level: an 18" overhang at 6:12, bearing
-/// on the tops of the walls (on the level at that height, if there is one).
+/// on the tops of the walls (on the level at that height, if there is one). Right-angled
+/// L, T and U plans get a hipped roof per wing.
 #[tauri::command]
 pub fn create_roof(
     view: ElementId,
@@ -327,33 +328,35 @@ pub fn create_roof(
             .or_else(|| build::default_roof_type(doc))
             .ok_or_else(|| anyhow::anyhow!("no roof types in this project"))?;
         let (overhang, slope) = (build::DEFAULT_OVERHANG, build::DEFAULT_ROOF_SLOPE);
-        let eave = studio_geom::offset_ring(&outer, overhang);
+        // Convex plans get one roof; L, T and U plans one per wing, meeting in valleys.
         s.edit(|d| {
-            build::create_roof(
-                d,
-                rt,
-                roof_level,
-                base - slope.tan() * overhang,
-                eave,
-                slope,
-            )
+            build::create_roofs_by_footprint(d, rt, roof_level, base, &outer, overhang, slope)
         })?;
         Ok(())
     })
 }
 
-/// A stair from the view's level up to the next, starting at `start` toward `toward`.
+/// A stair from the view's level up to the next, starting at `start` toward `toward`,
+/// straight or L/U-shaped (`shape` is an id from `build::STAIR_SHAPES`).
 #[tauri::command]
 pub fn create_stair(
     view: ElementId,
     start: Pt,
     toward: Pt,
+    shape: Option<String>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
+    let shape = match shape.as_deref() {
+        None => studio_core::StairShape::Straight,
+        Some(id) => build::parse_stair_shape(id)
+            .ok_or_else(|| anyhow::anyhow!("unknown stair shape {id}"))?,
+    };
     edit_state(&window, &state, |s| {
         let level = s.view_level(view)?;
-        s.edit(|d| build::create_stair(d, level, start, toward, build::DEFAULT_STAIR_WIDTH))?;
+        s.edit(|d| {
+            build::create_stair_shaped(d, level, start, toward, build::DEFAULT_STAIR_WIDTH, shape)
+        })?;
         Ok(())
     })
 }

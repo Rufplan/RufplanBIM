@@ -14,6 +14,7 @@ use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
 
 pub mod handles;
+mod plan_parts;
 pub mod snap;
 pub use handles::{
     align_delta, handles, offset_preview, ref_line, Grip, Handles, OffsetPreview, RefLine, TempDim,
@@ -477,12 +478,22 @@ fn plan(
             .iter()
             .filter(|f| f.z1 >= elev - 1.0 && f.z1 <= cut)
         {
-            b.fill(Some(f.id), vec![ring(&f.base.outer)], FillKind::Slab);
+            let mut rings = vec![ring(&f.base.outer)];
+            rings.extend(f.base.holes.iter().map(|h| ring(h)));
+            b.fill(Some(f.id), rings, FillKind::Slab);
             b.line(Some(f.id), &f.base.outer, true, 1, Dash::Solid);
+            for h in &f.base.holes {
+                b.line(Some(f.id), h, true, 1, Dash::Solid);
+            }
         }
     } else {
         for c in model.ceilings.iter().filter(|c| c.level == level) {
-            b.fill(Some(c.id), vec![ring(&c.base.outer)], FillKind::Ceiling);
+            let mut rings = vec![ring(&c.base.outer)];
+            rings.extend(c.base.holes.iter().map(|h| ring(h)));
+            b.fill(Some(c.id), rings, FillKind::Ceiling);
+            for h in &c.base.holes {
+                b.line(Some(c.id), h, true, 2, Dash::Solid);
+            }
             let is_act = doc
                 .data(c.id)
                 .ok()
@@ -550,17 +561,7 @@ fn plan(
         b.fill(Some(*id), vec![ring(&base.outer)], fill);
     }
     if detail {
-        for w in cut_walls.iter().filter(|w| !w.layers.is_empty()) {
-            let n = w.dir().perp();
-            for off in &w.layers {
-                let (a, d) = (w.start.add(n.scale(*off)), w.dir());
-                for p in w.pieces.iter().filter(|p| p.z0 <= cut && p.z1 > cut) {
-                    if let Some((s, e)) = clip_line_convex(a, d, &p.base.outer) {
-                        b.line(Some(w.id), &[s, e], false, 1, Dash::Solid);
-                    }
-                }
-            }
-        }
+        plan_parts::wall_layer_detail(b, &cut_walls, cut);
     }
     let merged = studio_geom::union_all(
         &cut_pieces
@@ -583,8 +584,11 @@ fn plan(
     {
         opening_symbol(b, Some(o.id), o);
     }
+    plan_parts::columns_in_plan(b, model, elev, cut);
     if !ceiling {
-        stairs_in_plan(b, model, level, elev, cut);
+        plan_parts::beams_in_plan(b, model, elev, cut);
+        plan_parts::stairs_in_plan(b, model, level, cut);
+        plan_parts::railings_in_plan(b, model, level);
         roofs_in_plan(b, model, level, cut);
     }
     if !ceiling {
@@ -638,7 +642,7 @@ fn plan(
 }
 
 /// The part of the line through `a` along `d` inside a convex ring, if any.
-fn clip_line_convex(a: Pt, d: Pt, ring_pts: &[Pt]) -> Option<(Pt, Pt)> {
+pub(crate) fn clip_line_convex(a: Pt, d: Pt, ring_pts: &[Pt]) -> Option<(Pt, Pt)> {
     let n = ring_pts.len();
     if n < 3 {
         return None;
@@ -669,101 +673,6 @@ fn clip_line_convex(a: Pt, d: Pt, ring_pts: &[Pt]) -> Option<(Pt, Pt)> {
         .then(|| (a.add(d.scale(t0)), a.add(d.scale(t1))))
 }
 
-/// Stairs based on this level (treads up to the cut plane, a break line, and an UP
-/// arrow) and stairs arriving from below (all treads and DN).
-fn stairs_in_plan(b: &mut Builder, model: &Model, level: ElementId, elev: f64, cut: f64) {
-    for s in &model.stairs {
-        let up = s.base_level == level;
-        let down = s.top_level == level;
-        if !up && !down {
-            continue;
-        }
-        let el = Some(s.id);
-        let o = s.outline();
-        b.fill(el, vec![ring(&o)], FillKind::Room);
-        let n = s.dir.perp().scale(s.width / 2.0);
-        let run = s.tread * s.steps.len() as f64;
-        // Where the cut plane crosses the run (distance from the first riser).
-        let cut_at = if up {
-            (((cut - elev) / s.riser).floor() * s.tread).clamp(s.tread, run)
-        } else {
-            run
-        };
-        for k in 0..=s.steps.len() {
-            let t = k as f64 * s.tread;
-            let p = s.start.add(s.dir.scale(t));
-            let dash = if up && t > cut_at + 1.0 {
-                Dash::Dashed
-            } else {
-                Dash::Solid
-            };
-            b.line(el, &[p.add(n), p.sub(n)], false, 1, dash);
-        }
-        let side = |a: Pt, t0: f64, t1: f64, dash: Dash, b: &mut Builder| {
-            b.line(
-                el,
-                &[a.add(s.dir.scale(t0)), a.add(s.dir.scale(t1))],
-                false,
-                2,
-                dash,
-            );
-        };
-        for edge in [s.start.add(n), s.start.sub(n)] {
-            side(edge, 0.0, cut_at, Dash::Solid, b);
-            if cut_at < run {
-                side(edge, cut_at, run, Dash::Dashed, b);
-            }
-        }
-        if up && cut_at < run {
-            // Diagonal break line across the run at the cut.
-            let c = s.start.add(s.dir.scale(cut_at));
-            let skew = s.dir.scale(s.tread * 0.8);
-            b.line(
-                el,
-                &[c.add(n).add(skew), c.sub(n).sub(skew)],
-                false,
-                2,
-                Dash::Solid,
-            );
-        }
-        // Walking line with an arrowhead, UP from this level or DN from above.
-        let (from, to) = if up {
-            (
-                s.start.add(s.dir.scale(s.tread * 0.5)),
-                s.start.add(s.dir.scale(cut_at.min(run) - s.tread * 0.5)),
-            )
-        } else {
-            (
-                s.start.add(s.dir.scale(run - s.tread * 0.5)),
-                s.start.add(s.dir.scale(s.tread * 0.5)),
-            )
-        };
-        b.line(el, &[from, to], false, 1, Dash::Solid);
-        let back = from.sub(to).norm();
-        let head = b.paper(2.0);
-        let wing = back.perp().scale(head * 0.5);
-        b.line(
-            el,
-            &[
-                to.add(back.scale(head)).add(wing),
-                to,
-                to.add(back.scale(head)).sub(wing),
-            ],
-            false,
-            1,
-            Dash::Solid,
-        );
-        b.text(
-            el,
-            from.sub(back.scale(b.paper(0.5)))
-                .sub(s.dir.scale(b.paper(3.0))),
-            if up { "UP".into() } else { "DN".into() },
-            2.5,
-            Anchor::Center,
-        );
-    }
-}
-
 /// Roofs based on this level, as in a roof plan: eave outline, hips and ridges. Dashed
 /// when the roof is above the cut plane (seen overhead).
 fn roofs_in_plan(b: &mut Builder, model: &Model, level: ElementId, cut: f64) {
@@ -776,7 +685,9 @@ fn roofs_in_plan(b: &mut Builder, model: &Model, level: ElementId, cut: f64) {
         };
         b.fill(el, vec![ring(&r.boundary)], FillKind::Room);
         for f in &r.faces {
-            b.line(el, &f.poly, true, 1, dash);
+            for v in &f.visible {
+                b.line(el, v, true, 1, dash);
+            }
         }
         b.line(el, &r.boundary, true, 2, dash);
     }
@@ -1162,7 +1073,30 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             .min(c.length);
         (us.len() >= 2 && hi - lo > 0.5).then_some((lo, hi))
     };
+    // Every u-interval where a polygon with holes crosses the cut plane (even-odd).
+    let cut_intervals = |poly: &studio_geom::Poly| -> Vec<(f64, f64)> {
+        let Some(c) = cut else { return vec![] };
+        let mut us = vec![];
+        for r in std::iter::once(&poly.outer).chain(&poly.holes) {
+            let n = r.len();
+            for i in 0..n {
+                let (p, q) = (r[i], r[(i + 1) % n]);
+                let (dp, dq) = (depth_of(p), depth_of(q));
+                if (dp < 0.0) != (dq < 0.0) {
+                    us.push(u_of(p.lerp(q, dp / (dp - dq))));
+                }
+            }
+        }
+        us.sort_by(f64::total_cmp);
+        us.chunks(2)
+            .filter(|w| w.len() == 2)
+            .map(|w| (w[0].max(0.0), w[1].min(c.length)))
+            .filter(|(a, b)| b - a > 0.5)
+            .collect()
+    };
     let mut cut_rects: Vec<(ElementId, f64, f64, f64, f64)> = vec![];
+    // Layer boundary lines inside cut material, in (u, z).
+    let mut cut_lines: Vec<(ElementId, [Pt; 2])> = vec![];
 
     struct Face {
         el: ElementId,
@@ -1202,11 +1136,32 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
     // glass fill, and piece seams would read as false joints in the facade.
     for w in &model.walls {
         match seen(&w.footprint.outer) {
-            Seen::Beyond => faces.push(face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper)),
+            Seen::Beyond => {
+                let mut f = face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper);
+                if let Some(prof) = &w.top_profile {
+                    // Seen square on, the top follows the roof above it.
+                    let d = w.dir();
+                    let mut outline =
+                        vec![Pt::new(u_of(w.start), w.z0), Pt::new(u_of(w.end), w.z0)];
+                    outline.extend(
+                        prof.iter()
+                            .rev()
+                            .map(|(s, z)| Pt::new(u_of(w.start.add(d.scale(*s))), *z)),
+                    );
+                    if studio_geom::signed_area(&outline).abs() > 1.0 {
+                        f.poly = Some(outline);
+                    }
+                }
+                faces.push(f);
+            }
             Seen::Cut => {
+                let c = cut.map_or(Pt::default(), |c| c.origin);
+                let top = studio_geom::line_intersection(w.start, w.dir(), c, right)
+                    .map_or(w.z1, |x| w.top_at(x));
                 for p in &w.pieces {
                     if let Some((u0, u1)) = cut_interval(&p.base.outer) {
-                        cut_rects.push((w.id, u0, u1, p.z0, p.z1));
+                        let z1 = if p.z1 >= w.z1 - 0.5 { top } else { p.z1 };
+                        cut_rects.push((w.id, u0, u1, p.z0, z1));
                     }
                 }
             }
@@ -1249,8 +1204,12 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             match seen(&f.base.outer) {
                 Seen::Beyond => faces.push(face(f.id, &f.base.outer, f.z0, f.z1, fill)),
                 Seen::Cut => {
-                    if let Some((u0, u1)) = cut_interval(&f.base.outer) {
+                    for (u0, u1) in cut_intervals(&f.base) {
                         cut_rects.push((f.id, u0, u1, f.z0, f.z1));
+                        for d in &f.layers {
+                            let z = f.z1 - d;
+                            cut_lines.push((f.id, [Pt::new(u0, z), Pt::new(u1, z)]));
+                        }
                     }
                 }
                 Seen::Hidden => {}
@@ -1274,6 +1233,33 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
                 }
                 Seen::Hidden => {}
             }
+        }
+    }
+    let prisms = model
+        .columns
+        .iter()
+        .map(|c| (c.id, c.prism()))
+        .chain(
+            model
+                .beams
+                .iter()
+                .flat_map(|b| b.prisms.iter().map(move |p| (b.id, p.clone()))),
+        )
+        .chain(
+            model
+                .railings
+                .iter()
+                .flat_map(|r| r.posts.iter().map(move |p| (r.id, p.clone()))),
+        );
+    for (id, p) in prisms {
+        match seen(&p.base.outer) {
+            Seen::Beyond => faces.push(face(id, &p.base.outer, p.z0, p.z1, FillKind::Paper)),
+            Seen::Cut => {
+                if let Some((u0, u1)) = cut_interval(&p.base.outer) {
+                    cut_rects.push((id, u0, u1, p.z0, p.z1));
+                }
+            }
+            Seen::Hidden => {}
         }
     }
     // A 3D polygon as a face in (u, z), with its depth for the painter's sort.
@@ -1305,6 +1291,39 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             poly: Some(uz),
         })
     };
+    // Rails: the outline of each box as seen (a sloped bar along a stair).
+    for r in &model.railings {
+        for bx in &r.boxes {
+            let plan: Vec<Pt> = bx.iter().map(|v| Pt::new(v[0], v[1])).collect();
+            if seen(&plan) == Seen::Hidden {
+                continue;
+            }
+            if cut.is_some() && plan.iter().all(|p| depth_of(*p) < 0.0) {
+                continue;
+            }
+            let uz: Vec<Pt> = bx
+                .iter()
+                .map(|v| Pt::new(u_of(Pt::new(v[0], v[1])), v[2]))
+                .collect();
+            let hull = studio_geom::convex_hull(&uz);
+            if hull.len() < 3 || studio_geom::signed_area(&hull).abs() < 1.0 {
+                continue;
+            }
+            let depths: Vec<f64> = plan.iter().map(|p| depth_of(*p)).collect();
+            faces.push(Face {
+                el: r.id,
+                u0: hull.iter().map(|p| p.x).fold(f64::INFINITY, f64::min),
+                u1: hull.iter().map(|p| p.x).fold(f64::NEG_INFINITY, f64::max),
+                z0: hull.iter().map(|p| p.y).fold(f64::INFINITY, f64::min),
+                z1: hull.iter().map(|p| p.y).fold(f64::NEG_INFINITY, f64::max),
+                near: depths.iter().copied().fold(f64::INFINITY, f64::min),
+                mid: depths.iter().sum::<f64>() / depths.len() as f64,
+                fill: FillKind::Paper,
+                detail: None,
+                poly: Some(hull),
+            });
+        }
+    }
     for r in &model.roofs {
         match seen(&r.boundary) {
             Seen::Beyond => {
@@ -1326,6 +1345,10 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
                 if r.is_flat() {
                     if let Some((u0, u1)) = cut_interval(&r.boundary) {
                         cut_rects.push((r.id, u0, u1, r.base, r.base + t));
+                        for d in &r.layers {
+                            let z = r.base + t - d;
+                            cut_lines.push((r.id, [Pt::new(u0, z), Pt::new(u1, z)]));
+                        }
                     }
                 }
                 for f in &r.faces {
@@ -1342,8 +1365,13 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
                     }
                     if hits.len() >= 2 {
                         let (p, q) = (hits[0], hits[1]);
-                        let lo = |v: Pt| Pt::new(v.x, v.y - t);
-                        cut_polys.push((r.id, vec![p, q, lo(q), lo(p)]));
+                        let lo = |v: Pt, d: f64| Pt::new(v.x, v.y - d);
+                        cut_polys.push((r.id, vec![p, q, lo(q, t), lo(p, t)]));
+                        // Layer depths are square to the surface; plumb they are longer.
+                        let k = 1.0 / r.slope.cos().max(0.1);
+                        for d in &r.layers {
+                            cut_lines.push((r.id, [lo(p, d * k), lo(q, d * k)]));
+                        }
                     }
                 }
             }
@@ -1389,7 +1417,9 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             opening_elevation_detail(b, f.el, kind, f.u0, f.u1, f.z0, f.z1);
         }
     }
-    // Cut material over everything beyond it.
+    // Cut material over everything beyond it; layered material is lighter so its layer
+    // lines read.
+    let light = |el: &ElementId| cut_lines.iter().any(|(e, _)| e == el);
     for (el, u0, u1, z0, z1) in &cut_rects {
         let r = [
             Pt::new(*u0, *z0),
@@ -1397,12 +1427,25 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             Pt::new(*u1, *z1),
             Pt::new(*u0, *z1),
         ];
-        b.fill(Some(*el), vec![ring(&r)], FillKind::Poche);
+        let fill = if light(el) {
+            FillKind::PocheLight
+        } else {
+            FillKind::Poche
+        };
+        b.fill(Some(*el), vec![ring(&r)], fill);
         b.line(Some(*el), &r, true, 4, Dash::Solid);
     }
     for (el, r) in &cut_polys {
-        b.fill(Some(*el), vec![ring(r)], FillKind::Poche);
+        let fill = if light(el) {
+            FillKind::PocheLight
+        } else {
+            FillKind::Poche
+        };
+        b.fill(Some(*el), vec![ring(r)], fill);
         b.line(Some(*el), r, true, 4, Dash::Solid);
+    }
+    for (el, seg) in &cut_lines {
+        b.line(Some(*el), seg, false, 1, Dash::Solid);
     }
 
     let ext = b.paper(12.0);
@@ -1912,7 +1955,16 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     let m = regenerate(doc);
     let mut out = vec![];
     for w in &m.walls {
-        let positions = w.pieces.iter().flat_map(|p| p.triangles()).collect();
+        let positions = w
+            .pieces
+            .iter()
+            .flat_map(|p| match &w.top_profile {
+                Some(_) if p.z1 >= w.z1 - 0.5 => {
+                    studio_geom::prism_triangles_to(&p.base, p.z0, |q| w.top_at(q))
+                }
+                _ => p.triangles(),
+            })
+            .collect();
         out.push(Mesh {
             el: w.id,
             category: Category::Wall,
@@ -1954,6 +2006,41 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Stair,
             exterior: false,
             positions: s.steps.iter().flat_map(|p| p.triangles()).collect(),
+        });
+    }
+    for c in &m.columns {
+        out.push(Mesh {
+            el: c.id,
+            category: Category::Column,
+            exterior: c.structural,
+            positions: c.prism().triangles(),
+        });
+    }
+    for bm in &m.beams {
+        out.push(Mesh {
+            el: bm.id,
+            category: Category::Beam,
+            exterior: true,
+            positions: bm.prisms.iter().flat_map(|p| p.triangles()).collect(),
+        });
+    }
+    for r in &m.railings {
+        let mut positions: Vec<f32> = r
+            .boxes
+            .iter()
+            .flat_map(studio_geom::box_triangles)
+            .collect();
+        positions.extend(r.posts.iter().flat_map(|p| p.triangles()));
+        let is_stair = m.stairs.iter().any(|s| s.id == r.id);
+        out.push(Mesh {
+            el: r.id,
+            category: if is_stair {
+                Category::Stair
+            } else {
+                Category::Railing
+            },
+            exterior: false,
+            positions,
         });
     }
     out
@@ -2649,7 +2736,7 @@ mod tests {
                 matches!(
                     &i.prim,
                     Prim::Fill {
-                        fill: FillKind::Poche,
+                        fill: FillKind::Poche | FillKind::PocheLight,
                         ..
                     }
                 )
@@ -2763,8 +2850,9 @@ mod tests {
                 .filter(|i| matches!(&i.prim, Prim::Line { w: 1, .. }))
                 .count()
         };
-        // Four walls × three layer boundaries.
-        assert_eq!(layer_lines(&a), 12);
+        // Four walls × (three layer boundaries + the stud cavity's batt zigzag); the closed
+        // rectangle has no free ends to wrap.
+        assert_eq!(layer_lines(&a), 16);
         ops::set_property(&mut doc, plan, "scale", "96", 0).unwrap();
         assert_eq!(
             layer_lines(&display_list(&doc, plan).unwrap()),
@@ -2880,5 +2968,249 @@ mod tests {
             doc.count(Category::Wall),
             t1.elapsed()
         );
+    }
+    fn line_len(i: &Item) -> Option<(usize, f64)> {
+        match &i.prim {
+            Prim::Line { pts, .. } => {
+                let l = pts
+                    .windows(2)
+                    .map(|w| Pt::new(w[0][0], w[0][1]).dist(Pt::new(w[1][0], w[1][1])))
+                    .sum();
+                Some((pts.len(), l))
+            }
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn structure_and_l_stair_in_plan_and_section() {
+        let (mut doc, l1, _, _) = roofed_house();
+        studio_core::structure::ensure_structure_types(&mut doc).unwrap();
+        let ft = studio_core::units::MM_PER_FT;
+        let l2 = doc.levels()[1].0;
+        let ct = doc
+            .of(Category::ColumnType)
+            .find(|e| e.data.name().starts_with("Concrete Square"))
+            .unwrap()
+            .id;
+        let col = studio_core::structure::create_column(
+            &mut doc,
+            ct,
+            l1,
+            Pt::new(20.0 * ft, 15.0 * ft),
+            0.0,
+        )
+        .unwrap();
+        let bt = doc
+            .of(Category::BeamType)
+            .find(|e| e.data.name().starts_with("Steel W12"))
+            .unwrap()
+            .id;
+        let beam = studio_core::structure::create_beam(
+            &mut doc,
+            bt,
+            l2,
+            Pt::new(0.0, 15.0 * ft),
+            Pt::new(40.0 * ft, 15.0 * ft),
+        )
+        .unwrap();
+        let stair = studio_core::build::create_stair_shaped(
+            &mut doc,
+            l1,
+            Pt::new(30.0 * ft, 2.0 * ft),
+            Pt::new(30.0 * ft, 12.0 * ft),
+            studio_core::build::DEFAULT_STAIR_WIDTH,
+            studio_core::StairShape::LShaped { left: true },
+        )
+        .unwrap();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let dl = display_list(&doc, plan).unwrap();
+        let has = |el: ElementId, f: &dyn Fn(&Prim) -> bool| {
+            dl.items.iter().any(|i| i.el == Some(el) && f(&i.prim))
+        };
+        assert!(has(col, &|p| matches!(
+            p,
+            Prim::Fill {
+                fill: FillKind::Poche,
+                ..
+            }
+        )));
+        assert!(
+            has(beam, &|p| matches!(
+                p,
+                Prim::Line {
+                    dash: Dash::Dashed,
+                    ..
+                }
+            )),
+            "beam overhead"
+        );
+        assert!(has(
+            stair,
+            &|p| matches!(p, Prim::Text { text, .. } if text == "UP")
+        ));
+        // The L's second run (above the cut plane) is dashed, and so is its landing.
+        assert!(has(stair, &|p| matches!(
+            p,
+            Prim::Line {
+                dash: Dash::Dashed,
+                closed: true,
+                ..
+            }
+        )));
+        let upper = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l2),
+        );
+        let dl2 = display_list(&doc, upper).unwrap();
+        assert!(dl2
+            .items
+            .iter()
+            .any(|i| i.el == Some(stair)
+                && matches!(&i.prim, Prim::Text { text, .. } if text == "DN")));
+        // A section along the beam cuts the column and shows the beam and its flanges.
+        let sec = ops::create_section(
+            &mut doc,
+            Pt::new(-3.0 * ft, 15.0 * ft),
+            Pt::new(43.0 * ft, 15.0 * ft),
+        )
+        .unwrap();
+        let dl = display_list(&doc, sec).unwrap();
+        let cut = |el: ElementId| {
+            dl.items
+                .iter()
+                .filter(|i| {
+                    i.el == Some(el)
+                        && matches!(
+                            &i.prim,
+                            Prim::Fill {
+                                fill: FillKind::Poche,
+                                ..
+                            }
+                        )
+                })
+                .count()
+        };
+        assert_eq!(cut(col), 1);
+        assert_eq!(cut(beam), 3, "flanges and web cut");
+        let m = meshes(&doc);
+        assert!(m
+            .iter()
+            .any(|x| x.el == col && x.category == Category::Column && !x.positions.is_empty()));
+        assert!(m
+            .iter()
+            .any(|x| x.el == beam && x.category == Category::Beam));
+    }
+
+    #[test]
+    fn layers_wrap_at_free_ends_and_show_cut_patterns() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = doc
+            .of(Category::WallType)
+            .find(|e| e.data.name().starts_with("Exterior - 12"))
+            .unwrap()
+            .id;
+        let w =
+            ops::create_wall(&mut doc, wt, l1, Pt::new(0.0, 0.0), Pt::new(4000.0, 0.0)).unwrap();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        ops::set_property(&mut doc, plan, "scale", "24", 0).unwrap();
+        let dl = display_list(&doc, plan).unwrap();
+        let lines: Vec<(usize, f64)> = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(w))
+            .filter_map(line_len)
+            .collect();
+        // Stucco (7/8") and gypsum (5/8") wrap both free ends: a return across the rest.
+        let ret = 10.5 * MM_PER_IN;
+        let returns = lines
+            .iter()
+            .filter(|(n, l)| *n == 2 && (l - ret).abs() < 0.5)
+            .count();
+        assert_eq!(returns, 2, "{lines:?}");
+        // The core's layer lines stop short of the ends by the wrap.
+        let core = 4000.0 - 2.0 * 0.875 * MM_PER_IN;
+        assert!(lines.iter().any(|(n, l)| *n == 2 && (l - core).abs() < 0.5));
+        // CMU diagonals and the rigid insulation's zigzag.
+        let diagonals = lines.iter().filter(|(n, l)| *n == 2 && *l < 400.0).count();
+        assert!(diagonals > 50, "{diagonals}");
+        assert!(lines.iter().any(|(n, _)| *n > 40), "insulation zigzag");
+        // At 1/8" the wall is plain poché again.
+        ops::set_property(&mut doc, plan, "scale", "96", 0).unwrap();
+        let dl = display_list(&doc, plan).unwrap();
+        assert!(dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(w))
+            .filter_map(line_len)
+            .all(|(n, _)| n > 2));
+    }
+
+    #[test]
+    fn section_through_a_stair_opening_breaks_the_floor() {
+        let (mut doc, l1, _, stair) = roofed_house();
+        let ft = studio_core::units::MM_PER_FT;
+        let l2 = doc.levels()[1].0;
+        let ftype = doc
+            .of(Category::FloorType)
+            .find(|e| e.data.name().starts_with("Wood Joist"))
+            .unwrap()
+            .id;
+        let slab = vec![
+            Pt::new(0.0, 0.0),
+            Pt::new(40.0 * ft, 0.0),
+            Pt::new(40.0 * ft, 30.0 * ft),
+            Pt::new(0.0, 30.0 * ft),
+        ];
+        let floor = ops::create_floor(&mut doc, ftype, l2, slab).unwrap();
+        let _ = (l1, stair);
+        // Across the stair (at x = 2', from y 8' to 20').
+        let sec = ops::create_section(
+            &mut doc,
+            Pt::new(-3.0 * ft, 14.0 * ft),
+            Pt::new(43.0 * ft, 14.0 * ft),
+        )
+        .unwrap();
+        let dl = display_list(&doc, sec).unwrap();
+        let cuts = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(floor))
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Poche | FillKind::PocheLight,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert_eq!(cuts, 2, "the floor is cut either side of the opening");
+        // Its layers show as lines in the cut.
+        let layer_lines = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(floor))
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Line {
+                        closed: false,
+                        w: 1,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert!(layer_lines >= 6, "{layer_lines}");
     }
 }

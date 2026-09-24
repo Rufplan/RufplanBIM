@@ -7,6 +7,7 @@
 //! joined to it, the rooms on its level). Results are cached by the document's content
 //! stamp, so repeated calls for the same state (every mouse move's snap and pick) are free.
 
+pub mod parts;
 pub mod roof;
 
 use std::collections::HashMap;
@@ -17,6 +18,7 @@ use studio_core::{
 };
 use studio_geom::{clip_half_plane, line_intersection, union_all, Poly, Prism, Pt};
 
+pub use parts::{BeamSolid, ColumnSolid, RailSolid, StairRun, StairSolid};
 pub use roof::{RoofFace, RoofSolid};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -36,12 +38,85 @@ pub struct WallSolid {
     /// Offsets of the boundaries between layers from the location line (mm, positive =
     /// exterior, the wall's left). Empty for a single-layer type.
     pub layers: Vec<f64>,
+    /// Thickness of the outer and inner finish layers (0 when not finish), which wrap
+    /// around free ends and openings in plan.
+    pub wraps: (f64, f64),
+    /// With its top attached to a roof: the top height along the wall as (distance from
+    /// start, z) points. `z1` is then the highest of them.
+    pub top_profile: Option<Vec<(f64, f64)>>,
+    /// Layers drawn with a cut pattern: (exterior-side offset, interior-side offset, pattern).
+    pub hatches: Vec<(f64, f64, Hatch)>,
+}
+
+/// Cut patterns for wall layers, chosen from the layer's function and material name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Hatch {
+    /// Batt insulation zigzag.
+    Insulation,
+    /// Brick, block and stone: diagonal lines.
+    Masonry,
+    /// Concrete: stipple and aggregate.
+    Concrete,
+}
+
+impl Hatch {
+    pub fn of(layer: &studio_core::WallLayer) -> Option<Hatch> {
+        let n = layer.name.to_lowercase();
+        if layer.function == studio_core::LayerFunction::Insulation
+            || n.contains("insulation")
+            || n.contains("batt")
+        {
+            Some(Hatch::Insulation)
+        } else if n.contains("concrete") {
+            Some(Hatch::Concrete)
+        } else if ["brick", "masonry", "cmu", "block", "stone"]
+            .iter()
+            .any(|k| n.contains(k))
+        {
+            Some(Hatch::Masonry)
+        } else {
+            None
+        }
+    }
+}
+
+/// Hatched bands of a layer build-up `width` thick, as offsets from its center.
+fn hatch_bands(layers: &[studio_core::WallLayer], width: f64) -> Vec<(f64, f64, Hatch)> {
+    let mut at = width / 2.0;
+    let mut out = vec![];
+    for l in layers {
+        if let Some(h) = Hatch::of(l) {
+            out.push((at, at - l.thickness, h));
+        }
+        at -= l.thickness;
+    }
+    out
 }
 
 impl WallSolid {
     /// Unit vector from start to end.
     pub fn dir(&self) -> Pt {
         self.end.sub(self.start).norm()
+    }
+
+    /// Top height above plan point `p` (follows the roof when attached).
+    pub fn top_at(&self, p: Pt) -> f64 {
+        let Some(prof) = &self.top_profile else {
+            return self.z1;
+        };
+        let t = p.sub(self.start).dot(self.dir());
+        match prof.iter().position(|(pt, _)| *pt >= t) {
+            Some(0) => prof[0].1,
+            Some(i) => {
+                let (a, b) = (prof[i - 1], prof[i]);
+                if (b.0 - a.0).abs() < 1e-9 {
+                    b.1
+                } else {
+                    a.1 + (b.1 - a.1) * (t - a.0) / (b.0 - a.0)
+                }
+            }
+            None => prof.last().map_or(self.z1, |l| l.1),
+        }
     }
 }
 
@@ -98,6 +173,8 @@ pub struct SlabSolid {
     pub base: Poly,
     pub z0: f64,
     pub z1: f64,
+    /// Depths of the boundaries between layers below the top (mm).
+    pub layers: Vec<f64>,
 }
 
 impl SlabSolid {
@@ -107,39 +184,6 @@ impl SlabSolid {
             z0: self.z0,
             z1: self.z1,
         }
-    }
-}
-
-/// A straight stair run resolved into steps.
-#[derive(Debug, Clone, PartialEq)]
-pub struct StairSolid {
-    pub id: ElementId,
-    pub base_level: ElementId,
-    pub top_level: ElementId,
-    /// Center of the first riser, and the unit climbing direction.
-    pub start: Pt,
-    pub dir: Pt,
-    pub width: f64,
-    pub tread: f64,
-    pub risers: usize,
-    pub riser: f64,
-    /// Height of the base level (mm).
-    pub z0: f64,
-    /// One solid block per tread, from the base level up to the tread's top.
-    pub steps: Vec<Prism>,
-}
-
-impl StairSolid {
-    /// Plan outline corners of the run (start-left, start-right, end-right, end-left).
-    pub fn outline(&self) -> [Pt; 4] {
-        let n = self.dir.perp().scale(self.width / 2.0);
-        let run = self.dir.scale(self.tread * self.steps.len() as f64);
-        let (a, b) = (self.start, self.start.add(run));
-        [a.add(n), a.sub(n), b.sub(n), b.add(n)]
-    }
-    /// Top of the stair: the upper level's height (mm).
-    pub fn z1(&self) -> f64 {
-        self.z0 + self.riser * self.risers as f64
     }
 }
 
@@ -193,6 +237,9 @@ pub struct Model {
     pub ceilings: Vec<SlabSolid>,
     pub roofs: Vec<RoofSolid>,
     pub stairs: Vec<StairSolid>,
+    pub columns: Vec<ColumnSolid>,
+    pub beams: Vec<BeamSolid>,
+    pub railings: Vec<RailSolid>,
     pub grids: Vec<GridLine>,
     pub levels: Vec<LevelInfo>,
     pub openings: Vec<OpeningSolid>,
@@ -216,7 +263,17 @@ impl Model {
             pts.extend(&r.boundary);
         }
         for s in &self.stairs {
-            pts.extend(s.outline());
+            pts.extend(s.footprint().into_iter().flatten());
+        }
+        for c in &self.columns {
+            pts.extend(&c.base.outer);
+        }
+        for b in &self.beams {
+            pts.push(b.start);
+            pts.push(b.end);
+        }
+        for r in &self.railings {
+            pts.extend(&r.path);
         }
         for g in &self.grids {
             pts.push(g.start);
@@ -249,6 +306,8 @@ impl Model {
             )
             .chain(self.roofs.iter().map(|r| (r.base, r.peak())))
             .chain(self.stairs.iter().map(|s| (s.z0, s.z1())))
+            .chain(self.columns.iter().map(|c| (c.z0, c.z1)))
+            .chain(self.beams.iter().map(|b| (b.z_top - b.depth, b.z_top)))
         {
             lo = lo.min(a);
             hi = hi.max(b);
@@ -381,8 +440,19 @@ struct RawWall {
     thickness: f64,
     exterior: bool,
     layers: Vec<f64>,
+    wraps: (f64, f64),
+    hatches: Vec<(f64, f64, Hatch)>,
+    attach: bool,
     z0: f64,
     z1: f64,
+}
+
+/// Thickness of a finish layer at one face (0 if that face isn't a finish).
+fn finish_t(l: Option<&studio_core::WallLayer>) -> f64 {
+    match l {
+        Some(l) if l.function == studio_core::LayerFunction::Finish => l.thickness,
+        _ => 0.0,
+    }
 }
 
 fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
@@ -396,11 +466,13 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
             base_level,
             base_offset,
             top,
+            attach_top,
+            ..
         } = &e.data
         else {
             continue;
         };
-        let (thickness, exterior, layers) = match doc.data(*type_id) {
+        let (thickness, exterior, layers, wraps, hatches) = match doc.data(*type_id) {
             Ok(ElementData::WallType {
                 thickness,
                 function,
@@ -410,6 +482,8 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 *thickness,
                 *function == WallFunction::Exterior,
                 studio_core::compound::layer_boundaries(layers, *thickness),
+                (finish_t(layers.first()), finish_t(layers.last())),
+                hatch_bands(layers, *thickness),
             ),
             _ => continue,
         };
@@ -429,6 +503,9 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
             thickness,
             exterior,
             layers,
+            wraps,
+            hatches,
+            attach: *attach_top,
             z0,
             z1,
         });
@@ -488,6 +565,9 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 z1: w.z1,
                 pieces: vec![],
                 layers: w.layers.clone(),
+                wraps: w.wraps,
+                top_profile: None,
+                hatches: w.hatches.clone(),
             }
         })
         .collect();
@@ -559,6 +639,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         base: Poly::simple(boundary.clone()),
                         z0: top - t,
                         z1: top,
+                        layers: type_layer_depths(doc, *type_id),
                     })
                 }
                 ElementData::Ceiling {
@@ -576,6 +657,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         base: Poly::simple(boundary.clone()),
                         z0: bottom,
                         z1: bottom + t,
+                        layers: type_layer_depths(doc, *type_id),
                     })
                 }
                 _ => None,
@@ -598,7 +680,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                     ElementData::RoofType { thickness, .. } => *thickness,
                     _ => return None,
                 };
-                Some(RoofSolid::build(
+                let mut r = RoofSolid::build(
                     e.id,
                     *level,
                     boundary,
@@ -606,60 +688,22 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                     *slope,
                     sloped,
                     thickness,
-                ))
+                );
+                r.layers = type_layer_depths(doc, *type_id);
+                Some(r)
             }
             _ => None,
         })
         .collect();
 
-    let stairs = doc
-        .of(Category::Stair)
-        .filter_map(|e| match &e.data {
-            ElementData::Stair {
-                base_level,
-                top_level,
-                start,
-                end,
-                width,
-                tread,
-                max_riser,
-            } => {
-                let (z0, z1) = (elev(*base_level), elev(*top_level));
-                if z1 - z0 < 1.0 {
-                    return None;
-                }
-                let (risers, riser, _) =
-                    studio_core::build::stair_layout(z1 - z0, *tread, *max_riser);
-                let dir = end.sub(*start).norm();
-                let n = dir.perp().scale(width / 2.0);
-                let steps = (0..risers.saturating_sub(1))
-                    .map(|k| {
-                        let a = start.add(dir.scale(k as f64 * tread));
-                        let b = start.add(dir.scale((k + 1) as f64 * tread));
-                        Prism {
-                            base: Poly::simple(vec![a.sub(n), b.sub(n), b.add(n), a.add(n)]),
-                            z0,
-                            z1: z0 + (k + 1) as f64 * riser,
-                        }
-                    })
-                    .collect();
-                Some(StairSolid {
-                    id: e.id,
-                    base_level: *base_level,
-                    top_level: *top_level,
-                    start: *start,
-                    dir,
-                    width: *width,
-                    tread: *tread,
-                    risers,
-                    riser,
-                    z0,
-                    steps,
-                })
-            }
-            _ => None,
-        })
-        .collect();
+    let elev_fn = |id: ElementId| doc.level_elevation(id).unwrap_or(0.0);
+    let stairs = parts::stairs(doc, &elev_fn);
+    let mut railings = parts::railings(doc, &elev_fn);
+    railings.extend(parts::stair_railings(&stairs));
+    let columns = parts::columns(doc, &elev_fn);
+    let beams = parts::beams(doc, &elev_fn);
+    let mut roofs: Vec<RoofSolid> = roofs;
+    roof::resolve_overlaps(&mut roofs);
 
     let grids = doc
         .of(Category::Grid)
@@ -684,20 +728,117 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
         })
         .collect();
 
+    // Walls attached to a roof follow its underside.
+    for (w, r) in walls.iter_mut().zip(&raw) {
+        if r.attach {
+            w.top_profile = attach_profile(w, &roofs);
+            if let Some(p) = &w.top_profile {
+                let old = w.z1;
+                w.z1 = p.iter().map(|q| q.1).fold(f64::NEG_INFINITY, f64::max);
+                // Pieces that reached the old top now reach the roof ([`WallSolid::top_at`]).
+                for piece in w.pieces.iter_mut().filter(|q| q.z1 >= old - 0.5) {
+                    piece.z1 = w.z1;
+                }
+            }
+        }
+    }
+    // Stairs open the floor they arrive at and the ceilings they pass through.
+    let cut_by_stairs = |slabs: Vec<SlabSolid>, floor: bool| -> Vec<SlabSolid> {
+        let mut out = vec![];
+        for s in slabs {
+            let holes: Vec<Poly> = stairs
+                .iter()
+                .filter(|st| {
+                    if floor {
+                        st.top_level == s.level
+                    } else {
+                        st.base_level == s.level && s.z0 < st.z1()
+                    }
+                })
+                .flat_map(|st| st.footprint())
+                .map(Poly::simple)
+                .collect();
+            if holes.is_empty() {
+                out.push(s);
+                continue;
+            }
+            let hole_union = union_all(&holes);
+            let mut parts = studio_geom::difference(&s.base, &hole_union);
+            parts.sort_by(|a, b| b.area().total_cmp(&a.area()));
+            for base in parts {
+                out.push(SlabSolid { base, ..s.clone() });
+            }
+        }
+        out
+    };
+    let floors = cut_by_stairs(slab(Category::Floor), true);
+    let ceilings = cut_by_stairs(slab(Category::Ceiling), false);
     let mut model = Model {
         rooms: vec![],
         openings,
         walls,
-        floors: slab(Category::Floor),
-        ceilings: slab(Category::Ceiling),
+        floors,
+        ceilings,
         roofs,
         stairs,
+        columns,
+        beams,
+        railings,
         grids,
         levels,
         regions,
     };
     model.rooms = resolve_rooms(doc, &model);
     model
+}
+
+/// The underside of the lowest roof above each point along a wall's centerline, sampled
+/// at its ends and wherever it crosses a roof face edge. None if no roof covers it.
+fn attach_profile(w: &WallSolid, roofs: &[RoofSolid]) -> Option<Vec<(f64, f64)>> {
+    let dir = w.dir();
+    let len = w.start.dist(w.end);
+    let mut ts = vec![0.0, len];
+    for r in roofs {
+        let rings = r
+            .faces
+            .iter()
+            .map(|f| f.poly.as_slice())
+            .chain(std::iter::once(r.boundary.as_slice()));
+        for ring in rings {
+            let n = ring.len();
+            for i in 0..n {
+                let (a, b) = (ring[i], ring[(i + 1) % n]);
+                if let Some(x) = line_intersection(w.start, dir, a, b.sub(a)) {
+                    let t = x.sub(w.start).dot(dir);
+                    if t > 0.0 && t < len && studio_geom::project_to_segment(x, a, b).1 < 0.5 {
+                        ts.push(t);
+                    }
+                }
+            }
+        }
+    }
+    ts.sort_by(f64::total_cmp);
+    ts.dedup_by(|a, b| (*a - *b).abs() < 0.5);
+    let mut any = false;
+    let prof: Vec<(f64, f64)> = ts
+        .into_iter()
+        .map(|t| {
+            let p = w.start.add(dir.scale(t));
+            let z = roofs
+                .iter()
+                .filter(|r| studio_geom::point_in_ring(p, &r.boundary))
+                .map(|r| r.underside(p))
+                .filter(|z| *z > w.z0 + 10.0)
+                .fold(f64::INFINITY, f64::min);
+            if z.is_finite() {
+                any = true;
+                (t, z)
+            } else {
+                (t, w.z1)
+            }
+        })
+        .collect();
+    any.then_some(prof)
 }
 
 fn footprint_of(k: &FootprintKey) -> Poly {
@@ -793,6 +934,25 @@ fn wall_pieces(w: &WallSolid, openings: &[&OpeningSolid]) -> Vec<Prism> {
     }
     push(slice(cursor, None), w.z0, w.z1);
     pieces
+}
+
+/// Depths below the top of the boundaries between a floor, ceiling or roof type's layers.
+fn type_layer_depths(doc: &Document, id: ElementId) -> Vec<f64> {
+    let layers = match doc.data(id) {
+        Ok(ElementData::FloorType { layers, .. })
+        | Ok(ElementData::CeilingType { layers, .. })
+        | Ok(ElementData::RoofType { layers, .. }) => layers,
+        _ => return vec![],
+    };
+    let mut at = 0.0;
+    layers
+        .iter()
+        .take(layers.len().saturating_sub(1))
+        .map(|l| {
+            at += l.thickness;
+            at
+        })
+        .collect()
 }
 
 fn type_thickness(doc: &Document, id: ElementId) -> Option<f64> {
@@ -1247,5 +1407,185 @@ mod tests {
             hi > 10.0 * MM_PER_FT + 1000.0,
             "roof peak counts in the height range"
         );
+    }
+    #[test]
+    fn l_and_u_stairs_split_into_runs_with_a_landing_and_open_the_floor() {
+        use studio_core::StairShape;
+        let (mut doc, l1, _) = project();
+        let l2 = doc.levels()[1].0;
+        let ft = MM_PER_FT;
+        let ftype = ops::first_of(&doc, Category::FloorType).unwrap();
+        let slab = vec![
+            Pt::new(0.0, 0.0),
+            Pt::new(40.0 * ft, 0.0),
+            Pt::new(40.0 * ft, 30.0 * ft),
+            Pt::new(0.0, 30.0 * ft),
+        ];
+        ops::create_floor(&mut doc, ftype, l2, slab).unwrap();
+        let w = studio_core::build::DEFAULT_STAIR_WIDTH;
+        for (shape, dx) in [
+            (StairShape::LShaped { left: true }, 15.0 * ft),
+            (StairShape::UShaped { left: false }, 25.0 * ft),
+        ] {
+            studio_core::build::create_stair_shaped(
+                &mut doc,
+                l1,
+                Pt::new(dx, 3.0 * ft),
+                Pt::new(dx, 20.0 * ft),
+                w,
+                shape,
+            )
+            .unwrap();
+        }
+        let m = regenerate(&doc);
+        for s in &m.stairs {
+            assert_eq!(s.risers, 18);
+            assert_eq!(s.runs.len(), 2);
+            // 9 + 9 risers: 8 treads a run, the landing is the ninth "tread".
+            assert_eq!((s.runs[0].treads, s.runs[1].treads), (8, 8));
+            assert_eq!(s.landings.len(), 1);
+            assert!((s.landings[0].1 - 9.0 * s.riser).abs() < EPS);
+            assert!((s.runs[1].z0 - 9.0 * s.riser).abs() < EPS);
+            assert_eq!(s.steps.len(), 17);
+            // The last tread is one riser below the upper floor.
+            let top = s.steps[15].z1;
+            assert!((top - (s.z1() - s.riser)).abs() < EPS, "{top}");
+        }
+        let (l, u) = (&m.stairs[0], &m.stairs[1]);
+        // L turning left: the second run climbs toward -x (left of +y).
+        assert!((l.runs[1].dir.x + 1.0).abs() < EPS);
+        // U: the second run comes back down the plan, one width to the right.
+        assert!((u.runs[1].dir.y + 1.0).abs() < EPS);
+        assert!((u.runs[1].start.x - (25.0 * ft + w)).abs() < EPS);
+        // Both stairs cut the floor they arrive at: one slab with two holes.
+        let floor: Vec<_> = m.floors.iter().filter(|f| f.level == l2).collect();
+        assert_eq!(floor.len(), 1);
+        assert_eq!(floor[0].base.holes.len(), 2);
+        let hole: f64 = l
+            .footprint()
+            .iter()
+            .map(|r| studio_geom::signed_area(r).abs())
+            .sum();
+        let run = 8.0 * l.tread;
+        assert!((hole - (2.0 * run * w + w * w)).abs() < 1.0, "{hole}");
+        // Handrails on both sides of each run, plus the landing's open edges.
+        assert!(m
+            .railings
+            .iter()
+            .filter(|r| r.id == l.id)
+            .all(|r| r.boxes.len() >= 8));
+        assert!(*regenerate(&doc) == regenerate_full(&doc));
+    }
+
+    #[test]
+    fn walls_attached_to_a_roof_follow_its_underside() {
+        let (mut doc, l1, wt) = project();
+        rectangle(&mut doc, l1, wt);
+        let m = regenerate(&doc);
+        let outer = outer_boundary(&m, l1).unwrap();
+        let l2 = doc.levels()[1].0;
+        let rt = studio_core::build::default_roof_type(&doc).unwrap();
+        studio_core::build::create_roof(
+            &mut doc,
+            rt,
+            l2,
+            0.0,
+            outer,
+            studio_core::build::DEFAULT_ROOF_SLOPE,
+        )
+        .unwrap();
+        let ft = MM_PER_FT;
+        // An interior wall under the ridge, far too tall until attached.
+        let w = ops::create_wall(
+            &mut doc,
+            wt,
+            l1,
+            Pt::new(8.0 * ft, 15.0 * ft),
+            Pt::new(32.0 * ft, 15.0 * ft),
+        )
+        .unwrap();
+        ops::set_property(&mut doc, w, "top", "unconnected", 0).unwrap();
+        ops::set_property(&mut doc, w, "height", "30'", 0).unwrap();
+        let before = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|s| s.id == w)
+            .unwrap()
+            .z1;
+        assert!((before - 30.0 * ft).abs() < EPS);
+        ops::set_property(&mut doc, w, "attach_top", "yes", 0).unwrap();
+        let m = regenerate(&doc);
+        let ws = m.walls.iter().find(|s| s.id == w).unwrap();
+        let prof = ws.top_profile.as_ref().unwrap();
+        let r = &m.roofs[0];
+        for (s, z) in prof {
+            let p = ws.start.add(ws.dir().scale(*s));
+            assert!((z - r.underside(p)).abs() < 1.0, "at {s}: {z}");
+        }
+        // Hip ends make the top rise toward the ridge: lower at the ends than the middle.
+        let mid = ws.top_at(ws.start.lerp(ws.end, 0.5));
+        assert!(mid - prof[0].1 > 600.0, "{} → {mid}", prof[0].1);
+        assert!(ws.z1 < 30.0 * ft && (ws.z1 - mid).abs() < 1.0);
+        assert!(ws.pieces.iter().all(|p| p.z1 <= ws.z1 + EPS));
+        assert!(*regenerate(&doc) == regenerate_full(&doc));
+    }
+
+    #[test]
+    fn columns_beams_and_railings_are_resolved() {
+        let (mut doc, l1, _) = project();
+        studio_core::structure::ensure_structure_types(&mut doc).unwrap();
+        let l2 = doc.levels()[1].0;
+        let named = |doc: &Document, cat: Category, name: &str| {
+            doc.of(cat).find(|e| e.data.name() == name).unwrap().id
+        };
+        let ct = named(&doc, Category::ColumnType, "Steel W10x33");
+        let c =
+            studio_core::structure::create_column(&mut doc, ct, l1, Pt::new(1000.0, 1000.0), 0.0)
+                .unwrap();
+        let bt = named(&doc, Category::BeamType, "Steel W12x26");
+        let b = studio_core::structure::create_beam(
+            &mut doc,
+            bt,
+            l2,
+            Pt::new(0.0, 0.0),
+            Pt::new(6000.0, 0.0),
+        )
+        .unwrap();
+        let rt = named(&doc, Category::RailingType, "Guardrail - 42\"");
+        let path = vec![
+            Pt::new(0.0, 0.0),
+            Pt::new(3000.0, 0.0),
+            Pt::new(3000.0, 2000.0),
+        ];
+        let r = studio_core::structure::create_railing(&mut doc, rt, l2, path).unwrap();
+        let m = regenerate(&doc);
+        let col = m.columns.iter().find(|x| x.id == c).unwrap();
+        assert!((col.z0).abs() < EPS && (col.z1 - 10.0 * MM_PER_FT).abs() < EPS);
+        assert_eq!(col.base.outer.len(), 12, "I-shaped section");
+        assert!(col.structural);
+        let beam = m.beams.iter().find(|x| x.id == b).unwrap();
+        assert_eq!(beam.prisms.len(), 3, "two flanges and a web");
+        assert!((beam.z_top - 10.0 * MM_PER_FT).abs() < EPS);
+        let bottom = beam
+            .prisms
+            .iter()
+            .map(|p| p.z0)
+            .fold(f64::INFINITY, f64::min);
+        assert!((beam.z_top - bottom - beam.depth).abs() < EPS);
+        let rail = m.railings.iter().find(|x| x.id == r).unwrap();
+        // Top and bottom rail per segment; 2 end posts per segment plus balusters.
+        assert_eq!(rail.boxes.len(), 4);
+        let top = rail.boxes[0]
+            .iter()
+            .map(|v| v[2])
+            .fold(f64::NEG_INFINITY, f64::max);
+        assert!(
+            (top - (10.0 * MM_PER_FT + 42.0 * MM_PER_IN)).abs() < EPS,
+            "{top}"
+        );
+        let balusters = rail.posts.len() - 4;
+        // Every 4": 3000 mm → 29, 2000 mm → 19.
+        assert_eq!(balusters, 28 + 18, "every 4\" between the posts");
+        assert!(*regenerate(&doc) == regenerate_full(&doc));
     }
 }

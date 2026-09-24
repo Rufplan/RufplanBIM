@@ -75,6 +75,9 @@ pub struct AppState {
     pub door_types: Vec<NamedItem>,
     pub window_types: Vec<NamedItem>,
     pub roof_types: Vec<NamedItem>,
+    pub column_types: Vec<NamedItem>,
+    pub beam_types: Vec<NamedItem>,
+    pub railing_types: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
     pub current_stage: Option<ElementId>,
     pub project_info: Option<ElementId>,
@@ -234,6 +237,9 @@ impl Session {
             door_types: named(Category::DoorType),
             window_types: named(Category::WindowType),
             roof_types: named(Category::RoofType),
+            column_types: named(Category::ColumnType),
+            beam_types: named(Category::BeamType),
+            railing_types: named(Category::RailingType),
             stages: ops::stages(doc)
                 .into_iter()
                 .map(|(id, name, abbreviation)| StageItem {
@@ -301,6 +307,15 @@ impl Session {
             // Saved before roofs existed: add the built-in roof types.
             let dirty = project.doc.is_dirty();
             studio_core::build::ensure_roof_types(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
+        if project.doc.count(Category::ColumnType) == 0 {
+            // Saved before columns, beams and railings existed (ADR-019).
+            let dirty = project.doc.is_dirty();
+            studio_core::structure::ensure_structure_types(&mut project.doc)?;
             project.doc.clear_history();
             if !dirty {
                 project.doc.mark_saved();
@@ -499,6 +514,18 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
         ft(2.25, 9.0),
         ft(2.25, 20.0),
         studio_core::build::DEFAULT_STAIR_WIDTH,
+    )?;
+    // The stair opens the Level 2 floor; a 42" guardrail guards the opening's open sides.
+    let guard = doc
+        .of(Category::RailingType)
+        .find(|e| e.data.name().starts_with("Guardrail"))
+        .map(|e| e.id)
+        .context("missing railing type")?;
+    studio_core::structure::create_railing(
+        doc,
+        guard,
+        l2,
+        vec![ft(0.34, 9.0), ft(4.0, 9.0), ft(4.0, 19.0)],
     )?;
 
     // A hip roof on a Roof level at the top of the Level 2 walls, with an 18" overhang;
@@ -767,6 +794,18 @@ mod tests {
         assert_eq!(doc.levels().len(), 3, "Level 1, Level 2 and Roof");
         assert_eq!(doc.count(Category::Roof), 1);
         assert_eq!(doc.count(Category::Stair), 1);
+        assert_eq!(doc.count(Category::Railing), 1);
+        let model = studio_regen::regenerate(doc);
+        let upper = model
+            .floors
+            .iter()
+            .find(|f| f.level == doc.levels()[1].0)
+            .unwrap();
+        assert_eq!(
+            upper.base.holes.len(),
+            1,
+            "the stair opens the Level 2 floor"
+        );
         assert_eq!(doc.of(Category::Door).count(), 3);
         assert_eq!(doc.of(Category::Window).count(), 12);
         let rooms = studio_regen::regenerate(doc).rooms.clone();

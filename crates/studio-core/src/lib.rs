@@ -9,13 +9,14 @@ pub mod hosting;
 pub mod modify;
 pub mod ops;
 pub mod params;
+pub mod structure;
 pub mod units;
 
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};
 pub use element::{
-    Anchor, Category, Compass, CropBox, DoorFamily, Element, ElementData, ElementId, LayerFunction,
-    RufplanLink, ScheduleKind, SheetSize, StageChange, ViewKind, WallFunction, WallLayer, WallTop,
-    WindowFamily,
+    Anchor, BeamShape, Category, ColumnShape, Compass, CropBox, DoorFamily, Element, ElementData,
+    ElementId, LayerFunction, LocationLine, RufplanLink, ScheduleKind, SheetSize, StageChange,
+    StairShape, ViewKind, WallFunction, WallLayer, WallTop, WindowFamily,
 };
 pub use params::{ParamDef, ParamKind, ParamScope, ParamValue};
 

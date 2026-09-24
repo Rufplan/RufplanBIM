@@ -3,7 +3,7 @@
 use studio_geom::Pt;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
-use crate::element::{Category, ElementData, ElementId};
+use crate::element::{Category, ElementData, ElementId, StairShape};
 use crate::ops::{
     choice, flag, len, non_empty, options_of, parse_id, parse_len, positive, ro, text, PropOption,
     Property,
@@ -26,6 +26,7 @@ pub(crate) fn seed_roof_types(tx: &mut Tx<'_>) {
         tx.insert(ElementData::RoofType {
             name: name.into(),
             thickness: t * MM_PER_IN,
+            layers: crate::compound::default_type_layers(name),
         });
     }
 }
@@ -108,6 +109,62 @@ pub fn create_roof(
     })
 }
 
+/// Roofs over a building footprint, bearing `bearing` mm above `level` with `overhang`
+/// eaves. A convex footprint gets one hipped roof. A right-angled L, T or U plan gets one
+/// hipped roof per wing (overlapping rectangles), which intersect in valleys. Other shapes
+/// are refused: sketch those roofs edge by edge.
+pub fn create_roofs_by_footprint(
+    doc: &mut Document,
+    type_id: ElementId,
+    level: ElementId,
+    bearing: f64,
+    footprint: &[Pt],
+    overhang: f64,
+    slope: f64,
+) -> CoreResult<Vec<ElementId>> {
+    let mut ring = footprint.to_vec();
+    if studio_geom::signed_area(&ring) < 0.0 {
+        ring.reverse();
+    }
+    let parts = if studio_geom::is_convex(&ring) {
+        vec![ring]
+    } else {
+        studio_geom::rect_cover(&ring).ok_or_else(|| {
+            CoreError::Invalid(
+                "this footprint isn't convex or right-angled; sketch the roof instead".into(),
+            )
+        })?
+    };
+    // Lower the eave so the roof's underside meets the wall line at the bearing height.
+    let offset = bearing - slope.tan() * overhang;
+    doc.transact("Create roof", |tx| {
+        if tx.data(type_id)?.category() != Category::RoofType {
+            return Err(CoreError::Invalid("pick a roof type".into()));
+        }
+        let mut ids = vec![];
+        for part in parts {
+            let mut part = part;
+            if studio_geom::signed_area(&part) < 0.0 {
+                part.reverse();
+            }
+            let mut boundary = studio_geom::offset_ring(&part, overhang);
+            if studio_geom::signed_area(&boundary) < 0.0 {
+                boundary.reverse();
+            }
+            let sloped = vec![slope > 0.0; boundary.len()];
+            ids.push(tx.insert(ElementData::Roof {
+                type_id,
+                level,
+                offset,
+                boundary,
+                slope,
+                sloped,
+            }));
+        }
+        Ok(ids)
+    })
+}
+
 /// Riser count, riser height and horizontal run (mm) of a stair climbing `rise` mm.
 pub fn stair_layout(rise: f64, tread: f64, max_riser: f64) -> (usize, f64, f64) {
     let n = ((rise / max_riser) - 1e-9).ceil().max(1.0) as usize;
@@ -131,6 +188,18 @@ pub fn create_stair(
     toward: Pt,
     width: f64,
 ) -> CoreResult<ElementId> {
+    create_stair_shaped(doc, level, start, toward, width, StairShape::Straight)
+}
+
+/// Like [`create_stair`], with an L- or U-shaped plan (half the risers in each run).
+pub fn create_stair_shaped(
+    doc: &mut Document,
+    level: ElementId,
+    start: Pt,
+    toward: Pt,
+    width: f64,
+    shape: StairShape,
+) -> CoreResult<ElementId> {
     let top = level_above(doc, level).ok_or_else(|| {
         CoreError::Invalid("add a level above this one for the stair to reach".into())
     })?;
@@ -143,8 +212,56 @@ pub fn create_stair(
             width,
             tread: DEFAULT_TREAD,
             max_riser: DEFAULT_MAX_RISER,
+            shape,
+            first_run: 0,
+            railings: true,
         }))
     })
+}
+
+/// Shape options as (id, label).
+pub const STAIR_SHAPES: [(&str, &str); 5] = [
+    ("straight", "Straight"),
+    ("l-left", "L-Shaped, Turning Left"),
+    ("l-right", "L-Shaped, Turning Right"),
+    ("u-left", "U-Shaped, Turning Left"),
+    ("u-right", "U-Shaped, Turning Right"),
+];
+
+pub fn stair_shape_id(s: StairShape) -> &'static str {
+    match s {
+        StairShape::Straight => "straight",
+        StairShape::LShaped { left: true } => "l-left",
+        StairShape::LShaped { left: false } => "l-right",
+        StairShape::UShaped { left: true } => "u-left",
+        StairShape::UShaped { left: false } => "u-right",
+    }
+}
+
+pub fn parse_stair_shape(id: &str) -> Option<StairShape> {
+    Some(match id {
+        "straight" => StairShape::Straight,
+        "l-left" => StairShape::LShaped { left: true },
+        "l-right" => StairShape::LShaped { left: false },
+        "u-left" => StairShape::UShaped { left: true },
+        "u-right" => StairShape::UShaped { left: false },
+        _ => return None,
+    })
+}
+
+/// Risers in each run of a stair with `risers` in all (one run for a straight stair).
+pub fn stair_runs(shape: StairShape, risers: usize, first_run: u32) -> Vec<usize> {
+    match shape {
+        StairShape::Straight => vec![risers],
+        _ => {
+            let first = if first_run == 0 {
+                risers / 2
+            } else {
+                (first_run as usize).clamp(2, risers.saturating_sub(2).max(2))
+            };
+            vec![first, risers - first]
+        }
+    }
 }
 
 fn level_choice(doc: &Document, key: &str, label: &str, cur: ElementId) -> Property {
@@ -162,9 +279,14 @@ fn level_choice(doc: &Document, key: &str, label: &str, cur: ElementId) -> Prope
 pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property>) {
     let Ok(data) = doc.data(id) else { return };
     match data {
-        ElementData::RoofType { name, thickness } => {
+        ElementData::RoofType {
+            name,
+            thickness,
+            layers,
+        } => {
             props.push(text("name", "Type Name", "Identity Data", name));
             props.push(len("thickness", "Thickness", "Construction", *thickness));
+            crate::compound::layer_properties_in(layers, props, crate::compound::GROUP_TOP_DOWN);
         }
         ElementData::Roof {
             level,
@@ -199,8 +321,33 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
             width,
             tread,
             max_riser,
+            shape,
+            first_run,
+            railings,
             ..
         } => {
+            props.push(choice(
+                "shape",
+                "Shape",
+                "Construction",
+                stair_shape_id(*shape).into(),
+                STAIR_SHAPES
+                    .iter()
+                    .map(|(id, label)| PropOption {
+                        id: (*id).into(),
+                        label: (*label).into(),
+                    })
+                    .collect(),
+            ));
+            if *shape != StairShape::Straight {
+                props.push(text(
+                    "first_run",
+                    "Risers in First Run (0 = half)",
+                    "Construction",
+                    &first_run.to_string(),
+                ));
+            }
+            props.push(flag("railings", "Railings", "Construction", *railings));
             props.push(level_choice(doc, "base_level", "Base Level", *base_level));
             props.push(level_choice(doc, "top_level", "Top Level", *top_level));
             props.push(len("width", "Actual Run Width", "Dimensions", *width));
@@ -241,9 +388,23 @@ pub(crate) fn set_property(
     let mut d = doc.data(id)?.clone();
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     match &mut d {
-        ElementData::RoofType { name, thickness } => match key {
+        ElementData::RoofType {
+            name,
+            thickness,
+            layers,
+        } => match key {
+            k if k.starts_with("layer") => {
+                crate::compound::set_layer_property(layers, *thickness, k, value)?;
+                if !layers.is_empty() {
+                    *thickness = layers.iter().map(|l| l.thickness).sum();
+                }
+            }
             "name" => *name = non_empty(value)?,
-            "thickness" => *thickness = positive(parse_len(value)?)?,
+            "thickness" => {
+                let w = positive(parse_len(value)?)?;
+                crate::compound::resize_structure(layers, w)?;
+                *thickness = w;
+            }
             _ => return Err(unknown()),
         },
         ElementData::Roof {
@@ -275,8 +436,22 @@ pub(crate) fn set_property(
             width,
             tread,
             max_riser,
+            shape,
+            first_run,
+            railings,
             ..
         } => match key {
+            "shape" => {
+                *shape = parse_stair_shape(value)
+                    .ok_or_else(|| CoreError::Invalid(format!("unknown stair shape {value}")))?
+            }
+            "first_run" => {
+                *first_run = value
+                    .trim()
+                    .parse()
+                    .map_err(|_| CoreError::Invalid(format!("\"{value}\" is not a riser count")))?
+            }
+            "railings" => *railings = value == "yes",
             "base_level" => *base_level = parse_id(value)?,
             "top_level" => *top_level = parse_id(value)?,
             "width" => *width = positive(parse_len(value)?)?,
@@ -413,5 +588,75 @@ mod tests {
             .is_err(),
             "no level above the top level"
         );
+    }
+
+    #[test]
+    fn roofs_by_footprint_split_l_plans_into_wings() {
+        let mut doc = Document::new();
+        crate::ops::seed_default_project(&mut doc).unwrap();
+        let l2 = doc.levels()[1].0;
+        let rt = default_roof_type(&doc).unwrap();
+        let ft = MM_PER_FT;
+        let l_plan = [
+            Pt::new(0.0, 0.0),
+            Pt::new(40.0 * ft, 0.0),
+            Pt::new(40.0 * ft, 16.0 * ft),
+            Pt::new(16.0 * ft, 16.0 * ft),
+            Pt::new(16.0 * ft, 36.0 * ft),
+            Pt::new(0.0, 36.0 * ft),
+        ];
+        let ids = create_roofs_by_footprint(
+            &mut doc,
+            rt,
+            l2,
+            0.0,
+            &l_plan,
+            DEFAULT_OVERHANG,
+            DEFAULT_ROOF_SLOPE,
+        )
+        .unwrap();
+        assert_eq!(ids.len(), 2, "main block and wing");
+        for id in &ids {
+            let Ok(ElementData::Roof {
+                boundary, offset, ..
+            }) = doc.data(*id)
+            else {
+                panic!("not a roof");
+            };
+            assert_eq!(boundary.len(), 4);
+            assert!(studio_geom::signed_area(boundary) > 0.0);
+            assert!(
+                (offset + DEFAULT_OVERHANG * 0.5).abs() < 1e-9,
+                "6:12 over 18\" drops 9\""
+            );
+        }
+        let square = [
+            Pt::new(0.0, 0.0),
+            Pt::new(0.0, 20.0 * ft),
+            Pt::new(20.0 * ft, 20.0 * ft),
+            Pt::new(20.0 * ft, 0.0),
+        ];
+        let one = create_roofs_by_footprint(
+            &mut doc,
+            rt,
+            l2,
+            0.0,
+            &square,
+            DEFAULT_OVERHANG,
+            DEFAULT_ROOF_SLOPE,
+        )
+        .unwrap();
+        let Ok(ElementData::Roof { boundary, .. }) = doc.data(one[0]) else {
+            panic!("not a roof");
+        };
+        let area = studio_geom::signed_area(boundary);
+        assert!((area - (23.0 * ft).powi(2)).abs() < 1.0, "{area}");
+        let star = [
+            Pt::new(0.0, 0.0),
+            Pt::new(5000.0, 1000.0),
+            Pt::new(10000.0, 0.0),
+            Pt::new(5000.0, 8000.0),
+        ];
+        assert!(create_roofs_by_footprint(&mut doc, rt, l2, 0.0, &star, 0.0, 0.4).is_err());
     }
 }

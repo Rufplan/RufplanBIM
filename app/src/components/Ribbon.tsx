@@ -53,8 +53,16 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-type Tab = "Architecture" | "Modify" | "Annotate" | "View" | "Manage" | "Rufplan";
-const TABS: Tab[] = ["Architecture", "Modify", "Annotate", "View", "Manage", "Rufplan"];
+type Tab = "Architecture" | "Structure" | "Modify" | "Annotate" | "View" | "Manage" | "Rufplan";
+const TABS: Tab[] = [
+  "Architecture",
+  "Structure",
+  "Modify",
+  "Annotate",
+  "View",
+  "Manage",
+  "Rufplan",
+];
 
 export function Ribbon() {
   const [tab, setTab] = useState<Tab>("Architecture");
@@ -122,14 +130,40 @@ export function Ribbon() {
               <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
               <ToolButton tool="grid" label="Grid" icon={Icons.grid} keys="GR" />
             </Group>
-            <Group title="Roof & Stair">
+            <Group title="Roof & Circulation">
               <ToolButton tool="roof" label="Roof" icon={Icons.roof} keys="RF — by footprint" />
               <ToolButton tool="stair" label="Stair" icon={Icons.stair} keys="ST" />
+              <ToolButton
+                tool="railing"
+                label="Railing"
+                icon={Icons.railing}
+                keys="RA — sketch path"
+              />
+              <ToolButton tool="column" label="Column" icon={Icons.column} keys="SC" />
             </Group>
             <Group title="Room">
               <ToolButton tool="room" label="Room" icon={Icons.room} keys="RM" />
             </Group>
           </>
+        )}
+        {tab === "Structure" && (
+          <Group title="Structure">
+            <ToolButton tool="column" label="Column" icon={Icons.column} keys="SC" />
+            <button
+              className="rb-btn"
+              onClick={() => {
+                const s = useAppStore.getState();
+                const v = activeViewInfo(s);
+                if (v) void apply(() => ipc.columnsAtGrids(v.id, s.toolTypes.column));
+              }}
+              disabled={!activeIsPlan}
+              title="Place a column at every grid intersection on this plan's level"
+            >
+              {Icons.columnGrid}
+              <span>At Grids</span>
+            </button>
+            <ToolButton tool="beam" label="Beam" icon={Icons.beam} keys="BM" />
+          </Group>
         )}
         {tab === "Modify" && (
           <>
@@ -150,6 +184,24 @@ export function Ribbon() {
               >
                 {Icons.flip}
                 <span>Flip</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void apply(() => ipc.attachWallTops(selection, true))}
+                disabled={selection.length === 0}
+                title="Attach the selected walls' tops to the roof above"
+              >
+                {Icons.attach}
+                <span>Attach Top</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void apply(() => ipc.attachWallTops(selection, false))}
+                disabled={selection.length === 0}
+                title="Detach the selected walls' tops from the roof"
+              >
+                {Icons.del}
+                <span>Detach Top</span>
               </button>
             </Group>
           </>

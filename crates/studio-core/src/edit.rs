@@ -574,9 +574,27 @@ pub fn flip_walls(doc: &mut Document, walls: &[ElementId]) -> CoreResult<()> {
                 continue;
             };
             let len = s.dist(e);
+            // Flip about the location line: a wall drawn by its exterior face keeps that
+            // face where it was drawn.
+            let shift = match tx.data(*w)? {
+                ElementData::Wall {
+                    type_id, location, ..
+                } => match tx.data(*type_id)? {
+                    ElementData::WallType {
+                        thickness, layers, ..
+                    } => {
+                        let off = crate::compound::location_offset(layers, *thickness, *location);
+                        e.sub(s).norm().perp().scale(2.0 * off)
+                    }
+                    _ => Pt::default(),
+                },
+                _ => Pt::default(),
+            };
             tx.modify(*w, |d| {
                 if let ElementData::Wall { start, end, .. } = d {
                     std::mem::swap(start, end);
+                    *start = start.add(shift);
+                    *end = end.add(shift);
                 }
             })?;
             for o in hosted_in(tx, *w) {
@@ -1069,5 +1087,37 @@ mod tests {
             _ => unreachable!(),
         }
         assert!(drag_handle(&mut doc, plan, "crop:nope", Pt::new(0.0, 0.0)).is_err());
+    }
+
+    #[test]
+    fn flip_keeps_the_location_line() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = doc
+            .of(Category::WallType)
+            .find(|e| e.data.name().starts_with("Exterior - 8"))
+            .unwrap()
+            .id;
+        // Drawn by its exterior face along y = 0, exterior to the left (north).
+        let w = ops::create_wall_located(
+            &mut doc,
+            wt,
+            l1,
+            Pt::new(0.0, 0.0),
+            Pt::new(5000.0, 0.0),
+            crate::element::LocationLine::FinishExterior,
+        )
+        .unwrap();
+        let h = 4.0 * crate::units::MM_PER_IN;
+        assert!(
+            (ends(&doc, w).0.y + h).abs() < 1e-9,
+            "centerline 4\" to the south"
+        );
+        flip_walls(&mut doc, &[w]).unwrap();
+        // Now the exterior is south: the face stays on y = 0 and the centerline moves north.
+        let (s, e) = ends(&doc, w);
+        assert!((s.y - h).abs() < 1e-9 && (e.y - h).abs() < 1e-9);
+        assert!(s.x > e.x, "runs the other way");
     }
 }

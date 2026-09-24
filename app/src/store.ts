@@ -14,6 +14,9 @@ export type Tool =
   | "split"
   | "roof"
   | "stair"
+  | "column"
+  | "beam"
+  | "railing"
   | "dimension"
   | "text"
   | "section"
@@ -41,6 +44,9 @@ export const TOOL_LABELS: Record<Tool, string> = {
   split: "Split",
   roof: "Roof",
   stair: "Stair",
+  column: "Column",
+  beam: "Beam",
+  railing: "Railing",
   select: "Select",
   room: "Room",
   move: "Move",
@@ -66,6 +72,9 @@ export interface ToolTypes {
   door: ElementId | null;
   window: ElementId | null;
   roof: ElementId | null;
+  column: ElementId | null;
+  beam: ElementId | null;
+  railing: ElementId | null;
 }
 
 /** Options-bar settings of the modify tools (like Revit's options bar). */
@@ -80,6 +89,10 @@ export interface ToolOptions {
   arrayCount: number;
   /** Offset distance as typed (feet-inches). */
   offsetDistance: string;
+  /** Wall: which line of the wall the drawn points follow (a LocationLine variant). */
+  wallLocation: string;
+  /** Stair: shape id (straight, l-left, l-right, u-left, u-right). */
+  stairShape: string;
 }
 
 /** Tools that act on the current selection. */
@@ -140,7 +153,17 @@ export const useAppStore = create<UiState>((set, get) => ({
   activeView: null,
   selection: [],
   tool: "select",
-  toolTypes: { wall: null, floor: null, ceiling: null, door: null, window: null, roof: null },
+  toolTypes: {
+    wall: null,
+    floor: null,
+    ceiling: null,
+    door: null,
+    window: null,
+    roof: null,
+    column: null,
+    beam: null,
+    railing: null,
+  },
   prompt: "",
   cursor: "",
   confirm: null,
@@ -152,6 +175,8 @@ export const useAppStore = create<UiState>((set, get) => ({
     mirrorCopy: true,
     arrayCount: 3,
     offsetDistance: "2'-0\"",
+    wallLocation: "Centerline",
+    stairShape: "straight",
   },
   paramsOpen: false,
 
@@ -190,6 +215,20 @@ export const useAppStore = create<UiState>((set, get) => ({
         ),
         window: firstId(app.windowTypes, s.toolTypes.window),
         roof: firstId(app.roofTypes, s.toolTypes.roof),
+        // Structural columns and steel beams are the everyday defaults.
+        column: firstId(
+          [...app.columnTypes].sort(
+            (a, b) => Number(!a.name.startsWith("Steel")) - Number(!b.name.startsWith("Steel")),
+          ),
+          s.toolTypes.column,
+        ),
+        beam: firstId(
+          [...app.beamTypes].sort(
+            (a, b) => Number(!a.name.startsWith("Steel")) - Number(!b.name.startsWith("Steel")),
+          ),
+          s.toolTypes.beam,
+        ),
+        railing: firstId(app.railingTypes, s.toolTypes.railing),
       },
     });
   },

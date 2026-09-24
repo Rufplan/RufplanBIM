@@ -360,6 +360,396 @@ impl Prism {
     }
 }
 
+/// True when a ring turns the same way at every corner (collinear corners allowed).
+pub fn is_convex(ring: &[Pt]) -> bool {
+    let n = ring.len();
+    if n < 3 {
+        return false;
+    }
+    let mut sign = 0.0;
+    for i in 0..n {
+        let (a, b, c) = (ring[i], ring[(i + 1) % n], ring[(i + 2) % n]);
+        let z = b.sub(a).cross(c.sub(b));
+        if z.abs() < 1e-6 * a.dist(b).max(1.0) * b.dist(c).max(1.0) {
+            continue;
+        }
+        if sign == 0.0 {
+            sign = z.signum();
+        } else if z.signum() != sign {
+            return false;
+        }
+    }
+    true
+}
+
+fn rotate(p: Pt, cos: f64, sin: f64) -> Pt {
+    Pt::new(p.x * cos - p.y * sin, p.x * sin + p.y * cos)
+}
+
+/// Covers a right-angled (rectilinear) polygon with maximal rectangles that may overlap —
+/// the "main block and wings" of an L-, T- or U-shaped plan. The polygon may be rotated;
+/// its longest edge sets the axes. Returns None if any edge isn't at a right angle to it.
+pub fn rect_cover(ring: &[Pt]) -> Option<Vec<Vec<Pt>>> {
+    let n = ring.len();
+    if n < 4 {
+        return None;
+    }
+    let longest = (0..n).max_by(|&i, &j| {
+        ring[i]
+            .dist(ring[(i + 1) % n])
+            .total_cmp(&ring[j].dist(ring[(j + 1) % n]))
+    })?;
+    let d = ring[(longest + 1) % n].sub(ring[longest]).norm();
+    let (cos, sin) = (d.x, d.y);
+    // Into axis-aligned coordinates (rotate by -θ).
+    let local: Vec<Pt> = ring.iter().map(|p| rotate(*p, cos, -sin)).collect();
+    for i in 0..n {
+        let e = local[(i + 1) % n].sub(local[i]);
+        if e.x.abs() > 0.5 && e.y.abs() > 0.5 {
+            return None;
+        }
+    }
+    let mut xs: Vec<f64> = local.iter().map(|p| p.x).collect();
+    let mut ys: Vec<f64> = local.iter().map(|p| p.y).collect();
+    for v in [&mut xs, &mut ys] {
+        v.sort_by(f64::total_cmp);
+        v.dedup_by(|a, b| (*a - *b).abs() < 0.5);
+    }
+    let (nx, ny) = (xs.len() - 1, ys.len() - 1);
+    if nx == 0 || ny == 0 {
+        return None;
+    }
+    let inside: Vec<Vec<bool>> = (0..nx)
+        .map(|i| {
+            (0..ny)
+                .map(|j| {
+                    let c = Pt::new((xs[i] + xs[i + 1]) / 2.0, (ys[j] + ys[j + 1]) / 2.0);
+                    point_in_ring(c, &local)
+                })
+                .collect()
+        })
+        .collect();
+    let mut covered = vec![vec![false; ny]; nx];
+    let full = |i0: usize, i1: usize, j: usize| (i0..=i1).all(|i| inside[i][j]);
+    let full_col = |j0: usize, j1: usize, i: usize| (j0..=j1).all(|j| inside[i][j]);
+    let mut rects: Vec<(usize, usize, usize, usize)> = vec![];
+    for j in 0..ny {
+        for i in 0..nx {
+            if !inside[i][j] || covered[i][j] {
+                continue;
+            }
+            // Widest-first and tallest-first maximal rectangles through the cell.
+            let grow_x = |i: usize, j: usize| {
+                let (mut a, mut b) = (i, i);
+                while a > 0 && inside[a - 1][j] {
+                    a -= 1;
+                }
+                while b + 1 < nx && inside[b + 1][j] {
+                    b += 1;
+                }
+                (a, b)
+            };
+            let (a, b) = grow_x(i, j);
+            let (mut c, mut e) = (j, j);
+            while c > 0 && full(a, b, c - 1) {
+                c -= 1;
+            }
+            while e + 1 < ny && full(a, b, e + 1) {
+                e += 1;
+            }
+            let wide = (a, b, c, e);
+            let (mut c2, mut e2) = (j, j);
+            while c2 > 0 && inside[i][c2 - 1] {
+                c2 -= 1;
+            }
+            while e2 + 1 < ny && inside[i][e2 + 1] {
+                e2 += 1;
+            }
+            let (mut a2, mut b2) = (i, i);
+            while a2 > 0 && full_col(c2, e2, a2 - 1) {
+                a2 -= 1;
+            }
+            while b2 + 1 < nx && full_col(c2, e2, b2 + 1) {
+                b2 += 1;
+            }
+            let tall = (a2, b2, c2, e2);
+            let area =
+                |r: (usize, usize, usize, usize)| (xs[r.1 + 1] - xs[r.0]) * (ys[r.3 + 1] - ys[r.2]);
+            // Prefer the one covering more still-uncovered cells, then the larger.
+            let fresh = |r: (usize, usize, usize, usize)| {
+                (r.0..=r.1)
+                    .flat_map(|x| (r.2..=r.3).map(move |y| (x, y)))
+                    .filter(|(x, y)| !covered[*x][*y])
+                    .count()
+            };
+            let pick = if (fresh(wide), area(wide) as i64) >= (fresh(tall), area(tall) as i64) {
+                wide
+            } else {
+                tall
+            };
+            for row in covered.iter_mut().take(pick.1 + 1).skip(pick.0) {
+                for c in row.iter_mut().take(pick.3 + 1).skip(pick.2) {
+                    *c = true;
+                }
+            }
+            rects.push(pick);
+        }
+    }
+    Some(
+        rects
+            .into_iter()
+            .map(|(a, b, c, e)| {
+                [
+                    Pt::new(xs[a], ys[c]),
+                    Pt::new(xs[b + 1], ys[c]),
+                    Pt::new(xs[b + 1], ys[e + 1]),
+                    Pt::new(xs[a], ys[e + 1]),
+                ]
+                .iter()
+                .map(|p| rotate(*p, cos, sin))
+                .collect()
+            })
+            .collect(),
+    )
+}
+
+/// `a` minus every polygon in `cut`.
+pub fn difference(a: &Poly, cut: &[Poly]) -> Vec<Poly> {
+    use geo::BooleanOps;
+    let mut acc = geo::MultiPolygon::new(vec![to_geo(a)]);
+    for c in cut {
+        if c.outer.len() >= 3 && signed_area(&c.outer).abs() >= 1.0 {
+            acc = acc.difference(&geo::MultiPolygon::new(vec![to_geo(c)]));
+        }
+    }
+    acc.0
+        .iter()
+        .map(|g| Poly {
+            outer: from_geo_ring(g.exterior()),
+            holes: g.interiors().iter().map(from_geo_ring).collect(),
+        })
+        .filter(|p| p.outer.len() >= 3 && p.area() > 1.0)
+        .collect()
+}
+
+/// Convex hull of points (counter-clockwise, Andrew's monotone chain).
+pub fn convex_hull(points: &[Pt]) -> Vec<Pt> {
+    let mut p: Vec<Pt> = points.to_vec();
+    p.sort_by(|a, b| a.x.total_cmp(&b.x).then(a.y.total_cmp(&b.y)));
+    p.dedup_by(|a, b| a.dist(*b) < 1e-9);
+    if p.len() < 3 {
+        return p;
+    }
+    let cross = |o: Pt, a: Pt, b: Pt| a.sub(o).cross(b.sub(o));
+    let mut lower: Vec<Pt> = vec![];
+    for q in &p {
+        while lower.len() >= 2 && cross(lower[lower.len() - 2], lower[lower.len() - 1], *q) <= 0.0 {
+            lower.pop();
+        }
+        lower.push(*q);
+    }
+    let mut upper: Vec<Pt> = vec![];
+    for q in p.iter().rev() {
+        while upper.len() >= 2 && cross(upper[upper.len() - 2], upper[upper.len() - 1], *q) <= 0.0 {
+            upper.pop();
+        }
+        upper.push(*q);
+    }
+    lower.pop();
+    upper.pop();
+    lower.extend(upper);
+    lower
+}
+
+/// Like [`Prism::triangles`], but the top follows `top(p)` at each vertex (a wall under a
+/// sloped roof).
+pub fn prism_triangles_to(base: &Poly, z0: f64, top: impl Fn(Pt) -> f64) -> Vec<f32> {
+    let mut out = vec![];
+    let (verts, tris) = triangulate(base);
+    let ccw = signed_area(&base.outer) > 0.0;
+    let mut push = |a: [f64; 3], b: [f64; 3], c: [f64; 3]| {
+        for v in [a, b, c] {
+            out.extend_from_slice(&[v[0] as f32, v[1] as f32, v[2] as f32]);
+        }
+    };
+    let v3 = |p: Pt, z: f64| [p.x, p.y, z];
+    for t in &tris {
+        let (a, b, c) = (verts[t[0]], verts[t[1]], verts[t[2]]);
+        let (b, c) = if b.sub(a).cross(c.sub(a)) > 0.0 {
+            (b, c)
+        } else {
+            (c, b)
+        };
+        push(v3(a, top(a)), v3(b, top(b)), v3(c, top(c)));
+        push(v3(a, z0), v3(c, z0), v3(b, z0));
+    }
+    let mut side = |ring: &[Pt], outward_ccw: bool| {
+        let n = ring.len();
+        for i in 0..n {
+            let (mut a, mut b) = (ring[i], ring[(i + 1) % n]);
+            if !outward_ccw {
+                std::mem::swap(&mut a, &mut b);
+            }
+            push(v3(a, z0), v3(b, z0), v3(b, top(b)));
+            push(v3(a, z0), v3(b, top(b)), v3(a, top(a)));
+        }
+    };
+    side(&base.outer, ccw);
+    for h in &base.holes {
+        side(h, signed_area(h) < 0.0);
+    }
+    out
+}
+
+/// The 8 corners of a box of cross-section `w` × `h` (horizontal × vertical) centered on
+/// the 3D segment `a` → `b` (not vertical), in order: start face, then end face.
+pub fn box_corners(a: [f64; 3], b: [f64; 3], w: f64, h: f64) -> [[f64; 3]; 8] {
+    let d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    let dl = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt().max(1e-9);
+    let d = [d[0] / dl, d[1] / dl, d[2] / dl];
+    // Horizontal side vector, then up = d × s.
+    let sl = (d[0] * d[0] + d[1] * d[1]).sqrt().max(1e-9);
+    let s = [-d[1] / sl, d[0] / sl, 0.0];
+    let u = [
+        d[1] * s[2] - d[2] * s[1],
+        d[2] * s[0] - d[0] * s[2],
+        d[0] * s[1] - d[1] * s[0],
+    ];
+    let mut out = [[0.0; 3]; 8];
+    let offs = [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)];
+    for (k, base) in [a, b].iter().enumerate() {
+        for (i, (so, uo)) in offs.iter().enumerate() {
+            out[k * 4 + i] = [
+                base[0] + s[0] * so * w / 2.0 + u[0] * uo * h / 2.0,
+                base[1] + s[1] * so * w / 2.0 + u[1] * uo * h / 2.0,
+                base[2] + s[2] * so * w / 2.0 + u[2] * uo * h / 2.0,
+            ];
+        }
+    }
+    out
+}
+
+/// Triangles (9 floats each) of a box from [`box_corners`].
+pub fn box_triangles(c: &[[f64; 3]; 8]) -> Vec<f32> {
+    const FACES: [[usize; 4]; 6] = [
+        [0, 3, 2, 1],
+        [4, 5, 6, 7],
+        [0, 1, 5, 4],
+        [1, 2, 6, 5],
+        [2, 3, 7, 6],
+        [3, 0, 4, 7],
+    ];
+    let mut out = vec![];
+    for f in FACES {
+        for tri in [[f[0], f[1], f[2]], [f[0], f[2], f[3]]] {
+            for i in tri {
+                out.extend_from_slice(&[c[i][0] as f32, c[i][1] as f32, c[i][2] as f32]);
+            }
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod shape_tests {
+    use super::*;
+
+    #[test]
+    fn convexity() {
+        let sq = [
+            Pt::new(0.0, 0.0),
+            Pt::new(1.0, 0.0),
+            Pt::new(1.0, 1.0),
+            Pt::new(0.0, 1.0),
+        ];
+        assert!(is_convex(&sq));
+        let l = [
+            Pt::new(0.0, 0.0),
+            Pt::new(2.0, 0.0),
+            Pt::new(2.0, 1.0),
+            Pt::new(1.0, 1.0),
+            Pt::new(1.0, 2.0),
+            Pt::new(0.0, 2.0),
+        ];
+        assert!(!is_convex(&l));
+    }
+
+    #[test]
+    fn l_shape_is_covered_by_two_overlapping_rectangles() {
+        let l = [
+            Pt::new(0.0, 0.0),
+            Pt::new(12000.0, 0.0),
+            Pt::new(12000.0, 5000.0),
+            Pt::new(5000.0, 5000.0),
+            Pt::new(5000.0, 11000.0),
+            Pt::new(0.0, 11000.0),
+        ];
+        let r = rect_cover(&l).unwrap();
+        assert_eq!(r.len(), 2);
+        let areas: Vec<f64> = r.iter().map(|p| signed_area(p).abs()).collect();
+        assert!(areas.contains(&(12000.0 * 5000.0)));
+        assert!(
+            areas.contains(&(5000.0 * 11000.0)),
+            "the wing runs through the main block"
+        );
+        // A 45° rotated L works too; a triangle doesn't.
+        let rot: Vec<Pt> = l
+            .iter()
+            .map(|p| rotate(*p, 0.5f64.sqrt(), 0.5f64.sqrt()))
+            .collect();
+        assert_eq!(rect_cover(&rot).unwrap().len(), 2);
+        let tri = [Pt::new(0.0, 0.0), Pt::new(5.0, 0.0), Pt::new(0.0, 5.0)];
+        assert!(rect_cover(&tri).is_none());
+    }
+
+    #[test]
+    fn u_and_t_shapes() {
+        // U: three rectangles (two legs through the base).
+        let u = [
+            Pt::new(0.0, 0.0),
+            Pt::new(9000.0, 0.0),
+            Pt::new(9000.0, 8000.0),
+            Pt::new(6000.0, 8000.0),
+            Pt::new(6000.0, 3000.0),
+            Pt::new(3000.0, 3000.0),
+            Pt::new(3000.0, 8000.0),
+            Pt::new(0.0, 8000.0),
+        ];
+        assert_eq!(rect_cover(&u).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn difference_hull_and_boxes() {
+        let big = Poly::simple(vec![
+            Pt::new(0.0, 0.0),
+            Pt::new(10.0, 0.0),
+            Pt::new(10.0, 10.0),
+            Pt::new(0.0, 10.0),
+        ]);
+        let hole = Poly::simple(vec![
+            Pt::new(2.0, 2.0),
+            Pt::new(4.0, 2.0),
+            Pt::new(4.0, 4.0),
+            Pt::new(2.0, 4.0),
+        ]);
+        let d = difference(&big, &[hole]);
+        assert_eq!(d.len(), 1);
+        assert_eq!(d[0].holes.len(), 1);
+        assert!((d[0].area() - 96.0).abs() < 1e-9);
+        let h = convex_hull(&[
+            Pt::new(0.0, 0.0),
+            Pt::new(1.0, 1.0),
+            Pt::new(2.0, 0.0),
+            Pt::new(1.0, 3.0),
+            Pt::new(1.0, 0.5),
+        ]);
+        assert_eq!(h.len(), 3);
+        let c = box_corners([0.0, 0.0, 0.0], [1000.0, 0.0, 500.0], 50.0, 40.0);
+        assert!((c[1][1] - 25.0).abs() < 1e-9, "side vector is horizontal");
+        assert_eq!(box_triangles(&c).len(), 12 * 9);
+    }
+}
+
 /// Crate version from Cargo metadata.
 pub fn crate_version() -> &'static str {
     env!("CARGO_PKG_VERSION")

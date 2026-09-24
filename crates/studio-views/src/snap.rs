@@ -57,6 +57,7 @@ pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) 
     let model = regenerate(doc);
     let mut segs: Vec<(Pt, Pt)> = model.walls.iter().map(|w| (w.start, w.end)).collect();
     segs.extend(model.grids.iter().map(|g| (g.start, g.end)));
+    segs.extend(model.beams.iter().map(|b| (b.start, b.end)));
 
     let mut cands: Vec<(SnapKind, Pt)> = vec![];
     for (a, b) in &segs {
@@ -64,6 +65,7 @@ pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) 
         cands.push((SnapKind::Endpoint, *b));
         cands.push((SnapKind::Midpoint, a.lerp(*b, 0.5)));
     }
+    cands.extend(model.columns.iter().map(|c| (SnapKind::Endpoint, c.at)));
     for s in model.floors.iter().chain(&model.ceilings) {
         cands.extend(s.base.outer.iter().map(|q| (SnapKind::Endpoint, *q)));
     }

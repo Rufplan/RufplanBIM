@@ -490,6 +490,8 @@ mod tests {
                     base_level: l1,
                     base_offset: 0.0,
                     top: WallTop::Unconnected { height: 3000.0 },
+                    location: Default::default(),
+                    attach_top: false,
                 }))
             })
             .unwrap();

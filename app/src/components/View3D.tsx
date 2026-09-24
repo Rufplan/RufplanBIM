@@ -13,6 +13,9 @@ const COLORS = {
   glass: 0x9fe3f7,
   roof: 0x5a5f66,
   stair: 0xc9c2b6,
+  column: 0xa9a49a,
+  steel: 0x6d7b86,
+  railing: 0x3a3d40,
   selected: 0x3ecff7,
   edge: 0x1c1c1c,
 };
@@ -33,7 +36,15 @@ function material(m: Mesh) {
               ? COLORS.roof
               : m.category === "Stair"
                 ? COLORS.stair
-                : COLORS.ceiling;
+                : m.category === "Column"
+                  ? m.exterior
+                    ? COLORS.column
+                    : COLORS.exteriorWall
+                  : m.category === "Beam"
+                    ? COLORS.steel
+                    : m.category === "Railing"
+                      ? COLORS.railing
+                      : COLORS.ceiling;
   const seeThrough = m.category === "Ceiling" || m.category === "Window";
   return new THREE.MeshLambertMaterial({
     color,

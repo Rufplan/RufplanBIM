@@ -313,3 +313,59 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
   prints on sheets, and viewports size to the cropped view.
 - The sample gained a Roof level with a hip roof, a stair from Level 1 to Level 2, and
   clockwise exterior walls so the layered exteriors face out.
+
+## ADR-019 Structure, railings, finished envelope, assembly detail — Accepted (2026-09-24)
+- **Columns:** `ColumnType { shape, structural }` with rectangular, round and wide-flange
+  sections (five built-ins: concrete square and round, W10x33, 6x6 post, architectural
+  round). `Column { base_level, base_offset, top, at, rotation }` rises to the level above
+  by default. Placed one at a time (snaps to grid intersections and other column centers) or
+  **At Grids**, which fills every free grid intersection on the level. Plans: structural
+  columns in poché, architectural ones lighter; IFC `IfcColumn` with
+  `Pset_ColumnCommon.LoadBearing`.
+- **Beams:** `BeamType` (rectangular or wide-flange: W12x26, W8x18, glulam, concrete) and
+  `Beam { level, offset, start, end }` with its top at the level. A beam drawn in a plan
+  frames the floor above it (Revit's convention). Plans draw beams overhead dashed with a
+  centerline, cut beams in poché; wide-flange beams are three prisms, so sections cut the
+  flanges and web. IFC `IfcBeam`.
+- **Railings:** `RailingType { height }` (42" guardrail, 36" handrail) and `Railing { level,
+  offset, path }`, sketched as an open polyline. Resolved to a top rail, a bottom rail 4"
+  up, balusters at 4" and end posts. Stairs with `railings` (on by default) get 36"
+  handrails on both sides of each flight and on the landing's open edges. IFC
+  `IfcRailing` (.GUARDRAIL. / .HANDRAIL.; a stair's rail gets a GUID derived from the stair).
+- **L- and U-shaped stairs:** `Stair.shape` (straight, L or U, turning left or right) and
+  `first_run` (risers before the landing; 0 = half). Two flights and a square landing one
+  stair-width deep; plans draw the second flight dashed above the cut with the walking line
+  through the landing. IFC `.QUARTER_TURN_STAIR.` / `.HALF_TURN_STAIR.`.
+- **Stair openings:** a stair cuts its footprint (flights and landing) out of the floors on
+  its top level and the ceilings it passes through. It's derived in regeneration, not stored,
+  so it follows the stair. Slabs gain holes (or notches at an edge); sections break the cut
+  slab at the opening; IFC uses `IfcArbitraryProfileDefWithVoids`, one `IfcSlab` per floor.
+- **Walls attached to roofs:** `Wall.attach_top` (a flag, not a reference, so deleting the
+  roof can't cascade). The top follows the underside of the lowest roof above each point
+  of the centerline, sampled at the ends and at every roof edge crossing. Attach Top and
+  Detach Top (Modify tab) act on the selection in one undo step. Elevations draw the sloped
+  top; 3D and IFC tessellate the wall.
+- **Roofs on L, T and U plans:** the Roof tool splits a right-angled footprint into maximal
+  overlapping rectangles (`studio_geom::rect_cover`), one hipped roof per wing. Where roofs
+  on the same level overlap, each face keeps only the part where it's the top surface
+  (`roof::resolve_overlaps`), so plans and elevations show valleys, and fascias buried
+  inside the other roof are hidden. Other non-convex shapes are refused with a message
+  (sketch those roofs edge by edge). A straight skeleton is still the long-term answer.
+- **Location line:** `Wall.location` (Wall Centerline, Core Centerline, Finish or Core Face
+  Exterior/Interior) from the options bar while drawing. Walls are still stored by their
+  centerline; the drawn line is offset into it, and Flip keeps the location line in place.
+  Changing it in Properties keeps the wall where it is.
+- **Layered floors and roofs:** `FloorType`, `CeilingType` and `RoofType` gained layers
+  (hardwood/plywood/I-joist/gypsum 12" floor, 6" slab, shingle/plywood/rafter roof,
+  membrane/cover board/insulation/deck flat roof), edited in Properties like wall layers.
+  Sections draw their layer lines on the lighter cut fill; IFC exports a layer set per type.
+- **Assembly detail in plan (1/4" and larger):** finish layers wrap free ends and door and
+  window jambs (the core stops short, and a return line closes the finish). Cut patterns
+  come from the layer's function and material name: batt insulation zigzag, masonry
+  diagonals, concrete diagonals with aggregate. No new material library yet: patterns
+  follow names such as "CMU", "Brick", "Concrete" and "Insulation".
+- **File format:** new variants and `#[serde(default)]` fields only; files saved before this
+  still open, and gain the built-in column, beam and railing types on open.
+- The sample gained a guardrail around the stair opening on Level 2. Its floor is now cut
+  by the stair, as is the Living room ceiling.
+

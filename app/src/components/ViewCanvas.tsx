@@ -70,7 +70,7 @@ function useLatest<A extends unknown[]>(fn: (...args: A) => Promise<void>) {
 }
 
 /** Tools whose next point can be typed as a distance (or, for Rotate, an angle). */
-const TYPED_TOOLS = ["wall", "grid", "move", "copy", "array", "rotate", "stair"];
+const TYPED_TOOLS = ["wall", "grid", "move", "copy", "array", "rotate", "stair", "beam", "railing"];
 
 interface Editor {
   /** Typing a length (or angle) for the next point, or a temporary dimension's value. */
@@ -355,6 +355,9 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     const ring = pts.current;
     pts.current = [];
     snapRef.current = null;
+    if (s.tool === "railing" && ring.length >= 2) {
+      await apply(() => ipc.createRailing(view.id, s.toolTypes.railing, ring));
+    }
     if (ring.length >= 3) {
       if (s.tool === "floor" && s.toolTypes.floor)
         await apply(() => ipc.createFloor(view.id, s.toolTypes.floor!, ring));
@@ -476,13 +479,20 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         if (!from) pts.current = [p];
         else if (!samePt(from, p)) {
           pts.current = [];
-          await apply(() => ipc.createStair(view.id, from, p));
+          const shape = s.options.stairShape;
+          await apply(() => ipc.createStair(view.id, from, p, shape === "straight" ? null : shape));
         }
         break;
       }
       case "wall": {
         if (from && !samePt(from, p) && s.toolTypes.wall) {
-          const ok = await apply(() => ipc.createWall(view.id, s.toolTypes.wall!, from, p));
+          const wt = s.toolTypes.wall;
+          const loc = s.options.wallLocation;
+          const ok = await apply(() =>
+            loc === "Centerline"
+              ? ipc.createWall(view.id, wt, from, p)
+              : ipc.createWallLocated(view.id, wt, from, p, loc),
+          );
           pts.current = ok ? [p] : pts.current;
         } else if (!from) {
           pts.current = [p];
@@ -496,6 +506,19 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         } else {
           pts.current = [p];
         }
+        break;
+      }
+      case "beam": {
+        if (from && !samePt(from, p)) {
+          await apply(() => ipc.createBeam(view.id, s.toolTypes.beam, from, p));
+          pts.current = [];
+        } else {
+          pts.current = [p];
+        }
+        break;
+      }
+      case "railing": {
+        if (!from || !samePt(from, p)) pts.current = [...pts.current, p];
         break;
       }
       default:
@@ -667,7 +690,14 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       redraw();
       return;
     }
-    if (SELECTION_TOOLS.includes(s.tool) || ["wall", "grid", "stair"].includes(s.tool)) {
+    if (s.tool === "column") {
+      await apply(() => ipc.createColumn(view.id, s.toolTypes.column, p));
+      return;
+    }
+    if (
+      SELECTION_TOOLS.includes(s.tool) ||
+      ["wall", "grid", "stair", "beam", "railing"].includes(s.tool)
+    ) {
       await placePoint(p, raw);
       return;
     }
