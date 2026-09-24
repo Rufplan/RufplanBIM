@@ -47,7 +47,7 @@ jobs:
 
       - name: validate IFC with IfcOpenShell
         run: |
-          pip install ifcopenshell
+          pip install ifcopenshell pytest
           python tools/validate_ifc.py target/sample-model.ifc
 
       - name: TypeScript bindings are up to date
