@@ -37,8 +37,16 @@ pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) 
             ..
         })
     );
+    if matches!(doc.data(view), Ok(ElementData::Sheet { .. })) {
+        // Sheets are in paper mm: no model snapping.
+        return SnapResult {
+            pt: p,
+            kind: SnapKind::None,
+            label: None,
+        };
+    }
     if !is_plan {
-        // Elevations: round the height to the nearest inch.
+        // Elevations and sections: round the height to the nearest inch.
         let z = (p.y / MM_PER_IN).round() * MM_PER_IN;
         return SnapResult {
             pt: Pt::new(p.x, z),

@@ -43,6 +43,8 @@ pub enum FillKind {
     Glass,
     /// Room region: invisible, but selectable and highlighted when selected.
     Room,
+    /// Brand accent (title blocks).
+    Accent,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, TS)]
@@ -69,12 +71,13 @@ pub enum Prim {
         rings: Vec<Vec<[f64; 2]>>,
         fill: FillKind,
     },
-    /// Text with its height in model mm.
+    /// Text with its height in model mm, rotated `angle` radians counter-clockwise.
     Text {
         at: [f64; 2],
         text: String,
         size: f64,
         anchor: Anchor,
+        angle: f64,
     },
     Circle {
         c: [f64; 2],
@@ -99,6 +102,9 @@ pub enum ViewType {
     CeilingPlan,
     Elevation,
     ThreeD,
+    Section,
+    Schedule,
+    Sheet,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -117,20 +123,27 @@ fn a(p: Pt) -> [f64; 2] {
     [p.x, p.y]
 }
 
-fn ring(pts: &[Pt]) -> Vec<[f64; 2]> {
+pub fn ring(pts: &[Pt]) -> Vec<[f64; 2]> {
     pts.iter().copied().map(a).collect()
 }
 
-struct Builder {
-    items: Vec<Item>,
-    scale: f64,
+pub struct Builder {
+    pub items: Vec<Item>,
+    /// Drawing scale denominator; paper sizes are multiplied by it.
+    pub scale: f64,
 }
 
 impl Builder {
-    fn push(&mut self, el: Option<ElementId>, prim: Prim) {
+    pub fn new(scale: f64) -> Self {
+        Self {
+            items: vec![],
+            scale,
+        }
+    }
+    pub fn push(&mut self, el: Option<ElementId>, prim: Prim) {
         self.items.push(Item { el, prim });
     }
-    fn line(&mut self, el: Option<ElementId>, pts: &[Pt], closed: bool, w: u8, dash: Dash) {
+    pub fn line(&mut self, el: Option<ElementId>, pts: &[Pt], closed: bool, w: u8, dash: Dash) {
         self.push(
             el,
             Prim::Line {
@@ -141,11 +154,30 @@ impl Builder {
             },
         );
     }
-    fn fill(&mut self, el: Option<ElementId>, rings: Vec<Vec<[f64; 2]>>, fill: FillKind) {
+    pub fn fill(&mut self, el: Option<ElementId>, rings: Vec<Vec<[f64; 2]>>, fill: FillKind) {
         self.push(el, Prim::Fill { rings, fill });
     }
     /// Text sized in paper mm.
-    fn text(&mut self, el: Option<ElementId>, at: Pt, text: String, paper_mm: f64, anchor: Anchor) {
+    pub fn text(
+        &mut self,
+        el: Option<ElementId>,
+        at: Pt,
+        text: String,
+        paper_mm: f64,
+        anchor: Anchor,
+    ) {
+        self.text_rot(el, at, text, paper_mm, anchor, 0.0);
+    }
+    /// Rotated text sized in paper mm.
+    pub fn text_rot(
+        &mut self,
+        el: Option<ElementId>,
+        at: Pt,
+        text: String,
+        paper_mm: f64,
+        anchor: Anchor,
+        angle: f64,
+    ) {
         self.push(
             el,
             Prim::Text {
@@ -153,11 +185,12 @@ impl Builder {
                 text,
                 size: paper_mm * self.scale,
                 anchor,
+                angle,
             },
         );
     }
     /// Circle sized in paper mm.
-    fn circle(&mut self, el: Option<ElementId>, c: Pt, paper_r: f64, w: u8, filled: bool) {
+    pub fn circle(&mut self, el: Option<ElementId>, c: Pt, paper_r: f64, w: u8, filled: bool) {
         self.push(
             el,
             Prim::Circle {
@@ -168,7 +201,7 @@ impl Builder {
             },
         );
     }
-    fn paper(&self, mm: f64) -> f64 {
+    pub fn paper(&self, mm: f64) -> f64 {
         mm * self.scale
     }
 }
@@ -193,8 +226,21 @@ pub fn display_list(doc: &Document, view: ElementId) -> Option<DisplayList> {
             ViewType::Elevation,
             elevation(&model, &mut b, facing.look().scale(-1.0)),
         ),
-        ViewKind::ThreeD => return None,
+        ViewKind::Section { start, end, depth } => {
+            let d = end.sub(*start).norm();
+            let cut = Cut {
+                origin: *start,
+                length: start.dist(*end),
+                depth: *depth,
+            };
+            (
+                ViewType::Section,
+                projected(&model, &mut b, d.perp(), Some(&cut)),
+            )
+        }
+        ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
+    annotations(doc, &mut b, view);
     Some(DisplayList {
         view_type,
         scale: *scale,
@@ -310,10 +356,16 @@ fn plan(
         .filter(|o| cut_ids.contains(&o.host) && o.z0 <= cut && o.z1 > cut)
     {
         opening_symbol(b, Some(o.id), o);
+        if !ceiling {
+            opening_tag(doc, b, o);
+        }
+    }
+    if !ceiling {
+        section_markers(doc, b);
     }
 
     let (lo, hi) = plan_extents(model);
-    let margin = b.paper(30.0);
+    let margin = b.paper(12.0);
     for g in &model.grids {
         grid_in_plan(b, g.id, &g.name, g.start, g.end);
     }
@@ -418,6 +470,92 @@ fn opening_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSolid) {
     }
 }
 
+/// Door tag (mark in a rectangle) on the side away from the swing; window tag (mark in a
+/// hexagon) on the window's facing side.
+fn opening_tag(doc: &Document, b: &mut Builder, o: &OpeningSolid) {
+    let mark = match doc.data(o.id) {
+        Ok(ElementData::Door { mark, .. } | ElementData::Window { mark, .. }) => mark.clone(),
+        _ => return,
+    };
+    let n = o.dir.perp();
+    let s = if o.flip_facing { -1.0 } else { 1.0 };
+    let mid = o.at((o.t0 + o.t1) / 2.0);
+    let el = Some(o.id);
+    match o.kind {
+        OpeningKind::Door(_) => {
+            let c = mid.sub(n.scale(s * (o.half_thickness + b.paper(5.0))));
+            let (hw, hh) = (b.paper(4.0), b.paper(2.6));
+            let r = [
+                c.add(Pt::new(-hw, -hh)),
+                c.add(Pt::new(hw, -hh)),
+                c.add(Pt::new(hw, hh)),
+                c.add(Pt::new(-hw, hh)),
+            ];
+            b.fill(el, vec![ring(&r)], FillKind::Paper);
+            b.line(el, &r, true, 2, Dash::Solid);
+            b.text(el, c, mark, 2.6, Anchor::Center);
+        }
+        OpeningKind::Window(_) => {
+            let c = mid.add(n.scale(s * (o.half_thickness + b.paper(6.0))));
+            let r = b.paper(3.4);
+            let hex: Vec<Pt> = (0..6)
+                .map(|i| {
+                    let t = std::f64::consts::PI / 3.0 * f64::from(i);
+                    c.add(Pt::new(t.cos() * r, t.sin() * r * 0.8))
+                })
+                .collect();
+            b.fill(el, vec![ring(&hex)], FillKind::Paper);
+            b.line(el, &hex, true, 2, Dash::Solid);
+            b.text(el, c, mark, 2.4, Anchor::Center);
+        }
+    }
+}
+
+/// Section lines with heads in plan views, each linked to its section view.
+fn section_markers(doc: &Document, b: &mut Builder) {
+    for v in doc.of(Category::View) {
+        let ElementData::View {
+            name,
+            kind: ViewKind::Section { start, end, .. },
+            ..
+        } = &v.data
+        else {
+            continue;
+        };
+        let el = Some(v.id);
+        let d = end.sub(*start).norm();
+        let look = d.perp();
+        let r = b.paper(5.0);
+        b.line(el, &[*start, *end], false, 1, Dash::Center);
+        let seg = b.paper(8.0);
+        b.line(
+            el,
+            &[*start, start.add(d.scale(seg))],
+            false,
+            5,
+            Dash::Solid,
+        );
+        b.line(el, &[*end, end.sub(d.scale(seg))], false, 5, Dash::Solid);
+        let c = start.sub(d.scale(r));
+        b.circle(el, c, 5.0, 2, false);
+        let tip = c.add(look.scale(r * 1.8));
+        b.fill(
+            el,
+            vec![ring(&[tip, c.add(d.scale(r)), c.sub(d.scale(r))])],
+            FillKind::Ink,
+        );
+        b.circle(el, c, 5.0, 2, false);
+        let label: String = name.chars().filter(|ch| ch.is_ascii_digit()).collect();
+        b.text(
+            el,
+            c,
+            if label.is_empty() { "S".into() } else { label },
+            3.4,
+            Anchor::Center,
+        );
+    }
+}
+
 /// Room tag at the room's point: name, number and area (or "Not Enclosed").
 fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo) {
     let el = Some(r.id);
@@ -484,7 +622,8 @@ fn grid_in_plan(b: &mut Builder, id: ElementId, name: &str, start: Pt, end: Pt) 
 /// Four elevation markers around the plan, each linked to its elevation view.
 fn elevation_markers(doc: &Document, b: &mut Builder, lo: Pt, hi: Pt, margin: f64) {
     let mid = lo.lerp(hi, 0.5);
-    let off = margin * 1.5 + b.paper(8.0);
+    // Just outside the grid bubbles, so viewports on sheets stay compact.
+    let off = margin + b.paper(14.0);
     for v in doc.of(Category::View) {
         let ElementData::View {
             kind: ViewKind::Elevation { facing },
@@ -559,10 +698,71 @@ fn grid_hatch(ring_pts: &[Pt], dy: f64, dx: f64) -> Vec<[Pt; 2]> {
     out
 }
 
+/// A section's cut plane: the line from `origin` (length mm) and how far beyond it to show.
+pub struct Cut {
+    pub origin: Pt,
+    pub length: f64,
+    pub depth: f64,
+}
+
+#[derive(PartialEq)]
+enum Seen {
+    Beyond,
+    Cut,
+    Hidden,
+}
+
 fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
+    projected(model, b, look, None)
+}
+
+/// Elevation (no cut) or section (cut plane with far clip), seen looking along `look`.
+fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f64; 4] {
     let right = Pt::new(look.y, -look.x);
-    let u_of = |p: Pt| p.dot(right);
-    let depth_of = |p: Pt| p.dot(look);
+    let origin = cut.map_or(Pt::default(), |c| c.origin);
+    let u_of = |p: Pt| p.sub(origin).dot(right);
+    let depth_of = |p: Pt| p.sub(origin).dot(look);
+    let seen = |pts: &[Pt]| -> Seen {
+        let Some(c) = cut else { return Seen::Beyond };
+        let ds: Vec<f64> = pts.iter().map(|p| depth_of(*p)).collect();
+        let us: Vec<f64> = pts.iter().map(|p| u_of(*p)).collect();
+        let (dmin, dmax) = (
+            ds.iter().copied().fold(f64::INFINITY, f64::min),
+            ds.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+        );
+        let (umin, umax) = (
+            us.iter().copied().fold(f64::INFINITY, f64::min),
+            us.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+        );
+        if dmax <= 0.0 || dmin >= c.depth || umax <= 0.0 || umin >= c.length {
+            Seen::Hidden
+        } else if dmin < 0.0 {
+            Seen::Cut
+        } else {
+            Seen::Beyond
+        }
+    };
+    // Where a polygon crosses the cut plane, as a u-interval clipped to the section width.
+    let cut_interval = |pts: &[Pt]| -> Option<(f64, f64)> {
+        let c = cut?;
+        let n = pts.len();
+        let mut us = vec![];
+        for i in 0..n {
+            let (p, q) = (pts[i], pts[(i + 1) % n]);
+            let (dp, dq) = (depth_of(p), depth_of(q));
+            if (dp < 0.0) != (dq < 0.0) {
+                us.push(u_of(p.lerp(q, dp / (dp - dq))));
+            }
+        }
+        let lo = us.iter().copied().fold(f64::INFINITY, f64::min).max(0.0);
+        let hi = us
+            .iter()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max)
+            .min(c.length);
+        (us.len() >= 2 && hi - lo > 0.5).then_some((lo, hi))
+    };
+    let mut cut_rects: Vec<(ElementId, f64, f64, f64, f64)> = vec![];
 
     struct Face {
         el: ElementId,
@@ -596,12 +796,25 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
     // Whole walls, not their pieces: every opening is drawn on top with its own door or
     // glass fill, and piece seams would read as false joints in the facade.
     for w in &model.walls {
-        faces.push(face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper));
+        match seen(&w.footprint.outer) {
+            Seen::Beyond => faces.push(face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper)),
+            Seen::Cut => {
+                for p in &w.pieces {
+                    if let Some((u0, u1)) = cut_interval(&p.base.outer) {
+                        cut_rects.push((w.id, u0, u1, p.z0, p.z1));
+                    }
+                }
+            }
+            Seen::Hidden => {}
+        }
     }
     for o in &model.openings {
         let Some(host) = model.walls.iter().find(|w| w.id == o.host) else {
             continue;
         };
+        if seen(&host.footprint.outer) != Seen::Beyond {
+            continue; // Openings of cut walls show as gaps between the cut pieces.
+        }
         let host_near = host
             .footprint
             .outer
@@ -623,11 +836,21 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
         f.detail = Some(o.kind);
         faces.push(f);
     }
-    for f in &model.floors {
-        faces.push(face(f.id, &f.base.outer, f.z0, f.z1, FillKind::Slab));
-    }
-    for c in &model.ceilings {
-        faces.push(face(c.id, &c.base.outer, c.z0, c.z1, FillKind::Paper));
+    for (slabs, fill) in [
+        (&model.floors, FillKind::Slab),
+        (&model.ceilings, FillKind::Paper),
+    ] {
+        for f in slabs {
+            match seen(&f.base.outer) {
+                Seen::Beyond => faces.push(face(f.id, &f.base.outer, f.z0, f.z1, fill)),
+                Seen::Cut => {
+                    if let Some((u0, u1)) = cut_interval(&f.base.outer) {
+                        cut_rects.push((f.id, u0, u1, f.z0, f.z1));
+                    }
+                }
+                Seen::Hidden => {}
+            }
+        }
     }
     // Painter's algorithm: farthest first so nearer faces cover what they hide. Mitered
     // corners make side walls reach as near as the facade, so ties break on average depth.
@@ -637,14 +860,19 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
         .plan_bounds()
         .unwrap_or((Pt::new(0.0, 0.0), Pt::new(12000.0, 9000.0)));
     let corners = [plo, phi, Pt::new(plo.x, phi.y), Pt::new(phi.x, plo.y)];
-    let umin = corners
-        .iter()
-        .map(|p| u_of(*p))
-        .fold(f64::INFINITY, f64::min);
-    let umax = corners
-        .iter()
-        .map(|p| u_of(*p))
-        .fold(f64::NEG_INFINITY, f64::max);
+    let (umin, umax) = match cut {
+        Some(c) => (0.0, c.length),
+        None => (
+            corners
+                .iter()
+                .map(|p| u_of(*p))
+                .fold(f64::INFINITY, f64::min),
+            corners
+                .iter()
+                .map(|p| u_of(*p))
+                .fold(f64::NEG_INFINITY, f64::max),
+        ),
+    };
     let (zmin, zmax) = model.z_range();
 
     for f in &faces {
@@ -659,6 +887,17 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
         if let Some(kind) = f.detail {
             opening_elevation_detail(b, f.el, kind, f.u0, f.u1, f.z0, f.z1);
         }
+    }
+    // Cut material over everything beyond it.
+    for (el, u0, u1, z0, z1) in &cut_rects {
+        let r = [
+            Pt::new(*u0, *z0),
+            Pt::new(*u1, *z0),
+            Pt::new(*u1, *z1),
+            Pt::new(*u0, *z1),
+        ];
+        b.fill(Some(*el), vec![ring(&r)], FillKind::Poche);
+        b.line(Some(*el), &r, true, 4, Dash::Solid);
     }
 
     let ext = b.paper(12.0);
@@ -701,10 +940,26 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
 
     for g in &model.grids {
         let d = g.end.sub(g.start).norm();
-        if d.dot(right).abs() > 0.05 {
-            continue; // Only grids running along the view direction appear as lines.
-        }
-        let u = u_of(g.start);
+        let u = match cut {
+            // Sections show grids that cross the cut line.
+            Some(c) => {
+                let Some(x) = studio_geom::line_intersection(g.start, d, origin, right) else {
+                    continue;
+                };
+                let on_grid = project_to_segment(x, g.start, g.end).1 < 1.0;
+                let u = u_of(x);
+                if !on_grid || u < 0.0 || u > c.length {
+                    continue;
+                }
+                u
+            }
+            None => {
+                if d.dot(right).abs() > 0.05 {
+                    continue; // Only grids running along the view direction appear as lines.
+                }
+                u_of(g.start)
+            }
+        };
         let top = zmax + b.paper(10.0);
         b.line(
             Some(g.id),
@@ -956,6 +1211,114 @@ pub fn opening_preview(
         flip_facing,
         valid,
         label,
+        items: b.items,
+    })
+}
+
+/// Dimensions and text notes owned by `view`.
+fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
+    for e in doc.iter() {
+        match &e.data {
+            ElementData::Dimension {
+                view: v,
+                a,
+                b: p2,
+                offset,
+            } if *v == view => {
+                dimension(b, Some(e.id), *a, *p2, *offset);
+            }
+            ElementData::TextNote { view: v, at, text } if *v == view => {
+                b.text(Some(e.id), *at, text.clone(), 3.0, Anchor::Left);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// An aligned dimension: witness lines, dimension line with architectural ticks, and the
+/// length in feet-inches above the line, kept upright.
+pub fn dimension(b: &mut Builder, el: Option<ElementId>, a: Pt, p2: Pt, offset: f64) {
+    let u = p2.sub(a).norm();
+    let n = u.perp();
+    let (da, db) = (a.add(n.scale(offset)), p2.add(n.scale(offset)));
+    let side = if offset < 0.0 { -1.0 } else { 1.0 };
+    let gap = b.paper(1.5) * side;
+    let ext = b.paper(2.0) * side;
+    if offset.abs() > gap.abs() {
+        b.line(
+            el,
+            &[a.add(n.scale(gap)), da.add(n.scale(ext))],
+            false,
+            1,
+            Dash::Solid,
+        );
+        b.line(
+            el,
+            &[p2.add(n.scale(gap)), db.add(n.scale(ext))],
+            false,
+            1,
+            Dash::Solid,
+        );
+    }
+    let over = b.paper(2.0);
+    b.line(
+        el,
+        &[da.sub(u.scale(over)), db.add(u.scale(over))],
+        false,
+        1,
+        Dash::Solid,
+    );
+    let t = u.add(n).norm().scale(b.paper(1.5));
+    for p in [da, db] {
+        b.line(el, &[p.sub(t), p.add(t)], false, 4, Dash::Solid);
+    }
+    let mut angle = u.y.atan2(u.x);
+    let mut up = n;
+    if angle > std::f64::consts::FRAC_PI_2 + 1e-9 || angle <= -std::f64::consts::FRAC_PI_2 + 1e-9 {
+        angle += if angle > 0.0 {
+            -std::f64::consts::PI
+        } else {
+            std::f64::consts::PI
+        };
+        up = n.scale(-1.0);
+    }
+    let mid = da.lerp(db, 0.5).add(up.scale(b.paper(2.2)));
+    b.text_rot(
+        el,
+        mid,
+        format_ft_in(a.dist(p2)),
+        2.6,
+        Anchor::Center,
+        angle,
+    );
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct DimensionPreview {
+    pub offset: f64,
+    pub items: Vec<Item>,
+}
+
+/// The dimension a→b with its line through `cursor`, for the dimension tool.
+pub fn dimension_preview(
+    doc: &Document,
+    view: ElementId,
+    a: Pt,
+    p2: Pt,
+    cursor: Pt,
+) -> Option<DimensionPreview> {
+    let ElementData::View { scale, .. } = doc.data(view).ok()? else {
+        return None;
+    };
+    if a.dist(p2) < 1.0 {
+        return None;
+    }
+    let offset = cursor.sub(a).dot(p2.sub(a).norm().perp());
+    let mut b = Builder::new(f64::from(*scale));
+    dimension(&mut b, None, a, p2, offset);
+    Some(DimensionPreview {
+        offset,
         items: b.items,
     })
 }
@@ -1322,9 +1685,10 @@ mod tests {
             .filter(|i| i.el == Some(south) && matches!(i.prim, Prim::Fill { .. }))
             .count();
         assert_eq!(south_fills, 3);
-        // Door: leaf + arc. Casement window: 2 sill + 2 glass + swing line.
-        assert_eq!(dl.items.iter().filter(|i| i.el == Some(d)).count(), 2);
-        assert_eq!(dl.items.iter().filter(|i| i.el == Some(w)).count(), 5);
+        // Door: leaf + arc + tag (box fill, outline, mark). Casement window: 2 sill + 2 glass
+        // + swing line + tag (3 items).
+        assert_eq!(dl.items.iter().filter(|i| i.el == Some(d)).count(), 5);
+        assert_eq!(dl.items.iter().filter(|i| i.el == Some(w)).count(), 8);
         // Picking the door's leaf selects the door.
         let leaf = dl
             .items
@@ -1464,6 +1828,125 @@ mod tests {
         let again = room_preview(&doc, v, Pt::new(8000.0, 3000.0)).unwrap();
         assert!(!again.valid);
         assert!(!room_preview(&doc, v, Pt::new(-9000.0, 0.0)).unwrap().valid);
+    }
+
+    #[test]
+    fn section_cuts_walls_and_floor_and_projects_beyond() {
+        let (mut doc, _, d, _) = with_openings();
+        // Drawn north → south through the middle of the 40' × 30' building: a section looks
+        // to the left of its line, so this one looks east.
+        let x = 20.0 * MM_PER_FT;
+        let s = ops::create_section(
+            &mut doc,
+            Pt::new(x, 32.0 * MM_PER_FT),
+            Pt::new(x, -2.0 * MM_PER_FT),
+        )
+        .unwrap();
+        let dl = display_list(&doc, s).unwrap();
+        assert_eq!(dl.view_type, ViewType::Section);
+        let poche: Vec<_> = dl
+            .items
+            .iter()
+            .filter(|i| {
+                matches!(
+                    i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Poche,
+                        ..
+                    }
+                )
+            })
+            .collect();
+        // South and north walls (one piece each at this x), the floor and the ceiling.
+        assert_eq!(poche.len(), 4, "{poche:#?}");
+        // The east wall is beyond the cut: drawn as a face, not poché.
+        let east = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|w| {
+                (w.start.x - 40.0 * MM_PER_FT).abs() < 1.0
+                    && (w.end.x - 40.0 * MM_PER_FT).abs() < 1.0
+            })
+            .unwrap()
+            .id;
+        assert!(dl.items.iter().any(|i| i.el == Some(east)
+            && matches!(
+                i.prim,
+                Prim::Fill {
+                    fill: FillKind::Paper,
+                    ..
+                }
+            )));
+        // The door (at x = 3000 mm, beyond the cut) is visible on the south wall face? No:
+        // the south wall is cut, so its openings are not drawn as faces.
+        assert!(!dl.items.iter().any(|i| i.el == Some(d)));
+        // Plans show the section marker linked to the view.
+        let l1 = doc.levels()[0].0;
+        let plan = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let pl = display_list(&doc, plan).unwrap();
+        assert!(pl.items.iter().any(|i| i.el == Some(s)));
+    }
+
+    #[test]
+    fn plans_tag_doors_and_windows() {
+        let (doc, _, d, w) = with_openings();
+        let l1 = doc.levels()[0].0;
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let dl = display_list(&doc, v).unwrap();
+        let text_of = |id| {
+            dl.items.iter().find_map(|i| match (&i.el, &i.prim) {
+                (Some(x), Prim::Text { text, .. }) if *x == id => Some(text.clone()),
+                _ => None,
+            })
+        };
+        assert_eq!(text_of(d).as_deref(), Some("1"));
+        assert_eq!(text_of(w).as_deref(), Some("1"));
+    }
+
+    #[test]
+    fn dimensions_read_true_length_and_stay_upright() {
+        let (mut doc, l1) = building();
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        // Drawn right-to-left: text must still be upright (angle 0, not 180°).
+        let dim = ops::create_dimension(
+            &mut doc,
+            v,
+            Pt::new(40.0 * MM_PER_FT, 0.0),
+            Pt::new(0.0, 0.0),
+            -1500.0,
+        )
+        .unwrap();
+        let dl = display_list(&doc, v).unwrap();
+        let (text, angle) = dl
+            .items
+            .iter()
+            .find_map(|i| match (&i.el, &i.prim) {
+                (Some(x), Prim::Text { text, angle, .. }) if *x == dim => {
+                    Some((text.clone(), *angle))
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(text, "40'-0\"");
+        assert!(angle.abs() < 1e-9, "{angle}");
+        let pv = dimension_preview(
+            &doc,
+            v,
+            Pt::new(0.0, 0.0),
+            Pt::new(3000.0, 0.0),
+            Pt::new(1000.0, 800.0),
+        )
+        .unwrap();
+        assert!((pv.offset - 800.0).abs() < 1e-9);
     }
 
     #[test]
