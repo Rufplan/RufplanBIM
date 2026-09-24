@@ -7,7 +7,7 @@ use std::sync::{Mutex, MutexGuard};
 use serde::Serialize;
 use studio_core::{ops, ElementId};
 use studio_geom::Pt;
-use studio_views::{DisplayList, Mesh, OpeningPreview, RoomPreview, SnapResult};
+use studio_views::{DimensionPreview, DisplayList, Mesh, OpeningPreview, RoomPreview, SnapResult};
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use ts_rs::TS;
 
@@ -56,6 +56,34 @@ impl From<studio_core::CoreError> for CommandError {
 
 type CommandResult<T> = Result<T, CommandError>;
 type StateResult = CommandResult<Option<AppState>>;
+
+/// Today's date as YYYY-MM-DD (UTC), for title blocks.
+fn today() -> String {
+    let days = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() / 86_400) as i64;
+    // Civil-from-days (Howard Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// The display list of a view or a sheet.
+fn any_display_list(doc: &studio_core::Document, id: ElementId) -> Option<DisplayList> {
+    match doc.data(id).ok()? {
+        studio_core::ElementData::Sheet { .. } => {
+            studio_sheets::sheet_display_list(doc, id, &today())
+        }
+        _ => studio_views::display_list(doc, id),
+    }
+}
 
 fn now_ms() -> i64 {
     std::time::SystemTime::now()
@@ -165,7 +193,7 @@ pub fn view_display_list(
     state: State<'_, SessionState>,
 ) -> CommandResult<Option<DisplayList>> {
     let session = lock(&state)?;
-    Ok(studio_views::display_list(session.doc()?, view))
+    Ok(any_display_list(session.doc()?, view))
 }
 
 #[tauri::command]
@@ -183,7 +211,7 @@ pub fn pick(
     state: State<'_, SessionState>,
 ) -> CommandResult<Option<ElementId>> {
     let session = lock(&state)?;
-    let dl = studio_views::display_list(session.doc()?, view);
+    let dl = any_display_list(session.doc()?, view);
     Ok(dl.and_then(|dl| studio_views::pick(&dl, point, tol)))
 }
 
@@ -383,6 +411,134 @@ pub fn properties(
     Ok(sheet)
 }
 
+#[tauri::command]
+pub fn create_section(
+    start: Pt,
+    end: Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_section(d, start, end))
+    })
+}
+
+#[tauri::command]
+pub fn dimension_preview(
+    view: ElementId,
+    a: Pt,
+    b: Pt,
+    cursor: Pt,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<DimensionPreview>> {
+    let session = lock(&state)?;
+    Ok(studio_views::dimension_preview(
+        session.doc()?,
+        view,
+        a,
+        b,
+        cursor,
+    ))
+}
+
+#[tauri::command]
+pub fn create_dimension(
+    view: ElementId,
+    a: Pt,
+    b: Pt,
+    offset: f64,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_dimension(d, view, a, b, offset))
+    })
+}
+
+#[tauri::command]
+pub fn create_text(
+    view: ElementId,
+    at: Pt,
+    text: String,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_text(d, view, at, &text))
+    })
+}
+
+/// Creates a sheet with the next number.
+#[tauri::command]
+pub fn create_sheet(
+    name: String,
+    tabloid: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let size = if tabloid {
+        studio_core::SheetSize::Tabloid
+    } else {
+        studio_core::SheetSize::ArchD
+    };
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_sheet(d, &name, size))
+    })
+}
+
+/// Places `view` in the middle of `sheet`'s drawing area.
+#[tauri::command]
+pub fn place_view(
+    sheet: ElementId,
+    view: ElementId,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let size = match s.doc()?.data(sheet)? {
+            studio_core::ElementData::Sheet { size, .. } => *size,
+            _ => anyhow::bail!("open a sheet first"),
+        };
+        let (w, h) = size.mm();
+        let center = Pt::new(
+            (w - studio_sheets::sheet::title_block_width(size)) / 2.0,
+            h / 2.0,
+        );
+        s.edit(|d| ops::place_view(d, sheet, view, center))
+    })
+}
+
+#[tauri::command]
+pub fn schedule_table(
+    view: ElementId,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<studio_sheets::Table>> {
+    let session = lock(&state)?;
+    Ok(studio_sheets::schedule(session.doc()?, view))
+}
+
+/// Exports every sheet, in number order, to a PDF at `path`. Returns the sheet count.
+#[tauri::command]
+pub fn export_pdf(path: String, state: State<'_, SessionState>) -> CommandResult<usize> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    let sheets: Vec<ElementId> = ops::sheets(doc).into_iter().map(|s| s.0).collect();
+    if sheets.is_empty() {
+        return Err(anyhow::anyhow!("create a sheet and place views on it first").into());
+    }
+    let bytes = studio_sheets::export_pdf(doc, &sheets, &today()).map_err(anyhow::Error::from)?;
+    let mut path = PathBuf::from(path);
+    if path
+        .extension()
+        .is_none_or(|e| !e.eq_ignore_ascii_case("pdf"))
+    {
+        path.set_extension("pdf");
+    }
+    std::fs::write(&path, bytes)
+        .map_err(|e| anyhow::anyhow!("could not write {}: {e}", path.display()))?;
+    Ok(sheets.len())
+}
+
 /// What a room placed at `point` would fill (floor plans only).
 #[tauri::command]
 pub fn room_preview(
@@ -476,6 +632,13 @@ mod tests {
         let v = core_version();
         assert_eq!(v.schema_version, studio_io::SCHEMA_VERSION);
         assert!(!v.app.is_empty());
+    }
+
+    #[test]
+    fn today_is_a_plausible_date() {
+        let d = today();
+        assert_eq!(d.len(), 10);
+        assert!(d.starts_with("20"), "{d}");
     }
 
     #[test]

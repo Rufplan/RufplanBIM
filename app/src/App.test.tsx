@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { emit } from "@tauri-apps/api/event";
 import { App } from "./App";
@@ -33,7 +33,8 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: "New Project" }));
     expect(await screen.findByRole("toolbar", { name: "Tools" })).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Project browser" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Level 1");
+    const views = screen.getByRole("tablist", { name: "Open views" });
+    expect(within(views).getByRole("tab", { selected: true })).toHaveTextContent("Level 1");
   });
 
   it("changing the design stage calls set_property on project info", async () => {
@@ -51,6 +52,18 @@ describe("App", () => {
     await userEvent.keyboard("wa");
     expect(useAppStore.getState().tool).toBe("wall");
     expect(screen.getByRole("button", { name: "Wall", pressed: true })).toBeInTheDocument();
+  });
+
+  it("ribbon tabs switch between tool groups", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "New Project" }));
+    await screen.findByRole("toolbar", { name: "Tools" });
+    expect(screen.queryByRole("button", { name: "New Sheet" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "View" }));
+    expect(screen.getByRole("button", { name: "New Sheet" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Wall" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Annotate" }));
+    expect(screen.getByRole("button", { name: "Dimension" })).toBeInTheDocument();
   });
 
   it("responds to the native File > Open menu", async () => {

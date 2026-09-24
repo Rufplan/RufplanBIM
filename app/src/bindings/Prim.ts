@@ -3,4 +3,4 @@ import type { Anchor } from "./Anchor";
 import type { Dash } from "./Dash";
 import type { FillKind } from "./FillKind";
 
-export type Prim = { "t": "Line", pts: Array<[number, number]>, closed: boolean, w: number, dash: Dash, } | { "t": "Fill", rings: Array<Array<[number, number]>>, fill: FillKind, } | { "t": "Text", at: [number, number], text: string, size: number, anchor: Anchor, } | { "t": "Circle", c: [number, number], r: number, w: number, filled: boolean, };
+export type Prim = { "t": "Line", pts: Array<[number, number]>, closed: boolean, w: number, dash: Dash, } | { "t": "Fill", rings: Array<Array<[number, number]>>, fill: FillKind, } | { "t": "Text", at: [number, number], text: string, size: number, anchor: Anchor, angle: number, } | { "t": "Circle", c: [number, number], r: number, w: number, filled: boolean, };

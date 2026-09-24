@@ -204,7 +204,15 @@ button:disabled {
   align-items: center;
   border-bottom: 2px solid transparent;
 }
+.rb-tab {
+  color: var(--muted);
+  padding: 0 2px;
+}
+.rb-tab:hover {
+  color: var(--ink);
+}
 .rb-tab.active {
+  color: var(--ink);
   border-bottom-color: var(--cyan);
 }
 .rb-body {
@@ -698,4 +706,82 @@ button:disabled {
 }
 .btn-ghost.light:hover {
   color: var(--cyan);
+}
+
+/* ---------- Schedules ---------- */
+.schedule {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 24px 28px;
+  background: var(--white);
+}
+.schedule-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.schedule table {
+  border-collapse: collapse;
+  min-width: 520px;
+  border: 2px solid var(--ink);
+}
+.schedule th {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 7px 12px;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+}
+.schedule td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.schedule tr:hover td {
+  background: var(--light);
+}
+.schedule tr.selected td {
+  background: var(--cyan-soft);
+}
+.schedule-empty {
+  color: var(--muted);
+  cursor: default;
+}
+.pb-empty {
+  padding: 4px 12px 6px 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Place View picker in the ribbon */
+.rb-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 92px;
+  height: 54px;
+}
+.rb-place select {
+  width: 88px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  padding: 1px 2px;
+}
+.rb-place.disabled {
+  opacity: 0.35;
 }

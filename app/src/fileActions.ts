@@ -8,6 +8,7 @@ export const MENU = {
   save: "file.save",
   saveAs: "file.save_as",
   exit: "file.exit",
+  exportPdf: "file.export_pdf",
   undo: "edit.undo",
   redo: "edit.redo",
   delete: "edit.delete",
@@ -88,6 +89,44 @@ export const exitApp = async () => {
   await ipc.exit(true);
 };
 
+/** Exports all sheets to a PDF the user picks; reports the result in the status bar. */
+export const exportPdf = async () => {
+  const s = useAppStore.getState();
+  const app = s.app;
+  if (!app) return false;
+  if (!app.views.some((v) => v.viewType === "Sheet")) {
+    s.setError("Create a sheet and place views on it before exporting.");
+    return false;
+  }
+  const path = await dialogs.pickPdfLocation(app.projectName || app.project.name);
+  if (!path) return false;
+  try {
+    const n = await ipc.exportPdf(path);
+    s.setPrompt(`Exported ${n} sheet${n === 1 ? "" : "s"} to ${path}`);
+    return true;
+  } catch (err) {
+    s.setError(errorMessage(err));
+    return false;
+  }
+};
+
+/** Creates a sheet and opens it. */
+export const newSheet = async () => {
+  const before = new Set(useAppStore.getState().app?.views.map((v) => v.id));
+  const ok = await apply(() => ipc.createSheet("Unnamed", false));
+  const created = useAppStore
+    .getState()
+    .app?.views.find((v) => v.viewType === "Sheet" && !before.has(v.id));
+  if (ok && created) useAppStore.getState().openView(created.id);
+  return ok;
+};
+
+/** Places `view` on the active sheet. */
+export const placeOnActiveSheet = (view: string) => {
+  const sheet = useAppStore.getState().activeView;
+  return sheet ? apply(() => ipc.placeView(sheet, view)) : Promise.resolve(false);
+};
+
 export const undo = () => apply(() => ipc.undo());
 export const redo = () => apply(() => ipc.redo());
 
@@ -111,6 +150,8 @@ export function handleMenu(id: string) {
       return saveProjectAs();
     case MENU.exit:
       return exitApp();
+    case MENU.exportPdf:
+      return exportPdf();
     case MENU.undo:
       return undo();
     case MENU.redo:

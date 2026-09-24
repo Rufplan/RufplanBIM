@@ -42,6 +42,7 @@ export function appState(path: string | null, dirty = false): AppState {
     scale: 48,
     scaleLabel: `1/4" = 1'-0"`,
     level,
+    onSheet: null,
   });
   return {
     project: { name, path, schemaVersion: 2, appVersion: "0.0.1", dirty },

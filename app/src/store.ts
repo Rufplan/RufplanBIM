@@ -4,6 +4,9 @@ import type { AppState, ElementId } from "./ipc";
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
+  | "dimension"
+  | "text"
+  | "section"
   | "room"
   | "move"
   | "door"
@@ -21,6 +24,9 @@ export const TOOL_LABELS: Record<Tool, string> = {
   select: "Select",
   room: "Room",
   move: "Move",
+  dimension: "Dimension",
+  text: "Text",
+  section: "Section",
   door: "Door",
   window: "Window",
   wall: "Wall",

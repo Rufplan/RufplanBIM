@@ -27,7 +27,9 @@ const VIEW_GROUPS: [ViewType, string][] = [
   ["Plan", "Floor Plans"],
   ["CeilingPlan", "Ceiling Plans"],
   ["Elevation", "Elevations"],
+  ["Section", "Sections"],
   ["ThreeD", "3D Views"],
+  ["Schedule", "Schedules"],
 ];
 
 export function ProjectBrowser() {
@@ -64,6 +66,14 @@ export function ProjectBrowser() {
               </Section>
             );
           })}
+        </Section>
+        <Section title="Sheets">
+          {app.views
+            .filter((v) => v.viewType === "Sheet")
+            .map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
+          {!app.views.some((v) => v.viewType === "Sheet") && (
+            <div className="pb-empty">No sheets yet — use New Sheet.</div>
+          )}
         </Section>
         <Section title="Families">
           <Section title="Walls" start={false}>

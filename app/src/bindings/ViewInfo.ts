@@ -2,4 +2,8 @@
 import type { ElementId } from "./ElementId";
 import type { ViewType } from "./ViewType";
 
-export type ViewInfo = { id: ElementId, name: string, viewType: ViewType, scale: number, scaleLabel: string, level: ElementId | null, };
+export type ViewInfo = { id: ElementId, name: string, viewType: ViewType, scale: number, scaleLabel: string, level: ElementId | null, 
+/**
+ * Sheet this view is placed on, if any (schedules may be on several; this is the first).
+ */
+onSheet: ElementId | null, };

@@ -25,6 +25,7 @@ studio-io.workspace = true
 studio-views.workspace = true
 studio-regen.workspace = true
 studio-geom.workspace = true
+studio-sheets.workspace = true
 
 [lints]
 workspace = true

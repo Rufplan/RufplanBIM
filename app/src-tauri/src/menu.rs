@@ -13,6 +13,7 @@ pub const FILE_OPEN: &str = "file.open";
 pub const FILE_SAVE: &str = "file.save";
 pub const FILE_SAVE_AS: &str = "file.save_as";
 pub const FILE_EXIT: &str = "file.exit";
+pub const FILE_EXPORT_PDF: &str = "file.export_pdf";
 pub const EDIT_UNDO: &str = "edit.undo";
 pub const EDIT_REDO: &str = "edit.redo";
 pub const EDIT_DELETE: &str = "edit.delete";
@@ -31,6 +32,8 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .separator()
         .item(&item(FILE_SAVE, "&Save", Some("CmdOrCtrl+S"))?)
         .item(&item(FILE_SAVE_AS, "Save &As…", Some("CmdOrCtrl+Shift+S"))?)
+        .separator()
+        .item(&item(FILE_EXPORT_PDF, "&Export PDF…", Some("CmdOrCtrl+P"))?)
         .separator()
         .item(&item(FILE_EXIT, "E&xit", None)?)
         .build()?;

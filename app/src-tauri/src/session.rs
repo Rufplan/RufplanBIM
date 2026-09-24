@@ -37,6 +37,8 @@ pub struct ViewInfo {
     pub scale: u32,
     pub scale_label: String,
     pub level: Option<ElementId>,
+    /// Sheet this view is placed on, if any (schedules may be on several; this is the first).
+    pub on_sheet: Option<ElementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -140,8 +142,15 @@ impl Session {
             v
         };
         let levels = doc.levels();
+        let mut placed = std::collections::HashMap::new();
+        for e in doc.of(Category::Viewport) {
+            if let ElementData::Viewport { sheet, view, .. } = &e.data {
+                placed.entry(*view).or_insert(*sheet);
+            }
+        }
         let mut views: Vec<ViewInfo> = doc
-            .of(Category::View)
+            .iter()
+            .filter(|e| matches!(e.category(), Category::View | Category::Sheet))
             .filter_map(|e| match &e.data {
                 ElementData::View { name, kind, scale } => {
                     let (view_type, level) = match kind {
@@ -149,16 +158,32 @@ impl Session {
                         ViewKind::CeilingPlan { level } => (ViewType::CeilingPlan, Some(*level)),
                         ViewKind::Elevation { .. } => (ViewType::Elevation, None),
                         ViewKind::ThreeD => (ViewType::ThreeD, None),
+                        ViewKind::Section { .. } => (ViewType::Section, None),
+                        ViewKind::Schedule { .. } => (ViewType::Schedule, None),
                     };
                     Some(ViewInfo {
                         id: e.id,
                         name: name.clone(),
                         view_type,
                         scale: *scale,
-                        scale_label: ops::scale_label(*scale),
+                        scale_label: if matches!(kind, ViewKind::Schedule { .. }) {
+                            String::new()
+                        } else {
+                            ops::scale_label(*scale)
+                        },
                         level,
+                        on_sheet: placed.get(&e.id).copied(),
                     })
                 }
+                ElementData::Sheet { .. } => Some(ViewInfo {
+                    id: e.id,
+                    name: e.data.name(),
+                    view_type: ViewType::Sheet,
+                    scale: 1,
+                    scale_label: String::new(),
+                    level: None,
+                    on_sheet: None,
+                }),
                 _ => None,
             })
             .collect();
@@ -252,6 +277,23 @@ impl Session {
             ops::ensure_opening_types(&mut project.doc)?;
             project.doc.clear_history();
             project.doc.mark_saved();
+        }
+        if !project.doc.iter().any(|e| {
+            matches!(
+                &e.data,
+                ElementData::View {
+                    kind: ViewKind::Schedule { .. },
+                    ..
+                }
+            )
+        }) {
+            // Saved before schedules existed.
+            let dirty = project.doc.is_dirty();
+            ops::ensure_schedules(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
         }
         self.project = Some(project);
         self.path = Some(path.to_owned());
@@ -396,6 +438,123 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
         let r = ops::create_room(doc, level, ft(x, y))?;
         ops::set_property(doc, r, "name", name, 0)?;
     }
+    build_sample_documents(doc, ft)
+}
+
+/// The sample drawing set: a section, dimensions and four ARCH D sheets.
+fn build_sample_documents(
+    doc: &mut Document,
+    ft: impl Fn(f64, f64) -> studio_geom::Pt,
+) -> anyhow::Result<()> {
+    use studio_core::{ScheduleKind, SheetSize};
+    let view_where = |doc: &Document, pred: &dyn Fn(&ViewKind, &str) -> bool| {
+        doc.of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind, name, .. } if pred(kind, name)))
+            .map(|e| e.id)
+            .context("missing sample view")
+    };
+    let levels = doc.levels();
+    let (l1, l2) = (levels[0].0, levels[1].0);
+    let plan1 = view_where(
+        doc,
+        &|k, _| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+    )?;
+    let plan2 = view_where(
+        doc,
+        &|k, _| matches!(k, ViewKind::FloorPlan { level } if *level == l2),
+    )?;
+    // Overall dimensions on the Level 1 plan (outside faces: walls are 8" thick).
+    let face = 4.0 / 12.0;
+    ops::create_dimension(
+        doc,
+        plan1,
+        ft(-face, -face),
+        ft(40.0 + face, -face),
+        -6.0 * studio_core::units::MM_PER_FT,
+    )?;
+    ops::create_dimension(
+        doc,
+        plan1,
+        ft(-face, 30.0 + face),
+        ft(-face, -face),
+        -6.0 * studio_core::units::MM_PER_FT,
+    )?;
+    ops::create_dimension(
+        doc,
+        plan1,
+        ft(0.0, 30.0 + face),
+        ft(16.0, 30.0 + face),
+        3.5 * studio_core::units::MM_PER_FT,
+    )?;
+    ops::create_dimension(
+        doc,
+        plan1,
+        ft(16.0, 30.0 + face),
+        ft(40.0, 30.0 + face),
+        3.5 * studio_core::units::MM_PER_FT,
+    )?;
+    // A cross section through the Living room and Kitchen, looking north.
+    let section = ops::create_section(doc, ft(-4.0, 18.0), ft(44.0, 18.0))?;
+
+    let schedule = |doc: &Document, kind: ScheduleKind| {
+        view_where(
+            doc,
+            &|k, _| matches!(k, ViewKind::Schedule { kind: s } if *s == kind),
+        )
+    };
+    let elevation = |doc: &Document, name: &str| {
+        view_where(doc, &|k, n| {
+            matches!(k, ViewKind::Elevation { .. }) && n == name
+        })
+    };
+    let p = studio_geom::Pt::new;
+
+    let cover = ops::create_sheet(doc, "Cover Sheet", SheetSize::ArchD)?;
+    ops::set_property(doc, cover, "number", "A0.0", 0)?;
+    ops::place_view(
+        doc,
+        cover,
+        schedule(doc, ScheduleKind::Sheets)?,
+        p(260.0, 420.0),
+    )?;
+    ops::place_view(
+        doc,
+        cover,
+        schedule(doc, ScheduleKind::Rooms)?,
+        p(560.0, 420.0),
+    )?;
+
+    let plans = ops::create_sheet(doc, "Floor Plans", SheetSize::ArchD)?;
+    ops::set_property(doc, plans, "number", "A1.0", 0)?;
+    ops::place_view(doc, plans, plan1, p(225.0, 330.0))?;
+    ops::place_view(doc, plans, plan2, p(595.0, 330.0))?;
+
+    let elevs = ops::create_sheet(doc, "Exterior Elevations", SheetSize::ArchD)?;
+    ops::set_property(doc, elevs, "number", "A2.0", 0)?;
+    for (name, x, y) in [
+        ("South", 225.0, 440.0),
+        ("North", 595.0, 440.0),
+        ("East", 225.0, 175.0),
+        ("West", 595.0, 175.0),
+    ] {
+        ops::place_view(doc, elevs, elevation(doc, name)?, p(x, y))?;
+    }
+
+    let sections = ops::create_sheet(doc, "Sections and Schedules", SheetSize::ArchD)?;
+    ops::set_property(doc, sections, "number", "A3.0", 0)?;
+    ops::place_view(doc, sections, section, p(300.0, 380.0))?;
+    ops::place_view(
+        doc,
+        sections,
+        schedule(doc, ScheduleKind::Doors)?,
+        p(650.0, 470.0),
+    )?;
+    ops::place_view(
+        doc,
+        sections,
+        schedule(doc, ScheduleKind::Windows)?,
+        p(650.0, 300.0),
+    )?;
     Ok(())
 }
 
@@ -429,7 +588,7 @@ mod tests {
         s.new_project("0.0.1").unwrap();
         let state = s.state().unwrap();
         assert_eq!(state.project.name, "Untitled");
-        assert_eq!(state.views.len(), 9);
+        assert_eq!(state.views.len(), 13);
         assert_eq!(state.views[0].view_type, ViewType::Plan);
         assert_eq!(state.levels.len(), 2);
         assert!(state.current_stage.is_some());
@@ -458,6 +617,23 @@ mod tests {
         assert_eq!(other.doc().unwrap().of(Category::Wall).count(), 1);
     }
 
+    /// Dev aid: `cargo test -p rufplan-studio write_sample_pdf -- --ignored` writes the
+    /// sample drawing set to target/sample-drawing-set.pdf for visual review.
+    #[test]
+    #[ignore]
+    fn write_sample_pdf() {
+        let mut s = Session::default();
+        s.new_sample("0.0.1").unwrap();
+        let doc = s.doc().unwrap();
+        let sheets: Vec<_> = ops::sheets(doc).into_iter().map(|x| x.0).collect();
+        let pdf = studio_sheets::export_pdf(doc, &sheets, "2026-09-24").unwrap();
+        let out = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../target/sample-drawing-set.pdf"
+        );
+        std::fs::write(out, pdf).unwrap();
+    }
+
     #[test]
     fn sample_project_has_a_building() {
         let mut s = Session::default();
@@ -476,6 +652,23 @@ mod tests {
             rooms.iter().all(|r| r.boundary.is_some()),
             "every sample room is enclosed"
         );
+        assert_eq!(
+            studio_core::ops::sheets(doc)
+                .iter()
+                .map(|s| s.1.as_str())
+                .collect::<Vec<_>>(),
+            ["A0.0", "A1.0", "A2.0", "A3.0"]
+        );
+        let pdf = studio_sheets::export_pdf(
+            doc,
+            &studio_core::ops::sheets(doc)
+                .iter()
+                .map(|s| s.0)
+                .collect::<Vec<_>>(),
+            "2026-09-24",
+        )
+        .unwrap();
+        assert!(pdf.len() > 10_000);
         let state = s.state().unwrap();
         assert_eq!(state.project_name, "Sample House");
         assert_eq!(state.undo, None);

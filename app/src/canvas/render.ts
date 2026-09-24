@@ -29,6 +29,7 @@ const FILL: Record<FillKind, string> = {
   Ink: "#0a0a0a",
   Glass: "#dff5fd",
   Room: "rgba(0, 0, 0, 0)",
+  Accent: "#3ECFF7",
 };
 
 /** Pen weights 1–6 in screen pixels. */
@@ -170,7 +171,16 @@ export function draw(
         ctx.textAlign = p.anchor === "Left" ? "left" : p.anchor === "Right" ? "right" : "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = isSel ? THEME.cyan : THEME.ink;
-        ctx.fillText(p.text, sx, sy);
+        if (p.angle) {
+          // Model angles are counter-clockwise with y up; the canvas y axis points down.
+          ctx.save();
+          ctx.translate(sx, sy);
+          ctx.rotate(-p.angle);
+          ctx.fillText(p.text, 0, 0);
+          ctx.restore();
+        } else {
+          ctx.fillText(p.text, sx, sy);
+        }
         break;
       }
     }

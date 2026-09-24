@@ -88,7 +88,12 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const s = useAppStore.getState();
       draw(ctx, dl, cam.current, w, h, { selected: new Set(s.selection), hover: hover.current });
-      const placing = s.tool === "door" || s.tool === "window" || s.tool === "room";
+      // Placing with a Rust-computed preview: openings, rooms, and a dimension's final click.
+      const placing =
+        s.tool === "door" ||
+        s.tool === "window" ||
+        s.tool === "room" ||
+        (s.tool === "dimension" && pts.current.length === 2);
       if (placing && preview.current) {
         const { items, valid, label, at } = preview.current;
         drawPreview(ctx, cam.current, w, h, items, valid ? THEME.cyan : "#c0352b", label, at);
@@ -188,6 +193,14 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const snapAt = useLatest(async (p: Pt, tol: number) => {
     const from = pts.current[pts.current.length - 1] ?? null;
     snapRef.current = await ipc.snap(view.id, p, from, tol);
+    redraw();
+  });
+
+  const dimensionAt = useLatest(async (p: Pt) => {
+    const [a, b] = pts.current;
+    if (!a || !b) return;
+    const d = await ipc.dimensionPreview(view.id, a, b, p);
+    preview.current = d ? { items: d.items, valid: true, label: "", at: p } : null;
     redraw();
   });
 
@@ -297,6 +310,36 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     }
     const from = pts.current[pts.current.length - 1] ?? null;
     const p = (await ipc.snap(view.id, raw, from, tol)).pt;
+    if (s.tool === "dimension") {
+      const [a, b] = pts.current;
+      if (a && b) {
+        const pv = await ipc.dimensionPreview(view.id, a, b, raw);
+        pts.current = [];
+        preview.current = null;
+        if (pv) await apply(() => ipc.createDimension(view.id, a, b, pv.offset));
+      } else if (!from || !samePt(from, p)) {
+        pts.current = [...pts.current, p];
+      }
+      s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
+      redraw();
+      return;
+    }
+    if (s.tool === "text") {
+      const text = window.prompt("Text note", "");
+      if (text !== null) await apply(() => ipc.createText(view.id, raw, text));
+      return;
+    }
+    if (s.tool === "section") {
+      if (!from) {
+        pts.current = [p];
+      } else if (!samePt(from, p)) {
+        pts.current = [];
+        await apply(() => ipc.createSection(from, p));
+      }
+      s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
+      redraw();
+      return;
+    }
     if (s.tool === "move") {
       const selection = s.selection;
       if (selection.length === 0) {
@@ -414,13 +457,20 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
           if (!cam.current) return;
           const p = modelAt(sx, sy);
           const ft = (mm: number) => (mm / 304.8).toFixed(2);
+          const inch = (mm: number) => (mm / 25.4).toFixed(2);
+          const vertical = view.viewType === "Elevation" || view.viewType === "Section" ? "Z" : "Y";
           useAppStore
             .getState()
-            .setCursor(`X ${ft(p.x)}'   ${view.viewType === "Elevation" ? "Z" : "Y"} ${ft(p.y)}'`);
+            .setCursor(
+              view.viewType === "Sheet"
+                ? `PAPER X ${inch(p.x)}"   Y ${inch(p.y)}"`
+                : `X ${ft(p.x)}'   ${vertical} ${ft(p.y)}'`,
+            );
           const s = useAppStore.getState();
           if (s.tool === "select") hoverPick(p, 6 / cam.current.zoom);
           else if (s.tool === "door" || s.tool === "window" || s.tool === "room")
             previewAt(p, 12 / cam.current.zoom);
+          else if (s.tool === "dimension" && pts.current.length === 2) dimensionAt(p);
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
         }}
         onMouseUp={(e) => {

@@ -17,6 +17,8 @@ export const SHORTCUTS: Record<string, Tool> = {
   WN: "window",
   RM: "room",
   MV: "move",
+  DI: "dimension",
+  TX: "text",
 };
 
 /** Tools that need a plan view (they place elements on the view's level). */
@@ -32,8 +34,13 @@ export const PLAN_TOOLS: Tool[] = [
 
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
-  if (tool === "level") return view === "Elevation";
-  if (tool === "room") return view === "Plan";
+  if (tool === "level") return view === "Elevation" || view === "Section";
+  if (tool === "room" || tool === "section") return view === "Plan";
+  // Move works in plan coordinates, and on sheets for viewports.
+  if (tool === "move") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
+  if (tool === "dimension" || tool === "text") {
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
+  }
   if (tool === "grid") return view === "Plan" || view === "CeilingPlan";
   return view === "Plan" || view === "CeilingPlan";
 }
@@ -43,6 +50,9 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
   if (!toolAllowed(tool, view)) {
     if (tool === "level") return "Open an elevation to place levels.";
     if (tool === "room") return "Open a floor plan to place rooms.";
+    if (tool === "section") return "Open a floor plan to draw a section line.";
+    if (tool === "dimension" || tool === "text")
+      return "Open a plan, elevation or section to annotate.";
     return "Open a floor or ceiling plan to use this tool.";
   }
   switch (tool) {
@@ -74,6 +84,18 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return n === 0
         ? "Click a base point to move the selection from (select elements first)."
         : "Click the destination. Joined walls stretch to follow.";
+    case "dimension":
+      return n === 0
+        ? "Click the first point to dimension from."
+        : n === 1
+          ? "Click the second point."
+          : "Move to place the dimension line, then click.";
+    case "text":
+      return "Click where the text note goes.";
+    case "section":
+      return n === 0
+        ? "Click the section line's start. The section looks to the left of the line."
+        : "Click the end of the section line.";
   }
 }
 

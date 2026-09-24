@@ -1,12 +1,16 @@
 import { activeViewInfo, useAppStore } from "../store";
 import { ViewCanvas } from "./ViewCanvas";
 import { View3D } from "./View3D";
+import { ScheduleView } from "./ScheduleView";
 
 const TYPE_LABEL = {
   Plan: "Floor Plan",
   CeilingPlan: "Ceiling Plan",
   Elevation: "Elevation",
   ThreeD: "3D",
+  Section: "Section",
+  Schedule: "Schedule",
+  Sheet: "Sheet",
 } as const;
 
 export function Workspace() {
@@ -19,7 +23,7 @@ export function Workspace() {
   if (!app) return null;
   return (
     <section className="workspace">
-      <div className="tabs" role="tablist">
+      <div className="tabs" role="tablist" aria-label="Open views">
         {openViews.map((id) => {
           const v = app.views.find((x) => x.id === id);
           if (!v) return null;
@@ -49,6 +53,8 @@ export function Workspace() {
         {view ? (
           view.viewType === "ThreeD" ? (
             <View3D key={view.id} />
+          ) : view.viewType === "Schedule" ? (
+            <ScheduleView key={view.id} view={view} />
           ) : (
             <ViewCanvas key={view.id} view={view} />
           )

@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { deleteSelection } from "../fileActions";
+import { useState, type ReactNode } from "react";
+import { deleteSelection, exportPdf, newSheet, placeOnActiveSheet } from "../fileActions";
 import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
@@ -42,46 +42,71 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+type Tab = "Architecture" | "Annotate" | "View";
+const TABS: Tab[] = ["Architecture", "Annotate", "View"];
+
 export function Ribbon() {
+  const [tab, setTab] = useState<Tab>("Architecture");
   const hasSelection = useAppStore((s) => s.selection.length > 0);
   const app = useAppStore((s) => s.app);
   const openView = useAppStore((s) => s.openView);
   const view3d = app?.views.find((v) => v.viewType === "ThreeD");
+  const activeIsSheet = useAppStore((s) => activeViewInfo(s)?.viewType === "Sheet");
+  // Drawing views go on one sheet only; schedules can repeat; 3D and sheets can't be placed.
+  const placeable = (app?.views ?? []).filter(
+    (v) =>
+      v.viewType === "Schedule" ||
+      (v.viewType !== "ThreeD" && v.viewType !== "Sheet" && v.onSheet === null),
+  );
   return (
     <div className="ribbon" role="toolbar" aria-label="Tools">
-      <div className="rb-tabs">
-        <span className="rb-tab active">Architecture</span>
+      <div className="rb-tabs" role="tablist" aria-label="Ribbon tabs">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            className={`rb-tab${tab === t ? " active" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {t}
+          </button>
+        ))}
       </div>
       <div className="rb-body">
         <Group title="Select">
           <ToolButton tool="select" label="Modify" icon={Icons.select} keys="MD / Esc" />
         </Group>
-        <Group title="Build">
-          <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
-          <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
-          <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
-          <ToolButton
-            tool="floorAuto"
-            label="Floor"
-            icon={Icons.floorAuto}
-            keys="FP — pick walls"
-          />
-          <ToolButton tool="floor" label="Floor Sketch" icon={Icons.floor} keys="SB" />
-          <ToolButton
-            tool="ceilingAuto"
-            label="Ceiling"
-            icon={Icons.ceiling}
-            keys="CL — auto room"
-          />
-          <ToolButton tool="ceiling" label="Ceiling Sketch" icon={Icons.floor} keys="CS" />
-        </Group>
-        <Group title="Datum">
-          <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
-          <ToolButton tool="grid" label="Grid" icon={Icons.grid} keys="GR" />
-        </Group>
-        <Group title="Room">
-          <ToolButton tool="room" label="Room" icon={Icons.room} keys="RM" />
-        </Group>
+        {tab === "Architecture" && (
+          <>
+            <Group title="Build">
+              <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
+              <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
+              <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
+              <ToolButton
+                tool="floorAuto"
+                label="Floor"
+                icon={Icons.floorAuto}
+                keys="FP — pick walls"
+              />
+              <ToolButton tool="floor" label="Floor Sketch" icon={Icons.floor} keys="SB" />
+              <ToolButton
+                tool="ceilingAuto"
+                label="Ceiling"
+                icon={Icons.ceiling}
+                keys="CL — auto room"
+              />
+              <ToolButton tool="ceiling" label="Ceiling Sketch" icon={Icons.floor} keys="CS" />
+            </Group>
+            <Group title="Datum">
+              <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
+              <ToolButton tool="grid" label="Grid" icon={Icons.grid} keys="GR" />
+            </Group>
+            <Group title="Room">
+              <ToolButton tool="room" label="Room" icon={Icons.room} keys="RM" />
+            </Group>
+          </>
+        )}
         <Group title="Modify">
           <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
           <button
@@ -94,25 +119,74 @@ export function Ribbon() {
             <span>Delete</span>
           </button>
         </Group>
-        <Group title="View">
-          <button
-            className="rb-btn"
-            onClick={() => view3d && openView(view3d.id)}
-            disabled={!view3d}
-            title="Default 3D view"
-          >
-            {Icons.view3d}
-            <span>3D View</span>
-          </button>
-          <button
-            className="rb-btn"
-            onClick={() => window.dispatchEvent(new Event("view-fit"))}
-            title="Zoom to fit (ZF)"
-          >
-            {Icons.fit}
-            <span>Zoom Fit</span>
-          </button>
-        </Group>
+        {tab === "Annotate" && (
+          <Group title="Annotate">
+            <ToolButton tool="dimension" label="Dimension" icon={Icons.dimension} keys="DI" />
+            <ToolButton tool="text" label="Text" icon={Icons.text} keys="TX" />
+          </Group>
+        )}
+        {tab === "View" && (
+          <>
+            <Group title="View">
+              <ToolButton
+                tool="section"
+                label="Section"
+                icon={Icons.section}
+                keys="draw in a plan"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => view3d && openView(view3d.id)}
+                disabled={!view3d}
+                title="Default 3D view"
+              >
+                {Icons.view3d}
+                <span>3D View</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => window.dispatchEvent(new Event("view-fit"))}
+                title="Zoom to fit (ZF)"
+              >
+                {Icons.fit}
+                <span>Zoom Fit</span>
+              </button>
+            </Group>
+            <Group title="Sheets">
+              <button className="rb-btn" onClick={() => void newSheet()} title="New ARCH D sheet">
+                {Icons.sheet}
+                <span>New Sheet</span>
+              </button>
+              <label
+                className={`rb-place${activeIsSheet ? "" : " disabled"}`}
+                title="Place a view on the open sheet"
+              >
+                {Icons.place}
+                <select
+                  aria-label="Place view on sheet"
+                  value=""
+                  disabled={!activeIsSheet}
+                  onChange={(e) => e.target.value && void placeOnActiveSheet(e.target.value)}
+                >
+                  <option value="">Place View</option>
+                  {placeable.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.viewType === "CeilingPlan" ? "Ceiling Plan" : v.viewType})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="rb-btn"
+                onClick={() => void exportPdf()}
+                title="Export all sheets to PDF (Ctrl+P)"
+              >
+                {Icons.pdf}
+                <span>Export PDF</span>
+              </button>
+            </Group>
+          </>
+        )}
       </div>
     </div>
   );

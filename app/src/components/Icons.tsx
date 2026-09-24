@@ -27,6 +27,44 @@ export const Icons = {
       <path d="M3 8l4 8M9 8l4 8M15 8l4 8" stroke="#fff" strokeWidth="1" />
     </I>
   ),
+  dimension: (
+    <I>
+      <path d="M3 8v8M21 8v8M3 12h18" />
+      <path d="M1.5 13.5l3-3M19.5 13.5l3-3" strokeWidth="2" />
+    </I>
+  ),
+  text: (
+    <I>
+      <path d="M5 5h14M12 5v14M9 19h6" strokeWidth="2" />
+    </I>
+  ),
+  section: (
+    <I>
+      <path d="M4 12h16" strokeDasharray="4 2 1 2" />
+      <circle cx="4" cy="12" r="2.6" />
+      <path d="M4 6.5l2.5 3h-5z" fill="currentColor" stroke="none" />
+    </I>
+  ),
+  sheet: (
+    <I>
+      <path d="M3 5h18v14H3z" />
+      <path d="M16 5v14M16 15h5" />
+      <path d="M16 7h5" stroke="#3ECFF7" strokeWidth="2.4" />
+    </I>
+  ),
+  place: (
+    <I>
+      <path d="M3 5h18v14H3z" />
+      <path d="M7 9h6v6H7z" fill="currentColor" fillOpacity="0.25" />
+    </I>
+  ),
+  pdf: (
+    <I>
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M15 3v4h4" />
+      <path d="M9 13h6M9 16h6M9 10h3" strokeWidth="1.2" />
+    </I>
+  ),
   room: (
     <I>
       <path d="M3 4h18v16H3z" strokeWidth="2.2" />

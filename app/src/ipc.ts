@@ -10,6 +10,8 @@ import type { ElementId } from "./bindings/ElementId";
 import type { Mesh } from "./bindings/Mesh";
 import type { OpeningPreview } from "./bindings/OpeningPreview";
 import type { RoomPreview } from "./bindings/RoomPreview";
+import type { Table } from "./bindings/Table";
+import type { DimensionPreview } from "./bindings/DimensionPreview";
 import type { PropertySheet } from "./bindings/PropertySheet";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
 import type { Pt } from "./bindings/Pt";
@@ -26,6 +28,8 @@ export type {
   OpeningPreview,
   PropertySheet,
   RoomPreview,
+  Table,
+  DimensionPreview,
   ProjectStatus,
   Pt,
   SnapResult,
@@ -63,13 +67,27 @@ export const ipc = {
   /** Either a sketched boundary, or `inside` a room enclosed by walls. */
   createCeiling: (view: ElementId, typeId: ElementId, boundary: Pt[], inside: Pt | null): S =>
     invoke("create_ceiling", { view, typeId, boundary, inside }),
-  /** Where a door/window of `typeId` would go for the cursor at `point` (plan views). */
+  createSection: (start: Pt, end: Pt): S => invoke("create_section", { start, end }),
+  /** The dimension a→b with its line through `cursor`. */
+  dimensionPreview: (view: ElementId, a: Pt, b: Pt, cursor: Pt) =>
+    invoke<DimensionPreview | null>("dimension_preview", { view, a, b, cursor }),
+  createDimension: (view: ElementId, a: Pt, b: Pt, offset: number): S =>
+    invoke("create_dimension", { view, a, b, offset }),
+  createText: (view: ElementId, at: Pt, text: string): S =>
+    invoke("create_text", { view, at, text }),
+  createSheet: (name: string, tabloid: boolean): S => invoke("create_sheet", { name, tabloid }),
+  /** Places `view` in the middle of `sheet`. */
+  placeView: (sheet: ElementId, view: ElementId): S => invoke("place_view", { sheet, view }),
+  scheduleTable: (view: ElementId) => invoke<Table | null>("schedule_table", { view }),
+  /** Writes every sheet to a PDF; resolves to the number of sheets. */
+  exportPdf: (path: string) => invoke<number>("export_pdf", { path }),
   /** The enclosed area a room at `point` would fill (floor plans). */
   roomPreview: (view: ElementId, point: Pt) =>
     invoke<RoomPreview | null>("room_preview", { view, point }),
   createRoom: (view: ElementId, point: Pt): S => invoke("create_room", { view, point }),
   /** Moves elements by `delta` mm; joined walls stretch to follow. */
   moveElements: (ids: ElementId[], delta: Pt): S => invoke("move_elements", { ids, delta }),
+  /** Where a door/window of `typeId` would go for the cursor at `point` (plan views). */
   openingPreview: (view: ElementId, typeId: ElementId, point: Pt, tol: number) =>
     invoke<OpeningPreview | null>("opening_preview", { view, typeId, point, tol }),
   createOpening: (typeId: ElementId, host: ElementId, offset: number, flipFacing: boolean): S =>
@@ -96,6 +114,8 @@ export const dialogs = {
   },
   pickProjectSaveLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.rfproj`, filters: PROJECT_FILTER }),
+  pickPdfLocation: (defaultName: string): Promise<string | null> =>
+    save({ defaultPath: `${defaultName}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] }),
 };
 
 /** Turns anything a command rejects with into a user-facing message. */
