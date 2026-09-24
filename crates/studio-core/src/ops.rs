@@ -356,6 +356,7 @@ fn next_mark(doc: &Document, cat: Category) -> String {
             ElementData::Door { mark, .. } | ElementData::Window { mark, .. } => {
                 mark.parse::<u32>().ok()
             }
+            ElementData::Room { number, .. } => number.parse::<u32>().ok(),
             _ => None,
         })
         .max()
@@ -388,6 +389,20 @@ pub fn create_door(
 }
 
 /// Places a window in `host` at the type's default sill height.
+/// Places a room at `point` on `level`, named "Room" with the next free number. The
+/// caller checks that the point is enclosed (that needs derived geometry).
+pub fn create_room(doc: &mut Document, level: ElementId, point: Pt) -> CoreResult<ElementId> {
+    let number = next_mark(doc, Category::Room);
+    doc.transact("Place room", |tx| {
+        Ok(tx.insert(ElementData::Room {
+            level,
+            point,
+            name: "Room".into(),
+            number,
+        }))
+    })
+}
+
 pub fn create_window(
     doc: &mut Document,
     type_id: ElementId,
@@ -817,6 +832,21 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 stage_history.len().to_string(),
             ));
         }
+        ElementData::Room {
+            level,
+            name,
+            number,
+            ..
+        } => {
+            props.push(text("name", "Name", "Identity Data", name));
+            props.push(text("number", "Number", "Identity Data", number));
+            props.push(ro(
+                "level",
+                "Level",
+                "Constraints",
+                doc.data(*level).map(|d| d.name()).unwrap_or_default(),
+            ));
+        }
         ElementData::DoorType {
             name,
             family,
@@ -1085,6 +1115,11 @@ pub fn set_property(
             "number" => *number = value.into(),
             "client" => *client = value.into(),
             "address" => *address = value.into(),
+            _ => return Err(unknown()),
+        },
+        ElementData::Room { name, number, .. } => match key {
+            "name" => *name = non_empty(value)?,
+            "number" => *number = non_empty(value)?,
             _ => return Err(unknown()),
         },
         ElementData::DoorType {

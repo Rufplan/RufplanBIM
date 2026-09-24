@@ -3,6 +3,7 @@
 pub mod document;
 pub mod element;
 pub mod hosting;
+pub mod modify;
 pub mod ops;
 pub mod units;
 

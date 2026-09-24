@@ -61,6 +61,7 @@ pub enum Category {
     Door,
     WindowType,
     Window,
+    Room,
 }
 
 impl Category {
@@ -81,6 +82,7 @@ impl Category {
             Category::Door => "Door",
             Category::WindowType => "WindowType",
             Category::Window => "Window",
+            Category::Room => "Room",
         }
     }
 }
@@ -261,6 +263,14 @@ pub enum ElementData {
         flip_facing: bool,
         mark: String,
     },
+    /// A room: a named, numbered space on a level. Its boundary is derived from the walls
+    /// enclosing `point` and is not stored.
+    Room {
+        level: ElementId,
+        point: Pt,
+        name: String,
+        number: String,
+    },
     /// A design stage (ADR-010).
     Stage {
         name: String,
@@ -298,6 +308,7 @@ impl ElementData {
             ElementData::Door { .. } => Category::Door,
             ElementData::WindowType { .. } => Category::WindowType,
             ElementData::Window { .. } => Category::Window,
+            ElementData::Room { .. } => Category::Room,
         }
     }
 
@@ -320,6 +331,7 @@ impl ElementData {
             | ElementData::Ceiling { type_id, level, .. } => {
                 vec![*type_id, *level]
             }
+            ElementData::Room { level, .. } => vec![*level],
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
                 vec![*type_id, *host]
             }
@@ -346,6 +358,7 @@ impl ElementData {
             | ElementData::Stage { name, .. } => name.clone(),
             ElementData::Door { mark, .. } => format!("Door {mark}"),
             ElementData::Window { mark, .. } => format!("Window {mark}"),
+            ElementData::Room { name, number, .. } => format!("{name} {number}"),
             ElementData::Grid { name, .. } => format!("Grid {name}"),
             ElementData::Wall { .. } => "Wall".into(),
             ElementData::Floor { .. } => "Floor".into(),
@@ -358,7 +371,9 @@ impl ElementData {
     pub fn level(&self) -> Option<ElementId> {
         match self {
             ElementData::Wall { base_level, .. } => Some(*base_level),
-            ElementData::Floor { level, .. } | ElementData::Ceiling { level, .. } => Some(*level),
+            ElementData::Floor { level, .. }
+            | ElementData::Ceiling { level, .. }
+            | ElementData::Room { level, .. } => Some(*level),
             ElementData::View {
                 kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
                 ..

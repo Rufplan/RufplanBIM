@@ -112,6 +112,33 @@ pub struct LevelInfo {
     pub elevation: f64,
 }
 
+/// A room with its derived boundary: the inside faces of the walls enclosing its point.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RoomInfo {
+    pub id: ElementId,
+    pub level: ElementId,
+    pub name: String,
+    pub number: String,
+    pub point: Pt,
+    /// None when the point isn't enclosed by walls ("Not Enclosed").
+    pub boundary: Option<Vec<Pt>>,
+}
+
+impl RoomInfo {
+    /// Area in mm², zero when not enclosed.
+    pub fn area(&self) -> f64 {
+        self.boundary
+            .as_deref()
+            .map_or(0.0, |b| studio_geom::signed_area(b).abs())
+    }
+    /// Perimeter in mm, zero when not enclosed.
+    pub fn perimeter(&self) -> f64 {
+        self.boundary.as_deref().map_or(0.0, |b| {
+            (0..b.len()).map(|i| b[i].dist(b[(i + 1) % b.len()])).sum()
+        })
+    }
+}
+
 /// Everything derived from the document that views need.
 #[derive(Debug, Clone, Default)]
 pub struct Model {
@@ -121,6 +148,7 @@ pub struct Model {
     pub grids: Vec<GridLine>,
     pub levels: Vec<LevelInfo>,
     pub openings: Vec<OpeningSolid>,
+    pub rooms: Vec<RoomInfo>,
 }
 
 impl Model {
@@ -329,14 +357,17 @@ pub fn regenerate(doc: &Document) -> Model {
         })
         .collect();
 
-    Model {
+    let mut model = Model {
+        rooms: vec![],
         openings,
         walls,
         floors: slab(Category::Floor),
         ceilings: slab(Category::Ceiling),
         grids,
         levels,
-    }
+    };
+    model.rooms = resolve_rooms(doc, &model);
+    model
 }
 
 /// Rounds to a 0.0001 mm grid so corners shared by two walls, computed independently,
@@ -450,6 +481,58 @@ fn end_corners(p: Pt, u: Pt, h: f64, partner: Option<(Pt, f64)>) -> (Pt, Pt) {
         (Some(l), Some(r)) if l.dist(p) <= limit && r.dist(p) <= limit => (l, r),
         _ => butt,
     }
+}
+
+fn resolve_rooms(doc: &Document, model: &Model) -> Vec<RoomInfo> {
+    let mut regions: std::collections::HashMap<ElementId, Vec<Poly>> =
+        std::collections::HashMap::new();
+    doc.of(Category::Room)
+        .filter_map(|e| match &e.data {
+            ElementData::Room {
+                level,
+                point,
+                name,
+                number,
+            } => {
+                let regs = regions
+                    .entry(*level)
+                    .or_insert_with(|| wall_regions(model, *level));
+                Some(RoomInfo {
+                    id: e.id,
+                    level: *level,
+                    name: name.clone(),
+                    number: number.clone(),
+                    point: *point,
+                    boundary: hole_containing(regs, *point),
+                })
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// The smallest hole (enclosed area inside wall faces) that contains `pt`.
+fn hole_containing(regions: &[Poly], pt: Pt) -> Option<Vec<Pt>> {
+    regions
+        .iter()
+        .flat_map(|r| r.holes.iter())
+        .filter(|h| studio_geom::point_in_ring(pt, h))
+        .min_by(|a, b| {
+            studio_geom::signed_area(a)
+                .abs()
+                .total_cmp(&studio_geom::signed_area(b).abs())
+        })
+        .cloned()
+}
+
+/// The existing room, if any, whose enclosed area contains `pt` on `level`.
+pub fn room_occupying(model: &Model, level: ElementId, pt: Pt) -> Option<&RoomInfo> {
+    let area = room_at(model, level, pt)?;
+    model
+        .rooms
+        .iter()
+        .filter(|r| r.level == level)
+        .find(|r| studio_geom::point_in_ring(r.point, &area))
 }
 
 /// Union of the footprints of walls based on `level`.
@@ -660,6 +743,38 @@ mod tests {
         let full = 5000.0 * t * 10.0 * MM_PER_FT;
         let holes = t * (36.0 * 84.0 + 48.0 * 48.0) * MM_PER_IN * MM_PER_IN;
         assert!((vol - (full - holes)).abs() / full < 1e-9);
+    }
+
+    #[test]
+    fn room_area_follows_walls_and_reports_not_enclosed() {
+        let (mut doc, l1, wt) = project();
+        let walls = rectangle(&mut doc, l1, wt);
+        let r = ops::create_room(&mut doc, l1, Pt::new(1000.0, 1000.0)).unwrap();
+        let area = |doc: &Document| {
+            regenerate(doc)
+                .rooms
+                .iter()
+                .find(|x| x.id == r)
+                .unwrap()
+                .area()
+        };
+        let t = 8.0 * MM_PER_IN;
+        let inner = |w: f64, h: f64| (w * MM_PER_FT - t) * (h * MM_PER_FT - t);
+        assert!((area(&doc) - inner(40.0, 30.0)).abs() < 1000.0);
+        // Moving the east wall 5' out grows the room (acceptance: moving a wall updates areas).
+        studio_core::modify::move_elements(&mut doc, &[walls[1]], Pt::new(5.0 * MM_PER_FT, 0.0))
+            .unwrap();
+        assert!((area(&doc) - inner(45.0, 30.0)).abs() < 1000.0);
+        assert_eq!(
+            room_occupying(&regenerate(&doc), l1, Pt::new(5000.0, 2000.0)).map(|x| x.id),
+            Some(r)
+        );
+        // Deleting a wall opens the room.
+        ops::delete(&mut doc, &[walls[2]]).unwrap();
+        let m = regenerate(&doc);
+        let info = m.rooms.iter().find(|x| x.id == r).unwrap();
+        assert!(info.boundary.is_none());
+        assert_eq!(info.area(), 0.0);
     }
 
     #[test]

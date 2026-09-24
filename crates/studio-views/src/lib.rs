@@ -3,7 +3,7 @@
 //! elevations: u to the viewer's right, z up). Annotation sizes are paper mm × scale.
 
 use serde::Serialize;
-use studio_core::units::{format_ft_in, MM_PER_IN};
+use studio_core::units::{format_area_sf, format_ft_in, MM_PER_IN};
 use studio_core::{Category, Document, ElementData, ElementId, ViewKind};
 use studio_core::{DoorFamily, WindowFamily};
 use studio_geom::{point_in_ring, project_to_segment, Pt};
@@ -41,6 +41,8 @@ pub enum FillKind {
     Ink,
     /// Window glass.
     Glass,
+    /// Room region: invisible, but selectable and highlighted when selected.
+    Room,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, TS)]
@@ -246,6 +248,15 @@ fn plan(
         }
     }
 
+    // Room regions (invisible, pickable), under the walls so walls win when clicked.
+    if !ceiling {
+        for r in model.rooms.iter().filter(|r| r.level == level) {
+            if let Some(outline) = &r.boundary {
+                b.fill(Some(r.id), vec![ring(outline)], FillKind::Room);
+            }
+        }
+    }
+
     // Walls below the cut plane shown in projection.
     for w in model
         .walls
@@ -283,6 +294,12 @@ fn plan(
         b.line(None, &region.outer, true, 5, Dash::Solid);
         for h in &region.holes {
             b.line(None, h, true, 5, Dash::Solid);
+        }
+    }
+
+    if !ceiling {
+        for r in model.rooms.iter().filter(|r| r.level == level) {
+            room_tag(b, r);
         }
     }
 
@@ -398,6 +415,58 @@ fn opening_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSolid) {
                 b.line(el, &[j0.add(out.scale(h)), tip], false, 1, Dash::Dashed);
             }
         }
+    }
+}
+
+/// Room tag at the room's point: name, number and area (or "Not Enclosed").
+fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo) {
+    let el = Some(r.id);
+    let line = b.paper(4.2);
+    b.text(
+        el,
+        r.point.add(Pt::new(0.0, line)),
+        r.name.to_uppercase(),
+        3.4,
+        Anchor::Center,
+    );
+    b.text(el, r.point, r.number.clone(), 3.0, Anchor::Center);
+    if r.boundary.is_some() {
+        b.text(
+            el,
+            r.point.sub(Pt::new(0.0, line)),
+            format_area_sf(r.area()),
+            2.6,
+            Anchor::Center,
+        );
+    } else {
+        b.text(
+            el,
+            r.point.sub(Pt::new(0.0, line)),
+            "NOT ENCLOSED".into(),
+            2.6,
+            Anchor::Center,
+        );
+        let k = b.paper(2.0);
+        b.line(
+            el,
+            &[
+                r.point.add(Pt::new(-k, -k - line * 2.0)),
+                r.point.add(Pt::new(k, k - line * 2.0)),
+            ],
+            false,
+            2,
+            Dash::Solid,
+        );
+        b.line(
+            el,
+            &[
+                r.point.add(Pt::new(-k, k - line * 2.0)),
+                r.point.add(Pt::new(k, -k - line * 2.0)),
+            ],
+            false,
+            2,
+            Dash::Solid,
+        );
     }
 }
 
@@ -726,6 +795,52 @@ fn opening_elevation_detail(
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
+pub struct RoomPreview {
+    /// Outline of the enclosed area the room would fill; empty when not enclosed.
+    pub items: Vec<Item>,
+    /// Area of that region, or why a room can't go here.
+    pub label: String,
+    /// True when a room can be placed here.
+    pub valid: bool,
+}
+
+/// What a room placed at `p` in a floor plan would fill.
+pub fn room_preview(doc: &Document, view: ElementId, p: Pt) -> Option<RoomPreview> {
+    let ElementData::View {
+        kind: ViewKind::FloorPlan { level },
+        scale,
+        ..
+    } = doc.data(view).ok()?
+    else {
+        return None;
+    };
+    let model = regenerate(doc);
+    let Some(area) = studio_regen::room_at(&model, *level, p) else {
+        return Some(RoomPreview {
+            items: vec![],
+            label: "Not enclosed by walls".into(),
+            valid: false,
+        });
+    };
+    let mut b = Builder {
+        items: vec![],
+        scale: f64::from(*scale),
+    };
+    b.line(None, &area, true, 3, Dash::Solid);
+    let (label, valid) = match studio_regen::room_occupying(&model, *level, p) {
+        Some(r) => (format!("Already room {} {}", r.name, r.number), false),
+        None => (format_area_sf(studio_geom::signed_area(&area).abs()), true),
+    };
+    Some(RoomPreview {
+        items: b.items,
+        label,
+        valid,
+    })
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
 pub struct OpeningPreview {
     pub host: ElementId,
     /// Center distance from the host's start, mm.
@@ -870,7 +985,7 @@ pub fn pick(dl: &DisplayList, p: Pt, tol: f64) -> Option<ElementId> {
                     .unwrap_or_default();
                 if !point_in_ring(p, &outer) {
                     f64::INFINITY
-                } else if matches!(fill, FillKind::Slab | FillKind::Ceiling) {
+                } else if matches!(fill, FillKind::Slab | FillKind::Ceiling | FillKind::Room) {
                     // Floors and ceilings rank below nearby lines (grids crossing a room).
                     tol * 0.9
                 } else {
@@ -1317,6 +1432,38 @@ mod tests {
         let over = opening_preview(&doc, v, dt, Pt::new(3100.0, 0.0), 200.0).unwrap();
         assert!(!over.valid);
         assert!(opening_preview(&doc, v, dt, Pt::new(5000.0, 5000.0), 200.0).is_none());
+    }
+
+    #[test]
+    fn rooms_are_tagged_pickable_and_previewed() {
+        let (mut doc, l1) = building();
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let pv = room_preview(&doc, v, Pt::new(2000.0, 2000.0)).unwrap();
+        assert!(pv.valid);
+        assert!(pv.label.ends_with("SF"), "{}", pv.label);
+        let r = ops::create_room(&mut doc, l1, Pt::new(2000.0, 2000.0)).unwrap();
+        let dl = display_list(&doc, v).unwrap();
+        let texts: Vec<_> = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(r))
+            .filter_map(|i| match &i.prim {
+                Prim::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(texts[0], "ROOM");
+        assert_eq!(texts[1], "1");
+        assert!(texts[2].ends_with(" SF"));
+        // Clicking inside the room (away from walls and grids) selects it, not the floor.
+        assert_eq!(pick(&dl, Pt::new(6000.0, 4000.0), 50.0), Some(r));
+        // A second room in the same area is refused.
+        let again = room_preview(&doc, v, Pt::new(8000.0, 3000.0)).unwrap();
+        assert!(!again.valid);
+        assert!(!room_preview(&doc, v, Pt::new(-9000.0, 0.0)).unwrap().valid);
     }
 
     #[test]
