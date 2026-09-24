@@ -65,7 +65,13 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const cam = useRef<Camera | null>(cameras.get(view.id) ?? null);
   const pts = useRef<Pt[]>([]);
   const snapRef = useRef<SnapResult | null>(null);
-  const preview = useRef<{ p: OpeningPreview; at: Pt } | null>(null);
+  // Placement preview from Rust (door, window or room), drawn at the cursor.
+  const preview = useRef<{
+    items: OpeningPreview["items"];
+    valid: boolean;
+    label: string;
+    at: Pt;
+  } | null>(null);
   const hover = useRef<string | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; button: number } | null>(null);
   const frame = useRef(0);
@@ -82,12 +88,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const s = useAppStore.getState();
       draw(ctx, dl, cam.current, w, h, { selected: new Set(s.selection), hover: hover.current });
-      const placing = s.tool === "door" || s.tool === "window";
+      const placing = s.tool === "door" || s.tool === "window" || s.tool === "room";
       if (placing && preview.current) {
-        const { p, at } = preview.current;
-        const color = p.valid ? THEME.cyan : "#c0352b";
-        const label = p.valid ? p.label : "Overlaps another opening";
-        drawPreview(ctx, cam.current, w, h, p.items, color, label, at);
+        const { items, valid, label, at } = preview.current;
+        drawPreview(ctx, cam.current, w, h, items, valid ? THEME.cyan : "#c0352b", label, at);
       }
       const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
@@ -189,9 +193,21 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
 
   const previewAt = useLatest(async (p: Pt, tol: number) => {
     const s = useAppStore.getState();
-    const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
-    const result = typeId ? await ipc.openingPreview(view.id, typeId, p, tol) : null;
-    preview.current = result ? { p: result, at: p } : null;
+    if (s.tool === "room") {
+      const r = await ipc.roomPreview(view.id, p);
+      preview.current = r ? { ...r, at: p } : null;
+    } else {
+      const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
+      const o = typeId ? await ipc.openingPreview(view.id, typeId, p, tol) : null;
+      preview.current = o
+        ? {
+            items: o.items,
+            valid: o.valid,
+            label: o.valid ? o.label : "Overlaps another opening",
+            at: p,
+          }
+        : null;
+    }
     redraw();
   });
 
@@ -271,8 +287,32 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       redraw();
       return;
     }
+    if (s.tool === "room") {
+      const r = await ipc.roomPreview(view.id, raw);
+      if (r?.valid) await apply(() => ipc.createRoom(view.id, raw));
+      else if (r) s.setError(r.label);
+      preview.current = null;
+      redraw();
+      return;
+    }
     const from = pts.current[pts.current.length - 1] ?? null;
     const p = (await ipc.snap(view.id, raw, from, tol)).pt;
+    if (s.tool === "move") {
+      const selection = s.selection;
+      if (selection.length === 0) {
+        s.setError("Select what to move first, then choose Move.");
+      } else if (!from) {
+        pts.current = [p];
+      } else {
+        const delta = { x: p.x - from.x, y: p.y - from.y };
+        pts.current = [];
+        snapRef.current = null;
+        if (await apply(() => ipc.moveElements(selection, delta))) s.setTool("select");
+      }
+      s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
+      redraw();
+      return;
+    }
     switch (s.tool) {
       case "wall": {
         if (from && !samePt(from, p) && s.toolTypes.wall) {
@@ -379,7 +419,8 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
             .setCursor(`X ${ft(p.x)}'   ${view.viewType === "Elevation" ? "Z" : "Y"} ${ft(p.y)}'`);
           const s = useAppStore.getState();
           if (s.tool === "select") hoverPick(p, 6 / cam.current.zoom);
-          else if (s.tool === "door" || s.tool === "window") previewAt(p, 12 / cam.current.zoom);
+          else if (s.tool === "door" || s.tool === "window" || s.tool === "room")
+            previewAt(p, 12 / cam.current.zoom);
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
         }}
         onMouseUp={(e) => {

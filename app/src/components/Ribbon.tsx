@@ -79,7 +79,11 @@ export function Ribbon() {
           <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
           <ToolButton tool="grid" label="Grid" icon={Icons.grid} keys="GR" />
         </Group>
+        <Group title="Room">
+          <ToolButton tool="room" label="Room" icon={Icons.room} keys="RM" />
+        </Group>
         <Group title="Modify">
+          <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
           <button
             className="rb-btn"
             onClick={() => void deleteSelection()}

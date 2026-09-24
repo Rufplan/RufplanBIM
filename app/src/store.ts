@@ -4,6 +4,8 @@ import type { AppState, ElementId } from "./ipc";
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
+  | "room"
+  | "move"
   | "door"
   | "window"
   | "select"
@@ -17,6 +19,8 @@ export type Tool =
 
 export const TOOL_LABELS: Record<Tool, string> = {
   select: "Select",
+  room: "Room",
+  move: "Move",
   door: "Door",
   window: "Window",
   wall: "Wall",
@@ -138,7 +142,9 @@ export const useAppStore = create<UiState>((set, get) => ({
       return { openViews, activeView };
     }),
   select: (selection) => set({ selection }),
-  setTool: (tool) => set({ tool, selection: tool === "select" ? get().selection : [] }),
+  // Move acts on the current selection; other tools start with nothing selected.
+  setTool: (tool) =>
+    set({ tool, selection: tool === "select" || tool === "move" ? get().selection : [] }),
   setToolType: (kind, id) => set((s) => ({ toolTypes: { ...s.toolTypes, [kind]: id } })),
   setPrompt: (prompt) => set({ prompt }),
   setCursor: (cursor) => set({ cursor }),

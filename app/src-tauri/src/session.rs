@@ -386,6 +386,16 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
             ops::create_ceiling(doc, act, l1, room)?;
         }
     }
+    for (level, x, y, name) in [
+        (l1, 8.0, 15.0, "Living"),
+        (l1, 28.0, 21.0, "Kitchen"),
+        (l1, 28.0, 6.0, "Bedroom"),
+        (l2, 12.0, 15.0, "Studio"),
+        (l2, 32.0, 15.0, "Office"),
+    ] {
+        let r = ops::create_room(doc, level, ft(x, y))?;
+        ops::set_property(doc, r, "name", name, 0)?;
+    }
     Ok(())
 }
 
@@ -460,6 +470,12 @@ mod tests {
         assert_eq!(doc.levels().len(), 2);
         assert_eq!(doc.of(Category::Door).count(), 3);
         assert_eq!(doc.of(Category::Window).count(), 12);
+        let rooms = studio_regen::regenerate(doc).rooms;
+        assert_eq!(rooms.len(), 5);
+        assert!(
+            rooms.iter().all(|r| r.boundary.is_some()),
+            "every sample room is enclosed"
+        );
         let state = s.state().unwrap();
         assert_eq!(state.project_name, "Sample House");
         assert_eq!(state.undo, None);

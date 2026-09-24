@@ -28,6 +28,7 @@ const FILL: Record<FillKind, string> = {
   Ceiling: "#f2fbfe",
   Ink: "#0a0a0a",
   Glass: "#dff5fd",
+  Room: "rgba(0, 0, 0, 0)",
 };
 
 /** Pen weights 1–6 in screen pixels. */
@@ -117,7 +118,15 @@ export function draw(
         ctx.fillStyle = FILL[p.fill];
         ctx.fill("evenodd");
         if (isSel || isHover) {
-          ctx.fillStyle = isSel ? THEME.cyanFill : "rgba(62, 207, 247, 0.18)";
+          // Rooms cover whole areas, so their highlight is a light wash.
+          const room = p.fill === "Room";
+          ctx.fillStyle = isSel
+            ? room
+              ? "rgba(62, 207, 247, 0.16)"
+              : THEME.cyanFill
+            : room
+              ? "rgba(62, 207, 247, 0.07)"
+              : "rgba(62, 207, 247, 0.18)";
           ctx.fill("evenodd");
         }
         break;

@@ -11,6 +11,8 @@ describe("tools", () => {
     expect(shortcut("G", "R").tool).toBe("grid");
     expect(shortcut("D", "R").tool).toBe("door");
     expect(shortcut("W", "N").tool).toBe("window");
+    expect(shortcut("R", "M").tool).toBe("room");
+    expect(shortcut("M", "V").tool).toBe("move");
     expect(shortcut("X", "1")).toEqual({ buffer: "", tool: null });
   });
 
@@ -21,6 +23,9 @@ describe("tools", () => {
     expect(toolAllowed("level", "Plan")).toBe(false);
     expect(toolAllowed("door", "Plan")).toBe(true);
     expect(toolAllowed("window", "Elevation")).toBe(false);
+    expect(toolAllowed("room", "Plan")).toBe(true);
+    expect(toolAllowed("room", "CeilingPlan")).toBe(false);
+    expect(promptFor("move", 1, "Plan")).toMatch(/destination/i);
     expect(promptFor("level", 0, "Plan")).toMatch(/elevation/i);
   });
 

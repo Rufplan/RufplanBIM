@@ -7,7 +7,7 @@ use std::sync::{Mutex, MutexGuard};
 use serde::Serialize;
 use studio_core::{ops, ElementId};
 use studio_geom::Pt;
-use studio_views::{DisplayList, Mesh, OpeningPreview, SnapResult};
+use studio_views::{DisplayList, Mesh, OpeningPreview, RoomPreview, SnapResult};
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use ts_rs::TS;
 
@@ -344,7 +344,88 @@ pub fn properties(
     state: State<'_, SessionState>,
 ) -> CommandResult<ops::PropertySheet> {
     let session = lock(&state)?;
-    Ok(ops::properties(session.doc()?, id)?)
+    let doc = session.doc()?;
+    let mut sheet = ops::properties(doc, id)?;
+    if sheet.category == studio_core::Category::Room {
+        // Area and enclosure are derived from the walls, so they come from regeneration.
+        let model = studio_regen::regenerate(doc);
+        if let Some(r) = model.rooms.iter().find(|r| r.id == id) {
+            let row = |key: &str, label: &str, value: String| ops::Property {
+                key: key.into(),
+                label: label.into(),
+                group: "Dimensions".into(),
+                value,
+                kind: ops::PropKind::ReadOnly,
+                options: vec![],
+            };
+            let enclosed = r.boundary.is_some();
+            sheet.properties.push(row(
+                "area",
+                "Area",
+                studio_core::units::format_area_sf(r.area()),
+            ));
+            sheet.properties.push(row(
+                "perimeter",
+                "Perimeter",
+                studio_core::units::format_ft_in(r.perimeter()),
+            ));
+            sheet.properties.push(row(
+                "status",
+                "Status",
+                if enclosed {
+                    "Enclosed".into()
+                } else {
+                    "Not enclosed — close the walls around it".into()
+                },
+            ));
+        }
+    }
+    Ok(sheet)
+}
+
+/// What a room placed at `point` would fill (floor plans only).
+#[tauri::command]
+pub fn room_preview(
+    view: ElementId,
+    point: Pt,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<RoomPreview>> {
+    let session = lock(&state)?;
+    Ok(studio_views::room_preview(session.doc()?, view, point))
+}
+
+/// Places a room in the enclosed area around `point`.
+#[tauri::command]
+pub fn create_room(
+    view: ElementId,
+    point: Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let level = s.view_level(view)?;
+        let model = studio_regen::regenerate(s.doc()?);
+        if studio_regen::room_at(&model, level, point).is_none() {
+            anyhow::bail!("click inside an area fully enclosed by walls");
+        }
+        if let Some(r) = studio_regen::room_occupying(&model, level, point) {
+            anyhow::bail!("this area already has a room ({} {})", r.name, r.number);
+        }
+        s.edit(|d| ops::create_room(d, level, point))
+    })
+}
+
+/// Moves elements by `delta` mm (walls stretch their joined neighbours, see modify.rs).
+#[tauri::command]
+pub fn move_elements(
+    ids: Vec<ElementId>,
+    delta: Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| studio_core::modify::move_elements(d, &ids, delta))
+    })
 }
 
 #[tauri::command]

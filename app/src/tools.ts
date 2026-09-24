@@ -15,6 +15,8 @@ export const SHORTCUTS: Record<string, Tool> = {
   CS: "ceiling",
   DR: "door",
   WN: "window",
+  RM: "room",
+  MV: "move",
 };
 
 /** Tools that need a plan view (they place elements on the view's level). */
@@ -31,6 +33,7 @@ export const PLAN_TOOLS: Tool[] = [
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (tool === "level") return view === "Elevation";
+  if (tool === "room") return view === "Plan";
   if (tool === "grid") return view === "Plan" || view === "CeilingPlan";
   return view === "Plan" || view === "CeilingPlan";
 }
@@ -38,9 +41,9 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
 /** Status-bar prompt for a tool with `n` points placed so far. */
 export function promptFor(tool: Tool, n: number, view: ViewType | undefined): string {
   if (!toolAllowed(tool, view)) {
-    return tool === "level"
-      ? "Open an elevation to place levels."
-      : "Open a floor or ceiling plan to use this tool.";
+    if (tool === "level") return "Open an elevation to place levels.";
+    if (tool === "room") return "Open a floor plan to place rooms.";
+    return "Open a floor or ceiling plan to use this tool.";
   }
   switch (tool) {
     case "select":
@@ -65,6 +68,12 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     case "door":
     case "window":
       return `Hover over a wall and click to place the ${tool}. The side of the wall you point at sets which way it faces.`;
+    case "room":
+      return "Hover inside an area enclosed by walls and click to place a room.";
+    case "move":
+      return n === 0
+        ? "Click a base point to move the selection from (select elements first)."
+        : "Click the destination. Joined walls stretch to follow.";
   }
 }
 
