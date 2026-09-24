@@ -39,6 +39,8 @@ pub struct ViewInfo {
     pub level: Option<ElementId>,
     /// Sheet this view is placed on, if any (schedules may be on several; this is the first).
     pub on_sheet: Option<ElementId>,
+    /// For sheets: the design stages whose sets include it.
+    pub stages: Vec<ElementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -78,6 +80,8 @@ pub struct AppState {
     pub project_name: String,
     pub undo: Option<String>,
     pub redo: Option<String>,
+    /// Issued sets, oldest first.
+    pub issuances: Vec<NamedItem>,
 }
 
 #[derive(Debug, Default)]
@@ -173,9 +177,10 @@ impl Session {
                         },
                         level,
                         on_sheet: placed.get(&e.id).copied(),
+                        stages: vec![],
                     })
                 }
-                ElementData::Sheet { .. } => Some(ViewInfo {
+                ElementData::Sheet { stages, .. } => Some(ViewInfo {
                     id: e.id,
                     name: e.data.name(),
                     view_type: ViewType::Sheet,
@@ -183,6 +188,7 @@ impl Session {
                     scale_label: String::new(),
                     level: None,
                     on_sheet: None,
+                    stages: stages.clone(),
                 }),
                 _ => None,
             })
@@ -233,6 +239,16 @@ impl Session {
             project_name,
             undo: doc.can_undo().map(str::to_owned),
             redo: doc.can_redo().map(str::to_owned),
+            issuances: {
+                let mut v: Vec<(ElementId, String)> = doc
+                    .of(Category::Issuance)
+                    .map(|e| (e.id, e.data.name()))
+                    .collect();
+                v.sort_by_key(|x| x.0);
+                v.into_iter()
+                    .map(|(id, name)| NamedItem { id, name })
+                    .collect()
+            },
         })
     }
 
@@ -290,6 +306,15 @@ impl Session {
             // Saved before schedules existed.
             let dirty = project.doc.is_dirty();
             ops::ensure_schedules(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
+        if project.doc.of(Category::Tag).next().is_none() {
+            // Saved before tags were elements: tag everything once.
+            let dirty = project.doc.is_dirty();
+            ops::ensure_tags(&mut project.doc)?;
             project.doc.clear_history();
             if !dirty {
                 project.doc.mark_saved();
@@ -555,6 +580,27 @@ fn build_sample_documents(
         schedule(doc, ScheduleKind::Windows)?,
         p(650.0, 300.0),
     )?;
+
+    // Cover title, the SD stage set and a first issue.
+    let title = ops::create_text(doc, cover, p(60.0, 540.0), "SAMPLE HOUSE")?;
+    ops::set_property(doc, title, "size", "25.4", 0)?;
+    let sub = ops::create_text(
+        doc,
+        cover,
+        p(62.0, 515.0),
+        "A RUFPLAN STUDIO SAMPLE PROJECT",
+    )?;
+    ops::set_property(doc, sub, "size", "6.4", 0)?;
+    let sd = ops::stages(doc)
+        .into_iter()
+        .find(|s| s.2 == "SD")
+        .map(|s| s.0)
+        .context("missing SD stage")?;
+    let all: Vec<ElementId> = ops::sheets(doc).into_iter().map(|s| s.0).collect();
+    for s in &all {
+        ops::set_property(doc, *s, &format!("stage:{sd}"), "yes", 0)?;
+    }
+    ops::create_issuance(doc, "SD Review Set", "2026-09-24", all)?;
     Ok(())
 }
 
@@ -669,6 +715,12 @@ mod tests {
         )
         .unwrap();
         assert!(pdf.len() > 10_000);
+        assert_eq!(
+            doc.of(Category::Tag).count(),
+            3 + 12 + 5,
+            "every door, window and room is tagged in its level's floor plan"
+        );
+        assert_eq!(s.state().unwrap().issuances.len(), 1);
         let state = s.state().unwrap();
         assert_eq!(state.project_name, "Sample House");
         assert_eq!(state.undo, None);

@@ -81,6 +81,10 @@ export const ipc = {
   scheduleTable: (view: ElementId) => invoke<Table | null>("schedule_table", { view }),
   /** Writes every sheet to a PDF; resolves to the number of sheets. */
   exportPdf: (path: string) => invoke<number>("export_pdf", { path }),
+  /** Tags every untagged door, window and room in a floor plan. */
+  tagAll: (view: ElementId): S => invoke("tag_all", { view }),
+  /** Records an issuance of the current stage's sheet set and writes it to a PDF. */
+  issueSet: (name: string, path: string): S => invoke("issue_set", { name, path }),
   /** The enclosed area a room at `point` would fill (floor plans). */
   roomPreview: (view: ElementId, point: Pt) =>
     invoke<RoomPreview | null>("room_preview", { view, point }),

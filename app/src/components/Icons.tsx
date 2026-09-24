@@ -45,6 +45,18 @@ export const Icons = {
       <path d="M4 6.5l2.5 3h-5z" fill="currentColor" stroke="none" />
     </I>
   ),
+  tag: (
+    <I>
+      <path d="M4 8h11l5 4-5 4H4z" />
+      <path d="M8 12h4" strokeWidth="2" />
+    </I>
+  ),
+  issue: (
+    <I>
+      <path d="M5 4h10l4 4v12H5z" />
+      <path d="M8 13l3 3 5-6" stroke="#3ECFF7" strokeWidth="2.2" />
+    </I>
+  ),
   sheet: (
     <I>
       <path d="M3 5h18v14H3z" />

@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { deleteSelection, exportPdf, newSheet, placeOnActiveSheet } from "../fileActions";
+import {
+  deleteSelection,
+  exportPdf,
+  issueSet,
+  newSheet,
+  placeOnActiveSheet,
+  tagAll,
+} from "../fileActions";
 import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
@@ -52,6 +59,7 @@ export function Ribbon() {
   const openView = useAppStore((s) => s.openView);
   const view3d = app?.views.find((v) => v.viewType === "ThreeD");
   const activeIsSheet = useAppStore((s) => activeViewInfo(s)?.viewType === "Sheet");
+  const activeIsPlan = useAppStore((s) => activeViewInfo(s)?.viewType === "Plan");
   // Drawing views go on one sheet only; schedules can repeat; 3D and sheets can't be placed.
   const placeable = (app?.views ?? []).filter(
     (v) =>
@@ -123,6 +131,15 @@ export function Ribbon() {
           <Group title="Annotate">
             <ToolButton tool="dimension" label="Dimension" icon={Icons.dimension} keys="DI" />
             <ToolButton tool="text" label="Text" icon={Icons.text} keys="TX" />
+            <button
+              className="rb-btn"
+              onClick={() => void tagAll()}
+              disabled={!activeIsPlan}
+              title="Tag every untagged door, window and room in this floor plan"
+            >
+              {Icons.tag}
+              <span>Tag All</span>
+            </button>
           </Group>
         )}
         {tab === "View" && (
@@ -183,6 +200,14 @@ export function Ribbon() {
               >
                 {Icons.pdf}
                 <span>Export PDF</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void issueSet()}
+                title="Issue the current design stage's sheet set: record it and export the PDF"
+              >
+                {Icons.issue}
+                <span>Issue Set</span>
               </button>
             </Group>
           </>

@@ -12,4 +12,8 @@ export type AppState = { project: ProjectStatus,
 /**
  * Bumps on every model change; canvases refetch when it changes.
  */
-revision: number, views: Array<ViewInfo>, levels: Array<NamedItem>, wallTypes: Array<NamedItem>, floorTypes: Array<NamedItem>, ceilingTypes: Array<NamedItem>, doorTypes: Array<NamedItem>, windowTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, };
+revision: number, views: Array<ViewInfo>, levels: Array<NamedItem>, wallTypes: Array<NamedItem>, floorTypes: Array<NamedItem>, ceilingTypes: Array<NamedItem>, doorTypes: Array<NamedItem>, windowTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
+/**
+ * Issued sets, oldest first.
+ */
+issuances: Array<NamedItem>, };

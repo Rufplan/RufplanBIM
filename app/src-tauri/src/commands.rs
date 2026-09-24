@@ -517,16 +517,21 @@ pub fn schedule_table(
     Ok(studio_sheets::schedule(session.doc()?, view))
 }
 
-/// Exports every sheet, in number order, to a PDF at `path`. Returns the sheet count.
 #[tauri::command]
-pub fn export_pdf(path: String, state: State<'_, SessionState>) -> CommandResult<usize> {
-    let session = lock(&state)?;
-    let doc = session.doc()?;
-    let sheets: Vec<ElementId> = ops::sheets(doc).into_iter().map(|s| s.0).collect();
-    if sheets.is_empty() {
-        return Err(anyhow::anyhow!("create a sheet and place views on it first").into());
-    }
-    let bytes = studio_sheets::export_pdf(doc, &sheets, &today()).map_err(anyhow::Error::from)?;
+pub fn tag_all(
+    view: ElementId,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| s.edit(|d| ops::tag_all(d, view)))
+}
+
+fn write_pdf(
+    doc: &studio_core::Document,
+    sheets: &[ElementId],
+    path: &str,
+) -> anyhow::Result<PathBuf> {
+    let bytes = studio_sheets::export_pdf(doc, sheets, &today())?;
     let mut path = PathBuf::from(path);
     if path
         .extension()
@@ -536,6 +541,42 @@ pub fn export_pdf(path: String, state: State<'_, SessionState>) -> CommandResult
     }
     std::fs::write(&path, bytes)
         .map_err(|e| anyhow::anyhow!("could not write {}: {e}", path.display()))?;
+    Ok(path)
+}
+
+/// Issues the current design stage's sheet set: records an issuance named `name` (so the
+/// title blocks list it) and writes the set to a PDF at `path`.
+#[tauri::command]
+pub fn issue_set(
+    name: String,
+    path: String,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let doc = s.doc()?;
+        let stage = ops::project_info(doc).and_then(|i| match doc.data(i) {
+            Ok(studio_core::ElementData::ProjectInfo { current_stage, .. }) => *current_stage,
+            _ => None,
+        });
+        let sheets = ops::stage_sheets(doc, stage);
+        let date = today();
+        s.edit(|d| ops::create_issuance(d, &name, &date, sheets.clone()))?;
+        write_pdf(s.doc()?, &sheets, &path)?;
+        Ok(())
+    })
+}
+
+/// Exports every sheet, in number order, to a PDF at `path`. Returns the sheet count.
+#[tauri::command]
+pub fn export_pdf(path: String, state: State<'_, SessionState>) -> CommandResult<usize> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    let sheets: Vec<ElementId> = ops::sheets(doc).into_iter().map(|s| s.0).collect();
+    if sheets.is_empty() {
+        return Err(anyhow::anyhow!("create a sheet and place views on it first").into());
+    }
+    write_pdf(doc, &sheets, &path)?;
     Ok(sheets.len())
 }
 

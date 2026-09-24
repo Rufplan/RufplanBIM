@@ -110,6 +110,27 @@ export const exportPdf = async () => {
   }
 };
 
+/** Tags whatever is untagged in the active floor plan. */
+export const tagAll = () => {
+  const view = useAppStore.getState().activeView;
+  return view ? apply(() => ipc.tagAll(view)) : Promise.resolve(false);
+};
+
+/** Issues the current stage's sheet set: names it, records it, and writes the PDF. */
+export const issueSet = async () => {
+  const s = useAppStore.getState();
+  const app = s.app;
+  if (!app) return false;
+  const stage = app.stages.find((x) => x.id === app.currentStage);
+  const name = window.prompt("Name this issue", `${stage?.abbreviation ?? ""} Set`.trim());
+  if (!name) return false;
+  const path = await dialogs.pickPdfLocation(`${app.projectName || app.project.name} - ${name}`);
+  if (!path) return false;
+  const ok = await apply(() => ipc.issueSet(name, path));
+  if (ok) useAppStore.getState().setPrompt(`Issued "${name}" to ${path}`);
+  return ok;
+};
+
 /** Creates a sheet and opens it. */
 export const newSheet = async () => {
   const before = new Set(useAppStore.getState().app?.views.map((v) => v.id));

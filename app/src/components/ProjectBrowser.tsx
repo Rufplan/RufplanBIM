@@ -38,7 +38,12 @@ export function ProjectBrowser() {
   const selection = useAppStore((s) => s.selection);
   const openView = useAppStore((s) => s.openView);
   const select = useAppStore((s) => s.select);
+  // "all" or a stage id: show only the sheets in that stage's deliverable set.
+  const [stageFilter, setStageFilter] = useState("all");
   if (!app) return null;
+  const sheets = app.views.filter(
+    (v) => v.viewType === "Sheet" && (stageFilter === "all" || v.stages.includes(stageFilter)),
+  );
 
   const item = (id: string, label: string, onClick: () => void, active: boolean, sub?: string) => (
     <button
@@ -68,11 +73,26 @@ export function ProjectBrowser() {
           })}
         </Section>
         <Section title="Sheets">
-          {app.views
-            .filter((v) => v.viewType === "Sheet")
-            .map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
-          {!app.views.some((v) => v.viewType === "Sheet") && (
-            <div className="pb-empty">No sheets yet — use New Sheet.</div>
+          <select
+            className="pb-filter"
+            aria-label="Filter sheets by design stage"
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+          >
+            <option value="all">All sheets</option>
+            {app.stages.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.abbreviation} set
+              </option>
+            ))}
+          </select>
+          {sheets.map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
+          {sheets.length === 0 && (
+            <div className="pb-empty">
+              {stageFilter === "all"
+                ? "No sheets yet — use New Sheet."
+                : "No sheets in this set. Add sheets via their Stage Sets properties."}
+            </div>
           )}
         </Section>
         <Section title="Families">
@@ -110,6 +130,12 @@ export function ProjectBrowser() {
               () => select([app.projectInfo!]),
               selection.includes(app.projectInfo),
             )}
+          <Section title="Issuances">
+            {app.issuances.map((i) =>
+              item(i.id, i.name, () => select([i.id]), selection.includes(i.id)),
+            )}
+            {app.issuances.length === 0 && <div className="pb-empty">Nothing issued yet.</div>}
+          </Section>
           <Section title="Design Stages">
             {app.stages.map((s) =>
               item(

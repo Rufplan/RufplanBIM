@@ -785,3 +785,11 @@ button:disabled {
 .rb-place.disabled {
   opacity: 0.35;
 }
+.pb-filter {
+  margin: 2px 12px 6px 40px;
+  width: calc(100% - 52px);
+  font-size: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--white);
+  padding: 2px 4px;
+}

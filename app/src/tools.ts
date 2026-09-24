@@ -38,6 +38,7 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "room" || tool === "section") return view === "Plan";
   // Move works in plan coordinates, and on sheets for viewports.
   if (tool === "move") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
+  if (tool === "text" && view === "Sheet") return true;
   if (tool === "dimension" || tool === "text") {
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   }

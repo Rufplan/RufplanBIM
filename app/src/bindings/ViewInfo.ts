@@ -6,4 +6,8 @@ export type ViewInfo = { id: ElementId, name: string, viewType: ViewType, scale:
 /**
  * Sheet this view is placed on, if any (schedules may be on several; this is the first).
  */
-onSheet: ElementId | null, };
+onSheet: ElementId | null, 
+/**
+ * For sheets: the design stages whose sets include it.
+ */
+stages: Array<ElementId>, };
