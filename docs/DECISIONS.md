@@ -80,3 +80,37 @@ Decision:
 Consequences: M1 adds two element kinds (ProjectStage, ProjectInfo) and a Project Info
 panel. Nothing depends on stages before M4, so the list can evolve without breaking
 features. Stages are referenced by ElementId, never by name, so renaming is safe.
+
+## ADR-011 Revit-style prototype slice ahead of the milestone order — Accepted (2026-09-23)
+Context: the owner asked for a working Revit-like prototype (grids, walls, floors,
+ceilings, plans, elevations, 3D) in the Rufplan visual style before finishing M1–M3 in
+order, so they can start iterating hands-on.
+Decision: build a vertical slice across M1–M4 now, keeping the golden rules (Rust owns the
+model and geometry, every edit is an undoable transaction, mm internally, UUID v7). Take
+these shortcuts on purpose; each is listed in the roadmap as remaining work:
+- **Full regeneration** of derived geometry on every request instead of the dependency
+  graph. Fine for small models; the M2 performance target (500 walls < 50 ms) needs the graph.
+- **Typed struct fields** for element data instead of the generic `ParamValue` map.
+  Properties are exposed through `ops::properties` / `ops::set_property`, so the UI won't
+  change when storage moves to a parameter map.
+- **JSON display lists** over IPC (binary transfer comes with larger models).
+- **Ceilings added** as element kinds (`CeilingType`, `Ceiling`), with reflected ceiling
+  plans. The ACT grid pattern is chosen by the type name containing "ACT" until types get
+  a pattern parameter.
+- **Walls: centerline location line only.** Two-wall corners are mitered; T and cross
+  junctions are cleaned by polygon union of the cut footprints.
+- **Polygon union grows inputs by 0.01 mm** (`tol::LINEAR`), because the boolean engine
+  can leave exactly-touching mitered footprints unmerged.
+- **Elevations use painter's-order hidden lines**, per ADR-006.
+- **File format schema 2** adds the element tables from DATA_MODEL.md. Schema-1 files
+  still open and are upgraded on save.
+- **New dependencies:** `geo` (polygon booleans, allowed by the locked stack), `earcutr`
+  (small triangulator for 3D caps), `uuid` and `rmp-serde` (per DATA_MODEL.md), `three`
+  (locked stack), and `@fontsource/barlow` + `barlow-condensed`, which bundle Rufplan's
+  fonts so the app works offline.
+- **Rufplan look:** tokens from `Rufplan/packages/theme` (ink #0a0a0a, cyan #3ECFF7,
+  paper #f8f8f6, borders #e8e8e8, Barlow / Barlow Condensed uppercase labels, square
+  buttons) and the Rufplan wordmark.
+Consequences: the milestone checklists are partly done out of order; ROADMAP.md marks
+exactly what exists. Regeneration and parameter storage must be revisited before the M2
+performance acceptance test.
