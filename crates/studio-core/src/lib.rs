@@ -2,13 +2,14 @@
 
 pub mod document;
 pub mod element;
+pub mod hosting;
 pub mod ops;
 pub mod units;
 
 pub use document::{ChangeSet, CoreError, CoreResult, Document, Tx};
 pub use element::{
-    Category, Compass, Element, ElementData, ElementId, StageChange, ViewKind, WallFunction,
-    WallTop,
+    Category, Compass, DoorFamily, Element, ElementData, ElementId, StageChange, ViewKind,
+    WallFunction, WallTop, WindowFamily,
 };
 
 /// Version of this crate, from Cargo metadata.

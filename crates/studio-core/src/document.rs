@@ -319,7 +319,10 @@ impl Tx<'_> {
                 }
             }
         }
-        Ok(())
+        // Any edit (wall length, level height, type size) can make an opening stop fitting,
+        // so every opening is checked on every commit.
+        let get = |id: ElementId| self.elements.get(&id).map(|e| &e.data);
+        crate::hosting::validate_openings(self.elements.values().map(|e| (e.id, &e.data)), &get)
     }
 }
 

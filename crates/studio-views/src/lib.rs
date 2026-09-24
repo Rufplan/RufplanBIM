@@ -5,8 +5,9 @@
 use serde::Serialize;
 use studio_core::units::{format_ft_in, MM_PER_IN};
 use studio_core::{Category, Document, ElementData, ElementId, ViewKind};
+use studio_core::{DoorFamily, WindowFamily};
 use studio_geom::{point_in_ring, project_to_segment, Pt};
-use studio_regen::{bounds, regenerate, Model};
+use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
 
 pub mod snap;
@@ -38,6 +39,8 @@ pub enum FillKind {
     Ceiling,
     /// Solid ink (level and elevation markers).
     Ink,
+    /// Window glass.
+    Glass,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, TS)]
@@ -257,13 +260,23 @@ fn plan(
         .iter()
         .filter(|w| w.z0 <= cut && w.z1 > cut)
         .collect();
-    for w in &cut_walls {
-        b.fill(Some(w.id), vec![ring(&w.footprint.outer)], FillKind::Poche);
+    // Only the wall material at the cut height: door and window openings become gaps.
+    let cut_pieces: Vec<(ElementId, &studio_geom::Poly)> = cut_walls
+        .iter()
+        .flat_map(|w| {
+            w.pieces
+                .iter()
+                .filter(|p| p.z0 <= cut && p.z1 > cut)
+                .map(move |p| (w.id, &p.base))
+        })
+        .collect();
+    for (id, base) in &cut_pieces {
+        b.fill(Some(*id), vec![ring(&base.outer)], FillKind::Poche);
     }
     let merged = studio_geom::union_all(
-        &cut_walls
+        &cut_pieces
             .iter()
-            .map(|w| w.footprint.clone())
+            .map(|(_, p)| (*p).clone())
             .collect::<Vec<_>>(),
     );
     for region in &merged {
@@ -271,6 +284,15 @@ fn plan(
         for h in &region.holes {
             b.line(None, h, true, 5, Dash::Solid);
         }
+    }
+
+    let cut_ids: Vec<ElementId> = cut_walls.iter().map(|w| w.id).collect();
+    for o in model
+        .openings
+        .iter()
+        .filter(|o| cut_ids.contains(&o.host) && o.z0 <= cut && o.z1 > cut)
+    {
+        opening_symbol(b, Some(o.id), o);
     }
 
     let (lo, hi) = plan_extents(model);
@@ -294,6 +316,89 @@ fn plan(
     }
     let (lo, hi) = bounds(&pts).unwrap_or((lo, hi));
     [lo.x - margin, lo.y - margin, hi.x + margin, hi.y + margin]
+}
+
+/// Points on a circular arc from angle `a0` sweeping `sweep` radians.
+fn arc(c: Pt, r: f64, a0: f64, sweep: f64) -> Vec<Pt> {
+    let n = 18;
+    (0..=n)
+        .map(|i| {
+            let a = a0 + sweep * f64::from(i) / f64::from(n);
+            c.add(Pt::new(a.cos(), a.sin()).scale(r))
+        })
+        .collect()
+}
+
+/// Plan symbol of a door (leaf + swing arc) or window (sill and glass lines).
+fn opening_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSolid) {
+    let d = o.dir;
+    let n = d.perp();
+    let h = o.half_thickness;
+    let (j0, j1) = (o.at(o.t0), o.at(o.t1));
+    match o.kind {
+        OpeningKind::Door(family) => {
+            // Swing side: the wall's left (+n) unless flipped.
+            let s = if o.flip_facing { -1.0 } else { 1.0 };
+            let out = n.scale(s);
+            let face = out.scale(h);
+            let leaves: Vec<(Pt, Pt, f64)> = match family {
+                DoorFamily::SingleFlush => {
+                    let (hinge, other) = if o.flip_hand { (j1, j0) } else { (j0, j1) };
+                    vec![(hinge, other, o.width())]
+                }
+                DoorFamily::DoubleFlush => {
+                    let half = o.width() / 2.0;
+                    vec![(j0, j1, half), (j1, j0, half)]
+                }
+            };
+            for (hinge, other, r) in leaves {
+                let hf = hinge.add(face);
+                let tip = hf.add(out.scale(r));
+                b.line(el, &[hf, tip], false, 3, Dash::Solid);
+                let closing = other.sub(hinge).norm();
+                let a0 = out.y.atan2(out.x);
+                let a1 = closing.y.atan2(closing.x);
+                let mut sweep = a1 - a0;
+                while sweep > std::f64::consts::PI {
+                    sweep -= std::f64::consts::TAU;
+                }
+                while sweep < -std::f64::consts::PI {
+                    sweep += std::f64::consts::TAU;
+                }
+                b.line(el, &arc(hf, r, a0, sweep), false, 1, Dash::Solid);
+            }
+        }
+        OpeningKind::Window(family) => {
+            for off in [h, -h] {
+                b.line(
+                    el,
+                    &[j0.add(n.scale(off)), j1.add(n.scale(off))],
+                    false,
+                    1,
+                    Dash::Solid,
+                );
+            }
+            let g = h * 0.22;
+            for off in [g, -g] {
+                b.line(
+                    el,
+                    &[j0.add(n.scale(off)), j1.add(n.scale(off))],
+                    false,
+                    2,
+                    Dash::Solid,
+                );
+            }
+            if family == WindowFamily::Casement {
+                // Sash swing indicator, outward.
+                let s = if o.flip_facing { -1.0 } else { 1.0 };
+                let out = n.scale(s);
+                let tip = j0
+                    .add(out.scale(h + o.width() * 0.35))
+                    .add(d.scale(o.width() * 0.2));
+                b.line(el, &[j0.add(out.scale(h)), tip], false, 1, Dash::Dashed);
+            }
+        }
+    }
 }
 
 fn grid_in_plan(b: &mut Builder, id: ElementId, name: &str, start: Pt, end: Pt) {
@@ -399,6 +504,7 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
         near: f64,
         mid: f64,
         fill: FillKind,
+        detail: Option<OpeningKind>,
     }
     let face = |el: ElementId, pts: &[Pt], z0: f64, z1: f64, fill: FillKind| {
         let us: Vec<f64> = pts.iter().map(|p| u_of(*p)).collect();
@@ -414,11 +520,39 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
                 .fold(f64::INFINITY, f64::min),
             mid: pts.iter().map(|p| depth_of(*p)).sum::<f64>() / pts.len().max(1) as f64,
             fill,
+            detail: None,
         }
     };
     let mut faces: Vec<Face> = vec![];
+    // Whole walls, not their pieces: every opening is drawn on top with its own door or
+    // glass fill, and piece seams would read as false joints in the facade.
     for w in &model.walls {
         faces.push(face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper));
+    }
+    for o in &model.openings {
+        let Some(host) = model.walls.iter().find(|w| w.id == o.host) else {
+            continue;
+        };
+        let host_near = host
+            .footprint
+            .outer
+            .iter()
+            .map(|p| depth_of(*p))
+            .fold(f64::INFINITY, f64::min);
+        let fill = if matches!(o.kind, OpeningKind::Door(_)) {
+            FillKind::Paper
+        } else {
+            FillKind::Glass
+        };
+        let mut f = face(o.id, &[o.at(o.t0), o.at(o.t1)], o.z0, o.z1, fill);
+        if f.u1 - f.u0 < 1.0 {
+            continue; // Opening in a wall seen edge-on.
+        }
+        // Drawn just after its host wall so the host's pieces frame it.
+        f.near = host_near - 0.5;
+        f.mid = f.near;
+        f.detail = Some(o.kind);
+        faces.push(f);
     }
     for f in &model.floors {
         faces.push(face(f.id, &f.base.outer, f.z0, f.z1, FillKind::Slab));
@@ -453,6 +587,9 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
         ];
         b.fill(Some(f.el), vec![ring(&r)], f.fill);
         b.line(Some(f.el), &r, true, 2, Dash::Solid);
+        if let Some(kind) = f.detail {
+            opening_elevation_detail(b, f.el, kind, f.u0, f.u1, f.z0, f.z1);
+        }
     }
 
     let ext = b.paper(12.0);
@@ -527,6 +664,187 @@ fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
     ]
 }
 
+/// Frame, panel and swing lines of a door or window seen in elevation.
+fn opening_elevation_detail(
+    b: &mut Builder,
+    el: ElementId,
+    kind: OpeningKind,
+    u0: f64,
+    u1: f64,
+    z0: f64,
+    z1: f64,
+) {
+    let el = Some(el);
+    let frame = 2.0 * MM_PER_IN;
+    match kind {
+        OpeningKind::Door(family) => {
+            if family == DoorFamily::DoubleFlush {
+                let m = (u0 + u1) / 2.0;
+                b.line(
+                    el,
+                    &[Pt::new(m, z0), Pt::new(m, z1 - frame)],
+                    false,
+                    1,
+                    Dash::Solid,
+                );
+            }
+            let r = [
+                Pt::new(u0 + frame, z0),
+                Pt::new(u0 + frame, z1 - frame),
+                Pt::new(u1 - frame, z1 - frame),
+                Pt::new(u1 - frame, z0),
+            ];
+            b.line(el, &r, false, 1, Dash::Solid);
+        }
+        OpeningKind::Window(family) => {
+            let r = [
+                Pt::new(u0 + frame, z0 + frame),
+                Pt::new(u1 - frame, z0 + frame),
+                Pt::new(u1 - frame, z1 - frame),
+                Pt::new(u0 + frame, z1 - frame),
+            ];
+            b.line(el, &r, true, 1, Dash::Solid);
+            if family == WindowFamily::Casement {
+                // Swing indicator: hinge on the left, point to the right side's midpoint.
+                let tip = Pt::new(u1 - frame, (z0 + z1) / 2.0);
+                b.line(
+                    el,
+                    &[
+                        Pt::new(u0 + frame, z0 + frame),
+                        tip,
+                        Pt::new(u0 + frame, z1 - frame),
+                    ],
+                    false,
+                    1,
+                    Dash::Dashed,
+                );
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct OpeningPreview {
+    pub host: ElementId,
+    /// Center distance from the host's start, mm.
+    pub offset: f64,
+    pub flip_facing: bool,
+    /// False when the opening would overlap another one in the wall.
+    pub valid: bool,
+    /// Distances from the opening's edges to the wall ends.
+    pub label: String,
+    pub items: Vec<Item>,
+}
+
+/// Where a door or window of `type_id` would go for a cursor at `p` in a plan view.
+pub fn opening_preview(
+    doc: &Document,
+    view: ElementId,
+    type_id: ElementId,
+    p: Pt,
+    tol: f64,
+) -> Option<OpeningPreview> {
+    let ElementData::View {
+        kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
+        scale,
+        ..
+    } = doc.data(view).ok()?
+    else {
+        return None;
+    };
+    let (width, is_door) = match doc.data(type_id).ok()? {
+        ElementData::DoorType { width, .. } => (*width, true),
+        ElementData::WindowType { width, .. } => (*width, false),
+        _ => return None,
+    };
+    let model = regenerate(doc);
+    let elev = doc.level_elevation(*level).ok()?;
+    let cut = elev + PLAN_CUT;
+    let (wall, t, dist) = model
+        .walls
+        .iter()
+        .filter(|w| w.z0 <= cut && w.z1 > cut)
+        .map(|w| {
+            let (t, d) = project_to_segment(p, w.start, w.end);
+            (w, t, d)
+        })
+        .filter(|(w, _, d)| *d <= w.thickness / 2.0 + tol)
+        .min_by(|a, b| a.2.total_cmp(&b.2))?;
+    let _ = dist;
+    let len = wall.start.dist(wall.end);
+    if len < width {
+        return None;
+    }
+    let hw = width / 2.0;
+    let mut offset = (t * len).clamp(hw, len - hw);
+    if (offset - len / 2.0).abs() < tol {
+        offset = len / 2.0; // Snap to the wall's center.
+    } else {
+        // Keep the gap to the wall start a whole number of inches.
+        let left = ((offset - hw) / MM_PER_IN).round() * MM_PER_IN;
+        offset = (left + hw).clamp(hw, len - hw);
+    }
+    let dir = wall.dir();
+    let flip_facing = p.sub(wall.start).dot(dir.perp()) < 0.0;
+    let valid = !model
+        .openings
+        .iter()
+        .any(|o| o.host == wall.id && offset - hw < o.t1 - 0.5 && offset + hw > o.t0 + 0.5);
+    let temp = OpeningSolid {
+        id: wall.id,
+        host: wall.id,
+        kind: if is_door {
+            match doc.data(type_id).ok()? {
+                ElementData::DoorType { family, .. } => OpeningKind::Door(*family),
+                _ => return None,
+            }
+        } else {
+            match doc.data(type_id).ok()? {
+                ElementData::WindowType { family, .. } => OpeningKind::Window(*family),
+                _ => return None,
+            }
+        },
+        wall_start: wall.start,
+        dir,
+        half_thickness: wall.thickness / 2.0,
+        t0: offset - hw,
+        t1: offset + hw,
+        z0: 0.0,
+        z1: 0.0,
+        flip_hand: false,
+        flip_facing,
+    };
+    let mut b = Builder {
+        items: vec![],
+        scale: f64::from(*scale),
+    };
+    let n = dir.perp().scale(wall.thickness / 2.0);
+    let (j0, j1) = (temp.at(temp.t0), temp.at(temp.t1));
+    b.line(
+        None,
+        &[j0.add(n), j1.add(n), j1.sub(n), j0.sub(n)],
+        true,
+        2,
+        Dash::Solid,
+    );
+    opening_symbol(&mut b, None, &temp);
+    let label = format!(
+        "{}  ◂▸  {}",
+        format_ft_in(offset - hw),
+        format_ft_in(len - offset - hw)
+    );
+    Some(OpeningPreview {
+        host: wall.id,
+        offset,
+        flip_facing,
+        valid,
+        label,
+        items: b.items,
+    })
+}
+
 /// Topmost element at `p` (display-list coordinates) within `tol` mm.
 pub fn pick(dl: &DisplayList, p: Pt, tol: f64) -> Option<ElementId> {
     let mut best: Option<(f64, ElementId)> = None;
@@ -584,11 +902,24 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     let m = regenerate(doc);
     let mut out = vec![];
     for w in &m.walls {
+        let positions = w.pieces.iter().flat_map(|p| p.triangles()).collect();
         out.push(Mesh {
             el: w.id,
             category: Category::Wall,
             exterior: w.exterior,
-            positions: w.prism().triangles(),
+            positions,
+        });
+    }
+    for o in &m.openings {
+        let (category, depth) = match o.kind {
+            OpeningKind::Door(_) => (Category::Door, 1.75 * MM_PER_IN),
+            OpeningKind::Window(_) => (Category::Window, 0.75 * MM_PER_IN),
+        };
+        out.push(Mesh {
+            el: o.id,
+            category,
+            exterior: false,
+            positions: o.panel(depth, o.z0, o.z1).triangles(),
         });
     }
     for s in m.floors.iter().chain(&m.ceilings) {
@@ -836,11 +1167,173 @@ mod tests {
         assert_eq!(pick(&dl, Pt::new(10.0, 3000.0), 100.0), Some(west));
     }
 
+    fn with_openings() -> (Document, ElementId, ElementId, ElementId) {
+        let (mut doc, l1) = building();
+        let south = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|w| w.start.y.abs() < 1.0 && w.end.y.abs() < 1.0)
+            .unwrap()
+            .id;
+        let dt = doc
+            .of(Category::DoorType)
+            .find(|e| e.data.name().starts_with("Single Flush 36"))
+            .unwrap()
+            .id;
+        let wn = doc
+            .of(Category::WindowType)
+            .find(|e| e.data.name().starts_with("Casement"))
+            .unwrap()
+            .id;
+        let d = ops::create_door(&mut doc, dt, south, 3000.0, false).unwrap();
+        let w = ops::create_window(&mut doc, wn, south, 8000.0, false).unwrap();
+        let _ = l1;
+        (doc, south, d, w)
+    }
+
+    #[test]
+    fn plan_shows_gaps_and_symbols_for_openings() {
+        let (doc, south, d, w) = with_openings();
+        let l1 = doc.levels()[0].0;
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let dl = display_list(&doc, v).unwrap();
+        // The south wall is split into three poché pieces at the cut.
+        let south_fills = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(south) && matches!(i.prim, Prim::Fill { .. }))
+            .count();
+        assert_eq!(south_fills, 3);
+        // Door: leaf + arc. Casement window: 2 sill + 2 glass + swing line.
+        assert_eq!(dl.items.iter().filter(|i| i.el == Some(d)).count(), 2);
+        assert_eq!(dl.items.iter().filter(|i| i.el == Some(w)).count(), 5);
+        // Picking the door's leaf selects the door.
+        let leaf = dl
+            .items
+            .iter()
+            .find_map(|i| match (&i.el, &i.prim) {
+                (Some(id), Prim::Line { pts, .. }) if *id == d && pts.len() == 2 => Some(pts[1]),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(pick(&dl, Pt::new(leaf[0], leaf[1]), 30.0), Some(d));
+    }
+
+    #[test]
+    fn door_swing_follows_flip_facing() {
+        let (mut doc, _, d, _) = with_openings();
+        let l1 = doc.levels()[0].0;
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let leaf_tip_y = |doc: &Document| {
+            display_list(doc, v)
+                .unwrap()
+                .items
+                .iter()
+                .find_map(|i| match (&i.el, &i.prim) {
+                    (Some(id), Prim::Line { pts, .. }) if *id == d && pts.len() == 2 => {
+                        Some(pts[1][1])
+                    }
+                    _ => None,
+                })
+                .unwrap()
+        };
+        // South wall runs west→east, so its left side is north (+y): the door swings in.
+        assert!(leaf_tip_y(&doc) > 800.0);
+        ops::set_property(&mut doc, d, "flip_facing", "yes", 0).unwrap();
+        assert!(leaf_tip_y(&doc) < -800.0);
+    }
+
+    #[test]
+    fn elevation_draws_openings_over_their_wall() {
+        let (doc, _, d, w) = with_openings();
+        let v = view(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: studio_core::Compass::South
+                }
+            )
+        });
+        let dl = display_list(&doc, v).unwrap();
+        assert!(dl.items.iter().any(|i| i.el == Some(w)
+            && matches!(
+                i.prim,
+                Prim::Fill {
+                    fill: FillKind::Glass,
+                    ..
+                }
+            )));
+        assert!(dl.items.iter().any(|i| i.el == Some(d)
+            && matches!(
+                i.prim,
+                Prim::Fill {
+                    fill: FillKind::Paper,
+                    ..
+                }
+            )));
+        // Casement swing indicator is dashed.
+        assert!(dl.items.iter().any(|i| i.el == Some(w)
+            && matches!(
+                i.prim,
+                Prim::Line {
+                    dash: Dash::Dashed,
+                    ..
+                }
+            )));
+        // Clicking the middle of the door in elevation picks the door, not the wall.
+        let door_mid = Pt::new(3000.0, 1000.0);
+        assert_eq!(pick(&dl, door_mid, 20.0), Some(d));
+    }
+
+    #[test]
+    fn preview_snaps_to_wall_center_and_reports_overlap() {
+        let (doc, south, _, _) = with_openings();
+        let l1 = doc.levels()[0].0;
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let dt = doc
+            .of(Category::DoorType)
+            .find(|e| e.data.name().starts_with("Single Flush 30"))
+            .unwrap()
+            .id;
+        let len = 40.0 * MM_PER_FT;
+        let p = opening_preview(&doc, v, dt, Pt::new(len / 2.0 + 50.0, -300.0), 200.0).unwrap();
+        assert_eq!(p.host, south);
+        assert!((p.offset - len / 2.0).abs() < 1e-9);
+        assert!(
+            p.flip_facing,
+            "cursor south of a west→east wall is its right side"
+        );
+        assert!(p.valid);
+        assert!(!p.items.is_empty());
+        let over = opening_preview(&doc, v, dt, Pt::new(3100.0, 0.0), 200.0).unwrap();
+        assert!(!over.valid);
+        assert!(opening_preview(&doc, v, dt, Pt::new(5000.0, 5000.0), 200.0).is_none());
+    }
+
     #[test]
     fn meshes_cover_walls_floor_and_ceiling() {
         let (doc, _) = building();
         let ms = meshes(&doc);
         assert_eq!(ms.len(), 6);
+        let (doc, _, _, _) = with_openings();
+        let ms = meshes(&doc);
+        assert_eq!(
+            ms.iter().filter(|m| m.category == Category::Door).count(),
+            1
+        );
+        assert_eq!(
+            ms.iter().filter(|m| m.category == Category::Window).count(),
+            1
+        );
         assert!(ms
             .iter()
             .all(|m| !m.positions.is_empty() && m.positions.len() % 9 == 0));

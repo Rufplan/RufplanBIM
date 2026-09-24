@@ -57,6 +57,10 @@ pub enum Category {
     View,
     ProjectInfo,
     Stage,
+    DoorType,
+    Door,
+    WindowType,
+    Window,
 }
 
 impl Category {
@@ -73,6 +77,10 @@ impl Category {
             Category::View => "View",
             Category::ProjectInfo => "ProjectInfo",
             Category::Stage => "Stage",
+            Category::DoorType => "DoorType",
+            Category::Door => "Door",
+            Category::WindowType => "WindowType",
+            Category::Window => "Window",
         }
     }
 }
@@ -82,6 +90,22 @@ impl Category {
 pub enum WallFunction {
     Exterior,
     Interior,
+}
+
+/// Built-in door families (code-defined for v0.1, see DATA_MODEL.md).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum DoorFamily {
+    SingleFlush,
+    DoubleFlush,
+}
+
+/// Built-in window families.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum WindowFamily {
+    Fixed,
+    Casement,
 }
 
 /// What sets the top of a wall.
@@ -201,6 +225,42 @@ pub enum ElementData {
         current_stage: Option<ElementId>,
         stage_history: Vec<StageChange>,
     },
+    DoorType {
+        name: String,
+        family: DoorFamily,
+        /// Rough opening width and height, mm.
+        width: f64,
+        height: f64,
+    },
+    /// A door hosted by a wall. `offset` is the distance from the wall's start point to the
+    /// door's center, along the location line (mm).
+    Door {
+        type_id: ElementId,
+        host: ElementId,
+        offset: f64,
+        /// Hinge on the wall-end side instead of the wall-start side.
+        flip_hand: bool,
+        /// Swing to the wall's right side (looking from start to end) instead of the left.
+        flip_facing: bool,
+        mark: String,
+    },
+    WindowType {
+        name: String,
+        family: WindowFamily,
+        width: f64,
+        height: f64,
+        /// Default sill height for new instances, mm above the host wall's base.
+        sill: f64,
+    },
+    Window {
+        type_id: ElementId,
+        host: ElementId,
+        offset: f64,
+        /// Sill height above the host wall's base, mm.
+        sill: f64,
+        flip_facing: bool,
+        mark: String,
+    },
     /// A design stage (ADR-010).
     Stage {
         name: String,
@@ -213,6 +273,14 @@ pub enum ElementData {
 }
 
 impl ElementData {
+    /// Host wall of a door or window.
+    pub fn host(&self) -> Option<ElementId> {
+        match self {
+            ElementData::Door { host, .. } | ElementData::Window { host, .. } => Some(*host),
+            _ => None,
+        }
+    }
+
     pub fn category(&self) -> Category {
         match self {
             ElementData::Level { .. } => Category::Level,
@@ -226,6 +294,10 @@ impl ElementData {
             ElementData::View { .. } => Category::View,
             ElementData::ProjectInfo { .. } => Category::ProjectInfo,
             ElementData::Stage { .. } => Category::Stage,
+            ElementData::DoorType { .. } => Category::DoorType,
+            ElementData::Door { .. } => Category::Door,
+            ElementData::WindowType { .. } => Category::WindowType,
+            ElementData::Window { .. } => Category::Window,
         }
     }
 
@@ -248,6 +320,9 @@ impl ElementData {
             | ElementData::Ceiling { type_id, level, .. } => {
                 vec![*type_id, *level]
             }
+            ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
+                vec![*type_id, *host]
+            }
             ElementData::View {
                 kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
                 ..
@@ -266,7 +341,11 @@ impl ElementData {
             | ElementData::FloorType { name, .. }
             | ElementData::CeilingType { name, .. }
             | ElementData::View { name, .. }
+            | ElementData::DoorType { name, .. }
+            | ElementData::WindowType { name, .. }
             | ElementData::Stage { name, .. } => name.clone(),
+            ElementData::Door { mark, .. } => format!("Door {mark}"),
+            ElementData::Window { mark, .. } => format!("Window {mark}"),
             ElementData::Grid { name, .. } => format!("Grid {name}"),
             ElementData::Wall { .. } => "Wall".into(),
             ElementData::Floor { .. } => "Floor".into(),
@@ -293,7 +372,9 @@ impl ElementData {
         match self {
             ElementData::Wall { type_id, .. }
             | ElementData::Floor { type_id, .. }
-            | ElementData::Ceiling { type_id, .. } => Some(*type_id),
+            | ElementData::Ceiling { type_id, .. }
+            | ElementData::Door { type_id, .. }
+            | ElementData::Window { type_id, .. } => Some(*type_id),
             _ => None,
         }
     }

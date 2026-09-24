@@ -4,8 +4,10 @@
 //! the prototype this takes well under a millisecond per element; dependency-graph based
 //! incremental regeneration (ARCHITECTURE.md) replaces it when it becomes a bottleneck.
 
-use studio_core::{Category, Document, ElementData, ElementId, WallFunction, WallTop};
-use studio_geom::{line_intersection, union_all, Poly, Prism, Pt};
+use studio_core::{
+    Category, Document, DoorFamily, ElementData, ElementId, WallFunction, WallTop, WindowFamily,
+};
+use studio_geom::{clip_half_plane, line_intersection, union_all, Poly, Prism, Pt};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WallSolid {
@@ -15,17 +17,62 @@ pub struct WallSolid {
     pub end: Pt,
     pub thickness: f64,
     pub exterior: bool,
+    /// Whole footprint, ignoring openings (used for rooms, picking and projection).
     pub footprint: Poly,
     pub z0: f64,
     pub z1: f64,
+    /// The wall's solid material: the footprint split around door and window openings.
+    pub pieces: Vec<Prism>,
 }
 
 impl WallSolid {
-    pub fn prism(&self) -> Prism {
+    /// Unit vector from start to end.
+    pub fn dir(&self) -> Pt {
+        self.end.sub(self.start).norm()
+    }
+}
+
+/// What kind of opening, with its family.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpeningKind {
+    Door(DoorFamily),
+    Window(WindowFamily),
+}
+
+/// A door or window resolved against its host wall. Lengths in mm; `t0`/`t1` are distances
+/// from the host's start along its location line, `z0`/`z1` are absolute heights.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpeningSolid {
+    pub id: ElementId,
+    pub host: ElementId,
+    pub kind: OpeningKind,
+    pub wall_start: Pt,
+    pub dir: Pt,
+    pub half_thickness: f64,
+    pub t0: f64,
+    pub t1: f64,
+    pub z0: f64,
+    pub z1: f64,
+    pub flip_hand: bool,
+    pub flip_facing: bool,
+}
+
+impl OpeningSolid {
+    pub fn width(&self) -> f64 {
+        self.t1 - self.t0
+    }
+    /// Point on the location line at distance `t` from the wall start.
+    pub fn at(&self, t: f64) -> Pt {
+        self.wall_start.add(self.dir.scale(t))
+    }
+    /// A thin prism in the wall's center plane (door leaf or glass), `depth` mm thick.
+    pub fn panel(&self, depth: f64, z0: f64, z1: f64) -> Prism {
+        let n = self.dir.perp().scale(depth / 2.0);
+        let (a, b) = (self.at(self.t0), self.at(self.t1));
         Prism {
-            base: self.footprint.clone(),
-            z0: self.z0,
-            z1: self.z1,
+            base: Poly::simple(vec![a.sub(n), b.sub(n), b.add(n), a.add(n)]),
+            z0,
+            z1,
         }
     }
 }
@@ -73,6 +120,7 @@ pub struct Model {
     pub ceilings: Vec<SlabSolid>,
     pub grids: Vec<GridLine>,
     pub levels: Vec<LevelInfo>,
+    pub openings: Vec<OpeningSolid>,
 }
 
 impl Model {
@@ -166,7 +214,7 @@ pub fn regenerate(doc: &Document) -> Model {
         raw.push((e.id, *base_level, *start, *end, thickness, exterior, z0, z1));
     }
 
-    let walls = raw
+    let mut walls: Vec<WallSolid> = raw
         .iter()
         .map(|&(id, level, start, end, thickness, exterior, z0, z1)| {
             let h = thickness / 2.0;
@@ -205,9 +253,16 @@ pub fn regenerate(doc: &Document) -> Model {
                 footprint: Poly::simple([sr, el, er, sl].map(snap).to_vec()),
                 z0,
                 z1,
+                pieces: vec![],
             }
         })
         .collect();
+
+    let openings = resolve_openings(doc, &walls);
+    for w in &mut walls {
+        let mine: Vec<&OpeningSolid> = openings.iter().filter(|o| o.host == w.id).collect();
+        w.pieces = wall_pieces(w, &mine);
+    }
 
     let slab = |cat: Category| -> Vec<SlabSolid> {
         doc.of(cat)
@@ -275,6 +330,7 @@ pub fn regenerate(doc: &Document) -> Model {
         .collect();
 
     Model {
+        openings,
         walls,
         floors: slab(Category::Floor),
         ceilings: slab(Category::Ceiling),
@@ -288,6 +344,83 @@ pub fn regenerate(doc: &Document) -> Model {
 fn snap(p: Pt) -> Pt {
     const Q: f64 = 1e4;
     Pt::new((p.x * Q).round() / Q, (p.y * Q).round() / Q)
+}
+
+fn resolve_openings(doc: &Document, walls: &[WallSolid]) -> Vec<OpeningSolid> {
+    let get = |id: ElementId| doc.get(id).map(|e| &e.data);
+    let mut out = vec![];
+    for e in doc.iter() {
+        let Some(fit) = studio_core::hosting::opening_fit(&get, &e.data) else {
+            continue;
+        };
+        let Some(w) = walls.iter().find(|w| w.id == fit.host) else {
+            continue;
+        };
+        let (kind, flip_hand, flip_facing) = match (&e.data, e.data.type_id().and_then(&get)) {
+            (
+                ElementData::Door {
+                    flip_hand,
+                    flip_facing,
+                    ..
+                },
+                Some(ElementData::DoorType { family, .. }),
+            ) => (OpeningKind::Door(*family), *flip_hand, *flip_facing),
+            (
+                ElementData::Window { flip_facing, .. },
+                Some(ElementData::WindowType { family, .. }),
+            ) => (OpeningKind::Window(*family), false, *flip_facing),
+            _ => continue,
+        };
+        out.push(OpeningSolid {
+            id: e.id,
+            host: w.id,
+            kind,
+            wall_start: w.start,
+            dir: w.dir(),
+            half_thickness: w.thickness / 2.0,
+            t0: fit.t0,
+            t1: fit.t1,
+            z0: w.z0 + fit.z0,
+            z1: w.z0 + fit.z1,
+            flip_hand,
+            flip_facing,
+        });
+    }
+    out
+}
+
+/// Splits a wall's footprint along its length at each opening: full-height pieces between
+/// openings, and sill / head pieces below and above each opening.
+fn wall_pieces(w: &WallSolid, openings: &[&OpeningSolid]) -> Vec<Prism> {
+    let mut ops: Vec<&&OpeningSolid> = openings.iter().collect();
+    ops.sort_by(|a, b| a.t0.total_cmp(&b.t0));
+    let dir = w.dir();
+    let slice = |a: Option<f64>, b: Option<f64>| -> Poly {
+        let mut ring = w.footprint.outer.clone();
+        if let Some(a) = a {
+            ring = clip_half_plane(&ring, w.start.add(dir.scale(a)), dir);
+        }
+        if let Some(b) = b {
+            ring = clip_half_plane(&ring, w.start.add(dir.scale(b)), dir.scale(-1.0));
+        }
+        Poly::simple(ring)
+    };
+    let mut pieces = vec![];
+    let mut cursor: Option<f64> = None;
+    let mut push = |base: Poly, z0: f64, z1: f64| {
+        if base.outer.len() >= 3 && base.area() > 1.0 && z1 - z0 > 1.0 {
+            pieces.push(Prism { base, z0, z1 });
+        }
+    };
+    for o in &ops {
+        push(slice(cursor, Some(o.t0)), w.z0, w.z1);
+        let gap = slice(Some(o.t0), Some(o.t1));
+        push(gap.clone(), w.z0, o.z0);
+        push(gap, o.z1, w.z1);
+        cursor = Some(o.t1);
+    }
+    push(slice(cursor, None), w.z0, w.z1);
+    pieces
 }
 
 fn type_thickness(doc: &Document, id: ElementId) -> Option<f64> {
@@ -473,6 +606,60 @@ mod tests {
         assert!((area(&doc) - 5000.0 * 12.0 * MM_PER_IN).abs() < 1e-3);
         doc.undo().unwrap();
         assert!((area(&doc) - 5000.0 * 8.0 * MM_PER_IN).abs() < 1e-3);
+    }
+
+    #[test]
+    fn door_splits_wall_and_window_keeps_sill_and_head() {
+        let (mut doc, l1, wt) = project();
+        let w =
+            ops::create_wall(&mut doc, wt, l1, Pt::new(0.0, 0.0), Pt::new(5000.0, 0.0)).unwrap();
+        let dt = doc
+            .of(Category::DoorType)
+            .find(|e| e.data.name().starts_with("Single Flush 36"))
+            .unwrap()
+            .id;
+        let wn = doc
+            .of(Category::WindowType)
+            .find(|e| e.data.name().starts_with("Fixed 48"))
+            .unwrap()
+            .id;
+        ops::create_door(&mut doc, dt, w, 1000.0, false).unwrap();
+        ops::create_window(&mut doc, wn, w, 3500.0, false).unwrap();
+        let m = regenerate(&doc);
+        let wall = m.walls.iter().find(|s| s.id == w).unwrap();
+        // Solid | door head | solid | window sill | window head | solid.
+        assert_eq!(wall.pieces.len(), 6, "{:#?}", wall.pieces);
+        let cut = 48.0 * MM_PER_IN;
+        let at_cut: Vec<_> = wall
+            .pieces
+            .iter()
+            .filter(|p| p.z0 <= cut && p.z1 > cut)
+            .collect();
+        // At the plan cut height both openings are gaps: three solid pieces remain.
+        assert_eq!(at_cut.len(), 3);
+        let door = m
+            .openings
+            .iter()
+            .find(|o| matches!(o.kind, OpeningKind::Door(_)))
+            .unwrap();
+        assert!((door.width() - 36.0 * MM_PER_IN).abs() < EPS);
+        assert!((door.z1 - 84.0 * MM_PER_IN).abs() < EPS);
+        let win = m
+            .openings
+            .iter()
+            .find(|o| matches!(o.kind, OpeningKind::Window(_)))
+            .unwrap();
+        assert!((win.z0 - 36.0 * MM_PER_IN).abs() < EPS);
+        // Material volume = wall minus both openings.
+        let vol: f64 = wall
+            .pieces
+            .iter()
+            .map(|p| p.base.area() * (p.z1 - p.z0))
+            .sum();
+        let t = 8.0 * MM_PER_IN;
+        let full = 5000.0 * t * 10.0 * MM_PER_FT;
+        let holes = t * (36.0 * 84.0 + 48.0 * 48.0) * MM_PER_IN * MM_PER_IN;
+        assert!((vol - (full - holes)).abs() / full < 1e-9);
     }
 
     #[test]

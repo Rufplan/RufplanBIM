@@ -6,7 +6,8 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Category, Compass, ElementData, ElementId, StageChange, ViewKind, WallFunction, WallTop,
+    Category, Compass, DoorFamily, ElementData, ElementId, StageChange, ViewKind, WallFunction,
+    WallTop, WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -82,6 +83,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
                 thickness: t * MM_PER_IN,
             });
         }
+        seed_opening_types(tx);
         for (facing, name) in [
             (Compass::North, "North"),
             (Compass::South, "South"),
@@ -120,6 +122,69 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             current_stage: sd,
             stage_history: vec![],
         });
+        Ok(())
+    })
+}
+
+/// Built-in door and window types (inches: width × height, sill).
+fn seed_opening_types(tx: &mut Tx<'_>) {
+    for (name, family, w, h) in [
+        (
+            "Single Flush 36\" x 84\"",
+            DoorFamily::SingleFlush,
+            36.0,
+            84.0,
+        ),
+        (
+            "Single Flush 30\" x 80\"",
+            DoorFamily::SingleFlush,
+            30.0,
+            80.0,
+        ),
+        (
+            "Double Flush 72\" x 84\"",
+            DoorFamily::DoubleFlush,
+            72.0,
+            84.0,
+        ),
+    ] {
+        tx.insert(ElementData::DoorType {
+            name: name.into(),
+            family,
+            width: w * MM_PER_IN,
+            height: h * MM_PER_IN,
+        });
+    }
+    for (name, family, w, h, sill) in [
+        ("Fixed 48\" x 48\"", WindowFamily::Fixed, 48.0, 48.0, 36.0),
+        (
+            "Casement 36\" x 48\"",
+            WindowFamily::Casement,
+            36.0,
+            48.0,
+            36.0,
+        ),
+        ("Fixed 72\" x 60\"", WindowFamily::Fixed, 72.0, 60.0, 30.0),
+    ] {
+        tx.insert(ElementData::WindowType {
+            name: name.into(),
+            family,
+            width: w * MM_PER_IN,
+            height: h * MM_PER_IN,
+            sill: sill * MM_PER_IN,
+        });
+    }
+}
+
+/// Adds the built-in door and window types to a project that has none (files saved
+/// before doors and windows existed).
+pub fn ensure_opening_types(doc: &mut Document) -> CoreResult<()> {
+    if doc.of(Category::DoorType).next().is_some() || doc.of(Category::WindowType).next().is_some()
+    {
+        return Ok(());
+    }
+    doc.transact("Add door and window types", |tx| {
+        seed_opening_types(tx);
         Ok(())
     })
 }
@@ -279,6 +344,70 @@ pub fn create_ceiling(
             level,
             height: DEFAULT_CEILING_HEIGHT,
             boundary: ccw(boundary),
+        }))
+    })
+}
+
+/// Next free numeric mark in a category ("1", "2", …).
+fn next_mark(doc: &Document, cat: Category) -> String {
+    let max = doc
+        .of(cat)
+        .filter_map(|e| match &e.data {
+            ElementData::Door { mark, .. } | ElementData::Window { mark, .. } => {
+                mark.parse::<u32>().ok()
+            }
+            _ => None,
+        })
+        .max()
+        .unwrap_or(0);
+    (max + 1).to_string()
+}
+
+/// Places a door in `host` with its center `offset` mm from the wall start.
+pub fn create_door(
+    doc: &mut Document,
+    type_id: ElementId,
+    host: ElementId,
+    offset: f64,
+    flip_facing: bool,
+) -> CoreResult<ElementId> {
+    if !matches!(doc.data(type_id)?, ElementData::DoorType { .. }) {
+        return Err(CoreError::Invalid("pick a door type".into()));
+    }
+    let mark = next_mark(doc, Category::Door);
+    doc.transact("Place door", |tx| {
+        Ok(tx.insert(ElementData::Door {
+            type_id,
+            host,
+            offset,
+            flip_hand: false,
+            flip_facing,
+            mark,
+        }))
+    })
+}
+
+/// Places a window in `host` at the type's default sill height.
+pub fn create_window(
+    doc: &mut Document,
+    type_id: ElementId,
+    host: ElementId,
+    offset: f64,
+    flip_facing: bool,
+) -> CoreResult<ElementId> {
+    let ElementData::WindowType { sill, .. } = doc.data(type_id)? else {
+        return Err(CoreError::Invalid("pick a window type".into()));
+    };
+    let sill = *sill;
+    let mark = next_mark(doc, Category::Window);
+    doc.transact("Place window", |tx| {
+        Ok(tx.insert(ElementData::Window {
+            type_id,
+            host,
+            offset,
+            sill,
+            flip_facing,
+            mark,
         }))
     })
 }
@@ -688,6 +817,99 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 stage_history.len().to_string(),
             ));
         }
+        ElementData::DoorType {
+            name,
+            family,
+            width,
+            height,
+        } => {
+            props.push(text("name", "Type Name", "Identity Data", name));
+            props.push(ro(
+                "family",
+                "Family",
+                "Identity Data",
+                match family {
+                    DoorFamily::SingleFlush => "Single Flush".into(),
+                    DoorFamily::DoubleFlush => "Double Flush".into(),
+                },
+            ));
+            props.push(len("width", "Width", "Dimensions", *width));
+            props.push(len("height", "Height", "Dimensions", *height));
+        }
+        ElementData::WindowType {
+            name,
+            family,
+            width,
+            height,
+            sill,
+        } => {
+            props.push(text("name", "Type Name", "Identity Data", name));
+            props.push(ro(
+                "family",
+                "Family",
+                "Identity Data",
+                format!("{family:?}"),
+            ));
+            props.push(len("width", "Width", "Dimensions", *width));
+            props.push(len("height", "Height", "Dimensions", *height));
+            props.push(len("sill", "Default Sill Height", "Dimensions", *sill));
+        }
+        ElementData::Door {
+            host,
+            offset,
+            flip_hand,
+            flip_facing,
+            mark,
+            ..
+        } => {
+            props.push(text("mark", "Mark", "Identity Data", mark));
+            props.push(ro("host", "Host", "Constraints", host_label(doc, *host)));
+            props.push(len(
+                "offset",
+                "Offset from Wall Start",
+                "Constraints",
+                *offset,
+            ));
+            props.push(choice(
+                "flip_hand",
+                "Flip Hand",
+                "Graphics",
+                yes_no(*flip_hand),
+                yes_no_options(),
+            ));
+            props.push(choice(
+                "flip_facing",
+                "Flip Facing",
+                "Graphics",
+                yes_no(*flip_facing),
+                yes_no_options(),
+            ));
+        }
+        ElementData::Window {
+            host,
+            offset,
+            sill,
+            flip_facing,
+            mark,
+            ..
+        } => {
+            props.push(text("mark", "Mark", "Identity Data", mark));
+            props.push(ro("host", "Host", "Constraints", host_label(doc, *host)));
+            props.push(len(
+                "offset",
+                "Offset from Wall Start",
+                "Constraints",
+                *offset,
+            ));
+            props.push(len("sill", "Sill Height", "Constraints", *sill));
+            props.push(choice(
+                "flip_facing",
+                "Flip Facing",
+                "Graphics",
+                yes_no(*flip_facing),
+                yes_no_options(),
+            ));
+        }
         ElementData::Stage {
             name,
             abbreviation,
@@ -865,6 +1087,60 @@ pub fn set_property(
             "address" => *address = value.into(),
             _ => return Err(unknown()),
         },
+        ElementData::DoorType {
+            name,
+            width,
+            height,
+            ..
+        } => match key {
+            "name" => *name = non_empty(value)?,
+            "width" => *width = positive(parse_len(value)?)?,
+            "height" => *height = positive(parse_len(value)?)?,
+            _ => return Err(unknown()),
+        },
+        ElementData::WindowType {
+            name,
+            width,
+            height,
+            sill,
+            ..
+        } => match key {
+            "name" => *name = non_empty(value)?,
+            "width" => *width = positive(parse_len(value)?)?,
+            "height" => *height = positive(parse_len(value)?)?,
+            "sill" => *sill = parse_len(value)?,
+            _ => return Err(unknown()),
+        },
+        ElementData::Door {
+            type_id,
+            offset,
+            flip_hand,
+            flip_facing,
+            mark,
+            ..
+        } => match key {
+            "type" => *type_id = parse_id(value)?,
+            "offset" => *offset = parse_len(value)?,
+            "flip_hand" => *flip_hand = value == "yes",
+            "flip_facing" => *flip_facing = value == "yes",
+            "mark" => *mark = non_empty(value)?,
+            _ => return Err(unknown()),
+        },
+        ElementData::Window {
+            type_id,
+            offset,
+            sill,
+            flip_facing,
+            mark,
+            ..
+        } => match key {
+            "type" => *type_id = parse_id(value)?,
+            "offset" => *offset = parse_len(value)?,
+            "sill" => *sill = parse_len(value)?,
+            "flip_facing" => *flip_facing = value == "yes",
+            "mark" => *mark = non_empty(value)?,
+            _ => return Err(unknown()),
+        },
         ElementData::Stage {
             name,
             abbreviation,
@@ -893,6 +1169,8 @@ fn check_type_category(tx: &Tx<'_>, id: ElementId) -> CoreResult<()> {
         ElementData::Wall { .. } => Category::WallType,
         ElementData::Floor { .. } => Category::FloorType,
         ElementData::Ceiling { .. } => Category::CeilingType,
+        ElementData::Door { .. } => Category::DoorType,
+        ElementData::Window { .. } => Category::WindowType,
         _ => return Ok(()),
     };
     if let Some(t) = data.type_id() {
@@ -920,6 +1198,44 @@ fn check_type_category(tx: &Tx<'_>, id: ElementId) -> CoreResult<()> {
         }
     }
     Ok(())
+}
+
+fn yes_no(b: bool) -> String {
+    if b {
+        "yes".into()
+    } else {
+        "no".into()
+    }
+}
+
+fn yes_no_options() -> Vec<PropOption> {
+    vec![
+        PropOption {
+            id: "no".into(),
+            label: "No".into(),
+        },
+        PropOption {
+            id: "yes".into(),
+            label: "Yes".into(),
+        },
+    ]
+}
+
+fn host_label(doc: &Document, host: ElementId) -> String {
+    let len = match doc.data(host) {
+        Ok(ElementData::Wall { start, end, .. }) => {
+            format!(" ({})", format_ft_in(start.dist(*end)))
+        }
+        _ => String::new(),
+    };
+    let ty = doc
+        .data(host)
+        .ok()
+        .and_then(|d| d.type_id())
+        .and_then(|t| doc.data(t).ok())
+        .map(|t| t.name())
+        .unwrap_or_else(|| "Wall".into());
+    format!("{ty}{len}")
 }
 
 fn non_empty(v: &str) -> CoreResult<String> {
@@ -1087,6 +1403,73 @@ mod tests {
         assert_eq!(doc.of(Category::View).count(), 11);
         delete(&mut doc, &[l3]).unwrap();
         assert_eq!(doc.of(Category::View).count(), 9);
+    }
+
+    fn wall_and_types(doc: &mut Document) -> (ElementId, ElementId, ElementId) {
+        let wt = first_of(doc, Category::WallType).unwrap();
+        let l0 = doc.levels()[0].0;
+        let w = create_wall(doc, wt, l0, Pt::new(0.0, 0.0), Pt::new(4000.0, 0.0)).unwrap();
+        let dt = doc
+            .of(Category::DoorType)
+            .find(|e| e.data.name().starts_with("Single Flush 36"))
+            .unwrap()
+            .id;
+        let wn = doc
+            .of(Category::WindowType)
+            .find(|e| e.data.name().starts_with("Fixed 48"))
+            .unwrap()
+            .id;
+        (w, dt, wn)
+    }
+
+    #[test]
+    fn doors_and_windows_get_marks_and_default_sill() {
+        let mut doc = seeded();
+        let (w, dt, wn) = wall_and_types(&mut doc);
+        let d1 = create_door(&mut doc, dt, w, 800.0, false).unwrap();
+        let d2 = create_door(&mut doc, dt, w, 2000.0, true).unwrap();
+        let win = create_window(&mut doc, wn, w, 3300.0, false).unwrap();
+        assert_eq!(doc.data(d1).unwrap().name(), "Door 1");
+        assert_eq!(doc.data(d2).unwrap().name(), "Door 2");
+        match doc.data(win).unwrap() {
+            ElementData::Window { sill, mark, .. } => {
+                assert!((sill - 36.0 * MM_PER_IN).abs() < 1e-9);
+                assert_eq!(mark, "1");
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn openings_must_fit_and_not_overlap() {
+        let mut doc = seeded();
+        let (w, dt, wn) = wall_and_types(&mut doc);
+        // 36" door centered 300 mm from the start would stick out of the wall.
+        assert!(create_door(&mut doc, dt, w, 300.0, false).is_err());
+        create_door(&mut doc, dt, w, 800.0, false).unwrap();
+        // A window overlapping that door is rejected.
+        assert!(create_window(&mut doc, wn, w, 1200.0, false).is_err());
+        // Shortening the wall under the door is rejected and leaves the wall unchanged.
+        assert!(set_property(&mut doc, w, "length", "3'", 0).is_err());
+        assert!(
+            matches!(doc.data(w).unwrap(), ElementData::Wall { end, .. } if (end.x - 4000.0).abs() < 1e-9)
+        );
+        // A sill so high the window pokes out of the 10' wall is rejected.
+        let win = create_window(&mut doc, wn, w, 3000.0, false).unwrap();
+        assert!(set_property(&mut doc, win, "sill", "7'", 0).is_err());
+        // Doors can only take door types.
+        assert!(set_property(&mut doc, win, "type", &dt.to_string(), 0).is_err());
+    }
+
+    #[test]
+    fn deleting_the_wall_deletes_its_openings_and_undo_restores_them() {
+        let mut doc = seeded();
+        let (w, dt, _) = wall_and_types(&mut doc);
+        let d = create_door(&mut doc, dt, w, 800.0, false).unwrap();
+        assert_eq!(delete(&mut doc, &[w]).unwrap(), 2);
+        assert!(doc.get(d).is_none());
+        doc.undo().unwrap();
+        assert!(doc.get(d).is_some());
     }
 
     #[test]

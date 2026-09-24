@@ -219,6 +219,24 @@ pub fn union_all(polys: &[Poly]) -> Vec<Poly> {
         .collect()
 }
 
+/// Clips a convex or simple ring to the half-plane `(q - p) · n >= 0` (Sutherland–Hodgman).
+pub fn clip_half_plane(ring: &[Pt], p: Pt, n: Pt) -> Vec<Pt> {
+    let side = |q: Pt| q.sub(p).dot(n);
+    let mut out = vec![];
+    let len = ring.len();
+    for i in 0..len {
+        let (a, b) = (ring[i], ring[(i + 1) % len]);
+        let (sa, sb) = (side(a), side(b));
+        if sa >= 0.0 {
+            out.push(a);
+        }
+        if (sa >= 0.0) != (sb >= 0.0) {
+            out.push(a.lerp(b, sa / (sa - sb)));
+        }
+    }
+    out
+}
+
 /// Triangulates a polygon (with holes). Returns vertex list and triangle index triples.
 pub fn triangulate(p: &Poly) -> (Vec<Pt>, Vec<[usize; 3]>) {
     let mut verts: Vec<Pt> = p.outer.clone();
