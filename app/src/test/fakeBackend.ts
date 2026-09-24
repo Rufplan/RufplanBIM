@@ -20,6 +20,8 @@ const ids = {
   wt: "00000000-0000-7000-8000-000000000020",
   ft: "00000000-0000-7000-8000-000000000021",
   ct: "00000000-0000-7000-8000-000000000022",
+  dt: "00000000-0000-7000-8000-000000000023",
+  wnt: "00000000-0000-7000-8000-000000000024",
   sd: "00000000-0000-7000-8000-000000000030",
   dd: "00000000-0000-7000-8000-000000000031",
   info: "00000000-0000-7000-8000-000000000040",
@@ -54,6 +56,8 @@ export function appState(path: string | null, dirty = false): AppState {
     wallTypes: [{ id: ids.wt, name: `Exterior - 8" Stud` }],
     floorTypes: [{ id: ids.ft, name: `Concrete Slab - 6"` }],
     ceilingTypes: [{ id: ids.ct, name: "ACT 2x4 Ceiling" }],
+    doorTypes: [{ id: ids.dt, name: `Single Flush 36" x 84"` }],
+    windowTypes: [{ id: ids.wnt, name: `Fixed 48" x 48"` }],
     stages: [
       { id: ids.sd, name: "Schematic Design", abbreviation: "SD" },
       { id: ids.dd, name: "Design Development", abbreviation: "DD" },

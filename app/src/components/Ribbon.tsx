@@ -58,6 +58,8 @@ export function Ribbon() {
         </Group>
         <Group title="Build">
           <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
+          <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
+          <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
           <ToolButton
             tool="floorAuto"
             label="Floor"

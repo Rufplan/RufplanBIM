@@ -4,10 +4,21 @@ import type { AppState, ElementId } from "./ipc";
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
-  "select" | "wall" | "grid" | "floor" | "floorAuto" | "ceiling" | "ceilingAuto" | "level";
+  | "door"
+  | "window"
+  | "select"
+  | "wall"
+  | "grid"
+  | "floor"
+  | "floorAuto"
+  | "ceiling"
+  | "ceilingAuto"
+  | "level";
 
 export const TOOL_LABELS: Record<Tool, string> = {
   select: "Select",
+  door: "Door",
+  window: "Window",
   wall: "Wall",
   grid: "Grid",
   floor: "Floor: Sketch",
@@ -22,6 +33,8 @@ export interface ToolTypes {
   wall: ElementId | null;
   floor: ElementId | null;
   ceiling: ElementId | null;
+  door: ElementId | null;
+  window: ElementId | null;
 }
 
 /** A pending Save / Don't Save / Cancel question and what to do after it. */
@@ -67,7 +80,7 @@ export const useAppStore = create<UiState>((set, get) => ({
   activeView: null,
   selection: [],
   tool: "select",
-  toolTypes: { wall: null, floor: null, ceiling: null },
+  toolTypes: { wall: null, floor: null, ceiling: null, door: null, window: null },
   prompt: "",
   cursor: "",
   confirm: null,
@@ -98,6 +111,14 @@ export const useAppStore = create<UiState>((set, get) => ({
         wall: firstId(app.wallTypes, s.toolTypes.wall),
         floor: firstId(app.floorTypes, s.toolTypes.floor),
         ceiling: firstId(app.ceilingTypes, s.toolTypes.ceiling),
+        // Single doors are the everyday default, even though "Double" sorts first.
+        door: firstId(
+          [...app.doorTypes].sort(
+            (a, b) => Number(!a.name.startsWith("Single")) - Number(!b.name.startsWith("Single")),
+          ),
+          s.toolTypes.door,
+        ),
+        window: firstId(app.windowTypes, s.toolTypes.window),
       },
     });
   },

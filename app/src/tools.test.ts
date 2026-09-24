@@ -9,6 +9,8 @@ describe("tools", () => {
     r = shortcut(r.buffer, "a");
     expect(r).toEqual({ buffer: "", tool: "wall" });
     expect(shortcut("G", "R").tool).toBe("grid");
+    expect(shortcut("D", "R").tool).toBe("door");
+    expect(shortcut("W", "N").tool).toBe("window");
     expect(shortcut("X", "1")).toEqual({ buffer: "", tool: null });
   });
 
@@ -17,6 +19,8 @@ describe("tools", () => {
     expect(toolAllowed("wall", "Elevation")).toBe(false);
     expect(toolAllowed("level", "Elevation")).toBe(true);
     expect(toolAllowed("level", "Plan")).toBe(false);
+    expect(toolAllowed("door", "Plan")).toBe(true);
+    expect(toolAllowed("window", "Elevation")).toBe(false);
     expect(promptFor("level", 0, "Plan")).toMatch(/elevation/i);
   });
 

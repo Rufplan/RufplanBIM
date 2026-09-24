@@ -3,13 +3,24 @@ import {
   errorMessage,
   ipc,
   type DisplayList,
+  type OpeningPreview,
   type Pt,
   type SnapResult,
   type ViewInfo,
 } from "../ipc";
 import { apply } from "../fileActions";
 import { useAppStore } from "../store";
-import { draw, drawOverlay, fit, toModel, toScreen, zoomAt, type Camera } from "../canvas/render";
+import {
+  THEME,
+  draw,
+  drawOverlay,
+  drawPreview,
+  fit,
+  toModel,
+  toScreen,
+  zoomAt,
+  type Camera,
+} from "../canvas/render";
 import { closesSketch, promptFor, samePt, toolAllowed } from "../tools";
 
 // Cameras survive tab switches.
@@ -54,6 +65,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const cam = useRef<Camera | null>(cameras.get(view.id) ?? null);
   const pts = useRef<Pt[]>([]);
   const snapRef = useRef<SnapResult | null>(null);
+  const preview = useRef<{ p: OpeningPreview; at: Pt } | null>(null);
   const hover = useRef<string | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; button: number } | null>(null);
   const frame = useRef(0);
@@ -70,7 +82,14 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const s = useAppStore.getState();
       draw(ctx, dl, cam.current, w, h, { selected: new Set(s.selection), hover: hover.current });
-      const drawing = s.tool !== "select" && toolAllowed(s.tool, view.viewType);
+      const placing = s.tool === "door" || s.tool === "window";
+      if (placing && preview.current) {
+        const { p, at } = preview.current;
+        const color = p.valid ? THEME.cyan : "#c0352b";
+        const label = p.valid ? p.label : "Overlaps another opening";
+        drawPreview(ctx, cam.current, w, h, p.items, color, label, at);
+      }
+      const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
         const sn = snapRef.current;
         drawOverlay(
@@ -135,6 +154,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   useEffect(() => {
     pts.current = [];
     snapRef.current = null;
+    preview.current = null;
     useAppStore.getState().setPrompt(promptFor(tool, 0, view.viewType));
     redrawRef.current();
   }, [tool, view.viewType]);
@@ -164,6 +184,14 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const snapAt = useLatest(async (p: Pt, tol: number) => {
     const from = pts.current[pts.current.length - 1] ?? null;
     snapRef.current = await ipc.snap(view.id, p, from, tol);
+    redraw();
+  });
+
+  const previewAt = useLatest(async (p: Pt, tol: number) => {
+    const s = useAppStore.getState();
+    const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
+    const result = typeId ? await ipc.openingPreview(view.id, typeId, p, tol) : null;
+    preview.current = result ? { p: result, at: p } : null;
     redraw();
   });
 
@@ -231,6 +259,18 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       return;
     }
     if (!toolAllowed(s.tool, view.viewType)) return;
+    if (s.tool === "door" || s.tool === "window") {
+      const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
+      const pv = typeId ? await ipc.openingPreview(view.id, typeId, raw, tol) : null;
+      if (typeId && pv?.valid) {
+        await apply(() => ipc.createOpening(typeId, pv.host, pv.offset, pv.flipFacing));
+      } else if (pv) {
+        s.setError("That spot overlaps another door or window in this wall.");
+      }
+      preview.current = null;
+      redraw();
+      return;
+    }
     const from = pts.current[pts.current.length - 1] ?? null;
     const p = (await ipc.snap(view.id, raw, from, tol)).pt;
     switch (s.tool) {
@@ -339,6 +379,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
             .setCursor(`X ${ft(p.x)}'   ${view.viewType === "Elevation" ? "Z" : "Y"} ${ft(p.y)}'`);
           const s = useAppStore.getState();
           if (s.tool === "select") hoverPick(p, 6 / cam.current.zoom);
+          else if (s.tool === "door" || s.tool === "window") previewAt(p, 12 / cam.current.zoom);
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
         }}
         onMouseUp={(e) => {
@@ -361,6 +402,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         onMouseLeave={() => {
           hover.current = null;
           snapRef.current = null;
+          preview.current = null;
           redraw();
         }}
       />

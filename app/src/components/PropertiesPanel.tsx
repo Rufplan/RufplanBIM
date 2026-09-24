@@ -89,31 +89,32 @@ export function PropertiesPanel() {
   const sheet = loaded && loaded.id === target ? loaded : null;
 
   // While a placement tool is active, the panel shows which type it will place (like Revit).
-  const toolKind =
-    tool === "wall"
-      ? "wall"
+  const toolKind: keyof typeof toolTypes | null =
+    tool === "wall" || tool === "door" || tool === "window"
+      ? tool
       : tool.startsWith("floor")
         ? "floor"
         : tool.startsWith("ceiling")
           ? "ceiling"
           : null;
-  const toolOptions =
-    toolKind === "wall"
-      ? app.wallTypes
-      : toolKind === "floor"
-        ? app.floorTypes
-        : toolKind === "ceiling"
-          ? app.ceilingTypes
-          : [];
+  const typesByKind = {
+    wall: app.wallTypes,
+    floor: app.floorTypes,
+    ceiling: app.ceilingTypes,
+    door: app.doorTypes,
+    window: app.windowTypes,
+  };
+  const toolOptions = toolKind ? typesByKind[toolKind] : [];
 
-  const instanceTypes =
-    sheet?.category === "Wall"
-      ? app.wallTypes
-      : sheet?.category === "Floor"
-        ? app.floorTypes
-        : sheet?.category === "Ceiling"
-          ? app.ceilingTypes
-          : null;
+  const categoryKind: Partial<Record<string, keyof typeof typesByKind>> = {
+    Wall: "wall",
+    Floor: "floor",
+    Ceiling: "ceiling",
+    Door: "door",
+    Window: "window",
+  };
+  const instanceKind = sheet ? categoryKind[sheet.category] : undefined;
+  const instanceTypes = instanceKind ? typesByKind[instanceKind] : null;
 
   const groups = new Map<string, Property[]>();
   for (const p of sheet?.properties ?? []) groups.set(p.group, [...(groups.get(p.group) ?? []), p]);

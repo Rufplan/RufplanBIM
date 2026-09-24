@@ -76,6 +76,16 @@ export function ProjectBrowser() {
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
           </Section>
+          <Section title="Doors" start={false}>
+            {app.doorTypes.map((t) =>
+              item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
+            )}
+          </Section>
+          <Section title="Windows" start={false}>
+            {app.windowTypes.map((t) =>
+              item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
+            )}
+          </Section>
           <Section title="Ceilings" start={false}>
             {app.ceilingTypes.map((t) =>
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),

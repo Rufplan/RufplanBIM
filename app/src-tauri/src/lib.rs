@@ -51,6 +51,8 @@ pub fn run() -> anyhow::Result<()> {
             commands::create_level,
             commands::create_floor,
             commands::create_ceiling,
+            commands::opening_preview,
+            commands::create_opening,
             commands::delete_elements,
             commands::properties,
             commands::set_property,

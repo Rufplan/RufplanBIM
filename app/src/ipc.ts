@@ -8,6 +8,7 @@ import type { CoreVersion } from "./bindings/CoreVersion";
 import type { DisplayList } from "./bindings/DisplayList";
 import type { ElementId } from "./bindings/ElementId";
 import type { Mesh } from "./bindings/Mesh";
+import type { OpeningPreview } from "./bindings/OpeningPreview";
 import type { PropertySheet } from "./bindings/PropertySheet";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
 import type { Pt } from "./bindings/Pt";
@@ -21,6 +22,7 @@ export type {
   DisplayList,
   ElementId,
   Mesh,
+  OpeningPreview,
   PropertySheet,
   ProjectStatus,
   Pt,
@@ -59,6 +61,11 @@ export const ipc = {
   /** Either a sketched boundary, or `inside` a room enclosed by walls. */
   createCeiling: (view: ElementId, typeId: ElementId, boundary: Pt[], inside: Pt | null): S =>
     invoke("create_ceiling", { view, typeId, boundary, inside }),
+  /** Where a door/window of `typeId` would go for the cursor at `point` (plan views). */
+  openingPreview: (view: ElementId, typeId: ElementId, point: Pt, tol: number) =>
+    invoke<OpeningPreview | null>("opening_preview", { view, typeId, point, tol }),
+  createOpening: (typeId: ElementId, host: ElementId, offset: number, flipFacing: boolean): S =>
+    invoke("create_opening", { typeId, host, offset, flipFacing }),
   deleteElements: (ids: ElementId[]): S => invoke("delete_elements", { ids }),
   properties: (id: ElementId) => invoke<PropertySheet>("properties", { id }),
   setProperty: (id: ElementId, key: string, value: string): S =>

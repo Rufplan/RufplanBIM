@@ -13,10 +13,20 @@ export const SHORTCUTS: Record<string, Tool> = {
   FP: "floorAuto",
   CL: "ceilingAuto",
   CS: "ceiling",
+  DR: "door",
+  WN: "window",
 };
 
 /** Tools that need a plan view (they place elements on the view's level). */
-export const PLAN_TOOLS: Tool[] = ["wall", "floor", "floorAuto", "ceiling", "ceilingAuto"];
+export const PLAN_TOOLS: Tool[] = [
+  "wall",
+  "door",
+  "window",
+  "floor",
+  "floorAuto",
+  "ceiling",
+  "ceilingAuto",
+];
 
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
@@ -52,6 +62,9 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Click inside a room enclosed by walls to place a ceiling.";
     case "level":
       return "Click at the height for the new level.";
+    case "door":
+    case "window":
+      return `Hover over a wall and click to place the ${tool}. The side of the wall you point at sets which way it faces.`;
   }
 }
 

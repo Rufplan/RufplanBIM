@@ -7,7 +7,7 @@ use std::sync::{Mutex, MutexGuard};
 use serde::Serialize;
 use studio_core::{ops, ElementId};
 use studio_geom::Pt;
-use studio_views::{DisplayList, Mesh, SnapResult};
+use studio_views::{DisplayList, Mesh, OpeningPreview, SnapResult};
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use ts_rs::TS;
 
@@ -258,6 +258,50 @@ pub fn create_floor(
             boundary
         };
         s.edit(|d| ops::create_floor(d, type_id, level, boundary))
+    })
+}
+
+/// Where a door or window of `type_id` would be placed for the cursor at `point`.
+#[tauri::command]
+pub fn opening_preview(
+    view: ElementId,
+    type_id: ElementId,
+    point: Pt,
+    tol: f64,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<OpeningPreview>> {
+    let session = lock(&state)?;
+    Ok(studio_views::opening_preview(
+        session.doc()?,
+        view,
+        type_id,
+        point,
+        tol,
+    ))
+}
+
+/// Places a door or window (by its type's category) in `host`.
+#[tauri::command]
+pub fn create_opening(
+    type_id: ElementId,
+    host: ElementId,
+    offset: f64,
+    flip_facing: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let is_door = matches!(
+            s.doc()?.data(type_id)?,
+            studio_core::ElementData::DoorType { .. }
+        );
+        s.edit(|d| {
+            if is_door {
+                ops::create_door(d, type_id, host, offset, flip_facing)
+            } else {
+                ops::create_window(d, type_id, host, offset, flip_facing)
+            }
+        })
     })
 }
 

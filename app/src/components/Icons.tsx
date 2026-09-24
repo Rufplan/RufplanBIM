@@ -27,6 +27,20 @@ export const Icons = {
       <path d="M3 8l4 8M9 8l4 8M15 8l4 8" stroke="#fff" strokeWidth="1" />
     </I>
   ),
+  door: (
+    <I>
+      <path d="M3 20h5M16 20h5" strokeWidth="2.4" />
+      <path d="M8 20V8" strokeWidth="1.8" />
+      <path d="M8 8a12 12 0 0112 12" strokeWidth="1" />
+    </I>
+  ),
+  window: (
+    <I>
+      <path d="M2 10h4M18 10h4M2 14h4M18 14h4" strokeWidth="2.4" />
+      <path d="M6 10h12M6 14h12" strokeWidth="1" />
+      <path d="M6 11.3h12M6 12.7h12" strokeWidth="0.8" />
+    </I>
+  ),
   floor: (
     <I>
       <path d="M2 15l6-6h14l-6 6z" />

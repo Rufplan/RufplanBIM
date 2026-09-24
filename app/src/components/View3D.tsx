@@ -9,6 +9,8 @@ const COLORS = {
   interiorWall: 0xf7f7f5,
   floor: 0xb9b9b4,
   ceiling: 0xd7f3fc,
+  door: 0x8c7b68,
+  glass: 0x9fe3f7,
   selected: 0x3ecff7,
   edge: 0x1c1c1c,
 };
@@ -21,11 +23,16 @@ function material(m: Mesh) {
         : COLORS.interiorWall
       : m.category === "Floor"
         ? COLORS.floor
-        : COLORS.ceiling;
+        : m.category === "Door"
+          ? COLORS.door
+          : m.category === "Window"
+            ? COLORS.glass
+            : COLORS.ceiling;
+  const seeThrough = m.category === "Ceiling" || m.category === "Window";
   return new THREE.MeshLambertMaterial({
     color,
-    transparent: m.category === "Ceiling",
-    opacity: m.category === "Ceiling" ? 0.55 : 1,
+    transparent: seeThrough,
+    opacity: m.category === "Ceiling" ? 0.55 : m.category === "Window" ? 0.45 : 1,
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,

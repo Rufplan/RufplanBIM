@@ -68,6 +68,8 @@ pub struct AppState {
     pub wall_types: Vec<NamedItem>,
     pub floor_types: Vec<NamedItem>,
     pub ceiling_types: Vec<NamedItem>,
+    pub door_types: Vec<NamedItem>,
+    pub window_types: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
     pub current_stage: Option<ElementId>,
     pub project_info: Option<ElementId>,
@@ -191,6 +193,8 @@ impl Session {
             wall_types: named(Category::WallType),
             floor_types: named(Category::FloorType),
             ceiling_types: named(Category::CeilingType),
+            door_types: named(Category::DoorType),
+            window_types: named(Category::WindowType),
             stages: ops::stages(doc)
                 .into_iter()
                 .map(|(id, name, abbreviation)| StageItem {
@@ -242,6 +246,12 @@ impl Session {
             // Files from before element storage (schema 1) have no content yet.
             ops::seed_default_project(&mut project.doc)?;
             project.doc.clear_history();
+        } else if project.doc.of(Category::DoorType).next().is_none() {
+            // Saved before doors and windows existed: add the built-in types. They are
+            // written on the next save; there is nothing for the user to review.
+            ops::ensure_opening_types(&mut project.doc)?;
+            project.doc.clear_history();
+            project.doc.mark_saved();
         }
         self.project = Some(project);
         self.path = Some(path.to_owned());
@@ -314,6 +324,50 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
     ops::create_wall(doc, int, l1, ft(16.0, 0.0), ft(16.0, 30.0))?;
     ops::create_wall(doc, int, l1, ft(16.0, 12.0), ft(40.0, 12.0))?;
     ops::create_wall(doc, int, l2, ft(24.0, 0.0), ft(24.0, 30.0))?;
+
+    // Doors and windows (offsets are distances from each wall's start to the center).
+    let named_type = |doc: &Document, cat: Category, prefix: &str| {
+        doc.of(cat)
+            .find(|e| e.data.name().starts_with(prefix))
+            .map(|e| e.id)
+            .context("missing door or window type")
+    };
+    let entry = named_type(doc, Category::DoorType, "Double Flush")?;
+    let door = named_type(doc, Category::DoorType, "Single Flush 36")?;
+    let small = named_type(doc, Category::DoorType, "Single Flush 30")?;
+    let wide = named_type(doc, Category::WindowType, "Fixed 72")?;
+    let casement = named_type(doc, Category::WindowType, "Casement")?;
+    let wall_on = |doc: &Document, level: ElementId, a: Pt, b: Pt| {
+        doc.of(Category::Wall)
+            .find(|e| {
+                matches!(&e.data, ElementData::Wall { start, end, base_level, .. }
+                if *base_level == level && start.dist(a) < 1.0 && end.dist(b) < 1.0)
+            })
+            .map(|e| e.id)
+            .context("missing sample wall")
+    };
+    let south1 = wall_on(doc, l1, corners[0], corners[1])?;
+    let east1 = wall_on(doc, l1, corners[1], corners[2])?;
+    let north1 = wall_on(doc, l1, corners[2], corners[3])?;
+    let west1 = wall_on(doc, l1, corners[3], corners[0])?;
+    let part_ns = wall_on(doc, l1, ft(16.0, 0.0), ft(16.0, 30.0))?;
+    let part_ew = wall_on(doc, l1, ft(16.0, 12.0), ft(40.0, 12.0))?;
+    let south2 = wall_on(doc, l2, corners[0], corners[1])?;
+    let north2 = wall_on(doc, l2, corners[2], corners[3])?;
+    let f = |x: f64| x * MM_PER_FT;
+    ops::create_door(doc, entry, south1, f(28.0), false)?;
+    ops::create_door(doc, door, part_ns, f(22.0), true)?;
+    ops::create_door(doc, small, part_ew, f(6.0), false)?;
+    ops::create_window(doc, wide, south1, f(8.0), true)?;
+    ops::create_window(doc, casement, east1, f(6.0), true)?;
+    ops::create_window(doc, casement, east1, f(22.0), true)?;
+    ops::create_window(doc, wide, north1, f(12.0), true)?;
+    ops::create_window(doc, casement, north1, f(30.0), true)?;
+    ops::create_window(doc, casement, west1, f(15.0), true)?;
+    for x in [8.0, 20.0, 32.0] {
+        ops::create_window(doc, casement, south2, f(x), true)?;
+        ops::create_window(doc, casement, north2, f(x), true)?;
+    }
 
     let model = studio_regen::regenerate(doc);
     let slab = ops::first_of(doc, Category::FloorType).context("missing floor type")?;
@@ -403,6 +457,9 @@ mod tests {
         assert_eq!(doc.of(Category::Floor).count(), 2);
         assert_eq!(doc.of(Category::Ceiling).count(), 3);
         assert_eq!(doc.of(Category::Grid).count(), 6);
+        assert_eq!(doc.levels().len(), 2);
+        assert_eq!(doc.of(Category::Door).count(), 3);
+        assert_eq!(doc.of(Category::Window).count(), 12);
         let state = s.state().unwrap();
         assert_eq!(state.project_name, "Sample House");
         assert_eq!(state.undo, None);

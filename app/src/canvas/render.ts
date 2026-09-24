@@ -27,6 +27,7 @@ const FILL: Record<FillKind, string> = {
   Slab: "#efefeb",
   Ceiling: "#f2fbfe",
   Ink: "#0a0a0a",
+  Glass: "#dff5fd",
 };
 
 /** Pen weights 1–6 in screen pixels. */
@@ -164,6 +165,48 @@ export function draw(
         break;
       }
     }
+  }
+  ctx.restore();
+}
+
+/** Placement preview items (from Rust) drawn in one color, with a label at the cursor. */
+export function drawPreview(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  items: DisplayList["items"],
+  color: string,
+  label: string | null,
+  cursor: Pt | null,
+) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.setLineDash([]);
+  for (const item of items) {
+    const p = item.prim;
+    if (p.t !== "Line") continue;
+    ctx.beginPath();
+    p.pts.forEach(([x, y], i) => {
+      const [sx, sy] = toScreen(cam, w, h, x, y);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    });
+    if (p.closed) ctx.closePath();
+    ctx.setLineDash(DASH[p.dash]);
+    ctx.lineWidth = (PEN[p.w] ?? 1) + 1;
+    ctx.stroke();
+  }
+  if (label && cursor) {
+    const [sx, sy] = toScreen(cam, w, h, cursor.x, cursor.y);
+    ctx.font = `600 12px "Barlow Condensed", sans-serif`;
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = THEME.ink;
+    ctx.fillRect(sx + 14, sy + 12, tw + 14, 20);
+    ctx.fillStyle = "#ffffff";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText(label, sx + 21, sy + 22.5);
   }
   ctx.restore();
 }
