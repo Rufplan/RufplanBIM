@@ -8,3 +8,14 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+krilla = "0.8.2"
+serde = { version = "1.0.229", features = ["derive"] }
+studio-core.workspace = true
+studio-geom.workspace = true
+studio-regen.workspace = true
+studio-views.workspace = true
+thiserror = "2.0.21"
+ts-rs = "12.0.1"
+ttf-parser = "0.25"
