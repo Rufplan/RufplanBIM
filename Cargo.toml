@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "UNLICENSED"
+publish = false
+repository = "https://github.com/Rufplan/RufplanBIM"
+
+[workspace.dependencies]
+studio-core = { path = "crates/studio-core" }
+studio-geom = { path = "crates/studio-geom" }
+studio-regen = { path = "crates/studio-regen" }
+studio-views = { path = "crates/studio-views" }
+studio-sheets = { path = "crates/studio-sheets" }
+studio-io = { path = "crates/studio-io" }
+studio-sync = { path = "crates/studio-sync" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"

@@ -1,0 +1,10 @@
+[package]
+name = "studio-geom"
+description = "Math, 2D polygon booleans and the GeometryKernel trait with its native prismatic implementation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

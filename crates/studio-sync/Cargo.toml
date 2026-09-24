@@ -1,0 +1,10 @@
+[package]
+name = "studio-sync"
+description = "Supabase auth, publishing to Rufplan and (later) worksharing."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
