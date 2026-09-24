@@ -217,10 +217,13 @@ pub fn display_list(doc: &Document, view: ElementId) -> Option<DisplayList> {
         scale: f64::from(*scale),
     };
     let (view_type, bounds) = match kind {
-        ViewKind::FloorPlan { level } => (ViewType::Plan, plan(doc, &model, &mut b, *level, false)),
+        ViewKind::FloorPlan { level } => (
+            ViewType::Plan,
+            plan(doc, &model, &mut b, view, *level, false),
+        ),
         ViewKind::CeilingPlan { level } => (
             ViewType::CeilingPlan,
-            plan(doc, &model, &mut b, *level, true),
+            plan(doc, &model, &mut b, view, *level, true),
         ),
         ViewKind::Elevation { facing } => (
             ViewType::Elevation,
@@ -260,6 +263,7 @@ fn plan(
     doc: &Document,
     model: &Model,
     b: &mut Builder,
+    view: ElementId,
     level: ElementId,
     ceiling: bool,
 ) -> [f64; 4] {
@@ -343,12 +347,6 @@ fn plan(
         }
     }
 
-    if !ceiling {
-        for r in model.rooms.iter().filter(|r| r.level == level) {
-            room_tag(b, r);
-        }
-    }
-
     let cut_ids: Vec<ElementId> = cut_walls.iter().map(|w| w.id).collect();
     for o in model
         .openings
@@ -356,11 +354,31 @@ fn plan(
         .filter(|o| cut_ids.contains(&o.host) && o.z0 <= cut && o.z1 > cut)
     {
         opening_symbol(b, Some(o.id), o);
-        if !ceiling {
-            opening_tag(doc, b, o);
-        }
     }
     if !ceiling {
+        // Tags are elements owned by this view (created on placement, movable, deletable).
+        for e in doc.iter() {
+            let ElementData::Tag {
+                view: v,
+                target,
+                offset,
+            } = &e.data
+            else {
+                continue;
+            };
+            if *v != view {
+                continue;
+            }
+            if let Some(r) = model.rooms.iter().find(|r| r.id == *target) {
+                room_tag(b, r, Some(e.id), *offset);
+            } else if let Some(o) = model
+                .openings
+                .iter()
+                .find(|o| o.id == *target && cut_ids.contains(&o.host))
+            {
+                opening_tag(doc, b, o, Some(e.id), *offset);
+            }
+        }
         section_markers(doc, b);
     }
 
@@ -472,15 +490,20 @@ fn opening_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSolid) {
 
 /// Door tag (mark in a rectangle) on the side away from the swing; window tag (mark in a
 /// hexagon) on the window's facing side.
-fn opening_tag(doc: &Document, b: &mut Builder, o: &OpeningSolid) {
+fn opening_tag(
+    doc: &Document,
+    b: &mut Builder,
+    o: &OpeningSolid,
+    el: Option<ElementId>,
+    offset: Pt,
+) {
     let mark = match doc.data(o.id) {
         Ok(ElementData::Door { mark, .. } | ElementData::Window { mark, .. }) => mark.clone(),
         _ => return,
     };
     let n = o.dir.perp();
     let s = if o.flip_facing { -1.0 } else { 1.0 };
-    let mid = o.at((o.t0 + o.t1) / 2.0);
-    let el = Some(o.id);
+    let mid = o.at((o.t0 + o.t1) / 2.0).add(offset);
     match o.kind {
         OpeningKind::Door(_) => {
             let c = mid.sub(n.scale(s * (o.half_thickness + b.paper(5.0))));
@@ -557,21 +580,21 @@ fn section_markers(doc: &Document, b: &mut Builder) {
 }
 
 /// Room tag at the room's point: name, number and area (or "Not Enclosed").
-fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo) {
-    let el = Some(r.id);
+fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo, el: Option<ElementId>, offset: Pt) {
+    let p = r.point.add(offset);
     let line = b.paper(4.2);
     b.text(
         el,
-        r.point.add(Pt::new(0.0, line)),
+        p.add(Pt::new(0.0, line)),
         r.name.to_uppercase(),
         3.4,
         Anchor::Center,
     );
-    b.text(el, r.point, r.number.clone(), 3.0, Anchor::Center);
+    b.text(el, p, r.number.clone(), 3.0, Anchor::Center);
     if r.boundary.is_some() {
         b.text(
             el,
-            r.point.sub(Pt::new(0.0, line)),
+            p.sub(Pt::new(0.0, line)),
             format_area_sf(r.area()),
             2.6,
             Anchor::Center,
@@ -579,7 +602,7 @@ fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo) {
     } else {
         b.text(
             el,
-            r.point.sub(Pt::new(0.0, line)),
+            p.sub(Pt::new(0.0, line)),
             "NOT ENCLOSED".into(),
             2.6,
             Anchor::Center,
@@ -588,8 +611,8 @@ fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo) {
         b.line(
             el,
             &[
-                r.point.add(Pt::new(-k, -k - line * 2.0)),
-                r.point.add(Pt::new(k, k - line * 2.0)),
+                p.add(Pt::new(-k, -k - line * 2.0)),
+                p.add(Pt::new(k, k - line * 2.0)),
             ],
             false,
             2,
@@ -598,8 +621,8 @@ fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo) {
         b.line(
             el,
             &[
-                r.point.add(Pt::new(-k, k - line * 2.0)),
-                r.point.add(Pt::new(k, -k - line * 2.0)),
+                p.add(Pt::new(-k, k - line * 2.0)),
+                p.add(Pt::new(k, -k - line * 2.0)),
             ],
             false,
             2,
@@ -1216,19 +1239,23 @@ pub fn opening_preview(
 }
 
 /// Dimensions and text notes owned by `view`.
-fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
+pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
     for e in doc.iter() {
         match &e.data {
             ElementData::Dimension {
-                view: v,
-                a,
-                b: p2,
-                offset,
+                view: v, offset, ..
             } if *v == view => {
-                dimension(b, Some(e.id), *a, *p2, *offset);
+                if let Some((a, p2)) = studio_core::ops::dimension_ends(doc, &e.data) {
+                    dimension(b, Some(e.id), a, p2, *offset);
+                }
             }
-            ElementData::TextNote { view: v, at, text } if *v == view => {
-                b.text(Some(e.id), *at, text.clone(), 3.0, Anchor::Left);
+            ElementData::TextNote {
+                view: v,
+                at,
+                text,
+                size,
+            } if *v == view => {
+                b.text(Some(e.id), *at, text.clone(), *size, Anchor::Left);
             }
             _ => {}
         }
@@ -1685,10 +1712,10 @@ mod tests {
             .filter(|i| i.el == Some(south) && matches!(i.prim, Prim::Fill { .. }))
             .count();
         assert_eq!(south_fills, 3);
-        // Door: leaf + arc + tag (box fill, outline, mark). Casement window: 2 sill + 2 glass
-        // + swing line + tag (3 items).
-        assert_eq!(dl.items.iter().filter(|i| i.el == Some(d)).count(), 5);
-        assert_eq!(dl.items.iter().filter(|i| i.el == Some(w)).count(), 8);
+        // Door: leaf + arc. Casement window: 2 sill + 2 glass + swing line. (Their tags are
+        // separate Tag elements.)
+        assert_eq!(dl.items.iter().filter(|i| i.el == Some(d)).count(), 2);
+        assert_eq!(dl.items.iter().filter(|i| i.el == Some(w)).count(), 5);
         // Picking the door's leaf selects the door.
         let leaf = dl
             .items
@@ -1810,10 +1837,11 @@ mod tests {
         assert!(pv.label.ends_with("SF"), "{}", pv.label);
         let r = ops::create_room(&mut doc, l1, Pt::new(2000.0, 2000.0)).unwrap();
         let dl = display_list(&doc, v).unwrap();
+        let tag = tag_of(&doc, r);
         let texts: Vec<_> = dl
             .items
             .iter()
-            .filter(|i| i.el == Some(r))
+            .filter(|i| i.el == Some(tag))
             .filter_map(|i| match &i.prim {
                 Prim::Text { text, .. } => Some(text.clone()),
                 _ => None,
@@ -1905,8 +1933,34 @@ mod tests {
                 _ => None,
             })
         };
-        assert_eq!(text_of(d).as_deref(), Some("1"));
-        assert_eq!(text_of(w).as_deref(), Some("1"));
+        assert_eq!(text_of(tag_of(&doc, d)).as_deref(), Some("1"));
+        assert_eq!(text_of(tag_of(&doc, w)).as_deref(), Some("1"));
+        // Moving a tag moves only the tag; deleting it hides it in this view.
+        let mut doc = doc;
+        let t = tag_of(&doc, d);
+        let at = |doc: &Document| {
+            display_list(doc, v)
+                .unwrap()
+                .items
+                .iter()
+                .find_map(|i| match (&i.el, &i.prim) {
+                    (Some(x), Prim::Text { at, .. }) if *x == t => Some(*at),
+                    _ => None,
+                })
+        };
+        let before = at(&doc).unwrap();
+        studio_core::modify::move_elements(&mut doc, &[t], Pt::new(0.0, 900.0)).unwrap();
+        assert!((at(&doc).unwrap()[1] - before[1] - 900.0).abs() < 1e-6);
+        ops::delete(&mut doc, &[t]).unwrap();
+        assert!(at(&doc).is_none());
+        assert!(doc.get(d).is_some());
+    }
+
+    fn tag_of(doc: &Document, target: ElementId) -> ElementId {
+        doc.of(Category::Tag)
+            .find(|e| matches!(&e.data, ElementData::Tag { target: t, .. } if *t == target))
+            .map(|e| e.id)
+            .unwrap()
     }
 
     #[test]

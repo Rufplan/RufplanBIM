@@ -67,6 +67,18 @@ pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) 
     for s in model.floors.iter().chain(&model.ceilings) {
         cands.extend(s.base.outer.iter().map(|q| (SnapKind::Endpoint, *q)));
     }
+    // Wall face corners and faces, so dimensions can measure to finish faces.
+    for w in &model.walls {
+        let f = &w.footprint.outer;
+        cands.extend(f.iter().map(|q| (SnapKind::Endpoint, *q)));
+        for i in 0..f.len() {
+            let (a, b) = (f[i], f[(i + 1) % f.len()]);
+            let (t, d) = project_to_segment(p, a, b);
+            if d < tol * 0.6 {
+                cands.push((SnapKind::Nearest, a.lerp(b, t)));
+            }
+        }
+    }
     for (i, (a, b)) in segs.iter().enumerate() {
         for (c, d) in &segs[i + 1..] {
             if let Some(x) = line_intersection(*a, b.sub(*a), *c, d.sub(*c)) {

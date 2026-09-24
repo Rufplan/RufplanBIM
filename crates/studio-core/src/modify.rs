@@ -45,10 +45,23 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                 ElementData::Room { point, .. } => *point = point.add(delta),
                 ElementData::TextNote { at, .. } => *at = at.add(delta),
                 ElementData::Viewport { center, .. } => *center = center.add(delta),
-                ElementData::Dimension { a, b, .. } => {
-                    *a = a.add(delta);
-                    *b = b.add(delta);
+                ElementData::Dimension {
+                    a,
+                    b,
+                    offset,
+                    a_ref,
+                    b_ref,
+                    ..
+                } => {
+                    if a_ref.is_some() || b_ref.is_some() {
+                        // Attached ends stay on their elements: moving slides the dimension line.
+                        *offset += delta.dot(b.sub(*a).norm().perp());
+                    } else {
+                        *a = a.add(delta);
+                        *b = b.add(delta);
+                    }
                 }
+                ElementData::Tag { offset, .. } => *offset = offset.add(delta),
                 ElementData::Door { host, offset, .. }
                 | ElementData::Window { host, offset, .. } => {
                     if selected.contains(host) {

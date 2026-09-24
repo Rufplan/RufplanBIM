@@ -6,8 +6,8 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Category, Compass, DoorFamily, ElementData, ElementId, ScheduleKind, SheetSize, StageChange,
-    ViewKind, WallFunction, WallTop, WindowFamily,
+    Anchor, Category, Compass, DoorFamily, ElementData, ElementId, ScheduleKind, SheetSize,
+    StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -272,9 +272,119 @@ pub fn create_dimension(
     if a.dist(b) < 1.0 {
         return Err(CoreError::Invalid("pick two different points".into()));
     }
+    let (a_ref, b_ref) = (anchor_at(doc, view, a), anchor_at(doc, view, b));
     doc.transact("Place dimension", |tx| {
-        Ok(tx.insert(ElementData::Dimension { view, a, b, offset }))
+        Ok(tx.insert(ElementData::Dimension {
+            view,
+            a,
+            b,
+            offset,
+            a_ref,
+            b_ref,
+        }))
     })
+}
+
+/// In plan views, the wall or grid a point sits on (within 1 mm of a wall's footprint,
+/// faces and centerline included, or of a grid line), as an anchor that follows it.
+pub fn anchor_at(doc: &Document, view: ElementId, p: Pt) -> Option<Anchor> {
+    let is_plan = matches!(
+        doc.data(view),
+        Ok(ElementData::View {
+            kind: ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. },
+            ..
+        })
+    );
+    if !is_plan {
+        return None;
+    }
+    let slop = 1.0;
+    let mut best: Option<(f64, Anchor)> = None;
+    for e in doc.iter() {
+        match &e.data {
+            ElementData::Wall {
+                type_id,
+                start,
+                end,
+                ..
+            } => {
+                let h = match doc.data(*type_id) {
+                    Ok(ElementData::WallType { thickness, .. }) => thickness / 2.0,
+                    _ => continue,
+                };
+                let len = start.dist(*end);
+                let dir = end.sub(*start).norm();
+                let along = p.sub(*start).dot(dir);
+                let side = p.sub(*start).dot(dir.perp());
+                if side.abs() > h + slop || along < -h - slop || along > len + h + slop {
+                    continue;
+                }
+                // Prefer the wall whose face or centerline the point is closest to.
+                let dev = [-h, 0.0, h]
+                    .iter()
+                    .map(|f| (side - f).abs())
+                    .fold(f64::INFINITY, f64::min);
+                if best.as_ref().is_none_or(|b| dev < b.0) {
+                    best = Some((
+                        dev,
+                        Anchor::Wall {
+                            wall: e.id,
+                            t: along / len,
+                            side,
+                        },
+                    ));
+                }
+            }
+            ElementData::Grid { start, end, .. } => {
+                let (t, d) = studio_geom::project_to_segment(p, *start, *end);
+                if d < slop && best.as_ref().is_none_or(|b| d < b.0) {
+                    best = Some((d, Anchor::Grid { grid: e.id, t }));
+                }
+            }
+            _ => {}
+        }
+    }
+    best.map(|b| b.1)
+}
+
+/// Where an anchor is now, or None if its element is gone.
+pub fn anchor_point(doc: &Document, anchor: &Anchor) -> Option<Pt> {
+    match anchor {
+        Anchor::Wall { wall, t, side } => match doc.data(*wall).ok()? {
+            ElementData::Wall { start, end, .. } => {
+                let dir = end.sub(*start).norm();
+                Some(
+                    start
+                        .add(end.sub(*start).scale(*t))
+                        .add(dir.perp().scale(*side)),
+                )
+            }
+            _ => None,
+        },
+        Anchor::Grid { grid, t } => match doc.data(*grid).ok()? {
+            ElementData::Grid { start, end, .. } => Some(start.lerp(*end, *t)),
+            _ => None,
+        },
+    }
+}
+
+/// A dimension's current end points: anchored ends follow their elements.
+pub fn dimension_ends(doc: &Document, data: &ElementData) -> Option<(Pt, Pt)> {
+    let ElementData::Dimension {
+        a, b, a_ref, b_ref, ..
+    } = data
+    else {
+        return None;
+    };
+    let a = a_ref
+        .as_ref()
+        .and_then(|r| anchor_point(doc, r))
+        .unwrap_or(*a);
+    let b = b_ref
+        .as_ref()
+        .and_then(|r| anchor_point(doc, r))
+        .unwrap_or(*b);
+    Some((a, b))
 }
 
 /// Adds a text note to `view` ("TEXT" when `text` is blank).
@@ -290,7 +400,12 @@ pub fn create_text(
         text.trim().to_owned()
     };
     doc.transact("Place text", |tx| {
-        Ok(tx.insert(ElementData::TextNote { view, at, text }))
+        Ok(tx.insert(ElementData::TextNote {
+            view,
+            at,
+            text,
+            size: 3.0,
+        }))
     })
 }
 
@@ -329,12 +444,98 @@ pub fn next_sheet_number(last: Option<&str>) -> String {
     next_grid_name(Some(last))
 }
 
+/// Sheets in `stage`'s deliverable set, in number order. When no sheet is assigned to
+/// any stage yet, every sheet counts.
+pub fn stage_sheets(doc: &Document, stage: Option<ElementId>) -> Vec<ElementId> {
+    let all = sheets(doc);
+    let Some(stage) = stage else {
+        return all.into_iter().map(|s| s.0).collect();
+    };
+    let any_assigned = doc
+        .iter()
+        .any(|e| matches!(&e.data, ElementData::Sheet { stages, .. } if !stages.is_empty()));
+    all.into_iter()
+        .filter(|(id, _, _)| {
+            !any_assigned || matches!(doc.data(*id), Ok(ElementData::Sheet { stages, .. }) if stages.contains(&stage))
+        })
+        .map(|s| s.0)
+        .collect()
+}
+
+/// Records an issue of `sheets` named `name` in the current design stage.
+pub fn create_issuance(
+    doc: &mut Document,
+    name: &str,
+    date: &str,
+    sheets: Vec<ElementId>,
+) -> CoreResult<ElementId> {
+    if sheets.is_empty() {
+        return Err(CoreError::Invalid("there are no sheets to issue".into()));
+    }
+    let stage = project_info(doc).and_then(|i| match doc.data(i) {
+        Ok(ElementData::ProjectInfo { current_stage, .. }) => *current_stage,
+        _ => None,
+    });
+    let name = non_empty(name)?;
+    let date = date.to_owned();
+    doc.transact("Issue set", |tx| {
+        Ok(tx.insert(ElementData::Issuance {
+            name,
+            stage,
+            date,
+            sheets,
+        }))
+    })
+}
+
+/// Issuances that included `sheet`, oldest first, as (name, date, stage abbreviation).
+pub fn sheet_issues(doc: &Document, sheet: ElementId) -> Vec<(String, String, String)> {
+    let mut v: Vec<(ElementId, String, String, String)> = doc
+        .of(Category::Issuance)
+        .filter_map(|e| match &e.data {
+            ElementData::Issuance {
+                name,
+                stage,
+                date,
+                sheets,
+            } if sheets.contains(&sheet) => {
+                let abbr = stage
+                    .and_then(|s| doc.data(s).ok())
+                    .and_then(|d| match d {
+                        ElementData::Stage { abbreviation, .. } => Some(abbreviation.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                Some((e.id, name.clone(), date.clone(), abbr))
+            }
+            _ => None,
+        })
+        .collect();
+    v.sort_by_key(|x| x.0);
+    v.into_iter().map(|x| (x.1, x.2, x.3)).collect()
+}
+
+/// Text sizes offered for notes, as (paper mm, label).
+pub const TEXT_SIZES: &[(f64, &str)] = &[
+    (2.4, "3/32\""),
+    (3.0, "1/8\""),
+    (4.8, "3/16\""),
+    (6.4, "1/4\""),
+    (12.7, "1/2\""),
+    (25.4, "1\""),
+];
+
 /// Creates a sheet with the next number.
 pub fn create_sheet(doc: &mut Document, name: &str, size: SheetSize) -> CoreResult<ElementId> {
     let number = next_sheet_number(sheets(doc).last().map(|s| s.1.as_str()));
     let name = name.to_owned();
     doc.transact("Create sheet", |tx| {
-        Ok(tx.insert(ElementData::Sheet { number, name, size }))
+        Ok(tx.insert(ElementData::Sheet {
+            number,
+            name,
+            size,
+            stages: vec![],
+        }))
     })
 }
 
@@ -573,32 +774,139 @@ pub fn create_door(
     }
     let mark = next_mark(doc, Category::Door);
     doc.transact("Place door", |tx| {
-        Ok(tx.insert(ElementData::Door {
+        let id = tx.insert(ElementData::Door {
             type_id,
             host,
             offset,
             flip_hand: false,
             flip_facing,
             mark,
-        }))
+        });
+        tag_in_plans(tx, id);
+        Ok(id)
     })
 }
 
-/// Places a window in `host` at the type's default sill height.
+/// Floor plan views of the level an element belongs to (a hosted element's host level).
+fn target_level(tx: &Tx<'_>, target: ElementId) -> Option<ElementId> {
+    match tx.data(target).ok()? {
+        ElementData::Door { host, .. } | ElementData::Window { host, .. } => {
+            tx.data(*host).ok()?.level()
+        }
+        ElementData::Room { level, .. } => Some(*level),
+        _ => None,
+    }
+}
+
+fn plan_views_of(tx: &Tx<'_>, level: ElementId) -> Vec<ElementId> {
+    tx.iter()
+        .filter(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level: l }, .. } if *l == level))
+        .map(|e| e.id)
+        .collect()
+}
+
+/// Revit-style "tag on placement": a tag in every floor plan of the target's level.
+fn tag_in_plans(tx: &mut Tx<'_>, target: ElementId) {
+    let Some(level) = target_level(tx, target) else {
+        return;
+    };
+    for view in plan_views_of(tx, level) {
+        tx.insert(ElementData::Tag {
+            view,
+            target,
+            offset: Pt::default(),
+        });
+    }
+}
+
+/// Tags every untagged door, window and room shown in `view` (a floor plan). Returns how
+/// many tags were added.
+pub fn tag_all(doc: &mut Document, view: ElementId) -> CoreResult<usize> {
+    let ElementData::View {
+        kind: ViewKind::FloorPlan { level },
+        ..
+    } = doc.data(view)?
+    else {
+        return Err(CoreError::Invalid("open a floor plan to tag".into()));
+    };
+    let level = *level;
+    doc.transact("Tag all", |tx| {
+        let tagged: std::collections::HashSet<ElementId> = tx
+            .iter()
+            .filter_map(|e| match &e.data {
+                ElementData::Tag {
+                    view: v, target, ..
+                } if *v == view => Some(*target),
+                _ => None,
+            })
+            .collect();
+        let targets: Vec<ElementId> = tx
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.category(),
+                    Category::Door | Category::Window | Category::Room
+                )
+            })
+            .map(|e| e.id)
+            .filter(|id| !tagged.contains(id))
+            .collect();
+        let mut n = 0;
+        for target in targets {
+            if target_level(tx, target) == Some(level) {
+                tx.insert(ElementData::Tag {
+                    view,
+                    target,
+                    offset: Pt::default(),
+                });
+                n += 1;
+            }
+        }
+        Ok(n)
+    })
+}
+
+/// Tags everything in every floor plan, for files saved before tags were elements.
+pub fn ensure_tags(doc: &mut Document) -> CoreResult<()> {
+    if doc.of(Category::Tag).next().is_some() {
+        return Ok(());
+    }
+    let plans: Vec<ElementId> = doc
+        .iter()
+        .filter(|e| {
+            matches!(
+                &e.data,
+                ElementData::View {
+                    kind: ViewKind::FloorPlan { .. },
+                    ..
+                }
+            )
+        })
+        .map(|e| e.id)
+        .collect();
+    for v in plans {
+        tag_all(doc, v)?;
+    }
+    Ok(())
+}
+
 /// Places a room at `point` on `level`, named "Room" with the next free number. The
 /// caller checks that the point is enclosed (that needs derived geometry).
 pub fn create_room(doc: &mut Document, level: ElementId, point: Pt) -> CoreResult<ElementId> {
     let number = next_mark(doc, Category::Room);
     doc.transact("Place room", |tx| {
-        Ok(tx.insert(ElementData::Room {
+        let id = tx.insert(ElementData::Room {
             level,
             point,
             name: "Room".into(),
             number,
-        }))
+        });
+        tag_in_plans(tx, id);
+        Ok(id)
     })
 }
 
+/// Places a window in `host` at the type's default sill height.
 pub fn create_window(
     doc: &mut Document,
     type_id: ElementId,
@@ -612,14 +920,16 @@ pub fn create_window(
     let sill = *sill;
     let mark = next_mark(doc, Category::Window);
     doc.transact("Place window", |tx| {
-        Ok(tx.insert(ElementData::Window {
+        let id = tx.insert(ElementData::Window {
             type_id,
             host,
             offset,
             sill,
             flip_facing,
             mark,
-        }))
+        });
+        tag_in_plans(tx, id);
+        Ok(id)
     })
 }
 
@@ -1036,14 +1346,83 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 stage_history.len().to_string(),
             ));
         }
-        ElementData::Dimension { a, b, offset, .. } => {
-            props.push(ro("value", "Value", "Dimensions", format_ft_in(a.dist(*b))));
+        ElementData::Dimension {
+            a,
+            b,
+            offset,
+            a_ref,
+            b_ref,
+            ..
+        } => {
+            let (a, b) = dimension_ends(doc, &el.data).unwrap_or((*a, *b));
+            props.push(ro("value", "Value", "Dimensions", format_ft_in(a.dist(b))));
+            let attached = [a_ref, b_ref].iter().filter(|r| r.is_some()).count();
+            props.push(ro(
+                "attached",
+                "Follows Model",
+                "Dimensions",
+                format!("{attached} of 2 ends"),
+            ));
             props.push(len("offset", "Offset from Points", "Graphics", *offset));
         }
-        ElementData::TextNote { text: t, .. } => {
+        ElementData::TextNote { text: t, size, .. } => {
             props.push(text("text", "Text", "Text", t));
+            let current = TEXT_SIZES
+                .iter()
+                .min_by(|a, b| (a.0 - size).abs().total_cmp(&(b.0 - size).abs()))
+                .map_or(3.0, |s| s.0);
+            props.push(choice(
+                "size",
+                "Text Size",
+                "Text",
+                current.to_string(),
+                TEXT_SIZES
+                    .iter()
+                    .map(|(mm, l)| PropOption {
+                        id: mm.to_string(),
+                        label: (*l).into(),
+                    })
+                    .collect(),
+            ));
         }
-        ElementData::Sheet { number, name, size } => {
+        ElementData::Tag { target, .. } => {
+            props.push(ro(
+                "target",
+                "Tags",
+                "Identity Data",
+                doc.data(*target).map(|d| d.name()).unwrap_or_default(),
+            ));
+        }
+        ElementData::Issuance {
+            name,
+            date,
+            sheets,
+            stage,
+        } => {
+            props.push(ro("name", "Issue", "Identity Data", name.clone()));
+            props.push(ro("date", "Date", "Identity Data", date.clone()));
+            props.push(ro(
+                "stage",
+                "Design Stage",
+                "Identity Data",
+                stage
+                    .and_then(|s| doc.data(s).ok())
+                    .map(|d| d.name())
+                    .unwrap_or_default(),
+            ));
+            props.push(ro(
+                "sheets",
+                "Sheets",
+                "Identity Data",
+                sheets.len().to_string(),
+            ));
+        }
+        ElementData::Sheet {
+            number,
+            name,
+            size,
+            stages: in_stages,
+        } => {
             props.push(text("number", "Sheet Number", "Identity Data", number));
             props.push(text("name", "Sheet Name", "Identity Data", name));
             props.push(choice(
@@ -1059,6 +1438,15 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                     })
                     .collect(),
             ));
+            for (sid, sname, abbr) in stages(doc) {
+                props.push(choice(
+                    &format!("stage:{sid}"),
+                    &format!("{abbr} — {sname}"),
+                    "Stage Sets",
+                    yes_no(in_stages.contains(&sid)),
+                    yes_no_options(),
+                ));
+            }
         }
         ElementData::Viewport { sheet, view, .. } => {
             props.push(ro(
@@ -1371,11 +1759,29 @@ pub fn set_property(
             "offset" => *offset = parse_len(value)?,
             _ => return Err(unknown()),
         },
-        ElementData::TextNote { text, .. } => match key {
+        ElementData::TextNote { text, size, .. } => match key {
             "text" => *text = non_empty(value)?,
+            "size" => {
+                *size = value
+                    .parse()
+                    .map_err(|_| CoreError::Invalid("bad text size".into()))?
+            }
             _ => return Err(unknown()),
         },
-        ElementData::Sheet { number, name, size } => match key {
+        ElementData::Tag { .. } | ElementData::Issuance { .. } => return Err(unknown()),
+        ElementData::Sheet {
+            number,
+            name,
+            size,
+            stages,
+        } => match key {
+            k if k.starts_with("stage:") => {
+                let sid = parse_id(&k["stage:".len()..])?;
+                stages.retain(|s| *s != sid);
+                if value == "yes" {
+                    stages.push(sid);
+                }
+            }
             "number" => *number = non_empty(value)?,
             "name" => *name = non_empty(value)?,
             "size" => {
@@ -1772,7 +2178,7 @@ mod tests {
         let mut doc = seeded();
         let (w, dt, _) = wall_and_types(&mut doc);
         let d = create_door(&mut doc, dt, w, 800.0, false).unwrap();
-        assert_eq!(delete(&mut doc, &[w]).unwrap(), 2);
+        assert_eq!(delete(&mut doc, &[w]).unwrap(), 3, "wall, door and its tag");
         assert!(doc.get(d).is_none());
         doc.undo().unwrap();
         assert!(doc.get(d).is_some());
@@ -1856,6 +2262,112 @@ mod tests {
         // Annotations belong to their view.
         delete(&mut doc, &[s]).unwrap();
         assert!(doc.get(d).is_none() && doc.get(t).is_none());
+    }
+
+    #[test]
+    fn placing_tags_in_plans_and_tag_all() {
+        let mut doc = seeded();
+        let (w, dt, _) = wall_and_types(&mut doc);
+        let d = create_door(&mut doc, dt, w, 800.0, false).unwrap();
+        let tags: Vec<_> = doc
+            .of(Category::Tag)
+            .filter(|e| matches!(&e.data, ElementData::Tag { target, .. } if *target == d))
+            .map(|e| e.id)
+            .collect();
+        assert_eq!(tags.len(), 1, "one tag in the Level 1 floor plan");
+        delete(&mut doc, &tags).unwrap();
+        assert!(doc.get(d).is_some(), "deleting a tag keeps the door");
+        let l0 = doc.levels()[0].0;
+        let plan = doc
+            .iter()
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l0))
+            .unwrap()
+            .id;
+        assert_eq!(tag_all(&mut doc, plan).unwrap(), 1);
+        assert_eq!(tag_all(&mut doc, plan).unwrap(), 0);
+        delete(&mut doc, &[d]).unwrap();
+        assert_eq!(doc.of(Category::Tag).count(), 0, "tags go with their door");
+    }
+
+    #[test]
+    fn dimensions_attach_to_walls_and_follow_them() {
+        let mut doc = seeded();
+        let (w, _, _) = wall_and_types(&mut doc);
+        let plan = doc
+            .iter()
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::FloorPlan { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        let d = create_dimension(
+            &mut doc,
+            plan,
+            Pt::new(0.0, 0.0),
+            Pt::new(4000.0, 0.0),
+            500.0,
+        )
+        .unwrap();
+        let data = doc.data(d).unwrap().clone();
+        assert!(matches!(
+            &data,
+            ElementData::Dimension {
+                a_ref: Some(_),
+                b_ref: Some(_),
+                ..
+            }
+        ));
+        set_property(&mut doc, w, "length", "20'", 0).unwrap();
+        let (a, b) = dimension_ends(&doc, doc.data(d).unwrap()).unwrap();
+        assert!(
+            (a.dist(b) - 20.0 * MM_PER_FT).abs() < 1e-6,
+            "the dimension follows the wall's end"
+        );
+        delete(&mut doc, &[w]).unwrap();
+        let (a, b) = dimension_ends(&doc, doc.data(d).unwrap()).unwrap();
+        assert!(
+            (a.dist(b) - 4000.0).abs() < 1e-6,
+            "falls back to its stored points"
+        );
+    }
+
+    #[test]
+    fn stage_sets_and_issuances() {
+        let mut doc = seeded();
+        let a = create_sheet(&mut doc, "Plans", SheetSize::ArchD).unwrap();
+        let b = create_sheet(&mut doc, "Details", SheetSize::ArchD).unwrap();
+        let sd = stages(&doc).into_iter().find(|s| s.2 == "SD").unwrap().0;
+        let cd = stages(&doc).into_iter().find(|s| s.2 == "CD").unwrap().0;
+        assert_eq!(
+            stage_sheets(&doc, Some(sd)),
+            vec![a, b],
+            "no sets assigned yet: everything"
+        );
+        set_property(&mut doc, a, &format!("stage:{sd}"), "yes", 0).unwrap();
+        set_property(&mut doc, b, &format!("stage:{cd}"), "yes", 0).unwrap();
+        assert_eq!(stage_sheets(&doc, Some(sd)), vec![a]);
+        assert_eq!(stage_sheets(&doc, Some(cd)), vec![b]);
+        let issue = create_issuance(&mut doc, "SD Review Set", "2026-09-24", vec![a]).unwrap();
+        assert_eq!(
+            doc.data(issue).unwrap().name(),
+            "SD Review Set (2026-09-24)"
+        );
+        assert_eq!(
+            sheet_issues(&doc, a),
+            vec![(
+                "SD Review Set".to_string(),
+                "2026-09-24".to_string(),
+                "SD".to_string()
+            )]
+        );
+        assert!(sheet_issues(&doc, b).is_empty());
+        assert!(create_issuance(&mut doc, "Empty", "2026-09-24", vec![]).is_err());
     }
 
     #[test]

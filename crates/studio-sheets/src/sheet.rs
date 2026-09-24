@@ -121,7 +121,10 @@ pub fn viewport_items(
 
 /// The display list of a sheet, in paper mm. `date` is printed in the title block.
 pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Option<DisplayList> {
-    let ElementData::Sheet { number, name, size } = doc.data(sheet).ok()? else {
+    let ElementData::Sheet {
+        number, name, size, ..
+    } = doc.data(sheet).ok()?
+    else {
         return None;
     };
     let (w, h) = size.mm();
@@ -168,7 +171,9 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
             );
         }
     }
-    title_block(doc, &mut b, *size, number, name, date);
+    // Text notes placed on the sheet itself (e.g. a cover title), in paper mm.
+    studio_views::annotations(doc, &mut b, sheet);
+    title_block(doc, &mut b, sheet, *size, number, name, date);
     Some(DisplayList {
         view_type: ViewType::Sheet,
         scale: 1,
@@ -194,6 +199,54 @@ fn extents(items: &[Item]) -> Option<(Pt, Pt)> {
         }
     }
     studio_regen::bounds(&pts)
+}
+
+/// The building's outline on its lowest level, fitted into a `w` × `h` box at `origin`.
+fn key_plan(doc: &Document, b: &mut Builder, origin: Pt, w: f64, h: f64) {
+    let model = studio_regen::regenerate(doc);
+    let Some(level) = doc.levels().first().map(|l| l.0) else {
+        return;
+    };
+    let regions = studio_regen::wall_regions(&model, level);
+    let pts: Vec<Pt> = regions
+        .iter()
+        .flat_map(|r| r.outer.iter().copied())
+        .collect();
+    let Some((lo, hi)) = studio_regen::bounds(&pts) else {
+        return;
+    };
+    let (bw, bh) = ((hi.x - lo.x).max(1.0), (hi.y - lo.y).max(1.0));
+    let k = (w / bw).min(h / bh);
+    let off = origin.add(Pt::new((w - bw * k) / 2.0, (h - bh * k) / 2.0));
+    let map = |p: &Pt| off.add(p.sub(lo).scale(k));
+    for r in &regions {
+        let outline: Vec<Pt> = r.outer.iter().map(map).collect();
+        b.fill(None, vec![studio_views::ring(&outline)], FillKind::Slab);
+        b.line(None, &outline, true, 3, Dash::Solid);
+    }
+}
+
+/// A north arrow (plan north is +y) at `c` with radius `r` paper mm.
+fn north_arrow(b: &mut Builder, c: Pt, r: f64) {
+    b.circle(None, c, r, 2, false);
+    let tip = c.add(Pt::new(0.0, r * 0.95));
+    b.fill(
+        None,
+        vec![studio_views::ring(&[
+            tip,
+            c.add(Pt::new(r * 0.45, -r * 0.6)),
+            c,
+            c.add(Pt::new(-r * 0.45, -r * 0.6)),
+        ])],
+        FillKind::Ink,
+    );
+    b.text(
+        None,
+        c.add(Pt::new(0.0, r + 3.0)),
+        "N".into(),
+        3.0,
+        Anchor::Center,
+    );
 }
 
 /// Revit-style view title: number bubble, name above a heavy rule, scale below it.
@@ -230,6 +283,7 @@ fn view_title(b: &mut Builder, el: Option<ElementId>, n: usize, name: &str, scal
 fn title_block(
     doc: &Document,
     b: &mut Builder,
+    sheet: ElementId,
     size: SheetSize,
     number: &str,
     name: &str,
@@ -368,6 +422,64 @@ fn title_block(
     value(b, &mut y, date, 3.4);
     y -= 4.0 * k;
     rule(b, y);
+
+    // Issue block: every issued set that included this sheet (newest last).
+    label(b, &mut y, "ISSUES");
+    let issues = ops::sheet_issues(doc, sheet);
+    if issues.is_empty() {
+        value(b, &mut y, "—", 2.6);
+    }
+    for (issue, date, abbr) in issues.iter().rev().take(6).rev() {
+        y -= 2.6 * k * 1.5;
+        b.text(None, Pt::new(tx, y), date.clone(), 2.4 * k, Anchor::Left);
+        b.text(
+            None,
+            Pt::new(tx + 18.0 * k, y),
+            abbr.clone(),
+            2.4 * k,
+            Anchor::Left,
+        );
+        b.text(
+            None,
+            Pt::new(tx + 27.0 * k, y),
+            issue.to_uppercase(),
+            2.4 * k,
+            Anchor::Left,
+        );
+    }
+    y -= 4.0 * k;
+    rule(b, y);
+
+    // Key plan with north arrow, just above the sheet name block.
+    let key_top = m + 42.0 * k + 62.0 * k;
+    if y > key_top + 2.0 {
+        b.line(
+            None,
+            &[Pt::new(x0, key_top), Pt::new(x1, key_top)],
+            false,
+            3,
+            Dash::Solid,
+        );
+        b.text(
+            None,
+            Pt::new(tx, key_top - 5.5 * k),
+            "KEY PLAN".into(),
+            2.2 * k,
+            Anchor::Left,
+        );
+        key_plan(
+            doc,
+            b,
+            Pt::new(tx, m + 42.0 * k + 5.0 * k),
+            x1 - tx - pad - 14.0 * k,
+            44.0 * k,
+        );
+        north_arrow(
+            b,
+            Pt::new(x1 - pad - 5.0 * k, m + 42.0 * k + 12.0 * k),
+            4.5 * k,
+        );
+    }
 
     // Sheet name and number at the bottom.
     let bottom = m;

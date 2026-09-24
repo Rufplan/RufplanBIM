@@ -66,6 +66,8 @@ pub enum Category {
     TextNote,
     Sheet,
     Viewport,
+    Tag,
+    Issuance,
 }
 
 impl Category {
@@ -91,6 +93,8 @@ impl Category {
             Category::TextNote => "TextNote",
             Category::Sheet => "Sheet",
             Category::Viewport => "Viewport",
+            Category::Tag => "Tag",
+            Category::Issuance => "Issuance",
         }
     }
 }
@@ -147,6 +151,20 @@ impl Compass {
             Compass::West => Pt::new(-1.0, 0.0),
         }
     }
+}
+
+/// Where a dimension end is attached, so it follows the model. Lengths in mm.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum Anchor {
+    /// `t` is the fraction along the wall's location line from its start; `side` the signed
+    /// distance to the left of it (e.g. ±half the thickness for a face).
+    Wall { wall: ElementId, t: f64, side: f64 },
+    /// `t` is the fraction along the grid line from its start.
+    Grid { grid: ElementId, t: f64 },
+}
+
+fn default_text_size() -> f64 {
+    3.0
 }
 
 /// What a schedule view lists.
@@ -333,17 +351,43 @@ pub enum ElementData {
         a: Pt,
         b: Pt,
         offset: f64,
+        /// When set, the ends follow these elements; `a`/`b` are the fallback positions.
+        #[serde(default)]
+        a_ref: Option<Anchor>,
+        #[serde(default)]
+        b_ref: Option<Anchor>,
     },
     /// A text note in a view, `at` in the view's coordinates.
     TextNote {
         view: ElementId,
         at: Pt,
         text: String,
+        /// Printed text height, paper mm.
+        #[serde(default = "default_text_size")]
+        size: f64,
     },
     Sheet {
         number: String,
         name: String,
         size: SheetSize,
+        /// Design stages whose deliverable set includes this sheet (ADR-010).
+        #[serde(default)]
+        stages: Vec<ElementId>,
+    },
+    /// A tag in `view` showing `target`'s mark / name, moved `offset` mm (view coordinates)
+    /// from its default spot. Deleting the tag hides it in that view only.
+    Tag {
+        view: ElementId,
+        target: ElementId,
+        offset: Pt,
+    },
+    /// A recorded issue of a drawing set (e.g. "Permit Set") in a design stage.
+    Issuance {
+        name: String,
+        stage: Option<ElementId>,
+        /// YYYY-MM-DD.
+        date: String,
+        sheets: Vec<ElementId>,
     },
     /// A view placed on a sheet; `center` is in paper mm from the sheet's bottom-left.
     Viewport {
@@ -393,6 +437,8 @@ impl ElementData {
             ElementData::TextNote { .. } => Category::TextNote,
             ElementData::Sheet { .. } => Category::Sheet,
             ElementData::Viewport { .. } => Category::Viewport,
+            ElementData::Tag { .. } => Category::Tag,
+            ElementData::Issuance { .. } => Category::Issuance,
         }
     }
 
@@ -418,6 +464,7 @@ impl ElementData {
             ElementData::Room { level, .. } => vec![*level],
             ElementData::Dimension { view, .. } | ElementData::TextNote { view, .. } => vec![*view],
             ElementData::Viewport { sheet, view, .. } => vec![*sheet, *view],
+            ElementData::Tag { view, target, .. } => vec![*view, *target],
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
                 vec![*type_id, *host]
             }
@@ -449,6 +496,8 @@ impl ElementData {
             ElementData::TextNote { text, .. } => text.clone(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
+            ElementData::Tag { .. } => "Tag".into(),
+            ElementData::Issuance { name, date, .. } => format!("{name} ({date})"),
             ElementData::Grid { name, .. } => format!("Grid {name}"),
             ElementData::Wall { .. } => "Wall".into(),
             ElementData::Floor { .. } => "Floor".into(),
