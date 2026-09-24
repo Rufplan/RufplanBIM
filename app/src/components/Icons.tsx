@@ -77,6 +77,12 @@ export const Icons = {
       <path d="M9 13h6M9 16h6M9 10h3" strokeWidth="1.2" />
     </I>
   ),
+  ifc: (
+    <I>
+      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+      <path d="M8 10v5M11 10v5M11 10h3M11 12.5h2.5M18 10h-2.5v5H18" strokeWidth="1.2" />
+    </I>
+  ),
   room: (
     <I>
       <path d="M3 4h18v16H3z" strokeWidth="2.2" />

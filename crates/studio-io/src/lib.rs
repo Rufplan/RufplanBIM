@@ -8,6 +8,8 @@
 //! transaction, then renamed over the target. A crash mid-save never leaves a
 //! half-written project in place of the last good one.
 
+pub mod ifc;
+
 use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, OpenFlags, OptionalExtension};

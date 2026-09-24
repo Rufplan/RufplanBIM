@@ -580,6 +580,54 @@ pub fn export_pdf(path: String, state: State<'_, SessionState>) -> CommandResult
     Ok(sheets.len())
 }
 
+/// Writes the model to an IFC4 file; returns a one-line summary of what it holds.
+#[tauri::command]
+pub fn export_ifc(path: String, state: State<'_, SessionState>) -> CommandResult<String> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    let (path, sum) = write_ifc(doc, &path)?;
+    Ok(format!(
+        "{} walls, {} doors, {} windows, {} slabs, {} spaces to {}",
+        sum.walls,
+        sum.doors,
+        sum.windows,
+        sum.slabs,
+        sum.spaces,
+        path.display()
+    ))
+}
+
+/// ISO 8601 UTC timestamp for file headers.
+pub(crate) fn now_iso() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    format!(
+        "{}T{:02}:{:02}:{:02}",
+        today(),
+        secs / 3600 % 24,
+        secs / 60 % 60,
+        secs % 60
+    )
+}
+
+pub(crate) fn write_ifc(
+    doc: &studio_core::Document,
+    path: &str,
+) -> anyhow::Result<(PathBuf, studio_io::ifc::IfcSummary)> {
+    let (text, sum) = studio_io::ifc::export_ifc(doc, env!("CARGO_PKG_VERSION"), &now_iso());
+    let mut path = PathBuf::from(path);
+    if path
+        .extension()
+        .is_none_or(|e| !e.eq_ignore_ascii_case("ifc"))
+    {
+        path.set_extension("ifc");
+    }
+    std::fs::write(&path, text)
+        .map_err(|e| anyhow::anyhow!("could not write {}: {e}", path.display()))?;
+    Ok((path, sum))
+}
+
 /// What a room placed at `point` would fill (floor plans only).
 #[tauri::command]
 pub fn room_preview(

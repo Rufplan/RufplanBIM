@@ -64,6 +64,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::place_view,
             commands::schedule_table,
             commands::export_pdf,
+            commands::export_ifc,
             commands::tag_all,
             commands::issue_set,
             commands::delete_elements,

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   deleteSelection,
+  exportIfc,
   exportPdf,
   issueSet,
   newSheet,
@@ -200,6 +201,14 @@ export function Ribbon() {
               >
                 {Icons.pdf}
                 <span>Export PDF</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void exportIfc()}
+                title="Export the model to IFC4 for consultants and other BIM tools"
+              >
+                {Icons.ifc}
+                <span>Export IFC</span>
               </button>
               <button
                 className="rb-btn"

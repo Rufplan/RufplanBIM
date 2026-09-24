@@ -81,6 +81,7 @@ export const ipc = {
   scheduleTable: (view: ElementId) => invoke<Table | null>("schedule_table", { view }),
   /** Writes every sheet to a PDF; resolves to the number of sheets. */
   exportPdf: (path: string) => invoke<number>("export_pdf", { path }),
+  exportIfc: (path: string) => invoke<string>("export_ifc", { path }),
   /** Tags every untagged door, window and room in a floor plan. */
   tagAll: (view: ElementId): S => invoke("tag_all", { view }),
   /** Records an issuance of the current stage's sheet set and writes it to a PDF. */
@@ -120,6 +121,8 @@ export const dialogs = {
     save({ defaultPath: `${defaultName}.rfproj`, filters: PROJECT_FILTER }),
   pickPdfLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] }),
+  pickIfcLocation: (defaultName: string): Promise<string | null> =>
+    save({ defaultPath: `${defaultName}.ifc`, filters: [{ name: "IFC", extensions: ["ifc"] }] }),
 };
 
 /** Turns anything a command rejects with into a user-facing message. */

@@ -680,6 +680,17 @@ mod tests {
         std::fs::write(out, pdf).unwrap();
     }
 
+    /// Dev aid: `cargo test -p rufplan-studio write_sample_ifc -- --ignored` writes the
+    /// sample model to target/sample-model.ifc (CI validates it with IfcOpenShell).
+    #[test]
+    #[ignore]
+    fn write_sample_ifc() {
+        let mut s = Session::default();
+        s.new_sample("0.0.1").unwrap();
+        let out = concat!(env!("CARGO_MANIFEST_DIR"), "/../../target/sample-model.ifc");
+        crate::commands::write_ifc(s.doc().unwrap(), out).unwrap();
+    }
+
     #[test]
     fn sample_project_has_a_building() {
         let mut s = Session::default();

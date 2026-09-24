@@ -38,6 +38,18 @@ jobs:
       - name: cargo test
         run: cargo test --workspace
 
+      - name: write sample IFC
+        run: cargo test -p rufplan-studio write_sample_ifc -- --ignored
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: validate IFC with IfcOpenShell
+        run: |
+          pip install ifcopenshell
+          python tools/validate_ifc.py target/sample-model.ifc
+
       - name: TypeScript bindings are up to date
         shell: bash
         run: git diff --exit-code -- app/src/bindings || (echo "::error::Run cargo test and commit app/src/bindings" && exit 1)

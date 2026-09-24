@@ -9,6 +9,7 @@ export const MENU = {
   saveAs: "file.save_as",
   exit: "file.exit",
   exportPdf: "file.export_pdf",
+  exportIfc: "file.export_ifc",
   undo: "edit.undo",
   redo: "edit.redo",
   delete: "edit.delete",
@@ -110,6 +111,22 @@ export const exportPdf = async () => {
   }
 };
 
+/** Exports the model to an IFC4 file the user picks. */
+export const exportIfc = async () => {
+  const s = useAppStore.getState();
+  const app = s.app;
+  if (!app) return false;
+  const path = await dialogs.pickIfcLocation(app.projectName || app.project.name);
+  if (!path) return false;
+  try {
+    s.setPrompt(`Exported IFC: ${await ipc.exportIfc(path)}`);
+    return true;
+  } catch (err) {
+    s.setError(errorMessage(err));
+    return false;
+  }
+};
+
 /** Tags whatever is untagged in the active floor plan. */
 export const tagAll = () => {
   const view = useAppStore.getState().activeView;
@@ -173,6 +190,8 @@ export function handleMenu(id: string) {
       return exitApp();
     case MENU.exportPdf:
       return exportPdf();
+    case MENU.exportIfc:
+      return exportIfc();
     case MENU.undo:
       return undo();
     case MENU.redo:
