@@ -77,12 +77,17 @@ Read these before writing code:
 └─ .github/workflows/  # CI: fmt, clippy, test, build
 ```
 
-## Commands (fill in as they exist)
-- `cargo test --workspace`
-- `cargo clippy --workspace -- -D warnings`
-- `cd app && npm run tauri dev`
-- `cd app && npm test`
+## Commands
+- `cargo test --workspace` (also regenerates `app/src/bindings/*.ts` via ts-rs; commit them)
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo fmt --all`
+- `cd app && npm run tauri dev` (run the app)
+- `cd app && npm test` / `npm run lint` / `npm run format:check`
+- `cd app && npm run tauri build` (NSIS installer in `target/release/bundle/nsis/`)
 
 ## Current status
-- Milestone: **M0 — Scaffold** (not started)
-- Last updated by: handoff package
+- Milestone: **M0 — Scaffold** (implemented; waiting on the first green CI run on GitHub)
+- Done: workspace + 7 crates, Tauri 2/React 18 app, `core_version` IPC, `.rfproj` create/open/save
+  (schema 1, meta only), native File menu + dialogs, Windows CI workflow, SETUP.md verified.
+- Next: M1 — Model core (propose a plan first).
+- Last updated: 2026-09-23, end of M0 session

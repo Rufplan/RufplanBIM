@@ -4,13 +4,13 @@ Work top to bottom. Tick boxes as tasks land. A milestone is done only when ever
 acceptance criterion passes and is demonstrable to the owner.
 
 ## M0 — Scaffold
-- [ ] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test
-- [ ] Tauri 2 + React + TypeScript + Vite app in `app/`, launches a window
-- [ ] One IPC round-trip: UI button calls `core_version` command, shows result
-- [ ] `studio-io`: create/open/save an empty `.rfproj` with `meta` table and schema_version
-- [ ] File > New / Open / Save wired in the UI (native dialogs)
+- [x] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test
+- [x] Tauri 2 + React + TypeScript + Vite app in `app/`, launches a window
+- [x] One IPC round-trip: UI button calls `core_version` command, shows result
+- [x] `studio-io`: create/open/save an empty `.rfproj` with `meta` table and schema_version
+- [x] File > New / Open / Save wired in the UI (native dialogs)
 - [ ] CI workflow (Windows runner): `cargo fmt --check`, `clippy -D warnings`, `cargo test`, `npm test`, `tauri build`
-- [ ] `docs/SETUP.md` verified on a clean Windows machine
+- [x] `docs/SETUP.md` verified on a clean Windows machine
 
 **Acceptance:** app launches, creates a project file, reopens it, CI is green.
 

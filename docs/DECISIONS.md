@@ -37,3 +37,24 @@ tests to validate output. IFC import is deferred.
 ## ADR-008 DWG deferred — Accepted
 ODA SDK requires paid membership; LibreDWG is GPL, incompatible with closed distribution.
 Revisit after v0.1 based on user demand.
+
+## ADR-009 M0 scaffold choices — Accepted (2026-09-23)
+Context: the handoff left several M0-level choices open.
+Decision:
+- **IPC type generation: `ts-rs`.** Stable, and needs no changes to Tauri command
+  registration. `tauri-specta` for Tauri 2 was still a release candidate. Payload structs
+  derive `TS`; `cargo test` writes `app/src/bindings/`, and CI fails if they drift.
+- **Save strategy.** The in-memory project is written to `<file>.rfproj.tmp` in a single
+  SQLite transaction, then renamed over the target. The project file is never held open
+  between saves. Autosave (from M1) will write `<file>.rfproj.autosave` the same way.
+  Migrations apply on write, so opening an older file and saving it upgrades it.
+- **Schema 1 = `meta` table only.** Element tables arrive in M1 as migration 0002.
+- **Frontend pins.** React 18 as locked (new Tauri templates default to 19). TypeScript
+  6.0.x, because typescript-eslint does not yet support TypeScript 7.
+- **Menu.** A native Tauri menu forwards item ids to the UI as a `menu` event. The UI owns
+  the file dialogs and calls the project commands. This keeps dialogs as UI and project
+  state in Rust.
+- **Bundle target.** NSIS installer only for now; MSI is not needed yet.
+Consequences: IPC payload types must derive `TS` and be exported. Saves rewrite the whole
+file, which is fine for v0.1 model sizes. Incremental writes (ADR-003) can come later
+without a format change.
