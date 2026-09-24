@@ -192,3 +192,21 @@ Consequences: a sample 4-sheet set (A0.0 cover + indexes, A1.0 plans, A2.0 eleva
 A3.0 section + door/window schedules) exports from the sample project; tests check the
 page sizes, font embedding and true-scale geometry (a 10'-0" wall prints 63.5 mm at 1/4").
 Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view crop regions.
+
+## ADR-015 Completing M4: associative dimensions, tag elements, stage sets, issuances — Accepted (2026-09-24)
+- **Dimension ends attach** to what they're placed on, in plan views: a wall (fraction
+  along its location line and signed side offset, so both faces and the centerline work)
+  or a grid. Ends re-evaluate on every draw, so dimensions follow moves and stretches.
+  The stored points are the fallback if the element is deleted. Moving an attached
+  dimension slides its line. Snapping gains wall face corners and faces.
+- **Tags are elements** (`Tag { view, target, offset }`), created in every floor plan of
+  the target's level when a door, window or room is placed (Revit's tag on placement).
+  Each tag moves or deletes independently of its target; Tag All restores missing tags in
+  a plan. Files from before this get tagged once when opened.
+- **Stage sets:** `Sheet.stages` lists the design stages whose deliverable set includes
+  the sheet (a Yes/No property per stage). The browser filters sheets by stage.
+- **Issuances:** `Issuance { name, stage, date, sheets }`. Issue Set records the current
+  stage's set (every sheet, if none are assigned yet) and exports it to PDF. Title blocks
+  list every issue that included the sheet (date, stage, name) as a revision-style block.
+- **Sheet notes:** text notes can sit on sheets, with printed sizes from 3/32" to 1".
+  Title blocks gain a key plan (the lowest level's wall outline) and a north arrow.

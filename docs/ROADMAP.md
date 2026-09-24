@@ -26,7 +26,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
 **Shortcuts still open** (see ADR-011): full regeneration instead of the dependency graph;
 typed fields instead of the `ParamValue` map; JSON display lists; no endpoint dragging; no
 typed lengths while drawing (edit Length in properties afterwards); no room separation
-lines; floors/ceilings don't follow moved walls; dimensions aren't associative. Door leaves are thin: select a door by clicking its leaf or swing arc.
+lines; floors/ceilings don't follow moved walls. Door leaves are thin: select a door by clicking its leaf or swing arc.
 
 ## M0 — Scaffold
 - [x] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test
@@ -78,13 +78,13 @@ moving a wall updates room areas, door positions and the 3D view.
 *Status 2026-09-24: met, and covered by tests (regen room-area test, modify.rs opening tests); the 3D section box is still open.*
 
 ## M4 — Documents
-- [x] Annotations: door tag, window tag, room tag (name, number, area), aligned dimensions to wall faces/centerlines, text — *tags are automatic; dimensions are point-based, not yet associated with walls (ADR-014)*
+- [x] Annotations: door tag, window tag, room tag (name, number, area), aligned dimensions to wall faces/centerlines, text — *tags are elements created on placement (movable, deletable, Tag All); dimension ends attach to walls/grids and follow them (ADR-015)*
 - [x] Section and elevation views (painter's-order hidden lines, cut poché)
 - [x] Schedules: door schedule (mark, type, width, height, level), room schedule — *plus window schedule and sheet index*
 - [x] Sheets: title block (built-in, 24×36 ARCH D and 11×17), viewports at standard scales, sheet list
 - [x] PDF export of selected sheets: vector, true scale, line weights, fonts embedded — *exports all sheets; per-sheet selection comes with issuances*
 - [x] ProjectInfo feeds title block fields, including the current design stage
-- [ ] Sheets assigned to stage deliverable sets; project browser filters by stage; issuances record their stage
+- [x] Sheets assigned to stage deliverable sets; project browser filters by stage; issuances record their stage — *Issue Set records the issuance and exports the PDF; title blocks list issues (ADR-015)*
 
 **Acceptance:** export a 4-sheet PDF (A0.0 cover/sheet index, A1.0 plan, A2.0 elevations,
 A3.0 sections + door schedule) that prints at true scale when measured with a scale ruler.
