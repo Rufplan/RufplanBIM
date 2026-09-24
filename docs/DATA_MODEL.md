@@ -32,9 +32,10 @@ struct ParamDef { key: String, label: String, kind: ParamKind, group: ParamGroup
 | Room | level, placement point, name, number; boundary derived from bounding walls/separation lines |
 | View | kind (FloorPlan, CeilingPlan, Section, Elevation, ThreeD, Schedule), level, view range, crop, scale, visibility overrides, name |
 | Annotation | view_id + kind: Tag(target_id, tag_family), Dimension(refs), Text, DetailLine, Symbol |
-| Sheet | number, name, title block type, viewports[], issue data |
+| Sheet | number, name, title block type, viewports[], issue data, stage_ids[] (deliverable sets it belongs to) |
 | Material | name, cut pattern, surface pattern, color |
-| ProjectInfo | project name, number, address, client, issue date |
+| ProjectInfo | project name, number, address, client, issue date, current_stage_id, stage_history[] (from, to, at, note) |
+| ProjectStage | name, abbreviation, order, planned start date, target date (ADR-010). Defaults: Pre-Design (PD), Schematic Design (SD), Design Development (DD), Construction Documents (CD), Bidding / Negotiation (BN), Construction Administration (CA) |
 
 ## Families (v0.1 scope)
 Families are **built-in and code-defined** for v0.1 (single flush door, double door,

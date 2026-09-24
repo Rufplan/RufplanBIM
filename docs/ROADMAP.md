@@ -21,9 +21,10 @@ acceptance criterion passes and is demonstrable to the owner.
 - [ ] Levels, Grids, WallTypes (3 defaults: 6" int stud, 8" ext stud, 12" CMU), Walls (straight)
 - [ ] Wall solids via native kernel: footprint polygon × base/top constraint heights
 - [ ] Regen graph: Level → Wall heights; Type → Wall thickness; change propagates
+- [ ] Design stages (ADR-010): ProjectInfo + ProjectStage elements with the six defaults, set current stage (undoable, logged in stage history), edit stage names/dates; Project Info panel in the UI
 - [ ] Persistence round-trip of all M1 elements (property test: save → load → equal)
 
-**Acceptance:** tests prove that changing a level's elevation updates wall heights, changing a
+**Acceptance:** tests prove that changing the current stage records history and undo restores it; changing a level's elevation updates wall heights, changing a
 wall type's thickness updates footprints, and undo restores both exactly.
 
 ## M2 — Plan view and editing
@@ -56,7 +57,8 @@ moving a wall updates room areas, door positions and the 3D view.
 - [ ] Schedules: door schedule (mark, type, width, height, level), room schedule
 - [ ] Sheets: title block (built-in, 24×36 ARCH D and 11×17), viewports at standard scales, sheet list
 - [ ] PDF export of selected sheets: vector, true scale, line weights, fonts embedded
-- [ ] ProjectInfo feeds title block fields
+- [ ] ProjectInfo feeds title block fields, including the current design stage
+- [ ] Sheets assigned to stage deliverable sets; project browser filters by stage; issuances record their stage
 
 **Acceptance:** export a 4-sheet PDF (A0.0 cover/sheet index, A1.0 plan, A2.0 elevations,
 A3.0 sections + door schedule) that prints at true scale when measured with a scale ruler.
@@ -66,7 +68,7 @@ A3.0 sections + door schedule) that prints at true scale when measured with a sc
 - [ ] CI test validates exported IFC with IfcOpenShell (Python, dev-only)
 - [ ] Supabase auth via system browser + deep link (see SYNC_AND_RUFPLAN.md)
 - [ ] Link a Studio project to a Rufplan project
-- [ ] Publish: upload PDF set + IFC + manifest; creates an issuance record visible on Rufplan
+- [ ] Publish: upload PDF set + IFC + manifest; creates an issuance record visible on Rufplan, tagged with its design stage
 
 **Acceptance:** sign in, link, publish; the published set appears on the Rufplan project and the
 IFC opens correctly in an IFC viewer (e.g., That Open Engine / web-ifc on the Rufplan side).

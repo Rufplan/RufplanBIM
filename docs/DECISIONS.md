@@ -58,3 +58,25 @@ Decision:
 Consequences: IPC payload types must derive `TS` and be exported. Saves rewrite the whole
 file, which is fine for v0.1 model sizes. Incremental writes (ADR-003) can come later
 without a format change.
+
+## ADR-010 Design stages (SD / DD / CD …) as project data — Accepted (2026-09-23)
+Context: the owner wants the delivery phases architects work in to be part of the project:
+Pre-Design, Schematic Design, Design Development, Construction Documents, Bidding,
+Construction Administration. This is not Revit-style construction phasing
+(Existing / Demolished / New per element), which stays out of scope for now.
+Decision:
+- **Stages are elements** (`ProjectStage`): editable name, abbreviation, order, planned
+  start/target dates. New projects get the six AIA-style defaults; users can rename,
+  reorder, add (e.g. "Permit") or remove ones they don't use.
+- **ProjectInfo holds `current_stage_id`** plus an append-only **stage history**
+  (from → to, timestamp, note). Moving stage is a normal transaction, so it can be undone.
+- **Downstream uses**, built when those features exist:
+  - Sheets (and views, optionally) list the stages whose deliverable set they belong to,
+    so the browser can filter "SD package" vs "CD package" (M4).
+  - The title block shows the current stage name (M4).
+  - Each issuance records the stage it was issued in (M4 locally, M5 in Supabase).
+  - Publishing sends the stage to Rufplan, so a CD or Bidding issuance can drive
+    marketplace bidding (M5; needs owner approval of the Supabase schema change).
+Consequences: M1 adds two element kinds (ProjectStage, ProjectInfo) and a Project Info
+panel. Nothing depends on stages before M4, so the list can evolve without breaking
+features. Stages are referenced by ElementId, never by name, so renaming is safe.

@@ -49,5 +49,6 @@ A user can:
 - **Viewport** — a placed view on a sheet at a given scale (e.g., 1/4" = 1'-0").
 - **Title block** — the sheet border with project info, sheet number and name.
 - **Regeneration** — recomputing derived geometry and views after a change.
+- **Design stage** — a delivery phase of the project (Pre-Design, SD, DD, CD, Bidding, CA). The project has one current stage; sheets belong to stage deliverable sets; issuances record their stage. Not the same as Revit construction phasing (Existing/Demo/New).
 - **Drawing set / issuance** — the collection of sheets issued together (e.g., "Permit Set").
 - **IFC** — Industry Foundation Classes, the open BIM exchange standard.

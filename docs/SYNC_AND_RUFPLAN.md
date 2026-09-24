@@ -23,6 +23,7 @@ create table studio_issuances (
   id uuid primary key default gen_random_uuid(),
   studio_project_id uuid references studio_projects(id) on delete cascade,
   name text not null,                 -- "Permit Set", "Bid Set"
+  stage text not null,                -- design stage abbreviation at issue: SD, DD, CD, BN, CA (ADR-010)
   issued_at timestamptz default now(),
   pdf_path text not null,             -- storage path
   ifc_path text,
