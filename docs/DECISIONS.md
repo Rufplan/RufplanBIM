@@ -161,3 +161,34 @@ Decision:
   moves that would push an opening out of its wall are rejected.
 Consequences: floors and ceilings keep their own sketched boundaries and don't follow
 moved walls yet. Revit's locked "pick walls" boundary lines are future work.
+
+## ADR-014 Documents: annotations, sections, schedules, sheets, PDF — Accepted (2026-09-24)
+Context: M4, whose acceptance test is a 4-sheet vector PDF that measures true to scale.
+Decision:
+- **Door, window and room tags are drawn automatically** in floor plans from each element's
+  mark / name / number / area. There are no tag elements yet, so tags can't be moved or
+  hidden individually; tag elements come when that matters.
+- **Dimensions are point-based** (`Dimension { view, a, b, offset }`), placed with snapping
+  in plans, elevations and sections. They are not yet associated with the wall faces they
+  measure, so they don't follow edits (Revit's reference-based dimensions are future work).
+  Text is upright and uses feet-inches. `TextNote` holds free text in a view.
+- **Sections** are views: `ViewKind::Section { start, end, depth }`, looking to the left
+  of the line. They share the elevation generator, generalized with a cut plane and far
+  clip. Elements crossing the plane draw as poché from their prism pieces (so door heads
+  and window sills cut correctly); elements beyond draw in painter's order.
+- **Schedules** are views listing doors, windows, rooms or sheets; the tables are computed
+  from the model on every request. New projects get all four; older files gain them on
+  open.
+- **Sheets and viewports** are elements. A viewport maps a view's display list into paper
+  mm by its scale; the same sheet display list draws on screen and in the PDF. A drawing
+  view can be on one sheet only; schedules can repeat. The title block is code-defined in
+  Rufplan style (cyan bar, wordmark, project info, current design stage, date, sheet
+  name/number) in ARCH D and Tabloid.
+- **PDF via krilla** (locked stack): 1 paper mm = 72/25.4 pt, real pen widths
+  (0.13–0.7 mm), dash patterns in paper mm, and Barlow Condensed SemiBold embedded
+  (OFL-licensed; the font and its license live in `crates/studio-sheets/fonts`). Text is
+  measured with `ttf-parser`, already in the dependency tree via krilla.
+Consequences: a sample 4-sheet set (A0.0 cover + indexes, A1.0 plans, A2.0 elevations,
+A3.0 section + door/window schedules) exports from the sample project; tests check the
+page sizes, font embedding and true-scale geometry (a 10'-0" wall prints 63.5 mm at 1/4").
+Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view crop regions.

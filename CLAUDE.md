@@ -88,9 +88,13 @@ Read these before writing code:
 
 ## Current status
 - M0 complete. **Prototype slice built ahead of M1–M4** (ADR-011): levels, grids, walls,
-  doors and windows (ADR-012), rooms and Move (ADR-013), floors, ceilings; floor plans, ceiling plans, elevations and 3D; Rufplan styling; design
+  doors and windows (ADR-012), rooms and Move (ADR-013), documents and PDF (ADR-014),
+  floors, ceilings; floor plans, ceiling plans, elevations and 3D; Rufplan styling; design
   stages. The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
 - Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the sample house.
-- M3 acceptance met except the 3D section box. Next: close the M1 gaps (ParamValue map,
-  regen graph, indexes, property test) or start M4 documents (tags, dimensions, sheets).
+- M3 met (except the 3D section box); M4 met pending the owner's scale-ruler print check
+  (stage sheet sets and issuances still open). Next: M5 (IFC export, Rufplan publish) or
+  the M1 gaps (ParamValue map, regen graph, indexes, property test).
+- Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
+  writes target/sample-drawing-set.pdf.
 - Last updated: 2026-09-24

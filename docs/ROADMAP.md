@@ -18,12 +18,15 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   shortcuts (WA, DR, WN, RM, MV, GR, LL, SB …).
 - Editing: selection, delete (with dependents), properties panel with ft-in input, type
   switching and type editing, design stage picker, project information.
-- Files: schema 2 `.rfproj` storing all elements; sample project; unsaved-changes prompts.
+- Documents (ADR-014): door/window/room tags, dimensions, text, sections, schedules, sheets with
+  the Rufplan title block, and vector PDF export at true scale.
+- Files: schema 2 `.rfproj` storing all elements; sample project with a 4-sheet set;
+  unsaved-changes prompts.
 
 **Shortcuts still open** (see ADR-011): full regeneration instead of the dependency graph;
 typed fields instead of the `ParamValue` map; JSON display lists; no endpoint dragging; no
 typed lengths while drawing (edit Length in properties afterwards); no room separation
-lines; floors/ceilings don't follow moved walls; no sections. Door leaves are thin: select a door by clicking its leaf or swing arc.
+lines; floors/ceilings don't follow moved walls; dimensions aren't associative. Door leaves are thin: select a door by clicking its leaf or swing arc.
 
 ## M0 — Scaffold
 - [x] Cargo workspace with empty crates listed in CLAUDE.md; each compiles with a smoke test
@@ -75,16 +78,18 @@ moving a wall updates room areas, door positions and the 3D view.
 *Status 2026-09-24: met, and covered by tests (regen room-area test, modify.rs opening tests); the 3D section box is still open.*
 
 ## M4 — Documents
-- [ ] Annotations: door tag, window tag, room tag (name, number, area), aligned dimensions to wall faces/centerlines, text
-- [ ] Section and elevation views (painter's-order hidden lines, cut poché) — *prototype: elevations done; sections not yet*
-- [ ] Schedules: door schedule (mark, type, width, height, level), room schedule
-- [ ] Sheets: title block (built-in, 24×36 ARCH D and 11×17), viewports at standard scales, sheet list
-- [ ] PDF export of selected sheets: vector, true scale, line weights, fonts embedded
-- [ ] ProjectInfo feeds title block fields, including the current design stage
+- [x] Annotations: door tag, window tag, room tag (name, number, area), aligned dimensions to wall faces/centerlines, text — *tags are automatic; dimensions are point-based, not yet associated with walls (ADR-014)*
+- [x] Section and elevation views (painter's-order hidden lines, cut poché)
+- [x] Schedules: door schedule (mark, type, width, height, level), room schedule — *plus window schedule and sheet index*
+- [x] Sheets: title block (built-in, 24×36 ARCH D and 11×17), viewports at standard scales, sheet list
+- [x] PDF export of selected sheets: vector, true scale, line weights, fonts embedded — *exports all sheets; per-sheet selection comes with issuances*
+- [x] ProjectInfo feeds title block fields, including the current design stage
 - [ ] Sheets assigned to stage deliverable sets; project browser filters by stage; issuances record their stage
 
 **Acceptance:** export a 4-sheet PDF (A0.0 cover/sheet index, A1.0 plan, A2.0 elevations,
 A3.0 sections + door schedule) that prints at true scale when measured with a scale ruler.
+*Status 2026-09-24: the sample project exports exactly this set; true scale is covered by tests.
+Awaiting the owner's scale-ruler check on a print.*
 
 ## M5 — Interop and Rufplan link
 - [ ] IFC4 export: IfcProject/Site/Building/BuildingStorey, IfcWall, IfcSlab, IfcDoor, IfcWindow, IfcSpace, materials, property sets
