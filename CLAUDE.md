@@ -88,9 +88,9 @@ Read these before writing code:
 
 ## Current status
 - M0 complete. **Prototype slice built ahead of M1–M4** (ADR-011): levels, grids, walls,
-  doors and windows (ADR-012), floors, ceilings; floor plans, ceiling plans, elevations and 3D; Rufplan styling; design
+  doors and windows (ADR-012), rooms and Move (ADR-013), floors, ceilings; floor plans, ceiling plans, elevations and 3D; Rufplan styling; design
   stages. The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
 - Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the sample house.
-- Next: rooms (completes M3 apart from the section box), then close the M1 gaps
-  (ParamValue map, regen graph, indexes, property test).
-- Last updated: 2026-09-23
+- M3 acceptance met except the 3D section box. Next: close the M1 gaps (ParamValue map,
+  regen graph, indexes, property test) or start M4 documents (tags, dimensions, sheets).
+- Last updated: 2026-09-24

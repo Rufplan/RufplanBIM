@@ -140,3 +140,24 @@ Decision:
 Consequences: no new file schema version is needed, because new element kinds
 deserialize as new enum variants and old files simply have none. Files saved before this
 get the built-in door and window types when opened.
+
+## ADR-013 Rooms and Move — Accepted (2026-09-24)
+Context: completing M3 rooms. The M3 acceptance test ("moving a wall updates room
+areas, door positions and the 3D view") also needs a Move operation.
+Decision:
+- **Rooms store only level, placement point, name and number.** The boundary is derived
+  every regeneration: the smallest enclosed area (a hole in the union of the level's wall
+  footprints) containing the point. That makes it the inside faces of the walls, with
+  doors not breaking enclosure. If walls change so the point is no longer enclosed, the
+  room reports "Not Enclosed" and area 0, as in Revit. Room separation lines come later.
+- **One room per enclosed area**, enforced when placing (the preview says which room
+  already occupies it). Numbers are the next free integer.
+- **Area, perimeter and status are derived properties.** The app layer appends them to
+  the core property sheet because they need regeneration.
+- **Move (MV) follows Revit:** moved walls drag the ends of corner-joined walls with
+  them, and walls T-joined into a moved wall keep their end on its line. Doors and
+  windows in a stretched wall keep their real-world position (offsets recomputed); a
+  selected door or window slides along its host. Every move is one transaction, and
+  moves that would push an opening out of its wall are rejected.
+Consequences: floors and ceilings keep their own sketched boundaries and don't follow
+moved walls yet. Revit's locked "pick walls" boundary lines are future work.
