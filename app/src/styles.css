@@ -1,0 +1,20 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: #1c2a3a;
+  background: #f4f5f7;
+}
+body {
+  margin: 0;
+}
+.app {
+  padding: 24px;
+}
+button {
+  font: inherit;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+[role="alert"] {
+  color: #b42318;
+}
