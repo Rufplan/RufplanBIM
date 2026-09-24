@@ -8,3 +8,8 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+geo = "0.33.1"
+studio-core.workspace = true
+studio-geom.workspace = true
