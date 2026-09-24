@@ -1,0 +1,27 @@
+# Rust
+/target/
+
+# Node / Vite
+node_modules/
+app/dist/
+
+# Tauri
+app/src-tauri/target/
+app/src-tauri/gen/schemas/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Project files created during manual testing
+*.rfproj
+*.rfproj.tmp
+*.rfproj.autosave
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+.DS_Store
