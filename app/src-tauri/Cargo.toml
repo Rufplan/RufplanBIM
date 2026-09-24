@@ -22,6 +22,9 @@ anyhow = "1"
 ts-rs = "12"
 studio-core.workspace = true
 studio-io.workspace = true
+studio-views.workspace = true
+studio-regen.workspace = true
+studio-geom.workspace = true
 
 [lints]
 workspace = true

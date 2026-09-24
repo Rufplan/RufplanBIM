@@ -1,76 +1,161 @@
-import { useEffect, useState } from "react";
-import { errorMessage, ipc, type CoreVersion } from "./ipc";
-import { handleMenu, newProject, openProject, saveProject, saveProjectAs } from "./fileActions";
+import { useEffect, useRef } from "react";
+import { errorMessage, ipc } from "./ipc";
+import {
+  deleteSelection,
+  handleMenu,
+  newProject,
+  openProject,
+  redo,
+  sampleProject,
+  undo,
+} from "./fileActions";
 import { useAppStore } from "./store";
+import { shortcut } from "./tools";
+import { TopBar } from "./components/TopBar";
+import { Ribbon } from "./components/Ribbon";
+import { ProjectBrowser } from "./components/ProjectBrowser";
+import { PropertiesPanel } from "./components/PropertiesPanel";
+import { StatusBar, Workspace } from "./components/Workspace";
+import logo from "./assets/rufplan-logo-white.svg";
+
+function isTyping(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  return (
+    !!el &&
+    (el.tagName === "INPUT" ||
+      el.tagName === "SELECT" ||
+      el.tagName === "TEXTAREA" ||
+      el.isContentEditable)
+  );
+}
+
+function ConfirmDialog() {
+  const confirm = useAppStore((s) => s.confirm);
+  if (!confirm) return null;
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal aria-label="Unsaved changes">
+      <div className="modal">
+        <div className="modal-kicker">Unsaved changes</div>
+        <p className="modal-message">{confirm.message}</p>
+        <div className="modal-actions">
+          <button className="btn-cyan" autoFocus onClick={() => confirm.resolve("save")}>
+            Save
+          </button>
+          <button className="btn-outline" onClick={() => confirm.resolve("discard")}>
+            Don&apos;t Save
+          </button>
+          <button className="btn-ghost" onClick={() => confirm.resolve("cancel")}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Welcome() {
+  return (
+    <main className="welcome">
+      <div className="welcome-card">
+        <div className="welcome-mark">
+          <img src={logo} alt="Rufplan" />
+          <span>Studio</span>
+        </div>
+        <h1>Model it once. Draw it everywhere.</h1>
+        <p>
+          Levels, grids, walls, floors and ceilings — with plans, ceiling plans, elevations and 3D
+          generated from one model.
+        </p>
+        <div className="welcome-actions">
+          <button className="btn-cyan" onClick={() => void newProject()}>
+            New Project
+          </button>
+          <button className="btn-outline light" onClick={() => void openProject()}>
+            Open Project
+          </button>
+          <button className="btn-ghost light" onClick={() => void sampleProject()}>
+            Sample Project
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
 
 export function App() {
-  const project = useAppStore((s) => s.project);
+  const app = useAppStore((s) => s.app);
   const error = useAppStore((s) => s.error);
-  const setProject = useAppStore((s) => s.setProject);
+  const setApp = useAppStore((s) => s.setApp);
   const setError = useAppStore((s) => s.setError);
-  const [version, setVersion] = useState<CoreVersion | null>(null);
+  const keys = useRef("");
 
   useEffect(() => {
-    ipc.projectStatus().then(setProject, (err) => setError(errorMessage(err)));
+    ipc.appState().then(
+      (s) => setApp(s, true),
+      (err) => setError(errorMessage(err)),
+    );
     const unlisten = ipc.onMenu((id) => void handleMenu(id));
     return () => {
       unlisten.then((stop) => stop());
     };
-  }, [setProject, setError]);
+  }, [setApp, setError]);
 
-  async function checkVersion() {
-    try {
-      setVersion(await ipc.coreVersion());
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isTyping(e.target) || useAppStore.getState().confirm) return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        void (e.shiftKey ? redo() : undo());
+      } else if (ctrl && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        void redo();
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        void deleteSelection();
+      } else if (e.key === "Escape") {
+        window.dispatchEvent(new Event("tool-cancel"));
+      } else if (e.key === "Enter") {
+        window.dispatchEvent(new Event("tool-finish"));
+      } else if (!ctrl && !e.altKey && useAppStore.getState().app) {
+        if ((keys.current + e.key).toUpperCase().endsWith("ZF")) {
+          keys.current = "";
+          window.dispatchEvent(new Event("view-fit"));
+          return;
+        }
+        const r = shortcut(keys.current, e.key);
+        keys.current = r.buffer;
+        if (r.tool) useAppStore.getState().setTool(r.tool);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
-    <main className="app">
-      <header className="toolbar">
-        <button onClick={newProject}>New</button>
-        <button onClick={openProject}>Open…</button>
-        <button onClick={saveProject} disabled={!project}>
-          Save
-        </button>
-        <button onClick={saveProjectAs} disabled={!project}>
-          Save As…
-        </button>
-        <span className="spacer" />
-        <button onClick={checkVersion}>Core version</button>
-      </header>
-
+    <div className="shell">
+      <TopBar />
       {error && (
-        <p role="alert" className="error">
-          {error} <button onClick={() => setError(null)}>Dismiss</button>
-        </p>
+        <div role="alert" className="error-bar">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} aria-label="Dismiss">
+            ×
+          </button>
+        </div>
       )}
-
-      {project ? (
-        <section aria-label="Project" className="panel">
-          <h1>{project.name}</h1>
-          <dl>
-            <dt>File</dt>
-            <dd data-testid="project-path">{project.path ?? "Not saved yet"}</dd>
-            <dt>Schema</dt>
-            <dd>{project.schemaVersion}</dd>
-            <dt>Saved by</dt>
-            <dd>Rufplan Studio {project.appVersion}</dd>
-          </dl>
-        </section>
+      {app ? (
+        <>
+          <Ribbon />
+          <div className="main">
+            <ProjectBrowser />
+            <Workspace />
+            <PropertiesPanel />
+          </div>
+          <StatusBar />
+        </>
       ) : (
-        <section aria-label="Welcome" className="panel">
-          <h1>Rufplan Studio</h1>
-          <p>Create a new project or open an existing .rfproj file.</p>
-        </section>
+        <Welcome />
       )}
-
-      {version && (
-        <p data-testid="version" className="muted">
-          App {version.app} · core {version.core} · io {version.io} · schema {version.schemaVersion}
-        </p>
-      )}
-    </main>
+      <ConfirmDialog />
+    </div>
   );
 }

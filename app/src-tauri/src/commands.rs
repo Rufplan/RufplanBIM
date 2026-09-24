@@ -1,14 +1,17 @@
-//! IPC commands. Payload types derive `TS` so `cargo test` regenerates
-//! `app/src/bindings/*.ts` and the TypeScript side stays in sync.
+//! IPC commands: thin wrappers over the core crates. Payload types derive `TS` so
+//! `cargo test` regenerates `app/src/bindings/*.ts` and the TypeScript side stays in sync.
 
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use serde::Serialize;
-use tauri::{State, WebviewWindow};
+use studio_core::{ops, ElementId};
+use studio_geom::Pt;
+use studio_views::{DisplayList, Mesh, SnapResult};
+use tauri::{AppHandle, Manager, State, WebviewWindow};
 use ts_rs::TS;
 
-use crate::session::{ProjectStatus, Session};
+use crate::session::{AppState, Session};
 
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_NAME: &str = "Rufplan Studio";
@@ -43,7 +46,54 @@ impl From<anyhow::Error> for CommandError {
     }
 }
 
+impl From<studio_core::CoreError> for CommandError {
+    fn from(err: studio_core::CoreError) -> Self {
+        Self {
+            message: err.to_string(),
+        }
+    }
+}
+
 type CommandResult<T> = Result<T, CommandError>;
+type StateResult = CommandResult<Option<AppState>>;
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as i64)
+}
+
+fn lock<'a>(state: &'a State<'_, SessionState>) -> CommandResult<MutexGuard<'a, Session>> {
+    state
+        .lock()
+        .map_err(|_| anyhow::anyhow!("project state is unavailable after an earlier crash").into())
+}
+
+/// Updates the window title and returns the new state.
+fn finish(window: &WebviewWindow, session: &Session) -> StateResult {
+    let state = session.state();
+    let title = match &state {
+        Some(s) => format!(
+            "{}{} — {APP_NAME}",
+            s.project.name,
+            if s.project.dirty { " *" } else { "" }
+        ),
+        None => APP_NAME.to_owned(),
+    };
+    window.set_title(&title).map_err(anyhow::Error::from)?;
+    Ok(state)
+}
+
+/// Applies an edit and returns the new state.
+fn edit<T>(
+    window: &WebviewWindow,
+    state: &State<'_, SessionState>,
+    f: impl FnOnce(&mut Session) -> anyhow::Result<T>,
+) -> StateResult {
+    let mut session = lock(state)?;
+    f(&mut session)?;
+    finish(window, &session)
+}
 
 #[tauri::command]
 pub fn core_version() -> CoreVersion {
@@ -55,19 +105,37 @@ pub fn core_version() -> CoreVersion {
     }
 }
 
+/// Current state; also sets the window title (e.g. for a project opened at launch).
 #[tauri::command]
-pub fn project_status(state: State<'_, SessionState>) -> CommandResult<Option<ProjectStatus>> {
-    Ok(lock(&state)?.status())
+pub fn app_state(window: WebviewWindow, state: State<'_, SessionState>) -> StateResult {
+    let session = lock(&state)?;
+    finish(&window, &session)
 }
 
 #[tauri::command]
-pub fn project_new(
-    window: WebviewWindow,
-    state: State<'_, SessionState>,
-) -> CommandResult<Option<ProjectStatus>> {
-    let mut session = lock(&state)?;
-    session.new_project(APP_VERSION);
-    finish(&window, &session)
+pub fn project_new(window: WebviewWindow, state: State<'_, SessionState>) -> StateResult {
+    edit(&window, &state, |s| s.new_project(APP_VERSION))
+}
+
+#[tauri::command]
+pub fn project_sample(window: WebviewWindow, state: State<'_, SessionState>) -> StateResult {
+    edit(&window, &state, |s| s.new_sample(APP_VERSION))
+}
+
+/// Opens a project passed on the command line (file association), or the sample with
+/// `--sample`.
+pub fn open_from_args(session: &mut Session) {
+    let Some(arg) = std::env::args().nth(1) else {
+        return;
+    };
+    let result = if arg == "--sample" {
+        session.new_sample(APP_VERSION)
+    } else {
+        session.open(&PathBuf::from(&arg))
+    };
+    if let Err(e) = result {
+        eprintln!("could not open {arg}: {e:#}");
+    }
 }
 
 #[tauri::command]
@@ -75,10 +143,8 @@ pub fn project_open(
     path: String,
     window: WebviewWindow,
     state: State<'_, SessionState>,
-) -> CommandResult<Option<ProjectStatus>> {
-    let mut session = lock(&state)?;
-    session.open(&PathBuf::from(path))?;
-    finish(&window, &session)
+) -> StateResult {
+    edit(&window, &state, |s| s.open(&PathBuf::from(path)))
 }
 
 /// Saves to `path` when given (Save As), otherwise to the project's current path.
@@ -87,29 +153,193 @@ pub fn project_save(
     path: Option<String>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
-) -> CommandResult<Option<ProjectStatus>> {
-    let mut session = lock(&state)?;
-    session.save(path.map(PathBuf::from).as_deref(), APP_VERSION)?;
-    finish(&window, &session)
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.save(path.map(PathBuf::from).as_deref(), APP_VERSION)
+    })
 }
 
-fn lock<'a>(
-    state: &'a State<'_, SessionState>,
-) -> CommandResult<std::sync::MutexGuard<'a, Session>> {
-    state
-        .lock()
-        .map_err(|_| anyhow::anyhow!("project state is unavailable after an earlier crash").into())
+#[tauri::command]
+pub fn view_display_list(
+    view: ElementId,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<DisplayList>> {
+    let session = lock(&state)?;
+    Ok(studio_views::display_list(session.doc()?, view))
 }
 
-/// Updates the window title and returns the new status.
-fn finish(window: &WebviewWindow, session: &Session) -> CommandResult<Option<ProjectStatus>> {
-    let status = session.status();
-    let title = match &status {
-        Some(s) => format!("{} — {APP_NAME}", s.name),
-        None => APP_NAME.to_owned(),
-    };
-    window.set_title(&title).map_err(anyhow::Error::from)?;
-    Ok(status)
+#[tauri::command]
+pub fn view_meshes(state: State<'_, SessionState>) -> CommandResult<Vec<Mesh>> {
+    let session = lock(&state)?;
+    Ok(studio_views::meshes(session.doc()?))
+}
+
+/// Element under `point` (display-list mm) within `tol` mm.
+#[tauri::command]
+pub fn pick(
+    view: ElementId,
+    point: Pt,
+    tol: f64,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<ElementId>> {
+    let session = lock(&state)?;
+    let dl = studio_views::display_list(session.doc()?, view);
+    Ok(dl.and_then(|dl| studio_views::pick(&dl, point, tol)))
+}
+
+#[tauri::command]
+pub fn snap(
+    view: ElementId,
+    point: Pt,
+    from: Option<Pt>,
+    tol: f64,
+    state: State<'_, SessionState>,
+) -> CommandResult<SnapResult> {
+    let session = lock(&state)?;
+    Ok(studio_views::snap(session.doc()?, view, point, from, tol))
+}
+
+#[tauri::command]
+pub fn create_wall(
+    view: ElementId,
+    type_id: ElementId,
+    start: Pt,
+    end: Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let level = s.view_level(view)?;
+        s.edit(|d| ops::create_wall(d, type_id, level, start, end))
+    })
+}
+
+#[tauri::command]
+pub fn create_grid(
+    start: Pt,
+    end: Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_grid(d, start, end))
+    })
+}
+
+#[tauri::command]
+pub fn create_level(
+    elevation: f64,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_level(d, elevation))
+    })
+}
+
+/// Floor from a sketched boundary, or from the outer faces of the view level's walls
+/// when `boundary` is empty.
+#[tauri::command]
+pub fn create_floor(
+    view: ElementId,
+    type_id: ElementId,
+    boundary: Vec<Pt>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let level = s.view_level(view)?;
+        let boundary = if boundary.is_empty() {
+            let model = studio_regen::regenerate(s.doc()?);
+            studio_regen::outer_boundary(&model, level).ok_or_else(|| {
+                anyhow::anyhow!("draw walls on this level first, or sketch the floor boundary")
+            })?
+        } else {
+            boundary
+        };
+        s.edit(|d| ops::create_floor(d, type_id, level, boundary))
+    })
+}
+
+/// Ceiling from a sketched boundary, or filling the room around `inside` when given.
+#[tauri::command]
+pub fn create_ceiling(
+    view: ElementId,
+    type_id: ElementId,
+    boundary: Vec<Pt>,
+    inside: Option<Pt>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        let level = s.view_level(view)?;
+        let boundary = match inside {
+            Some(p) => {
+                let model = studio_regen::regenerate(s.doc()?);
+                studio_regen::room_at(&model, level, p)
+                    .ok_or_else(|| anyhow::anyhow!("click inside a room fully enclosed by walls"))?
+            }
+            None => boundary,
+        };
+        s.edit(|d| ops::create_ceiling(d, type_id, level, boundary))
+    })
+}
+
+#[tauri::command]
+pub fn delete_elements(
+    ids: Vec<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| s.edit(|d| ops::delete(d, &ids)))
+}
+
+#[tauri::command]
+pub fn properties(
+    id: ElementId,
+    state: State<'_, SessionState>,
+) -> CommandResult<ops::PropertySheet> {
+    let session = lock(&state)?;
+    Ok(ops::properties(session.doc()?, id)?)
+}
+
+#[tauri::command]
+pub fn set_property(
+    id: ElementId,
+    key: String,
+    value: String,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::set_property(d, id, &key, &value, now_ms()))
+    })
+}
+
+#[tauri::command]
+pub fn undo(window: WebviewWindow, state: State<'_, SessionState>) -> StateResult {
+    edit(&window, &state, |s| s.edit(|d| d.undo().map(|_| ())))
+}
+
+#[tauri::command]
+pub fn redo(window: WebviewWindow, state: State<'_, SessionState>) -> StateResult {
+    edit(&window, &state, |s| s.edit(|d| d.redo().map(|_| ())))
+}
+
+/// Closes the app. Without `force`, refuses while there are unsaved changes.
+#[tauri::command]
+pub fn app_exit(
+    force: bool,
+    app: AppHandle,
+    state: State<'_, SessionState>,
+) -> CommandResult<bool> {
+    if !force && lock(&state)?.is_dirty() {
+        return Ok(false);
+    }
+    if let Some(w) = app.get_webview_window("main") {
+        w.destroy().map_err(anyhow::Error::from)?;
+    }
+    Ok(true)
 }
 
 #[cfg(test)]

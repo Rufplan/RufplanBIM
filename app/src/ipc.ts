@@ -2,22 +2,71 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import type { AppState } from "./bindings/AppState";
 import type { CommandError } from "./bindings/CommandError";
 import type { CoreVersion } from "./bindings/CoreVersion";
+import type { DisplayList } from "./bindings/DisplayList";
+import type { ElementId } from "./bindings/ElementId";
+import type { Mesh } from "./bindings/Mesh";
+import type { PropertySheet } from "./bindings/PropertySheet";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
+import type { Pt } from "./bindings/Pt";
+import type { SnapResult } from "./bindings/SnapResult";
+import type { ViewInfo } from "./bindings/ViewInfo";
 
-export type { CommandError, CoreVersion, ProjectStatus };
+export type {
+  AppState,
+  CommandError,
+  CoreVersion,
+  DisplayList,
+  ElementId,
+  Mesh,
+  PropertySheet,
+  ProjectStatus,
+  Pt,
+  SnapResult,
+  ViewInfo,
+};
 
 const PROJECT_FILTER = [{ name: "Rufplan Studio project", extensions: ["rfproj"] }];
 
+type S = Promise<AppState | null>;
+
 export const ipc = {
   coreVersion: () => invoke<CoreVersion>("core_version"),
-  projectStatus: () => invoke<ProjectStatus | null>("project_status"),
-  projectNew: () => invoke<ProjectStatus | null>("project_new"),
-  projectOpen: (path: string) => invoke<ProjectStatus | null>("project_open", { path }),
+  appState: (): S => invoke("app_state"),
+  projectNew: (): S => invoke("project_new"),
+  /** A new unsaved project with a sample two-storey house. */
+  projectSample: (): S => invoke("project_sample"),
+  projectOpen: (path: string): S => invoke("project_open", { path }),
   /** Omit `path` to save to the project's current location. */
-  projectSave: (path?: string) =>
-    invoke<ProjectStatus | null>("project_save", { path: path ?? null }),
+  projectSave: (path?: string): S => invoke("project_save", { path: path ?? null }),
+
+  displayList: (view: ElementId) => invoke<DisplayList | null>("view_display_list", { view }),
+  meshes: () => invoke<Mesh[]>("view_meshes"),
+  pick: (view: ElementId, point: Pt, tol: number) =>
+    invoke<ElementId | null>("pick", { view, point, tol }),
+  snap: (view: ElementId, point: Pt, from: Pt | null, tol: number) =>
+    invoke<SnapResult>("snap", { view, point, from, tol }),
+
+  createWall: (view: ElementId, typeId: ElementId, start: Pt, end: Pt): S =>
+    invoke("create_wall", { view, typeId, start, end }),
+  createGrid: (start: Pt, end: Pt): S => invoke("create_grid", { start, end }),
+  createLevel: (elevation: number): S => invoke("create_level", { elevation }),
+  /** An empty boundary means "from the outer faces of this level's walls". */
+  createFloor: (view: ElementId, typeId: ElementId, boundary: Pt[]): S =>
+    invoke("create_floor", { view, typeId, boundary }),
+  /** Either a sketched boundary, or `inside` a room enclosed by walls. */
+  createCeiling: (view: ElementId, typeId: ElementId, boundary: Pt[], inside: Pt | null): S =>
+    invoke("create_ceiling", { view, typeId, boundary, inside }),
+  deleteElements: (ids: ElementId[]): S => invoke("delete_elements", { ids }),
+  properties: (id: ElementId) => invoke<PropertySheet>("properties", { id }),
+  setProperty: (id: ElementId, key: string, value: string): S =>
+    invoke("set_property", { id, key, value }),
+  undo: (): S => invoke("undo"),
+  redo: (): S => invoke("redo"),
+  /** Returns false (and stays open) if there are unsaved changes and `force` is false. */
+  exit: (force: boolean) => invoke<boolean>("app_exit", { force }),
 
   /** Native menu clicks, forwarded by Rust as the menu item id. */
   onMenu: (handler: (id: string) => void): Promise<UnlistenFn> =>

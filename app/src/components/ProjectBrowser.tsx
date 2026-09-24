@@ -1,0 +1,113 @@
+import { useState, type ReactNode } from "react";
+import type { ViewType } from "../bindings/ViewType";
+import { useAppStore } from "../store";
+
+function Section({
+  title,
+  children,
+  start = true,
+}: {
+  title: string;
+  children: ReactNode;
+  start?: boolean;
+}) {
+  const [open, setOpen] = useState(start);
+  return (
+    <div className="pb-section">
+      <button className="pb-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span className="pb-caret">{open ? "▾" : "▸"}</span>
+        {title}
+      </button>
+      {open && <div className="pb-items">{children}</div>}
+    </div>
+  );
+}
+
+const VIEW_GROUPS: [ViewType, string][] = [
+  ["Plan", "Floor Plans"],
+  ["CeilingPlan", "Ceiling Plans"],
+  ["Elevation", "Elevations"],
+  ["ThreeD", "3D Views"],
+];
+
+export function ProjectBrowser() {
+  const app = useAppStore((s) => s.app);
+  const activeView = useAppStore((s) => s.activeView);
+  const selection = useAppStore((s) => s.selection);
+  const openView = useAppStore((s) => s.openView);
+  const select = useAppStore((s) => s.select);
+  if (!app) return null;
+
+  const item = (id: string, label: string, onClick: () => void, active: boolean, sub?: string) => (
+    <button
+      key={id}
+      className={`pb-item${active ? " active" : ""}`}
+      onClick={onClick}
+      title={label}
+    >
+      <span className="pb-label">{label}</span>
+      {sub && <span className="pb-sub">{sub}</span>}
+    </button>
+  );
+
+  return (
+    <aside className="panel browser" aria-label="Project browser">
+      <div className="panel-title">Project Browser</div>
+      <div className="panel-body">
+        <Section title="Views">
+          {VIEW_GROUPS.map(([type, label]) => {
+            const views = app.views.filter((v) => v.viewType === type);
+            if (views.length === 0) return null;
+            return (
+              <Section key={type} title={label}>
+                {views.map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
+              </Section>
+            );
+          })}
+        </Section>
+        <Section title="Families">
+          <Section title="Walls" start={false}>
+            {app.wallTypes.map((t) =>
+              item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
+            )}
+          </Section>
+          <Section title="Floors" start={false}>
+            {app.floorTypes.map((t) =>
+              item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
+            )}
+          </Section>
+          <Section title="Ceilings" start={false}>
+            {app.ceilingTypes.map((t) =>
+              item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
+            )}
+          </Section>
+        </Section>
+        <Section title="Project">
+          {app.projectInfo &&
+            item(
+              app.projectInfo,
+              "Project Information",
+              () => select([app.projectInfo!]),
+              selection.includes(app.projectInfo),
+            )}
+          <Section title="Design Stages">
+            {app.stages.map((s) =>
+              item(
+                s.id,
+                s.name,
+                () => select([s.id]),
+                selection.includes(s.id),
+                s.id === app.currentStage ? "Current" : s.abbreviation,
+              ),
+            )}
+          </Section>
+          <Section title="Levels" start={false}>
+            {app.levels.map((l) =>
+              item(l.id, l.name, () => select([l.id]), selection.includes(l.id)),
+            )}
+          </Section>
+        </Section>
+      </div>
+    </aside>
+  );
+}

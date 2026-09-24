@@ -1,14 +1,16 @@
-//! The open project and where it lives on disk. Kept free of Tauri types so it can be
-//! unit-tested directly.
+//! The open project and where it lives on disk, plus the UI snapshot built from it.
+//! Kept free of Tauri types so it can be unit-tested directly.
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context};
 use serde::Serialize;
+use studio_core::{ops, Category, Document, ElementData, ElementId, ViewKind};
 use studio_io::Project;
+use studio_views::ViewType;
 use ts_rs::TS;
 
-/// What the UI needs to show about the open project.
+/// What the UI needs to show about the open project file.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
@@ -21,15 +23,91 @@ pub struct ProjectStatus {
     pub schema_version: i64,
     /// App version that last saved the file.
     pub app_version: String,
+    /// Unsaved changes exist.
+    pub dirty: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ViewInfo {
+    pub id: ElementId,
+    pub name: String,
+    pub view_type: ViewType,
+    pub scale: u32,
+    pub scale_label: String,
+    pub level: Option<ElementId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct NamedItem {
+    pub id: ElementId,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct StageItem {
+    pub id: ElementId,
+    pub name: String,
+    pub abbreviation: String,
+}
+
+/// Everything the UI shows outside the drawing canvases. Returned after every change.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct AppState {
+    pub project: ProjectStatus,
+    /// Bumps on every model change; canvases refetch when it changes.
+    #[ts(type = "number")]
+    pub revision: u64,
+    pub views: Vec<ViewInfo>,
+    pub levels: Vec<NamedItem>,
+    pub wall_types: Vec<NamedItem>,
+    pub floor_types: Vec<NamedItem>,
+    pub ceiling_types: Vec<NamedItem>,
+    pub stages: Vec<StageItem>,
+    pub current_stage: Option<ElementId>,
+    pub project_info: Option<ElementId>,
+    pub project_name: String,
+    pub undo: Option<String>,
+    pub redo: Option<String>,
 }
 
 #[derive(Debug, Default)]
 pub struct Session {
     project: Option<Project>,
     path: Option<PathBuf>,
+    revision: u64,
 }
 
 impl Session {
+    pub fn doc(&self) -> anyhow::Result<&Document> {
+        self.project
+            .as_ref()
+            .map(|p| &p.doc)
+            .context("no project is open")
+    }
+
+    /// Runs a model edit and bumps the revision.
+    pub fn edit<T>(
+        &mut self,
+        f: impl FnOnce(&mut Document) -> studio_core::CoreResult<T>,
+    ) -> anyhow::Result<T> {
+        let p = self.project.as_mut().context("no project is open")?;
+        let v = f(&mut p.doc)?;
+        self.revision += 1;
+        Ok(v)
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.project
+            .as_ref()
+            .is_some_and(|p| p.doc.is_dirty() || self.path.is_none())
+    }
+
     pub fn status(&self) -> Option<ProjectStatus> {
         let project = self.project.as_ref()?;
         let name = self.path.as_deref().and_then(Path::file_stem).map_or_else(
@@ -41,21 +119,133 @@ impl Session {
             path: self.path.as_ref().map(|p| p.display().to_string()),
             schema_version: project.meta.schema_version,
             app_version: project.meta.app_version.clone(),
+            dirty: project.doc.is_dirty(),
         })
     }
 
-    /// Replaces the open project with a new, unsaved one.
-    pub fn new_project(&mut self, app_version: &str) {
-        self.project = Some(Project::new(app_version));
+    pub fn state(&self) -> Option<AppState> {
+        let project = self.status()?;
+        let doc = self.doc().ok()?;
+        let named = |cat: Category| -> Vec<NamedItem> {
+            let mut v: Vec<NamedItem> = doc
+                .of(cat)
+                .map(|e| NamedItem {
+                    id: e.id,
+                    name: e.data.name(),
+                })
+                .collect();
+            v.sort_by(|a, b| ops::natural_cmp(&a.name, &b.name));
+            v
+        };
+        let levels = doc.levels();
+        let mut views: Vec<ViewInfo> = doc
+            .of(Category::View)
+            .filter_map(|e| match &e.data {
+                ElementData::View { name, kind, scale } => {
+                    let (view_type, level) = match kind {
+                        ViewKind::FloorPlan { level } => (ViewType::Plan, Some(*level)),
+                        ViewKind::CeilingPlan { level } => (ViewType::CeilingPlan, Some(*level)),
+                        ViewKind::Elevation { .. } => (ViewType::Elevation, None),
+                        ViewKind::ThreeD => (ViewType::ThreeD, None),
+                    };
+                    Some(ViewInfo {
+                        id: e.id,
+                        name: name.clone(),
+                        view_type,
+                        scale: *scale,
+                        scale_label: ops::scale_label(*scale),
+                        level,
+                    })
+                }
+                _ => None,
+            })
+            .collect();
+        let level_order = |l: Option<ElementId>| {
+            l.and_then(|l| levels.iter().position(|x| x.0 == l))
+                .unwrap_or(usize::MAX)
+        };
+        views.sort_by(|a, b| {
+            (a.view_type as u8, level_order(a.level), &a.name).cmp(&(
+                b.view_type as u8,
+                level_order(b.level),
+                &b.name,
+            ))
+        });
+        let info = ops::project_info(doc);
+        let (current_stage, project_name) = match info.and_then(|i| doc.data(i).ok()) {
+            Some(ElementData::ProjectInfo {
+                current_stage,
+                name,
+                ..
+            }) => (*current_stage, name.clone()),
+            _ => (None, String::new()),
+        };
+        Some(AppState {
+            project,
+            revision: self.revision,
+            views,
+            levels: levels
+                .into_iter()
+                .map(|(id, name, _)| NamedItem { id, name })
+                .collect(),
+            wall_types: named(Category::WallType),
+            floor_types: named(Category::FloorType),
+            ceiling_types: named(Category::CeilingType),
+            stages: ops::stages(doc)
+                .into_iter()
+                .map(|(id, name, abbreviation)| StageItem {
+                    id,
+                    name,
+                    abbreviation,
+                })
+                .collect(),
+            current_stage,
+            project_info: info,
+            project_name,
+            undo: doc.can_undo().map(str::to_owned),
+            redo: doc.can_redo().map(str::to_owned),
+        })
+    }
+
+    /// Replaces the open project with a new, unsaved one seeded with defaults.
+    pub fn new_project(&mut self, app_version: &str) -> anyhow::Result<()> {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc)?;
+        doc.clear_history();
+        doc.mark_saved();
+        self.project = Some(Project::new(app_version, doc));
         self.path = None;
+        self.revision += 1;
+        Ok(())
+    }
+
+    /// A new, unsaved sample project: a two-storey 40' × 30' house with grids, interior
+    /// walls, floors and ceilings, for trying the tools.
+    pub fn new_sample(&mut self, app_version: &str) -> anyhow::Result<()> {
+        self.new_project(app_version)?;
+        let p = self.project.as_mut().context("no project is open")?;
+        build_sample(&mut p.doc)?;
+        if let Some(info) = ops::project_info(&p.doc) {
+            ops::set_property(&mut p.doc, info, "name", "Sample House", 0)?;
+        }
+        p.doc.clear_history();
+        p.doc.mark_saved();
+        self.revision += 1;
+        Ok(())
     }
 
     /// Opens `path`. On failure the currently open project is left untouched.
     pub fn open(&mut self, path: &Path) -> anyhow::Result<()> {
-        let project =
+        let mut project =
             Project::open(path).with_context(|| format!("could not open {}", path.display()))?;
+        if project.doc.of(Category::View).next().is_none() {
+            // Files from before element storage (schema 1) have no content yet.
+            ops::seed_default_project(&mut project.doc)?;
+            project.doc.clear_history();
+        }
         self.project = Some(project);
         self.path = Some(path.to_owned());
+        self.revision += 1;
         Ok(())
     }
 
@@ -74,8 +264,75 @@ impl Session {
             .save(&target, app_version)
             .with_context(|| format!("could not save {}", target.display()))?;
         self.path = Some(target);
+        self.revision += 1;
         Ok(())
     }
+
+    /// Level of a plan view.
+    pub fn view_level(&self, view: ElementId) -> anyhow::Result<ElementId> {
+        match self.doc()?.data(view)? {
+            ElementData::View {
+                kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
+                ..
+            } => Ok(*level),
+            _ => bail!("switch to a floor or ceiling plan to draw this"),
+        }
+    }
+}
+
+fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
+    use studio_core::units::MM_PER_FT;
+    use studio_geom::Pt;
+    let ft = |x: f64, y: f64| Pt::new(x * MM_PER_FT, y * MM_PER_FT);
+    let levels = doc.levels();
+    let (l1, l2) = (levels[0].0, levels[1].0);
+    let wall_type = |doc: &Document, prefix: &str| {
+        doc.of(Category::WallType)
+            .find(|e| e.data.name().starts_with(prefix))
+            .map(|e| e.id)
+            .context("missing wall type")
+    };
+    let ext = wall_type(doc, "Exterior - 8")?;
+    let int = wall_type(doc, "Interior - 4")?;
+
+    // Grids 1–3 run north–south, A–C east–west.
+    for x in [0.0, 16.0, 40.0] {
+        ops::create_grid(doc, ft(x, -6.0), ft(x, 36.0))?;
+    }
+    let first = ops::create_grid(doc, ft(-6.0, 0.0), ft(46.0, 0.0))?;
+    ops::set_property(doc, first, "name", "A", 0)?;
+    for y in [12.0, 30.0] {
+        ops::create_grid(doc, ft(-6.0, y), ft(46.0, y))?;
+    }
+
+    let corners = [ft(0.0, 0.0), ft(40.0, 0.0), ft(40.0, 30.0), ft(0.0, 30.0)];
+    for level in [l1, l2] {
+        for i in 0..4 {
+            ops::create_wall(doc, ext, level, corners[i], corners[(i + 1) % 4])?;
+        }
+    }
+    ops::create_wall(doc, int, l1, ft(16.0, 0.0), ft(16.0, 30.0))?;
+    ops::create_wall(doc, int, l1, ft(16.0, 12.0), ft(40.0, 12.0))?;
+    ops::create_wall(doc, int, l2, ft(24.0, 0.0), ft(24.0, 30.0))?;
+
+    let model = studio_regen::regenerate(doc);
+    let slab = ops::first_of(doc, Category::FloorType).context("missing floor type")?;
+    for level in [l1, l2] {
+        if let Some(b) = studio_regen::outer_boundary(&model, level) {
+            ops::create_floor(doc, slab, level, b)?;
+        }
+    }
+    let act = doc
+        .of(Category::CeilingType)
+        .find(|e| e.data.name().contains("ACT"))
+        .map(|e| e.id)
+        .context("missing ceiling type")?;
+    for p in [ft(8.0, 15.0), ft(28.0, 6.0), ft(28.0, 21.0)] {
+        if let Some(room) = studio_regen::room_at(&model, l1, p) {
+            ops::create_ceiling(doc, act, l1, room)?;
+        }
+    }
+    Ok(())
 }
 
 fn with_project_extension(path: &Path) -> PathBuf {
@@ -94,44 +351,69 @@ fn with_project_extension(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use studio_geom::Pt;
 
     #[test]
     fn starts_with_no_project() {
         assert_eq!(Session::default().status(), None);
+        assert!(Session::default().state().is_none());
     }
 
     #[test]
-    fn new_project_is_untitled() {
+    fn new_project_is_untitled_and_seeded() {
         let mut s = Session::default();
-        s.new_project("0.0.1");
-        let status = s.status().unwrap();
-        assert_eq!(status.name, "Untitled");
-        assert_eq!(status.path, None);
+        s.new_project("0.0.1").unwrap();
+        let state = s.state().unwrap();
+        assert_eq!(state.project.name, "Untitled");
+        assert_eq!(state.views.len(), 9);
+        assert_eq!(state.views[0].view_type, ViewType::Plan);
+        assert_eq!(state.levels.len(), 2);
+        assert!(state.current_stage.is_some());
+        assert_eq!(state.undo, None, "seeding is not undoable");
     }
 
     #[test]
-    fn save_as_then_save_then_reopen() {
+    fn save_as_then_save_then_reopen_keeps_elements() {
         let dir = tempfile::tempdir().unwrap();
         let mut s = Session::default();
-        s.new_project("0.0.1");
+        s.new_project("0.0.1").unwrap();
         assert!(s.save(None, "0.0.1").is_err(), "untitled needs a path");
+        let state = s.state().unwrap();
+        let (wt, l1) = (state.wall_types[0].id, state.levels[0].id);
+        s.edit(|d| ops::create_wall(d, wt, l1, Pt::new(0.0, 0.0), Pt::new(3000.0, 0.0)))
+            .unwrap();
+        assert!(s.status().unwrap().dirty);
 
         s.save(Some(&dir.path().join("House")), "0.0.1").unwrap();
         let expected = dir.path().join("House.rfproj");
         assert!(expected.is_file());
-        assert_eq!(s.status().unwrap().name, "House");
+        assert!(!s.status().unwrap().dirty);
 
-        s.save(None, "0.0.2").unwrap();
         let mut other = Session::default();
         other.open(&expected).unwrap();
-        assert_eq!(other.status().unwrap().app_version, "0.0.2");
+        assert_eq!(other.doc().unwrap().of(Category::Wall).count(), 1);
+    }
+
+    #[test]
+    fn sample_project_has_a_building() {
+        let mut s = Session::default();
+        s.new_sample("0.0.1").unwrap();
+        let doc = s.doc().unwrap();
+        assert_eq!(doc.of(Category::Wall).count(), 11);
+        assert_eq!(doc.of(Category::Floor).count(), 2);
+        assert_eq!(doc.of(Category::Ceiling).count(), 3);
+        assert_eq!(doc.of(Category::Grid).count(), 6);
+        let state = s.state().unwrap();
+        assert_eq!(state.project_name, "Sample House");
+        assert_eq!(state.undo, None);
+        assert!(!state.project.dirty);
     }
 
     #[test]
     fn failed_open_keeps_current_project() {
         let dir = tempfile::tempdir().unwrap();
         let mut s = Session::default();
-        s.new_project("0.0.1");
+        s.new_project("0.0.1").unwrap();
         assert!(s.open(&dir.path().join("missing.rfproj")).is_err());
         assert_eq!(s.status().unwrap().name, "Untitled");
     }

@@ -1,0 +1,89 @@
+// Simple line icons (24 × 24, currentColor) for the ribbon.
+import type { ReactNode } from "react";
+
+const I = ({ children }: { children: ReactNode }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="22"
+    height="22"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    aria-hidden
+  >
+    {children}
+  </svg>
+);
+
+export const Icons = {
+  select: (
+    <I>
+      <path d="M5 3l12 8-5.5 1.2L14 19l-2.4 1.2-2.6-6.6L5 17z" fill="currentColor" stroke="none" />
+    </I>
+  ),
+  wall: (
+    <I>
+      <path d="M3 8h18v8H3z" fill="currentColor" fillOpacity="0.85" />
+      <path d="M3 8l4 8M9 8l4 8M15 8l4 8" stroke="#fff" strokeWidth="1" />
+    </I>
+  ),
+  floor: (
+    <I>
+      <path d="M2 15l6-6h14l-6 6z" />
+      <path d="M2 15v3h14l6-6V9" />
+    </I>
+  ),
+  floorAuto: (
+    <I>
+      <path d="M4 5h16v14H4z" strokeWidth="3" />
+      <path d="M8 9h8v6H8z" fill="currentColor" fillOpacity="0.25" stroke="none" />
+    </I>
+  ),
+  ceiling: (
+    <I>
+      <path d="M3 5h18v14H3z" />
+      <path d="M3 10h18M3 15h18M9 5v14M15 5v14" strokeWidth="1" />
+    </I>
+  ),
+  level: (
+    <I>
+      <path d="M2 14h14" strokeDasharray="4 2 1 2" />
+      <circle cx="19" cy="14" r="2.5" fill="currentColor" />
+      <path d="M13 9h8" strokeWidth="1.2" />
+    </I>
+  ),
+  grid: (
+    <I>
+      <path d="M12 8v14" strokeDasharray="4 2 1 2" />
+      <circle cx="12" cy="5" r="3.5" />
+    </I>
+  ),
+  del: (
+    <I>
+      <path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13" />
+    </I>
+  ),
+  view3d: (
+    <I>
+      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+      <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
+    </I>
+  ),
+  undo: (
+    <I>
+      <path d="M9 7L4 12l5 5" />
+      <path d="M4 12h10a6 6 0 010 12" transform="translate(0 -6)" />
+    </I>
+  ),
+  redo: (
+    <I>
+      <path d="M15 7l5 5-5 5" />
+      <path d="M20 12H10a6 6 0 000 12" transform="translate(0 -6)" />
+    </I>
+  ),
+  fit: (
+    <I>
+      <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
+    </I>
+  ),
+};
