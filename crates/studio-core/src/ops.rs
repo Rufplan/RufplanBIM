@@ -6,8 +6,8 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Category, Compass, DoorFamily, ElementData, ElementId, StageChange, ViewKind, WallFunction,
-    WallTop, WindowFamily,
+    Category, Compass, DoorFamily, ElementData, ElementId, ScheduleKind, SheetSize, StageChange,
+    ViewKind, WallFunction, WallTop, WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -101,6 +101,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             kind: ViewKind::ThreeD,
             scale: 96,
         });
+        seed_schedules(tx);
         let mut sd = None;
         for (i, (name, abbr)) in DEFAULT_STAGES.iter().enumerate() {
             let id = tx.insert(ElementData::Stage {
@@ -186,6 +187,201 @@ pub fn ensure_opening_types(doc: &mut Document) -> CoreResult<()> {
     doc.transact("Add door and window types", |tx| {
         seed_opening_types(tx);
         Ok(())
+    })
+}
+
+const SCHEDULES: &[(ScheduleKind, &str)] = &[
+    (ScheduleKind::Doors, "Door Schedule"),
+    (ScheduleKind::Windows, "Window Schedule"),
+    (ScheduleKind::Rooms, "Room Schedule"),
+    (ScheduleKind::Sheets, "Sheet Index"),
+];
+
+fn seed_schedules(tx: &mut Tx<'_>) {
+    for (kind, name) in SCHEDULES {
+        tx.insert(ElementData::View {
+            name: (*name).into(),
+            kind: ViewKind::Schedule { kind: *kind },
+            scale: 1,
+        });
+    }
+}
+
+/// Adds the standard schedules to a project that has none (files from before M4).
+pub fn ensure_schedules(doc: &mut Document) -> CoreResult<()> {
+    let has = doc.iter().any(|e| {
+        matches!(
+            &e.data,
+            ElementData::View {
+                kind: ViewKind::Schedule { .. },
+                ..
+            }
+        )
+    });
+    if has {
+        return Ok(());
+    }
+    doc.transact("Add schedules", |tx| {
+        seed_schedules(tx);
+        Ok(())
+    })
+}
+
+/// Default section depth (far clip beyond the cut), mm (30'-0").
+pub const DEFAULT_SECTION_DEPTH: f64 = 30.0 * MM_PER_FT;
+
+/// Creates a section view along `start` → `end`, named "Section N".
+pub fn create_section(doc: &mut Document, start: Pt, end: Pt) -> CoreResult<ElementId> {
+    if start.dist(end) < 300.0 {
+        return Err(CoreError::Invalid("draw a longer section line".into()));
+    }
+    let n = doc
+        .iter()
+        .filter(|e| {
+            matches!(
+                &e.data,
+                ElementData::View {
+                    kind: ViewKind::Section { .. },
+                    ..
+                }
+            )
+        })
+        .count()
+        + 1;
+    doc.transact("Create section", |tx| {
+        Ok(tx.insert(ElementData::View {
+            name: format!("Section {n}"),
+            kind: ViewKind::Section {
+                start,
+                end,
+                depth: DEFAULT_SECTION_DEPTH,
+            },
+            scale: 48,
+        }))
+    })
+}
+
+/// Adds an aligned dimension to `view`.
+pub fn create_dimension(
+    doc: &mut Document,
+    view: ElementId,
+    a: Pt,
+    b: Pt,
+    offset: f64,
+) -> CoreResult<ElementId> {
+    if a.dist(b) < 1.0 {
+        return Err(CoreError::Invalid("pick two different points".into()));
+    }
+    doc.transact("Place dimension", |tx| {
+        Ok(tx.insert(ElementData::Dimension { view, a, b, offset }))
+    })
+}
+
+/// Adds a text note to `view` ("TEXT" when `text` is blank).
+pub fn create_text(
+    doc: &mut Document,
+    view: ElementId,
+    at: Pt,
+    text: &str,
+) -> CoreResult<ElementId> {
+    let text = if text.trim().is_empty() {
+        "TEXT".to_owned()
+    } else {
+        text.trim().to_owned()
+    };
+    doc.transact("Place text", |tx| {
+        Ok(tx.insert(ElementData::TextNote { view, at, text }))
+    })
+}
+
+/// Sheets sorted by number, as (id, number, name).
+pub fn sheets(doc: &Document) -> Vec<(ElementId, String, String)> {
+    let mut v: Vec<_> = doc
+        .of(Category::Sheet)
+        .filter_map(|e| match &e.data {
+            ElementData::Sheet { number, name, .. } => Some((e.id, number.clone(), name.clone())),
+            _ => None,
+        })
+        .collect();
+    v.sort_by(|a, b| natural_cmp(&a.1, &b.1));
+    v
+}
+
+/// Next sheet number after the last one: A1.0 → A2.0, A101 → A102.
+pub fn next_sheet_number(last: Option<&str>) -> String {
+    let Some(last) = last else {
+        return "A1.0".into();
+    };
+    if let Some((prefix, rest)) = last.split_once('.') {
+        let digits: String = prefix
+            .chars()
+            .rev()
+            .take_while(|c| c.is_ascii_digit())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
+        if !digits.is_empty() {
+            let head = &prefix[..prefix.len() - digits.len()];
+            return format!("{head}{}.{rest}", digits.parse::<u32>().unwrap_or(0) + 1);
+        }
+    }
+    next_grid_name(Some(last))
+}
+
+/// Creates a sheet with the next number.
+pub fn create_sheet(doc: &mut Document, name: &str, size: SheetSize) -> CoreResult<ElementId> {
+    let number = next_sheet_number(sheets(doc).last().map(|s| s.1.as_str()));
+    let name = name.to_owned();
+    doc.transact("Create sheet", |tx| {
+        Ok(tx.insert(ElementData::Sheet { number, name, size }))
+    })
+}
+
+/// Places `view` on `sheet` centered at `center` (paper mm). A drawing view can be on one
+/// sheet only (like Revit); schedules can repeat. 3D views can't be placed yet.
+pub fn place_view(
+    doc: &mut Document,
+    sheet: ElementId,
+    view: ElementId,
+    center: Pt,
+) -> CoreResult<ElementId> {
+    if !matches!(doc.data(sheet)?, ElementData::Sheet { .. }) {
+        return Err(CoreError::Invalid("not a sheet".into()));
+    }
+    let kind = match doc.data(view)? {
+        ElementData::View { kind, .. } => kind.clone(),
+        _ => {
+            return Err(CoreError::Invalid(
+                "only views can be placed on sheets".into(),
+            ))
+        }
+    };
+    if matches!(kind, ViewKind::ThreeD) {
+        return Err(CoreError::Invalid(
+            "3D views can't be placed on sheets yet".into(),
+        ));
+    }
+    if !matches!(kind, ViewKind::Schedule { .. }) {
+        let placed = doc.iter().find_map(|e| match &e.data {
+            ElementData::Viewport {
+                sheet: s, view: v, ..
+            } if *v == view => Some(*s),
+            _ => None,
+        });
+        if let Some(s) = placed {
+            let label = doc.data(s).map(|d| d.name()).unwrap_or_default();
+            return Err(CoreError::Invalid(format!(
+                "that view is already on sheet {label}"
+            )));
+        }
+    }
+    doc.transact("Place view on sheet", |tx| {
+        Ok(tx.insert(ElementData::Viewport {
+            sheet,
+            view,
+            center,
+        }))
     })
 }
 
@@ -770,25 +966,33 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         }
         ElementData::View { name, kind, scale } => {
             props.push(text("name", "View Name", "Identity Data", name));
-            props.push(choice(
-                "scale",
-                "View Scale",
-                "Graphics",
-                scale.to_string(),
-                SCALES
-                    .iter()
-                    .map(|(d, l)| PropOption {
-                        id: d.to_string(),
-                        label: (*l).into(),
-                    })
-                    .collect(),
-            ));
+            // Schedules have no drawing scale.
+            if !matches!(kind, ViewKind::Schedule { .. }) {
+                props.push(choice(
+                    "scale",
+                    "View Scale",
+                    "Graphics",
+                    scale.to_string(),
+                    SCALES
+                        .iter()
+                        .map(|(d, l)| PropOption {
+                            id: d.to_string(),
+                            label: (*l).into(),
+                        })
+                        .collect(),
+                ));
+            }
             let kind_label = match kind {
                 ViewKind::FloorPlan { .. } => "Floor Plan",
                 ViewKind::CeilingPlan { .. } => "Ceiling Plan",
                 ViewKind::Elevation { .. } => "Elevation",
                 ViewKind::ThreeD => "3D View",
+                ViewKind::Section { .. } => "Section",
+                ViewKind::Schedule { .. } => "Schedule",
             };
+            if let ViewKind::Section { depth, .. } = kind {
+                props.push(len("depth", "Far Clip Offset", "Extents", *depth));
+            }
             props.push(ro("kind", "View Type", "Identity Data", kind_label.into()));
             if let Some(l) = el.data.level() {
                 props.push(ro(
@@ -831,6 +1035,47 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 "Design Stage",
                 stage_history.len().to_string(),
             ));
+        }
+        ElementData::Dimension { a, b, offset, .. } => {
+            props.push(ro("value", "Value", "Dimensions", format_ft_in(a.dist(*b))));
+            props.push(len("offset", "Offset from Points", "Graphics", *offset));
+        }
+        ElementData::TextNote { text: t, .. } => {
+            props.push(text("text", "Text", "Text", t));
+        }
+        ElementData::Sheet { number, name, size } => {
+            props.push(text("number", "Sheet Number", "Identity Data", number));
+            props.push(text("name", "Sheet Name", "Identity Data", name));
+            props.push(choice(
+                "size",
+                "Size",
+                "Identity Data",
+                format!("{size:?}"),
+                [SheetSize::ArchD, SheetSize::Tabloid]
+                    .iter()
+                    .map(|s| PropOption {
+                        id: format!("{s:?}"),
+                        label: s.label().into(),
+                    })
+                    .collect(),
+            ));
+        }
+        ElementData::Viewport { sheet, view, .. } => {
+            props.push(ro(
+                "view",
+                "View",
+                "Identity Data",
+                doc.data(*view).map(|d| d.name()).unwrap_or_default(),
+            ));
+            props.push(ro(
+                "sheet",
+                "Sheet",
+                "Identity Data",
+                doc.data(*sheet).map(|d| d.name()).unwrap_or_default(),
+            ));
+            if let Ok(ElementData::View { scale, .. }) = doc.data(*view) {
+                props.push(ro("scale", "View Scale", "Graphics", scale_label(*scale)));
+            }
         }
         ElementData::Room {
             level,
@@ -1095,8 +1340,13 @@ pub fn set_property(
             "height" => *height = parse_len(value)?,
             _ => return Err(unknown()),
         },
-        ElementData::View { name, scale, .. } => match key {
+        ElementData::View { name, scale, kind } => match key {
             "name" => *name = non_empty(value)?,
+            "depth" => {
+                if let ViewKind::Section { depth, .. } = kind {
+                    *depth = positive(parse_len(value)?)?;
+                }
+            }
             "scale" => {
                 *scale = value
                     .parse()
@@ -1117,6 +1367,27 @@ pub fn set_property(
             "address" => *address = value.into(),
             _ => return Err(unknown()),
         },
+        ElementData::Dimension { offset, .. } => match key {
+            "offset" => *offset = parse_len(value)?,
+            _ => return Err(unknown()),
+        },
+        ElementData::TextNote { text, .. } => match key {
+            "text" => *text = non_empty(value)?,
+            _ => return Err(unknown()),
+        },
+        ElementData::Sheet { number, name, size } => match key {
+            "number" => *number = non_empty(value)?,
+            "name" => *name = non_empty(value)?,
+            "size" => {
+                *size = if value == "Tabloid" {
+                    SheetSize::Tabloid
+                } else {
+                    SheetSize::ArchD
+                }
+            }
+            _ => return Err(unknown()),
+        },
+        ElementData::Viewport { .. } => return Err(unknown()),
         ElementData::Room { name, number, .. } => match key {
             "name" => *name = non_empty(value)?,
             "number" => *number = non_empty(value)?,
@@ -1335,8 +1606,8 @@ mod tests {
         let doc = seeded();
         assert_eq!(doc.levels().len(), 2);
         assert_eq!(doc.of(Category::WallType).count(), 4);
-        // 2 levels × (plan + RCP) + 4 elevations + 3D.
-        assert_eq!(doc.of(Category::View).count(), 9);
+        // 2 levels × (plan + RCP) + 4 elevations + 3D + 4 schedules.
+        assert_eq!(doc.of(Category::View).count(), 13);
         assert_eq!(stages(&doc).len(), 6);
         let info = project_info(&doc).unwrap();
         let sheet = properties(&doc, info).unwrap();
@@ -1435,9 +1706,9 @@ mod tests {
         let mut doc = seeded();
         let l3 = create_level(&mut doc, 2.0 * DEFAULT_FLOOR_TO_FLOOR).unwrap();
         assert_eq!(doc.data(l3).unwrap().name(), "Level 3");
-        assert_eq!(doc.of(Category::View).count(), 11);
+        assert_eq!(doc.of(Category::View).count(), 15);
         delete(&mut doc, &[l3]).unwrap();
-        assert_eq!(doc.of(Category::View).count(), 9);
+        assert_eq!(doc.of(Category::View).count(), 13);
     }
 
     fn wall_and_types(doc: &mut Document) -> (ElementId, ElementId, ElementId) {
@@ -1505,6 +1776,86 @@ mod tests {
         assert!(doc.get(d).is_none());
         doc.undo().unwrap();
         assert!(doc.get(d).is_some());
+    }
+
+    #[test]
+    fn sheet_numbers_increment_and_views_place_once() {
+        assert_eq!(next_sheet_number(None), "A1.0");
+        assert_eq!(next_sheet_number(Some("A1.0")), "A2.0");
+        assert_eq!(next_sheet_number(Some("A9.0")), "A10.0");
+        assert_eq!(next_sheet_number(Some("A101")), "A102");
+        let mut doc = seeded();
+        let s1 = create_sheet(&mut doc, "Plans", SheetSize::ArchD).unwrap();
+        let s2 = create_sheet(&mut doc, "More", SheetSize::Tabloid).unwrap();
+        assert_eq!(doc.data(s2).unwrap().name(), "A2.0 - More");
+        let plan = doc
+            .of(Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::FloorPlan { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        place_view(&mut doc, s1, plan, Pt::new(300.0, 300.0)).unwrap();
+        assert!(
+            place_view(&mut doc, s2, plan, Pt::new(300.0, 300.0)).is_err(),
+            "one sheet per view"
+        );
+        let sched = doc
+            .of(Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::Schedule { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        place_view(&mut doc, s1, sched, Pt::new(700.0, 300.0)).unwrap();
+        place_view(&mut doc, s2, sched, Pt::new(200.0, 200.0)).unwrap();
+        // Deleting the sheet removes its viewports but not the views.
+        delete(&mut doc, &[s1]).unwrap();
+        assert_eq!(doc.of(Category::Viewport).count(), 1);
+        assert!(doc.get(plan).is_some());
+    }
+
+    #[test]
+    fn sections_dimensions_and_text() {
+        let mut doc = seeded();
+        assert_eq!(
+            doc.iter()
+                .filter(|e| matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::Schedule { .. },
+                        ..
+                    }
+                ))
+                .count(),
+            4
+        );
+        let s = create_section(&mut doc, Pt::new(0.0, 0.0), Pt::new(5000.0, 0.0)).unwrap();
+        assert_eq!(doc.data(s).unwrap().name(), "Section 1");
+        set_property(&mut doc, s, "depth", "10'", 0).unwrap();
+        let d =
+            create_dimension(&mut doc, s, Pt::new(0.0, 0.0), Pt::new(3048.0, 0.0), 500.0).unwrap();
+        let sheet = properties(&doc, d).unwrap();
+        assert_eq!(sheet.properties[0].value, "10'-0\"");
+        let t = create_text(&mut doc, s, Pt::new(100.0, 100.0), "  ").unwrap();
+        assert_eq!(doc.data(t).unwrap().name(), "TEXT");
+        set_property(&mut doc, t, "text", "VERIFY IN FIELD", 0).unwrap();
+        assert_eq!(doc.data(t).unwrap().name(), "VERIFY IN FIELD");
+        // Annotations belong to their view.
+        delete(&mut doc, &[s]).unwrap();
+        assert!(doc.get(d).is_none() && doc.get(t).is_none());
     }
 
     #[test]

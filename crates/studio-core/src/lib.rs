@@ -9,8 +9,8 @@ pub mod units;
 
 pub use document::{ChangeSet, CoreError, CoreResult, Document, Tx};
 pub use element::{
-    Category, Compass, DoorFamily, Element, ElementData, ElementId, StageChange, ViewKind,
-    WallFunction, WallTop, WindowFamily,
+    Category, Compass, DoorFamily, Element, ElementData, ElementId, ScheduleKind, SheetSize,
+    StageChange, ViewKind, WallFunction, WallTop, WindowFamily,
 };
 
 /// Version of this crate, from Cargo metadata.

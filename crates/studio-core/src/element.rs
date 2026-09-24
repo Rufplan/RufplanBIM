@@ -62,6 +62,10 @@ pub enum Category {
     WindowType,
     Window,
     Room,
+    Dimension,
+    TextNote,
+    Sheet,
+    Viewport,
 }
 
 impl Category {
@@ -83,6 +87,10 @@ impl Category {
             Category::WindowType => "WindowType",
             Category::Window => "Window",
             Category::Room => "Room",
+            Category::Dimension => "Dimension",
+            Category::TextNote => "TextNote",
+            Category::Sheet => "Sheet",
+            Category::Viewport => "Viewport",
         }
     }
 }
@@ -141,6 +149,42 @@ impl Compass {
     }
 }
 
+/// What a schedule view lists.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum ScheduleKind {
+    Doors,
+    Windows,
+    Rooms,
+    Sheets,
+}
+
+/// Printed sheet sizes (landscape).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum SheetSize {
+    /// ARCH D, 36" × 24".
+    ArchD,
+    /// Tabloid, 17" × 11".
+    Tabloid,
+}
+
+impl SheetSize {
+    /// Paper width and height in mm.
+    pub fn mm(self) -> (f64, f64) {
+        match self {
+            SheetSize::ArchD => (914.4, 609.6),
+            SheetSize::Tabloid => (431.8, 279.4),
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            SheetSize::ArchD => "ARCH D 36\" x 24\"",
+            SheetSize::Tabloid => "Tabloid 17\" x 11\"",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ViewKind {
     FloorPlan {
@@ -155,6 +199,16 @@ pub enum ViewKind {
         facing: Compass,
     },
     ThreeD,
+    /// Section along the line `start` → `end`, looking to the line's left (like a Revit
+    /// section drawn left to right looks up the screen), showing `depth` mm beyond the cut.
+    Section {
+        start: Pt,
+        end: Pt,
+        depth: f64,
+    },
+    Schedule {
+        kind: ScheduleKind,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -271,6 +325,32 @@ pub enum ElementData {
         name: String,
         number: String,
     },
+    /// Aligned dimension in a view between `a` and `b`; the dimension line sits `offset`
+    /// mm to the left of a→b (negative = right). Coordinates are the view's own (plan x/y,
+    /// or elevation/section u/z).
+    Dimension {
+        view: ElementId,
+        a: Pt,
+        b: Pt,
+        offset: f64,
+    },
+    /// A text note in a view, `at` in the view's coordinates.
+    TextNote {
+        view: ElementId,
+        at: Pt,
+        text: String,
+    },
+    Sheet {
+        number: String,
+        name: String,
+        size: SheetSize,
+    },
+    /// A view placed on a sheet; `center` is in paper mm from the sheet's bottom-left.
+    Viewport {
+        sheet: ElementId,
+        view: ElementId,
+        center: Pt,
+    },
     /// A design stage (ADR-010).
     Stage {
         name: String,
@@ -309,6 +389,10 @@ impl ElementData {
             ElementData::WindowType { .. } => Category::WindowType,
             ElementData::Window { .. } => Category::Window,
             ElementData::Room { .. } => Category::Room,
+            ElementData::Dimension { .. } => Category::Dimension,
+            ElementData::TextNote { .. } => Category::TextNote,
+            ElementData::Sheet { .. } => Category::Sheet,
+            ElementData::Viewport { .. } => Category::Viewport,
         }
     }
 
@@ -332,6 +416,8 @@ impl ElementData {
                 vec![*type_id, *level]
             }
             ElementData::Room { level, .. } => vec![*level],
+            ElementData::Dimension { view, .. } | ElementData::TextNote { view, .. } => vec![*view],
+            ElementData::Viewport { sheet, view, .. } => vec![*sheet, *view],
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
                 vec![*type_id, *host]
             }
@@ -359,6 +445,10 @@ impl ElementData {
             ElementData::Door { mark, .. } => format!("Door {mark}"),
             ElementData::Window { mark, .. } => format!("Window {mark}"),
             ElementData::Room { name, number, .. } => format!("{name} {number}"),
+            ElementData::Dimension { .. } => "Dimension".into(),
+            ElementData::TextNote { text, .. } => text.clone(),
+            ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
+            ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Grid { name, .. } => format!("Grid {name}"),
             ElementData::Wall { .. } => "Wall".into(),
             ElementData::Floor { .. } => "Floor".into(),

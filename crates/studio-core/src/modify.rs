@@ -43,6 +43,12 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     }
                 }
                 ElementData::Room { point, .. } => *point = point.add(delta),
+                ElementData::TextNote { at, .. } => *at = at.add(delta),
+                ElementData::Viewport { center, .. } => *center = center.add(delta),
+                ElementData::Dimension { a, b, .. } => {
+                    *a = a.add(delta);
+                    *b = b.add(delta);
+                }
                 ElementData::Door { host, offset, .. }
                 | ElementData::Window { host, offset, .. } => {
                     if selected.contains(host) {
