@@ -9,7 +9,7 @@ acceptance criterion passes and is demonstrable to the owner.
 - [x] One IPC round-trip: UI button calls `core_version` command, shows result
 - [x] `studio-io`: create/open/save an empty `.rfproj` with `meta` table and schema_version
 - [x] File > New / Open / Save wired in the UI (native dialogs)
-- [ ] CI workflow (Windows runner): `cargo fmt --check`, `clippy -D warnings`, `cargo test`, `npm test`, `tauri build`
+- [x] CI workflow (Windows runner): `cargo fmt --check`, `clippy -D warnings`, `cargo test`, `npm test`, `tauri build`
 - [x] `docs/SETUP.md` verified on a clean Windows machine
 
 **Acceptance:** app launches, creates a project file, reopens it, CI is green.

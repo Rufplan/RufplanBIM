@@ -86,7 +86,7 @@ Read these before writing code:
 - `cd app && npm run tauri build` (NSIS installer in `target/release/bundle/nsis/`)
 
 ## Current status
-- Milestone: **M0 — Scaffold** (implemented; waiting on the first green CI run on GitHub)
+- Milestone: **M0 — Scaffold** (complete; CI green on GitHub)
 - Done: workspace + 7 crates, Tauri 2/React 18 app, `core_version` IPC, `.rfproj` create/open/save
   (schema 1, meta only), native File menu + dialogs, Windows CI workflow, SETUP.md verified.
 - Next: M1 — Model core (propose a plan first).
