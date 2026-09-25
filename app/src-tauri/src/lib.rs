@@ -123,6 +123,8 @@ pub fn run() -> anyhow::Result<()> {
             site_cmds::site_parcel,
             site_cmds::site_set_lot,
             site_cmds::site_fetch_topo,
+            site_cmds::site_imagery_frame,
+            site_cmds::site_imagery,
             sketching::sketch_begin,
             sketching::sketch_draw,
             sketching::sketch_pick_walls,

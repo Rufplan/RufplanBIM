@@ -136,21 +136,58 @@ pub fn site_set_lot(
     finish(&window, &s)
 }
 
-/// Samples the ground from USGS 3DEP over the lot plus `margin`, `spacing` apart (mm).
+/// Samples the ground from USGS 3DEP `spacing` apart (mm) over the lot, or a square
+/// `extent` (2 to 4) times its size around it, plus `margin` (ADR-026).
 #[tauri::command]
 pub async fn site_fetch_topo(
     spacing: f64,
     margin: f64,
+    extent: Option<f64>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> CommandResult<Option<AppState>> {
-    let (nx, ny, origin, pts) = {
+    let site::TopoGrid {
+        nx,
+        ny,
+        origin,
+        spacing,
+        pts,
+    } = {
         let s = lock(&state)?;
-        site::topo_request(s.doc()?, spacing, margin)?
+        site::topo_grid(s.doc()?, spacing, margin, extent.unwrap_or(1.0))?
     };
     let (values, resolution) =
         blocking(move || Ok(gis::elevations(&studio_sync::UreqHttp::default(), &pts)?)).await?;
     let mut s = lock(&state)?;
     s.edit(|d| site::set_topo(d, (nx, ny, origin), spacing, &values, resolution))?;
     finish(&window, &s)
+}
+
+/// Where the satellite image for the site goes, and what to fetch (ADR-026).
+#[tauri::command]
+pub fn site_imagery_frame(state: State<'_, SessionState>) -> CommandResult<site::ImageryFrame> {
+    let s = lock(&state)?;
+    Ok(site::imagery_frame(s.doc()?)?)
+}
+
+/// The satellite image for `frame` from Google's Maps Static API, as raw bytes (kept in
+/// memory by the page; never saved).
+#[tauri::command]
+pub async fn site_imagery(frame: site::ImageryFrame) -> CommandResult<tauri::ipc::Response> {
+    let key = get(GOOGLE).ok_or_else(|| {
+        anyhow::anyhow!("add your Google Maps key (Site > API Keys) for the satellite overlay")
+    })?;
+    let bytes = blocking(move || {
+        Ok(gis::static_map(
+            &studio_sync::UreqHttp::default(),
+            &key,
+            frame.lat,
+            frame.lon,
+            frame.zoom,
+            frame.width,
+            frame.height,
+        )?)
+    })
+    .await?;
+    Ok(tauri::ipc::Response::new(bytes))
 }

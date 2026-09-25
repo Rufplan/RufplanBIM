@@ -116,6 +116,8 @@ Read these before writing code:
   ZF, SE…), a Keyboard Shortcuts dialog (KS) with overrides saved per computer, pinning,
   Temporary Hide/Isolate, Hide in View, Visibility/Graphics, Thin Lines and 3D styles.
 - Sketching in 3D (ADR-025): floor/ceiling sketch mode, Edit Boundary, Move and Copy in 3D.
+- Satellite overlay (ADR-026): Google Static Maps imagery on the topo in 3D and Site plans
+  (never saved), topography over 2x-4x the lot.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.

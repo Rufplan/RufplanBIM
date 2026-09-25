@@ -101,6 +101,7 @@ function FindLot({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [spacing, setSpacing] = useState(5);
   const [margin, setMargin] = useState(25);
+  const [extent, setExtent] = useState(1);
 
   const outline = (ring: [number, number][], color: string) => {
     const t = g.current;
@@ -221,9 +222,14 @@ function FindLot({ onClose }: { onClose: () => void }) {
   const topo = async () => {
     setBusy(true);
     setStatus("Getting elevations from USGS 3DEP…");
-    const ok = await apply(() => ipc.siteFetchTopo(spacing * FT, margin * FT));
+    const ok = await apply(() => ipc.siteFetchTopo(spacing * FT, margin * FT, extent));
     setBusy(false);
-    if (ok) setStatus("Topography added: see the Site plan, sections and 3D.");
+    if (ok)
+      setStatus(
+        extent > 1
+          ? "Topography added over the wider area. Large areas may use a coarser grid (at most 40,000 points). Turn on Satellite to see the imagery over it."
+          : "Topography added: see the Site plan, sections and 3D.",
+      );
   };
 
   return (
@@ -299,6 +305,19 @@ function FindLot({ onClose }: { onClose: () => void }) {
                     {v}&apos;
                   </option>
                 ))}
+              </select>
+            </label>
+            <label className="field">
+              Area
+              <select
+                aria-label="Topography area"
+                value={extent}
+                onChange={(e) => setExtent(Number(e.target.value))}
+              >
+                <option value={1}>The lot</option>
+                <option value={2}>2× around the lot</option>
+                <option value={3}>3× around the lot</option>
+                <option value={4}>4× around the lot</option>
               </select>
             </label>
             <label className="field">

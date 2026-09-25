@@ -54,6 +54,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   the 3D view with every draw, pick and modify tool; Edit Boundary and double-click on floors
   and ceilings in 3D; Move and Copy in 3D.
 
+- Satellite overlay (ADR-026): Google imagery draped on the 3D topography and under the Site
+  plan (toggle), and topography over 2x to 4x the lot.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

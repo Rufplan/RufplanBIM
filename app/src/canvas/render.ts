@@ -93,6 +93,8 @@ export interface Highlight {
   visible?: (el: string | null) => boolean;
   /** Thin Lines (TL): every line one pixel. */
   thin?: boolean;
+  /** Drawn on the paper, under everything (the satellite overlay, ADR-026). */
+  underlay?: (ctx: CanvasRenderingContext2D, S: (x: number, y: number) => [number, number]) => void;
 }
 
 export function draw(
@@ -109,6 +111,11 @@ export function draw(
   ctx.lineJoin = "miter";
   ctx.lineCap = "butt";
   const S = (x: number, y: number) => toScreen(cam, w, h, x, y);
+  if (hl.underlay) {
+    ctx.save();
+    hl.underlay(ctx, S);
+    ctx.restore();
+  }
   if (hl.faded) ctx.globalAlpha = 0.4;
 
   for (const item of dl.items) {
@@ -501,5 +508,38 @@ export function drawZoomBox(
     Math.abs(b[0] - a[0]),
     Math.abs(b[1] - a[1]),
   );
+  ctx.restore();
+}
+
+/** An image placed by its corners in plan (lower left, lower right, upper right, upper left),
+ * faded like an underlay, with Google's attribution. */
+export function drawImageUnder(
+  ctx: CanvasRenderingContext2D,
+  S: (x: number, y: number) => [number, number],
+  image: CanvasImageSource & { width: number; height: number },
+  corners: { x: number; y: number }[],
+  alpha: number,
+  credit: string,
+) {
+  const [ll, , ur, ul] = corners.map((c) => S(c.x, c.y)) as [number, number][];
+  const w = image.width || 1;
+  const h = image.height || 1;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Image x runs from its upper left to upper right, y from upper left down to lower left.
+  ctx.transform(
+    (ur![0] - ul![0]) / w,
+    (ur![1] - ul![1]) / w,
+    (ll![0] - ul![0]) / h,
+    (ll![1] - ul![1]) / h,
+    ul![0],
+    ul![1],
+  );
+  ctx.drawImage(image, 0, 0);
+  ctx.restore();
+  ctx.save();
+  ctx.font = "10px Barlow, sans-serif";
+  ctx.fillStyle = "rgba(28,28,28,0.75)";
+  ctx.fillText(credit, 8, ctx.canvas.height / (window.devicePixelRatio || 1) - 8);
   ctx.restore();
 }

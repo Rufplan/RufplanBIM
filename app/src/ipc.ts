@@ -7,6 +7,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
 import type { Category } from "./bindings/Category";
 import type { Handles } from "./bindings/Handles";
+import type { ImageryFrame } from "./bindings/ImageryFrame";
 import type { OffsetPreview } from "./bindings/OffsetPreview";
 import type { ParamDef } from "./bindings/ParamDef";
 import type { RefLine } from "./bindings/RefLine";
@@ -277,8 +278,12 @@ export const ipc = {
     acres: number,
     source: string,
   ): S => invoke("site_set_lot", { ring, apn, owner, address, acres, source }),
-  siteFetchTopo: (spacing: number, margin: number): S =>
-    invoke("site_fetch_topo", { spacing, margin }),
+  /** Topography `spacing` apart over the lot or `extent` (2–4) times around it (ADR-026). */
+  siteFetchTopo: (spacing: number, margin: number, extent = 1): S =>
+    invoke("site_fetch_topo", { spacing, margin, extent }),
+  siteImageryFrame: () => invoke<ImageryFrame>("site_imagery_frame"),
+  /** The satellite image's bytes (JPEG). */
+  siteImagery: (frame: ImageryFrame) => invoke<ArrayBuffer>("site_imagery", { frame }),
   openingPreview3d: (typeId: ElementId, host: ElementId, p: Pt) =>
     invoke<OpeningPreview3d | null>("opening_preview_3d", { typeId, host, p }),
   /** Location lines and stair shapes as [id, label] pairs. */

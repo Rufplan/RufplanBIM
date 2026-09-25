@@ -568,3 +568,24 @@ Owner request (2026-09-25): "allow to draw and sketch and modify a floor from 3D
   through that level's plan. Properties edits (type, offsets, thickness) already applied.
 - Also fixed: after a model change, the 3D view keeps Temporary Hide/Isolate and the visual
   style, and hidden meshes can no longer be picked.
+
+## ADR-026 Satellite overlay on the topography, and wider topography — Accepted (2026-09-25)
+Owner request (2026-09-25): "a toggle to have Google Maps overlay onto the topo, and expand the
+topo and map overlay to 2-4 zoom out times from the lot".
+- **Imagery:** one satellite image from Google's Maps Static API, using the owner's key from
+  the credential store (fetched in Rust; the key is not exposed further). `site::imagery_frame`
+  covers the topography, or the lot and 25' around it before there is one. It picks the
+  closest Web Mercator zoom that fits in 640 px (fetched at scale 2) and gives the image's
+  corners in project coordinates, so it follows the site's Offset and Angle to True North.
+- **Not stored:** Google's terms don't allow caching its imagery, so the image lives only in
+  the page's memory for the session. It is never in the project file, PDF or IFC. Views show
+  "Imagery ©Google".
+- **Toggle:** Satellite on the Site tab, and a Satellite chip in 3D (session setting, off by
+  default).
+  - In 3D the image is draped on the ground surface (the Site mesh's UVs come from the
+    corners).
+  - In Site plans it's drawn under the linework at 70% opacity.
+- **Area:** Get Topography takes an Area setting: the lot (as before), or a square 2x, 3x or 4x
+  the lot's longer side centered on it, plus Beyond the lot. A grid over 40,000 points doubles
+  its spacing until it fits (`site::topo_grid`). The overlay covers the same area.
+- **Owner setup:** the Google key needs the Maps Static API enabled (it already was).

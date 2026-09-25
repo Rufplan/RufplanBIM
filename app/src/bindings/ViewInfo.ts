@@ -24,4 +24,8 @@ calloutOf: ElementId | null,
 /**
  * Hide in View: categories hidden, and how many elements are hidden one by one.
  */
-hiddenCategories: Array<Category>, hiddenCount: number, };
+hiddenCategories: Array<Category>, hiddenCount: number, 
+/**
+ * A site plan (satellite overlay, ADR-026).
+ */
+site: boolean, };

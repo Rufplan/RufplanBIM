@@ -223,6 +223,52 @@ pub fn parse_regrid(body: &[u8]) -> SyncResult<Parcel> {
     })
 }
 
+/// The Static Maps request for a satellite image centered at (lat, lon) (ADR-026): `width`
+/// x `height` map pixels at `zoom`, fetched at scale 2, without labels.
+pub fn static_map_url(key: &str, lat: f64, lon: f64, zoom: u32, width: u32, height: u32) -> String {
+    format!(
+        "https://maps.googleapis.com/maps/api/staticmap?center={lat:.7},{lon:.7}&zoom={zoom}&size={width}x{height}&scale=2&maptype=satellite&format=jpg&key={}",
+        enc(key.trim())
+    )
+}
+
+/// A satellite image (JPEG or PNG bytes) from Google's Maps Static API. Shown, never stored:
+/// Google's terms don't allow keeping its imagery in project files.
+pub fn static_map(
+    http: &dyn Http,
+    key: &str,
+    lat: f64,
+    lon: f64,
+    zoom: u32,
+    width: u32,
+    height: u32,
+) -> SyncResult<Vec<u8>> {
+    if key.trim().is_empty() {
+        return Err(SyncError::Api(
+            "add your Google Maps key (Site > API Keys) for the satellite overlay".into(),
+        ));
+    }
+    let resp = http
+        .send(Request {
+            method: "GET",
+            url: static_map_url(key, lat, lon, zoom, width, height),
+            headers: vec![],
+            body: vec![],
+        })
+        .map_err(|e| SyncError::Network(format!("Google Maps: {e}")))?;
+    let image = resp.body.starts_with(&[0xFF, 0xD8]) || resp.body.starts_with(b"\x89PNG");
+    match resp.status {
+        200 if image => Ok(resp.body),
+        401 | 403 => Err(SyncError::Api(
+            "Google refused the satellite image: enable the Maps Static API for your key in Google Cloud (APIs & Services > Library), and allow it in the key's API restrictions".into(),
+        )),
+        s => Err(SyncError::Api(format!(
+            "Google Maps returned {s}: {}",
+            String::from_utf8_lossy(&resp.body).chars().take(160).collect::<String>()
+        ))),
+    }
+}
+
 fn ring_area(r: &[(f64, f64)]) -> f64 {
     let n = r.len();
     (0..n)
@@ -253,6 +299,27 @@ mod tests {
                 body: self.1.clone(),
             })
         }
+    }
+
+    #[test]
+    fn satellite_image_request_and_errors() {
+        let url = static_map_url(" k&ey ", 37.7773, -122.462, 20, 390, 400);
+        assert_eq!(
+            url,
+            "https://maps.googleapis.com/maps/api/staticmap?center=37.7773000,-122.4620000&zoom=20&size=390x400&scale=2&maptype=satellite&format=jpg&key=k%26ey"
+        );
+        let jpeg = Fake(Mutex::new(vec![]), vec![0xFF, 0xD8, 0xFF, 0xE0, 1, 2]);
+        let img = static_map(&jpeg, "key", 37.0, -122.0, 19, 100, 100).unwrap();
+        assert_eq!(img.len(), 6);
+        let sent = &jpeg.0.lock().unwrap()[0];
+        assert!(sent.url.contains("maptype=satellite") && sent.url.contains("zoom=19"));
+        // A 200 with an error page instead of an image is an error, not a picture.
+        let text = Fake(
+            Mutex::new(vec![]),
+            b"The Google Maps Platform server rejected".to_vec(),
+        );
+        assert!(static_map(&text, "key", 37.0, -122.0, 19, 100, 100).is_err());
+        assert!(static_map(&jpeg, " ", 37.0, -122.0, 19, 100, 100).is_err());
     }
 
     #[test]

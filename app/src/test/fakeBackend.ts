@@ -52,6 +52,7 @@ export function appState(path: string | null, dirty = false): AppState {
     calloutOf: null,
     hiddenCategories: [],
     hiddenCount: 0,
+    site: false,
   });
   return {
     project: { name, path, schemaVersion: 2, appVersion: "0.0.1", dirty },
@@ -137,6 +138,20 @@ export function installFakeBackend(): FakeBackend {
           return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
         case "handles":
           return { grips: [], dims: [] };
+        case "site_imagery_frame":
+          return {
+            lat: 37.7773,
+            lon: -122.462,
+            zoom: 20,
+            width: 400,
+            height: 400,
+            corners: [
+              { x: -23000, y: -23000 },
+              { x: 23000, y: -23000 },
+              { x: 23000, y: 23000 },
+              { x: -23000, y: 23000 },
+            ],
+          };
         case "site_keys":
           return { googleKey: fake.googleKey, regrid: fake.regrid };
         case "site_set_keys":

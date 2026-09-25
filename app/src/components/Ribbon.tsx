@@ -131,6 +131,8 @@ export function Ribbon() {
   const activeIs3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
   const grid3d = useAppStore((s) => s.grid3d);
   const setGrid3d = useAppStore((s) => s.setGrid3d);
+  const satellite = useAppStore((s) => s.satellite);
+  const setSatellite = useAppStore((s) => s.setSatellite);
   const thinLines = useAppStore((s) => s.thinLines);
   const visualStyle = useAppStore((s) => s.visualStyle);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
@@ -253,6 +255,16 @@ export function Ribbon() {
               >
                 {Icons.params}
                 <span>Site Settings</span>
+              </button>
+              <button
+                className={`rb-btn${satellite && app?.site ? " active" : ""}`}
+                onClick={() => setSatellite(!satellite)}
+                disabled={!app?.site}
+                aria-pressed={satellite}
+                title="Satellite overlay: Google imagery over the topography in the Site plan and 3D"
+              >
+                {Icons.mapPin}
+                <span>Satellite</span>
               </button>
             </Group>
             <Group title="Settings">

@@ -1,3 +1,4 @@
+import { siteImagery, type Imagery } from "../imagery";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   errorMessage,
@@ -24,6 +25,7 @@ import {
   drawSketch,
   drawTempDims,
   drawTempFrame,
+  drawImageUnder,
   drawZoomBox,
   fit,
   tempDimBox,
@@ -151,6 +153,9 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   });
   // Match Type's source type.
   const matchSource = useRef<string | null>(null);
+  // The satellite overlay on site plans (ADR-026).
+  const satellite = useAppStore((s) => s.satellite && view.site && !!s.app?.site);
+  const imagery = useRef<Imagery | null>(null);
   const frame = useRef(0);
   const redrawRef = useRef<() => void>(() => {});
 
@@ -180,6 +185,17 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         hidden: sk?.target ?? null,
         visible,
         thin: s.thinLines,
+        underlay: imagery.current
+          ? (c, S) =>
+              drawImageUnder(
+                c,
+                S,
+                imagery.current!.image,
+                imagery.current!.frame.corners,
+                0.7,
+                "Imagery ©Google",
+              )
+          : undefined,
       });
       if (th) drawTempFrame(ctx, w, h);
       const zr = zoomRegion.current;
@@ -282,6 +298,31 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     };
   }, [temp, view.id, revision]);
   useEffect(() => redrawRef.current(), [temp, thinLines]);
+
+  // Fetch the satellite image when the overlay is on (again when the topography changes).
+  useEffect(() => {
+    let live = true;
+    if (!satellite) {
+      imagery.current = null;
+      redrawRef.current();
+      return;
+    }
+    siteImagery().then(
+      (im) => {
+        if (!live) return;
+        imagery.current = im;
+        redrawRef.current();
+      },
+      (e) => {
+        if (!live) return;
+        useAppStore.getState().setError(errorMessage(e));
+        useAppStore.getState().setSatellite(false);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [satellite, revision]);
   useLayoutEffect(() => {
     redrawRef.current = redraw;
   });

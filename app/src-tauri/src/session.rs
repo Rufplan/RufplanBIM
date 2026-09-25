@@ -48,6 +48,8 @@ pub struct ViewInfo {
     /// Hide in View: categories hidden, and how many elements are hidden one by one.
     pub hidden_categories: Vec<Category>,
     pub hidden_count: usize,
+    /// A site plan (satellite overlay, ADR-026).
+    pub site: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -223,6 +225,7 @@ impl Session {
                     callout_of,
                     hidden,
                     hidden_categories,
+                    site,
                     ..
                 } => {
                     let (view_type, level) = match kind {
@@ -251,6 +254,7 @@ impl Session {
                         callout_of: *callout_of,
                         hidden_categories: hidden_categories.clone(),
                         hidden_count: hidden.len(),
+                        site: *site,
                     })
                 }
                 ElementData::Sheet { stages, .. } => Some(ViewInfo {
@@ -266,6 +270,7 @@ impl Session {
                     callout_of: None,
                     hidden_categories: vec![],
                     hidden_count: 0,
+                    site: false,
                 }),
                 _ => None,
             })

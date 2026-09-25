@@ -1224,3 +1224,17 @@ button:disabled {
   overflow-y: auto;
   margin: 10px 0;
 }
+
+/* Satellite overlay (ADR-026). */
+.view3d-chip.sat {
+  right: 118px;
+}
+.view3d-credit {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 2;
+  font-size: 10px;
+  color: rgba(28, 28, 28, 0.75);
+  pointer-events: none;
+}

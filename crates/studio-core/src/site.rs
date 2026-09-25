@@ -188,6 +188,48 @@ pub type TopoRequest = (u32, u32, Pt, Vec<(f64, f64)>);
 /// Where to sample elevations: a grid `spacing` apart over the lot plus `margin` around
 /// it, as (nx, ny, x0, y0) in the local frame, and the (lat, lon) of each node row by row.
 pub fn topo_request(doc: &Document, spacing: f64, margin: f64) -> CoreResult<TopoRequest> {
+    let g = topo_grid(doc, spacing, margin, 1.0)?;
+    Ok((g.nx, g.ny, g.origin, g.pts))
+}
+
+/// Most elevation samples in one topography (about 40 requests to 3DEP).
+pub const MAX_TOPO_POINTS: u64 = 40_000;
+
+/// A topography sampling grid (ADR-026).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TopoGrid {
+    pub nx: u32,
+    pub ny: u32,
+    /// Lower-left node in the local frame.
+    pub origin: Pt,
+    /// Node spacing actually used (mm): coarser than asked when the area needs it.
+    pub spacing: f64,
+    /// (lat, lon) of each node, row by row.
+    pub pts: Vec<(f64, f64)>,
+}
+
+/// The area a topography covers in the local frame: the lot's bounds when `extent` is 1;
+/// for 2 to 4, a square `extent` times the lot's longer side, centered on the lot (like
+/// zooming a map out). Then `margin` all round.
+pub fn topo_area(boundary: &[Pt], margin: f64, extent: f64) -> Option<(Pt, Pt)> {
+    let (lo, hi) = studio_geom::bounds_of(boundary)?;
+    let extent = extent.clamp(1.0, 4.0);
+    let (lo, hi) = if extent > 1.0 {
+        let c = Pt::new((lo.x + hi.x) / 2.0, (lo.y + hi.y) / 2.0);
+        let half = (hi.x - lo.x).max(hi.y - lo.y) * extent / 2.0;
+        (c.sub(Pt::new(half, half)), c.add(Pt::new(half, half)))
+    } else {
+        (lo, hi)
+    };
+    Some((
+        lo.sub(Pt::new(margin, margin)),
+        hi.add(Pt::new(margin, margin)),
+    ))
+}
+
+/// The sampling grid over [`topo_area`]. A grid over `MAX_TOPO_POINTS` doubles its
+/// spacing until it fits.
+pub fn topo_grid(doc: &Document, spacing: f64, margin: f64, extent: f64) -> CoreResult<TopoGrid> {
     let Some(ElementData::Site {
         lat, lon, boundary, ..
     }) = site_of(doc).and_then(|id| doc.data(id).ok())
@@ -197,19 +239,17 @@ pub fn topo_request(doc: &Document, spacing: f64, margin: f64) -> CoreResult<Top
     if spacing < 300.0 {
         return Err(CoreError::Invalid("use a grid of at least 1'".into()));
     }
-    let (lo, hi) = studio_geom::bounds_of(boundary)
+    let (lo, hi) = topo_area(boundary, margin, extent)
         .ok_or_else(|| CoreError::Invalid("the lot has no boundary".into()))?;
-    let (lo, hi) = (
-        lo.sub(Pt::new(margin, margin)),
-        hi.add(Pt::new(margin, margin)),
-    );
-    let nx = ((hi.x - lo.x) / spacing).ceil() as u32 + 1;
-    let ny = ((hi.y - lo.y) / spacing).ceil() as u32 + 1;
-    if u64::from(nx) * u64::from(ny) > 40_000 {
-        return Err(CoreError::Invalid(
-            "that grid is too fine for this lot; use a larger spacing".into(),
-        ));
-    }
+    let mut spacing = spacing;
+    let (nx, ny) = loop {
+        let nx = ((hi.x - lo.x) / spacing).ceil() as u32 + 1;
+        let ny = ((hi.y - lo.y) / spacing).ceil() as u32 + 1;
+        if u64::from(nx) * u64::from(ny) <= MAX_TOPO_POINTS {
+            break (nx, ny);
+        }
+        spacing *= 2.0;
+    };
     let frame = GeoFrame {
         lat0: *lat,
         lon0: *lon,
@@ -221,7 +261,98 @@ pub fn topo_request(doc: &Document, spacing: f64, margin: f64) -> CoreResult<Top
             pts.push(frame.to_geo(p));
         }
     }
-    Ok((nx, ny, lo, pts))
+    Ok(TopoGrid {
+        nx,
+        ny,
+        origin: lo,
+        spacing,
+        pts,
+    })
+}
+
+/// A satellite image covering the site (ADR-026): what to ask Google's Static Maps for, and
+/// where the image's corners fall in the project.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ImageryFrame {
+    /// Image center.
+    pub lat: f64,
+    pub lon: f64,
+    /// Web Mercator zoom level.
+    pub zoom: u32,
+    /// Size in map pixels (the image is fetched at twice this).
+    pub width: u32,
+    pub height: u32,
+    /// The image's corners in project plan coordinates (mm): lower left, lower right, upper
+    /// right, upper left.
+    pub corners: [Pt; 4],
+}
+
+/// Largest Static Maps image side, in map pixels.
+pub const MAX_IMAGE_PX: u32 = 640;
+
+/// Ground metres per map pixel at `zoom` and latitude `lat` (Web Mercator).
+pub fn meters_per_pixel(lat: f64, zoom: u32) -> f64 {
+    156_543.033_92 * lat.to_radians().cos() / f64::from(1u32 << zoom)
+}
+
+/// The image covering the topography (or the lot and 25' around it, before there is one):
+/// the closest zoom that fits it in one image.
+pub fn imagery_frame(doc: &Document) -> CoreResult<ImageryFrame> {
+    let Some(ElementData::Site {
+        lat,
+        lon,
+        boundary,
+        offset,
+        rotation,
+        topo,
+        ..
+    }) = site_of(doc).and_then(|id| doc.data(id).ok())
+    else {
+        return Err(CoreError::Invalid("find the lot first".into()));
+    };
+    let (lo, hi) = match topo {
+        Some(t) => (
+            Pt::new(t.x0, t.y0),
+            Pt::new(
+                t.x0 + f64::from(t.nx - 1) * t.spacing,
+                t.y0 + f64::from(t.ny - 1) * t.spacing,
+            ),
+        ),
+        None => topo_area(boundary, 25.0 * MM_PER_FT, 1.0)
+            .ok_or_else(|| CoreError::Invalid("the lot has no boundary".into()))?,
+    };
+    let c = Pt::new((lo.x + hi.x) / 2.0, (lo.y + hi.y) / 2.0);
+    let (w, h) = ((hi.x - lo.x) / 1000.0, (hi.y - lo.y) / 1000.0);
+    let fits = |z: u32| {
+        let m = meters_per_pixel(*lat, z);
+        w / m <= f64::from(MAX_IMAGE_PX) && h / m <= f64::from(MAX_IMAGE_PX)
+    };
+    let zoom = (1..=21).rev().find(|z| fits(*z)).unwrap_or(1);
+    let m = meters_per_pixel(*lat, zoom);
+    let px = |d: f64| ((d / m).ceil() as u32).clamp(16, MAX_IMAGE_PX);
+    let (width, height) = (px(w), px(h));
+    let (hw, hh) = (f64::from(width) * m * 500.0, f64::from(height) * m * 500.0);
+    let frame = GeoFrame {
+        lat0: *lat,
+        lon0: *lon,
+    };
+    let (clat, clon) = frame.to_geo(c);
+    let corner = |dx: f64, dy: f64| to_project(*offset, *rotation, c.add(Pt::new(dx, dy)));
+    Ok(ImageryFrame {
+        lat: clat,
+        lon: clon,
+        zoom,
+        width,
+        height,
+        corners: [
+            corner(-hw, -hh),
+            corner(hw, -hh),
+            corner(hw, hh),
+            corner(-hw, hh),
+        ],
+    })
 }
 
 /// Stores sampled elevations (m; None where 3DEP has no data) as the site's topography.
@@ -528,5 +659,63 @@ mod tests {
             (rotation.to_degrees() - 12.5).abs() < 1e-9 && (contour - 2.0 * MM_PER_FT).abs() < 1e-9
         );
         assert!(topo_request(&doc, 100.0, 0.0).is_err(), "too fine");
+    }
+
+    #[test]
+    fn wider_areas_and_the_satellite_image_frame() {
+        // A 30' x 60' lot: 2x is a 120' square around it, 4x a 240' square.
+        let lot = [
+            Pt::new(0.0, 0.0),
+            Pt::new(30.0 * MM_PER_FT, 0.0),
+            Pt::new(30.0 * MM_PER_FT, 60.0 * MM_PER_FT),
+            Pt::new(0.0, 60.0 * MM_PER_FT),
+        ];
+        let (lo, hi) = topo_area(&lot, 0.0, 1.0).unwrap();
+        assert_eq!((lo, hi), (lot[0], lot[2]));
+        let (lo, hi) = topo_area(&lot, 10.0 * MM_PER_FT, 2.0).unwrap();
+        assert!((hi.x - lo.x - 140.0 * MM_PER_FT).abs() < 1e-6);
+        assert!((hi.y - lo.y - 140.0 * MM_PER_FT).abs() < 1e-6);
+        assert!(((lo.x + hi.x) / 2.0 - 15.0 * MM_PER_FT).abs() < 1e-6);
+        let (lo, hi) = topo_area(&lot, 0.0, 4.0).unwrap();
+        assert!((hi.y - lo.y - 240.0 * MM_PER_FT).abs() < 1e-6);
+        // Past 4x stays 4x.
+        assert_eq!(topo_area(&lot, 0.0, 9.0), topo_area(&lot, 0.0, 4.0));
+
+        // Web Mercator: 0.2986 m per pixel at zoom 19 on the equator.
+        assert!((meters_per_pixel(0.0, 19) - 0.298_582).abs() < 1e-5);
+
+        let mut doc = Document::new();
+        crate::ops::seed_default_project(&mut doc).unwrap();
+        // About 100' x 100' in San Francisco.
+        let (la, lo) = (37.7773, -122.4620);
+        let (dla, dlo) = (30.48 / 111_000.0, 30.48 / 88_000.0);
+        let ring = [
+            (la, lo),
+            (la, lo + dlo),
+            (la + dla, lo + dlo),
+            (la + dla, lo),
+        ];
+        let id = set_lot(&mut doc, &ring, ParcelInfo::default()).unwrap();
+        let f = imagery_frame(&doc).unwrap();
+        // 150' (lot and 25' around) fits in 640 px at zoom 20 (0.118 m/px), not 21.
+        assert_eq!(f.zoom, 20);
+        let m = meters_per_pixel(37.7773, 20);
+        assert!(f.width <= MAX_IMAGE_PX && f64::from(f.width) * m >= 45.0);
+        // The corners enclose the lot, centered on it, with north up.
+        let [ll, lr, ur, ul] = f.corners;
+        assert!((ll.y - lr.y).abs() < 1e-6 && (ll.x - ul.x).abs() < 1e-6);
+        assert!(((ll.x + ur.x) / 2.0).abs() < 50.0 && ((ll.y + ur.y) / 2.0).abs() < 50.0);
+        assert!(ur.x - ll.x >= 45_720.0);
+        // Rotating the site (Angle to True North) turns the image with it.
+        set_property(&mut doc, id, "rotation", "90").unwrap();
+        let g = imagery_frame(&doc).unwrap();
+        assert!((g.corners[0].x - (-ll.y)).abs() < 1.0 && (g.corners[0].y - ll.x).abs() < 1.0);
+        // A 4x topography: the image covers it at a wider zoom.
+        let g = topo_grid(&doc, 5.0 * MM_PER_FT, 0.0, 4.0).unwrap();
+        assert_eq!(g.pts.len() as u32, g.nx * g.ny);
+        assert!(u64::from(g.nx * g.ny) <= MAX_TOPO_POINTS);
+        let meters = vec![Some(20.0); g.pts.len()];
+        set_topo(&mut doc, (g.nx, g.ny, g.origin), g.spacing, &meters, 1.0).unwrap();
+        assert!(imagery_frame(&doc).unwrap().zoom < f.zoom);
     }
 }

@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { SectionBox } from "../bindings/SectionBox";
 import { apply } from "../fileActions";
 import { errorMessage, ipc, type Mesh, type Pt, type ViewInfo } from "../ipc";
+import { siteImagery, uvAt, type Imagery } from "../imagery";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
 import { useAppStore } from "../store";
 import { samePt, sketchPrompt } from "../tools";
@@ -231,6 +232,8 @@ export function View3D({ view }: { view: ViewInfo }) {
   const three = useRef<Three | null>(null);
   // The box as shown (updated live while dragging a handle).
   const boxRef = useRef<SectionBox | null>(sectionBox);
+  // The satellite image draped on the ground, when on (ADR-026).
+  const imagery = useRef<Imagery | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -964,6 +967,7 @@ export function View3D({ view }: { view: ViewInfo }) {
         }
         t.gridGroup.visible = useAppStore.getState().grid3d;
         const st = useAppStore.getState();
+        applyImagery(t.group, imagery.current);
         applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
         applySelection(t.group, st.selection);
       },
@@ -986,6 +990,45 @@ export function View3D({ view }: { view: ViewInfo }) {
     if (three.current) applySelection(three.current.group, selection);
   }, [selection]);
 
+  const satellite = useAppStore((s) => s.satellite);
+  const hasSite = useAppStore((s) => !!s.app?.site);
+  useEffect(() => {
+    let live = true;
+    const off = () => {
+      imagery.current = null;
+      const t = three.current;
+      if (!t) return;
+      applyImagery(t.group, null);
+      const st = useAppStore.getState();
+      applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
+      applySelection(t.group, st.selection);
+    };
+    if (!satellite || !hasSite) {
+      off();
+      return;
+    }
+    siteImagery().then(
+      (im) => {
+        const t = three.current;
+        if (!live || !t) return;
+        imagery.current = im;
+        applyImagery(t.group, im);
+        const st = useAppStore.getState();
+        applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
+        applySelection(t.group, st.selection);
+      },
+      (e) => {
+        if (!live) return;
+        useAppStore.getState().setError(errorMessage(e));
+        useAppStore.getState().setSatellite(false);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [satellite, hasSite, revision, view.id]);
+  const setSatellite = useAppStore((s) => s.setSatellite);
+
   const grid3d = useAppStore((s) => s.grid3d);
   const setGrid3d = useAppStore((s) => s.setGrid3d);
   const tool = useAppStore((s) => s.tool);
@@ -1003,8 +1046,51 @@ export function View3D({ view }: { view: ViewInfo }) {
       >
         Ground Grid
       </button>
+      {hasSite && (
+        <button
+          className={`view3d-chip sat${satellite ? " on" : ""}`}
+          aria-pressed={satellite}
+          onClick={() => setSatellite(!satellite)}
+          title="Drape Google satellite imagery over the topography"
+        >
+          Satellite
+        </button>
+      )}
+      {hasSite && satellite && <span className="view3d-credit">Imagery ©Google</span>}
     </div>
   );
+}
+
+/** Drapes the satellite image on the ground (Site meshes), or takes it off (ADR-026). */
+function applyImagery(group: THREE.Group, im: Imagery | null) {
+  for (const child of group.children) {
+    if (!(child instanceof THREE.Mesh) || child.userData.category !== "Site") continue;
+    const mat = child.material as THREE.MeshLambertMaterial;
+    const u = child.userData as { base: number; ground?: number };
+    mat.map?.dispose();
+    if (im) {
+      const pos = child.geometry.getAttribute("position");
+      const uv = new Float32Array(pos.count * 2);
+      for (let i = 0; i < pos.count; i++) {
+        const [a, b] = uvAt(im.frame, pos.getX(i), pos.getY(i));
+        uv[i * 2] = a;
+        uv[i * 2 + 1] = b;
+      }
+      child.geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      const tex = new THREE.Texture(im.image);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      tex.needsUpdate = true;
+      mat.map = tex;
+      u.ground ??= u.base;
+      u.base = 0xffffff;
+    } else {
+      mat.map = null;
+      if (u.ground !== undefined) u.base = u.ground;
+    }
+    mat.color.setHex(u.base);
+    mat.needsUpdate = true;
+  }
 }
 
 /** Temporary Hide/Isolate and the visual style on the shown meshes (ADR-024). */

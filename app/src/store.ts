@@ -208,6 +208,9 @@ interface UiState {
   /** 3D view: the ground plane's cyan grid is shown. */
   grid3d: boolean;
   setGrid3d: (on: boolean) => void;
+  /** Site plans and 3D: Google satellite imagery over the topography (ADR-026). */
+  satellite: boolean;
+  setSatellite: (on: boolean) => void;
   /** 3D view: the level walls and columns are placed on. */
   level3d: ElementId | null;
   setLevel3d: (id: ElementId | null) => void;
@@ -300,6 +303,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,
   setGrid3d: (grid3d) => set({ grid3d }),
+  satellite: false,
+  setSatellite: (satellite) => set({ satellite }),
   level3d: null,
   setLevel3d: (level3d) => set({ level3d }),
 
