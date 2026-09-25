@@ -8,6 +8,7 @@
 //!
 //! HTTP goes through the [`Http`] trait so the client is tested offline.
 
+pub mod gis;
 pub mod pkce;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

@@ -10,6 +10,7 @@
 pub mod derived;
 pub mod parts;
 pub mod roof;
+pub mod site;
 pub mod takeoff;
 
 use std::collections::HashMap;
@@ -24,6 +25,7 @@ use studio_geom::{clip_half_plane, line_intersection, union_all, Poly, Prism, Pt
 
 pub use parts::{BeamSolid, ColumnSolid, RailSolid, StairRun, StairSolid};
 pub use roof::{RoofFace, RoofSolid};
+pub use site::SiteSolid;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WallSolid {
@@ -241,6 +243,8 @@ pub struct Model {
     pub beams: Vec<BeamSolid>,
     pub railings: Vec<RailSolid>,
     pub grids: Vec<GridLine>,
+    /// The lot and ground (ADR-023).
+    pub site: Option<SiteSolid>,
     pub levels: Vec<LevelInfo>,
     pub openings: Vec<OpeningSolid>,
     pub rooms: Vec<RoomInfo>,
@@ -868,6 +872,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
     let floors = cut_by_stairs(slab(Category::Floor), true);
     let ceilings = cut_by_stairs(slab(Category::Ceiling), false);
     let mut model = Model {
+        site: SiteSolid::from_doc(doc),
         rooms: vec![],
         openings,
         walls,

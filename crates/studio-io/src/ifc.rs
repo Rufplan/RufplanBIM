@@ -65,6 +65,16 @@ fn r(v: f64) -> String {
     t.to_owned()
 }
 
+/// An IFC compound plane angle: (degrees, minutes, seconds, millionths of a second).
+fn compound_angle(deg: f64) -> String {
+    let sign = if deg < 0.0 { -1 } else { 1 };
+    let micro = (deg.abs() * 3600.0 * 1e6).round() as i64;
+    let (d, rest) = (micro / 3_600_000_000, micro % 3_600_000_000);
+    let (m, rest) = (rest / 60_000_000, rest % 60_000_000);
+    let (sec, mic) = (rest / 1_000_000, rest % 1_000_000);
+    format!("({},{},{},{})", sign * d, sign * m, sign * sec, sign * mic)
+}
+
 struct Writer {
     lines: Vec<String>,
 }
@@ -266,8 +276,25 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         s(&project_number)
     ));
     let site_place = w.placement(None, 0.0);
+    // The site's geographic location, when found (ADR-023).
+    let located = doc
+        .of(studio_core::Category::Site)
+        .next()
+        .and_then(|e| match &e.data {
+            ElementData::Site {
+                lat,
+                lon,
+                base_elevation,
+                ..
+            } => Some((*lat, *lon, *base_elevation)),
+            _ => None,
+        });
+    let (ref_lat, ref_lon, ref_elev) = match located {
+        Some((la, lo, z)) => (compound_angle(la), compound_angle(lo), r(z)),
+        None => ("$".into(), "$".into(), "$".into()),
+    };
     let site = w.add(format!(
-        "IFCSITE({},$,'Site',$,$,#{site_place},$,$,.ELEMENT.,$,$,$,$,$)",
+        "IFCSITE({},$,'Site',$,$,#{site_place},$,$,.ELEMENT.,{ref_lat},{ref_lon},{ref_elev},$,$)",
         s(&ifc_guid(derived(project_uuid, "site")))
     ));
     let bldg_place = w.placement(Some(site_place), 0.0);

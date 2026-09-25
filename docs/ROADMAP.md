@@ -42,6 +42,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   doors, windows, floors, ceilings, roofs, columns and rooms in the 3D view, and a
   toggleable cyan ground grid.
 
+- Site (ADR-023): find a lot on Google Maps, Regrid parcel boundaries, preliminary USGS 3DEP
+  topography, site plans with contours, bearings and north, and ground in sections and 3D.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

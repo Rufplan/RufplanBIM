@@ -100,6 +100,21 @@ pub struct AppState {
     pub param_defs: Vec<studio_core::ParamDef>,
     /// The boundary sketch in progress, if any.
     pub sketch: Option<crate::sketching::SketchInfo>,
+    /// The site's lot, once found (ADR-023).
+    pub site: Option<SiteSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct SiteSummary {
+    pub id: ElementId,
+    pub address: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub has_topo: bool,
+    /// Lot corners as [lat, lon], for showing the lot on the map again.
+    pub ring: Vec<[f64; 2]>,
 }
 
 #[derive(Debug, Default)]
@@ -312,6 +327,36 @@ impl Session {
             rufplan: ops::rufplan_link(doc),
             param_defs: studio_core::params::defs(doc),
             sketch: self.sketch.as_ref().map(|s| s.info()),
+            site: doc.of(Category::Site).next().and_then(|e| match &e.data {
+                ElementData::Site {
+                    address,
+                    lat,
+                    lon,
+                    boundary,
+                    topo,
+                    ..
+                } => {
+                    let f = studio_core::site::GeoFrame {
+                        lat0: *lat,
+                        lon0: *lon,
+                    };
+                    Some(SiteSummary {
+                        id: e.id,
+                        address: address.clone(),
+                        lat: *lat,
+                        lon: *lon,
+                        has_topo: topo.is_some(),
+                        ring: boundary
+                            .iter()
+                            .map(|p| {
+                                let (la, lo) = f.to_geo(*p);
+                                [la, lo]
+                            })
+                            .collect(),
+                    })
+                }
+                _ => None,
+            }),
         })
     }
 

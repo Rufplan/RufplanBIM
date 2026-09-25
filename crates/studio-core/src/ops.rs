@@ -31,6 +31,12 @@ pub const SCALES: &[(u32, &str)] = &[
     (12, "1\" = 1'-0\""),
     (8, "1 1/2\" = 1'-0\""),
     (4, "3\" = 1'-0\""),
+    // Engineering scales for site plans (ADR-023).
+    (120, "1\" = 10'-0\""),
+    (240, "1\" = 20'-0\""),
+    (360, "1\" = 30'-0\""),
+    (480, "1\" = 40'-0\""),
+    (600, "1\" = 50'-0\""),
 ];
 
 pub fn scale_label(scale: u32) -> String {
@@ -1535,6 +1541,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             section_box,
             callout_of,
             mark_type,
+            ..
         } => {
             props.push(text("name", "View Name", "Identity Data", name));
             if matches!(kind, ViewKind::Elevation { .. }) {
@@ -1956,6 +1963,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::structure::properties(doc, id, &mut props);
         }
         ElementData::Material { .. } => crate::material::properties(doc, id, &mut props),
+        ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         ElementData::ElevationMarkerType {
             name,
             interior,
@@ -2074,6 +2082,9 @@ pub fn set_property(
     }
     if matches!(data, ElementData::Material { .. }) {
         return crate::material::set_property(doc, id, key, value);
+    }
+    if matches!(data, ElementData::Site { .. }) {
+        return crate::site::set_property(doc, id, key, value);
     }
     if let (ElementData::ElevationMarker { .. }, "type") = (&data, key) {
         let t = parse_id(value)?;
@@ -2493,7 +2504,8 @@ pub fn set_property(
         | ElementData::Material { .. }
         | ElementData::RoomSeparator { .. }
         | ElementData::ElevationMarker { .. }
-        | ElementData::ElevationMarkerType { .. } => return Err(unknown()),
+        | ElementData::ElevationMarkerType { .. }
+        | ElementData::Site { .. } => return Err(unknown()),
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {

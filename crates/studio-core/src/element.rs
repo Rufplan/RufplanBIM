@@ -81,6 +81,7 @@ pub enum Category {
     RoomSeparator,
     ElevationMarker,
     ElevationMarkerType,
+    Site,
 }
 
 impl Category {
@@ -121,6 +122,7 @@ impl Category {
             Category::RoomSeparator => "RoomSeparator",
             Category::ElevationMarker => "ElevationMarker",
             Category::ElevationMarkerType => "ElevationMarkerType",
+            Category::Site => "Site",
         }
     }
 }
@@ -712,6 +714,9 @@ pub enum ElementData {
         /// Building elevations: the elevation mark type drawn for them in plans (ADR-022).
         #[serde(default)]
         mark_type: Option<ElementId>,
+        /// A site plan: shows topography contours and property lines (ADR-023).
+        #[serde(default)]
+        site: bool,
     },
     ProjectInfo {
         name: String,
@@ -926,6 +931,24 @@ pub enum ElementData {
         #[serde(default)]
         type_id: Option<ElementId>,
     },
+    /// The project's lot (ADR-023): located at (lat, lon), bounded by `boundary` in its local
+    /// east/north frame (mm), placed in the project by `offset` and `rotation`.
+    Site {
+        address: String,
+        lat: f64,
+        lon: f64,
+        boundary: Vec<Pt>,
+        parcel: crate::site::ParcelInfo,
+        offset: Pt,
+        /// Angle to true north, radians counter-clockwise.
+        rotation: f64,
+        /// Ground elevation (NAVD88, mm) at project height 0 (Level 1).
+        base_elevation: f64,
+        /// Contour interval, mm.
+        contour: f64,
+        #[serde(default)]
+        topo: Option<crate::site::Topo>,
+    },
     /// An elevation mark family type (ADR-022): interior or building, and its symbol.
     ElevationMarkerType {
         name: String,
@@ -997,6 +1020,7 @@ impl ElementData {
             ElementData::RoomSeparator { .. } => Category::RoomSeparator,
             ElementData::ElevationMarker { .. } => Category::ElevationMarker,
             ElementData::ElevationMarkerType { .. } => Category::ElevationMarkerType,
+            ElementData::Site { .. } => Category::Site,
         }
     }
 
@@ -1087,6 +1111,13 @@ impl ElementData {
             | ElementData::Material { name, .. }
             | ElementData::ElevationMarkerType { name, .. } => name.clone(),
             ElementData::RoomSeparator { .. } => "Room Separator".into(),
+            ElementData::Site { address, .. } => {
+                if address.is_empty() {
+                    "Site".into()
+                } else {
+                    format!("Site: {address}")
+                }
+            }
             ElementData::ElevationMarker { interior, .. } => if *interior {
                 "Interior Elevation Mark"
             } else {
@@ -1166,6 +1197,7 @@ impl ElementData {
             section_box: None,
             callout_of: None,
             mark_type: None,
+            site: false,
         }
     }
 

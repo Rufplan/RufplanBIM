@@ -31,6 +31,8 @@ import type { DrawOptions } from "./bindings/DrawOptions";
 import type { DrawTool } from "./bindings/DrawTool";
 import type { SketchKind } from "./bindings/SketchKind";
 import type { OpeningPreview3d } from "./bindings/OpeningPreview3d";
+import type { ParcelHit } from "./bindings/ParcelHit";
+import type { SiteKeys } from "./bindings/SiteKeys";
 
 export type {
   AppState,
@@ -243,6 +245,21 @@ export const ipc = {
     interior: boolean,
     typeId: ElementId | null,
   ): S => invoke("create_elevation_marker", { view, at, interior, typeId }),
+  // Site (ADR-023).
+  siteKeys: () => invoke<SiteKeys>("site_keys"),
+  siteSetKeys: (google: string | null, regrid: string | null) =>
+    invoke<SiteKeys>("site_set_keys", { google, regrid }),
+  siteParcel: (lat: number, lon: number) => invoke<ParcelHit>("site_parcel", { lat, lon }),
+  siteSetLot: (
+    ring: number[][],
+    apn: string,
+    owner: string,
+    address: string,
+    acres: number,
+    source: string,
+  ): S => invoke("site_set_lot", { ring, apn, owner, address, acres, source }),
+  siteFetchTopo: (spacing: number, margin: number): S =>
+    invoke("site_fetch_topo", { spacing, margin }),
   openingPreview3d: (typeId: ElementId, host: ElementId, p: Pt) =>
     invoke<OpeningPreview3d | null>("opening_preview_3d", { typeId, host, p }),
   /** Location lines and stair shapes as [id, label] pairs. */

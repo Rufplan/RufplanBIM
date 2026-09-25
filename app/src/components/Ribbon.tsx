@@ -65,8 +65,10 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-type Tab = "Architecture" | "Structure" | "Modify" | "Annotate" | "View" | "Manage" | "Rufplan";
+type Tab =
+  "Site" | "Architecture" | "Structure" | "Modify" | "Annotate" | "View" | "Manage" | "Rufplan";
 const TABS: Tab[] = [
+  "Site",
   "Architecture",
   "Structure",
   "Modify",
@@ -89,6 +91,9 @@ export function Ribbon() {
   const linked = app?.rufplan ?? null;
   const selection = useAppStore((s) => s.selection);
   const setParamsOpen = useAppStore((s) => s.setParamsOpen);
+  const setSiteDialog = useAppStore((s) => s.setSiteDialog);
+  const select = useAppStore((s) => s.select);
+  const sitePlan = app?.views.find((v) => v.name === "Site" && v.viewType === "Plan");
   const selectedMaterial =
     selection.length === 1 && app?.materials.some((m) => m.id === selection[0])
       ? selection[0]!
@@ -184,6 +189,59 @@ export function Ribbon() {
                 icon={Icons.separator}
                 keys="RS — open plans"
               />
+            </Group>
+          </>
+        )}
+        {tab === "Site" && (
+          <>
+            <Group title="Location">
+              <button
+                className="rb-btn"
+                onClick={() => setSiteDialog("find")}
+                title="Find the lot on Google Maps and take its boundary from Regrid"
+              >
+                {Icons.mapPin}
+                <span>Find Lot</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => sitePlan && openView(sitePlan.id)}
+                disabled={!sitePlan}
+                title="Open the Site plan: contours, property lines, north"
+              >
+                {Icons.sitePlan}
+                <span>Site Plan</span>
+              </button>
+            </Group>
+            <Group title="Topography">
+              <button
+                className="rb-btn"
+                onClick={() => setSiteDialog("find")}
+                disabled={!app?.site}
+                title="Get or refresh the preliminary topography from USGS 3DEP"
+              >
+                {Icons.topo}
+                <span>{app?.site?.hasTopo ? "Refresh Topo" : "Get Topo"}</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => app?.site && select([app.site.id])}
+                disabled={!app?.site}
+                title="Site properties: offset, angle to true north, Level 1 elevation, contour interval"
+              >
+                {Icons.params}
+                <span>Site Settings</span>
+              </button>
+            </Group>
+            <Group title="Settings">
+              <button
+                className="rb-btn"
+                onClick={() => setSiteDialog("keys")}
+                title="Google Maps key and Regrid token (stored on this computer)"
+              >
+                {Icons.key}
+                <span>API Keys</span>
+              </button>
             </Group>
           </>
         )}

@@ -6,6 +6,7 @@ mod detailing;
 mod editing;
 mod menu;
 mod session;
+mod site_cmds;
 mod sketching;
 mod structure;
 
@@ -109,6 +110,11 @@ pub fn run() -> anyhow::Result<()> {
             detailing::opening_preview_3d,
             detailing::set_section_box,
             detailing::create_material,
+            site_cmds::site_keys,
+            site_cmds::site_set_keys,
+            site_cmds::site_parcel,
+            site_cmds::site_set_lot,
+            site_cmds::site_fetch_topo,
             sketching::sketch_begin,
             sketching::sketch_draw,
             sketching::sketch_pick_walls,

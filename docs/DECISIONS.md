@@ -484,3 +484,35 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
   stronger line every 20', around the model. Toggle with the Ground Grid chip in the 3D
   view or the View tab. Not clipped by the section box; not pickable.
 
+## ADR-023 Site tab: Google Maps, Regrid parcels, USGS 3DEP topography — Accepted (2026-09-24)
+Owner decisions (2026-09-24): Google Maps for search and imagery (owner's API key), Regrid
+for parcel boundaries (owner's token), USGS 3DEP for elevations.
+- **Site tab** (first, before Architecture): Find Lot, Site Plan, Get/Refresh Topo, Site
+  Settings, API Keys.
+- **Keys:** the Google Maps key and Regrid token live in the OS credential store (service
+  "Rufplan Studio"), never in the project file or the repository. The Google key is handed to
+  the page because Google's map runs there (restrict it by API in Google Cloud); the Regrid
+  token never leaves Rust.
+- **Find Lot:** the Maps JavaScript API (hybrid imagery, Geocoder limited to the USA). A
+  search or a click looks up the parcel at that point from Regrid (`/api/v2/parcels/point`);
+  Use This Lot stores it.
+- **Content Security Policy** widened for Google Maps only: scripts from maps.googleapis.com
+  and maps.gstatic.com; images, fonts and connections to Google's map hosts; blob workers.
+- **Model:** `ElementData::Site` (address, lat/lon of the lot's center, boundary in a local
+  east/north frame in mm, parcel record, Offset and Angle to True North placing that frame in
+  the project, Level 1 elevation (NAVD88), contour interval, and the topography grid). Local
+  coordinates use WGS84 degree lengths at the site (mm-accurate over a lot). Setting the lot
+  adds a "Site" plan (1" = 20'-0"; engineering scales 1"=10' to 1"=50' were added).
+- **Topography:** a grid over the lot plus a margin (2'–20' spacing), sampled from the USGS
+  3DEP ImageServer `getSamples` (1,000 points per request, bilinear, 1 m lidar where
+  available). Gaps take the nearest sample. The first topo sets Level 1 to the ground at the
+  lot's center. Preliminary; not a survey. No image library was needed (the owner had
+  approved one): getSamples returns JSON.
+- **Drawings:** site plans show contours (every fifth heavier and labeled in feet), the
+  property line with bearings (N 12°30'00" E) and decimal-foot distances, and a north
+  arrow; plans of the lowest level show the property line. Sections cut the ground; building
+  elevations draw its highest line; 3D shows the ground surface. IFC writes the site's
+  RefLatitude, RefLongitude and RefElevation.
+- **Not yet:** tracing a lot by hand (no Regrid coverage), building pads/grading, easements
+  and setbacks, and exporting the topo to IFC.
+

@@ -1,3 +1,4 @@
+import { SiteDialog } from "./components/SiteDialog";
 import { deleteSketchSelection, flipSketchSelection, startSketch } from "./sketch";
 import { useEffect, useRef } from "react";
 import { errorMessage, ipc } from "./ipc";
@@ -108,7 +109,7 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const ui = useAppStore.getState();
-      if (isTyping(e.target) || ui.confirm || ui.rufplan || ui.paramsOpen) return;
+      if (isTyping(e.target) || ui.confirm || ui.rufplan || ui.paramsOpen || ui.siteDialog) return;
       const ctrl = e.ctrlKey || e.metaKey;
       if (ui.app?.sketch) {
         // Sketch mode keys (ADR-021): its own undo, Delete, Space (flip), Tab (chain).
@@ -213,6 +214,7 @@ export function App() {
       <ConfirmDialog />
       <RufplanDialog />
       <ParamsDialog />
+      <SiteDialog />
     </div>
   );
 }

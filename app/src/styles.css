@@ -1064,3 +1064,103 @@ button:disabled {
 .view3d-chip.on {
   background: var(--cyan);
 }
+
+/* ---------- Site tab (ADR-023) ---------- */
+.modal.site-keys {
+  width: 460px;
+}
+.modal .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.modal .field input,
+.modal .field select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  font: inherit;
+}
+.modal .muted,
+.site-side .muted {
+  color: #6b6b6b;
+  font-size: 12px;
+}
+.modal.site-find {
+  width: min(1200px, 94vw);
+  height: min(800px, 90vh);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.site-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.site-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.site-search {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+.site-search input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  font: inherit;
+}
+.site-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.site-map {
+  flex: 1;
+  position: relative;
+  background: #e9eef0;
+}
+.site-map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+}
+.site-side {
+  width: 280px;
+  padding: 14px;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.site-status {
+  font-size: 13px;
+  min-height: 2.6em;
+}
+.site-parcel {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 12px;
+}
+.site-parcel dt {
+  color: #6b6b6b;
+}
+.site-parcel dd {
+  margin: 0;
+}
+.site-topo h3 {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}

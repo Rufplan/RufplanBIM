@@ -15,6 +15,7 @@ use ts_rs::TS;
 
 pub mod handles;
 mod plan_parts;
+pub mod site_plan;
 pub mod snap;
 pub use handles::{
     align_delta, handles, offset_preview, ref_line, Grip, Handles, OffsetPreview, RefLine, TempDim,
@@ -504,6 +505,13 @@ fn plan(
 ) -> [f64; 4] {
     let elev = doc.level_elevation(level).unwrap_or(0.0);
     let cut = elev + if ceiling { RCP_CUT } else { PLAN_CUT };
+    // Site plans show the ground's contours under everything (ADR-023).
+    let site_view = matches!(doc.data(view), Ok(ElementData::View { site: true, .. }));
+    if site_view {
+        if let Some(s) = &model.site {
+            site_plan::contours(b, s);
+        }
+    }
 
     if !ceiling {
         for f in model
@@ -694,7 +702,25 @@ fn plan(
         section_markers(doc, b);
     }
 
+    // The property line: with bearings, distances and north in site plans; plain in the
+    // plans of the lowest level.
+    let lowest = model
+        .levels
+        .iter()
+        .min_by(|a, c| a.elevation.total_cmp(&c.elevation))
+        .map(|l| l.id);
+    let mut site_pts: Vec<Pt> = vec![];
+    if let Some(s) = model.site.as_ref().filter(|_| !ceiling) {
+        if site_view {
+            site_plan::property_line(b, s, true);
+            site_plan::north_arrow(b, s);
+            site_pts.extend(s.boundary.iter().copied());
+        } else if lowest == Some(level) {
+            site_plan::property_line(b, s, false);
+        }
+    }
     let (lo, hi) = plan_extents(model);
+    let (lo, hi) = bounds(&[&[lo, hi][..], &site_pts].concat()).unwrap_or((lo, hi));
     let margin = b.paper(12.0);
     for g in &model.grids {
         grid_in_plan(b, g.id, &g.name, g.start, g.end);
@@ -1799,6 +1825,13 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
     };
     let (zmin, zmax) = model.z_range();
 
+    // The ground line of an elevation, behind the building (ADR-023).
+    if let (Some(s), None) = (&model.site, cut) {
+        let line = site_plan::ground_line(s, &u_of);
+        if line.len() >= 2 {
+            b.line(Some(s.id), &line, false, 4, Dash::Solid);
+        }
+    }
     for f in &faces {
         let r = match &f.poly {
             Some(p) => p.clone(),
@@ -1816,6 +1849,13 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         b.line(Some(f.el), &r, true, 2, Dash::Solid);
         if let Some(kind) = f.detail {
             opening_elevation_detail(b, f.el, kind, f.u0, f.u1, f.z0, f.z1);
+        }
+    }
+    // The ground a section cuts, under the building's cut material.
+    if let (Some(s), Some(c)) = (&model.site, cut) {
+        if let Some(poly) = site_plan::ground_cut(s, origin, right, c.length) {
+            b.fill(Some(s.id), vec![ring(&poly)], FillKind::PocheLight);
+            b.line(Some(s.id), &poly, true, 3, Dash::Solid);
         }
     }
     // Cut material over everything beyond it; layered material is lighter so its layer
@@ -2638,6 +2678,19 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             level: Some(s.base_level),
             positions: s.steps.iter().flat_map(|p| p.triangles()).collect(),
         });
+    }
+    if let Some(s) = &m.site {
+        let positions = s.mesh();
+        if !positions.is_empty() {
+            out.push(Mesh {
+                el: s.id,
+                category: Category::Site,
+                exterior: false,
+                color: Some([184, 196, 160]),
+                level: None,
+                positions,
+            });
+        }
     }
     for c in &m.columns {
         out.push(Mesh {
@@ -4284,5 +4337,123 @@ mod tests {
             .iter()
             .filter(|x| x.category == Category::Wall)
             .all(|x| x.level.is_some()));
+    }
+    #[test]
+    fn site_plan_contours_property_lines_and_ground() {
+        use studio_core::site::{set_lot, set_topo, topo_request, GeoFrame, ParcelInfo};
+        let (mut doc, _, _, _) = roofed_house();
+        let ft = studio_core::units::MM_PER_FT;
+        let ring = [
+            (37.7749, -122.4194),
+            (37.7749, -122.41906),
+            (37.77526, -122.41906),
+            (37.77526, -122.4194),
+        ];
+        let site = set_lot(&mut doc, &ring, ParcelInfo::default()).unwrap();
+        // Put the house near the lot's middle.
+        ops::set_property(&mut doc, site, "offset_e", "20'", 0).unwrap();
+        ops::set_property(&mut doc, site, "offset_n", "15'", 0).unwrap();
+        let (nx, ny, origin, pts) = topo_request(&doc, 5.0 * ft, 10.0 * ft).unwrap();
+        let frame = GeoFrame {
+            lat0: 37.77508,
+            lon0: -122.41923,
+        };
+        let m: Vec<Option<f64>> = pts
+            .iter()
+            .map(|(la, lo)| Some(30.0 + frame.to_local(*la, *lo).y / 10_000.0))
+            .collect();
+        set_topo(&mut doc, (nx, ny, origin), 5.0 * ft, &m, 1.0).unwrap();
+        let sv = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { site: true, .. }))
+            .unwrap()
+            .id;
+        let dl = display_list(&doc, sv).unwrap();
+        let mine: Vec<&Item> = dl.items.iter().filter(|i| i.el == Some(site)).collect();
+        let texts: Vec<String> = mine
+            .iter()
+            .filter_map(|i| match &i.prim {
+                Prim::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            texts
+                .iter()
+                .any(|t| t.starts_with("N ") && t.ends_with(" E") || t.ends_with(" W")),
+            "{texts:?}"
+        );
+        assert!(
+            texts.iter().any(|t| t.ends_with("'")),
+            "distances in decimal feet"
+        );
+        let contour_lines = mine
+            .iter()
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Line {
+                        closed: false,
+                        w: 1 | 2,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert!(contour_lines > 20);
+        assert!(
+            dl.items
+                .iter()
+                .any(|i| matches!(&i.prim, Prim::Text { text, .. } if text == "N")),
+            "north arrow"
+        );
+        // The Level 1 plan shows the property line but no contours.
+        let l1 = doc.levels()[0].0;
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let pl = display_list(&doc, plan).unwrap();
+        assert!(pl.items.iter().any(|i| i.el == Some(site)
+            && matches!(
+                &i.prim,
+                Prim::Line {
+                    closed: true,
+                    dash: Dash::Center,
+                    ..
+                }
+            )));
+        assert!(!pl
+            .items
+            .iter()
+            .any(|i| i.el == Some(site) && matches!(&i.prim, Prim::Line { closed: false, .. })));
+        // A section cuts the ground; an elevation draws its ground line; 3D has the surface.
+        let sec = ops::create_section(
+            &mut doc,
+            Pt::new(-10.0 * ft, 15.0 * ft),
+            Pt::new(50.0 * ft, 15.0 * ft),
+        )
+        .unwrap();
+        let sd = display_list(&doc, sec).unwrap();
+        assert!(sd
+            .items
+            .iter()
+            .any(|i| i.el == Some(site) && matches!(&i.prim, Prim::Fill { .. })));
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::South
+                }
+            )
+        });
+        let ed = display_list(&doc, south).unwrap();
+        assert!(ed
+            .items
+            .iter()
+            .any(|i| i.el == Some(site) && matches!(&i.prim, Prim::Line { w: 4, .. })));
+        assert!(meshes(&doc)
+            .iter()
+            .any(|x| x.category == Category::Site && !x.positions.is_empty()));
     }
 }

@@ -4,6 +4,7 @@ import type { NamedItem } from "./NamedItem";
 import type { ParamDef } from "./ParamDef";
 import type { ProjectStatus } from "./ProjectStatus";
 import type { RufplanLink } from "./RufplanLink";
+import type { SiteSummary } from "./SiteSummary";
 import type { SketchInfo } from "./SketchInfo";
 import type { StageItem } from "./StageItem";
 import type { ViewInfo } from "./ViewInfo";
@@ -35,4 +36,8 @@ paramDefs: Array<ParamDef>,
 /**
  * The boundary sketch in progress, if any.
  */
-sketch: SketchInfo | null, };
+sketch: SketchInfo | null, 
+/**
+ * The site's lot, once found (ADR-023).
+ */
+site: SiteSummary | null, };

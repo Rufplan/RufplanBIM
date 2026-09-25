@@ -532,6 +532,76 @@ pub fn difference(a: &Poly, cut: &[Poly]) -> Vec<Poly> {
         .collect()
 }
 
+/// Axis-aligned bounds of points.
+pub fn bounds_of(pts: &[Pt]) -> Option<(Pt, Pt)> {
+    let first = *pts.first()?;
+    Some(pts.iter().fold((first, first), |(lo, hi), p| {
+        (
+            Pt::new(lo.x.min(p.x), lo.y.min(p.y)),
+            Pt::new(hi.x.max(p.x), hi.y.max(p.y)),
+        )
+    }))
+}
+
+/// Contour segments at height `level` of a grid of values (marching squares). Segments are
+/// in grid coordinates (i, j fractional); `value(i, j)` gives a node's height.
+pub fn contour_segments(
+    nx: usize,
+    ny: usize,
+    value: impl Fn(usize, usize) -> f64,
+    level: f64,
+) -> Vec<[Pt; 2]> {
+    let mut out = vec![];
+    if nx < 2 || ny < 2 {
+        return out;
+    }
+    // Where the level crosses the edge between two nodes.
+    let cross = |a: Pt, va: f64, b: Pt, vb: f64| a.lerp(b, (level - va) / (vb - va));
+    for j in 0..ny - 1 {
+        for i in 0..nx - 1 {
+            // Corners counter-clockwise from the lower left; nudge exact hits off the level.
+            let v = |x: usize, y: usize| {
+                let z = value(x, y);
+                if (z - level).abs() < 1e-9 {
+                    z + 1e-6
+                } else {
+                    z
+                }
+            };
+            let c = [
+                (Pt::new(i as f64, j as f64), v(i, j)),
+                (Pt::new(i as f64 + 1.0, j as f64), v(i + 1, j)),
+                (Pt::new(i as f64 + 1.0, j as f64 + 1.0), v(i + 1, j + 1)),
+                (Pt::new(i as f64, j as f64 + 1.0), v(i, j + 1)),
+            ];
+            let mut hits: Vec<Pt> = vec![];
+            for k in 0..4 {
+                let (a, va) = c[k];
+                let (b, vb) = c[(k + 1) % 4];
+                if (va > level) != (vb > level) {
+                    hits.push(cross(a, va, b, vb));
+                }
+            }
+            match hits.len() {
+                2 => out.push([hits[0], hits[1]]),
+                4 => {
+                    // A saddle: pair by the cell's center value.
+                    let center = (c[0].1 + c[1].1 + c[2].1 + c[3].1) / 4.0;
+                    if (center > level) == (c[0].1 > level) {
+                        out.push([hits[0], hits[3]]);
+                        out.push([hits[1], hits[2]]);
+                    } else {
+                        out.push([hits[0], hits[1]]);
+                        out.push([hits[2], hits[3]]);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    out
+}
+
 /// Convex hull of points (counter-clockwise, Andrew's monotone chain).
 pub fn convex_hull(points: &[Pt]) -> Vec<Pt> {
     let mut p: Vec<Pt> = points.to_vec();

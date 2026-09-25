@@ -172,6 +172,9 @@ interface UiState {
   /** Elevation tool: the mark type to place (its family type decides interior/building). */
   elevationType: ElementId | null;
   setElevationType: (id: ElementId | null) => void;
+  /** Site tab dialog: Find Lot or API Keys (ADR-023). */
+  siteDialog: "find" | "keys" | null;
+  setSiteDialog: (d: "find" | "keys" | null) => void;
   /** 3D view: the ground plane's cyan grid is shown. */
   grid3d: boolean;
   setGrid3d: (on: boolean) => void;
@@ -247,6 +250,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setSketchUi: (patch) => set((s) => ({ sketchUi: { ...s.sketchUi, ...patch } })),
   elevationType: null,
   setElevationType: (elevationType) => set({ elevationType }),
+  siteDialog: null,
+  setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,
   setGrid3d: (grid3d) => set({ grid3d }),
   level3d: null,

@@ -9,6 +9,8 @@ export interface FakeBackend {
   savePath: string | null;
   failWith: string | null;
   state: AppState | null;
+  googleKey: string | null;
+  regrid: boolean;
 }
 
 const ids = {
@@ -80,6 +82,7 @@ export function appState(path: string | null, dirty = false): AppState {
       { id: "00000000-0000-7000-8000-000000000061", name: "Building Elevation" },
     ],
     levelElevations: [0],
+    site: null,
     columnTypes: [{ id: "00000000-0000-7000-8000-000000000025", name: "Steel W10x33" }],
     beamTypes: [{ id: "00000000-0000-7000-8000-000000000026", name: "Steel W12x26" }],
     railingTypes: [{ id: "00000000-0000-7000-8000-000000000027", name: 'Guardrail - 42"' }],
@@ -99,6 +102,8 @@ export function installFakeBackend(): FakeBackend {
     savePath: null,
     failWith: null,
     state: null,
+    googleKey: null,
+    regrid: false,
   };
 
   mockIPC(
@@ -127,6 +132,12 @@ export function installFakeBackend(): FakeBackend {
           return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
         case "handles":
           return { grips: [], dims: [] };
+        case "site_keys":
+          return { googleKey: fake.googleKey, regrid: fake.regrid };
+        case "site_set_keys":
+          if (a.google !== null) fake.googleKey = (a.google as string) || null;
+          if (a.regrid !== null) fake.regrid = !!a.regrid;
+          return { googleKey: fake.googleKey, regrid: fake.regrid };
         case "sketch_begin":
           if (fake.state)
             fake.state = {

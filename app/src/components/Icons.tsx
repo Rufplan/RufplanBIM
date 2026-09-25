@@ -196,6 +196,31 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  mapPin: (
+    <I>
+      <path d="M12 21s-6.5-6.2-6.5-11.2a6.5 6.5 0 0113 0C18.5 14.8 12 21 12 21z" />
+      <circle cx="12" cy="9.8" r="2.4" />
+    </I>
+  ),
+  sitePlan: (
+    <I>
+      <path d="M4 5l7-1 9 3-2 12-12 1z" strokeDasharray="4 1.5 1 1.5" />
+      <path d="M9 10h5v5H9z" fill="currentColor" fillOpacity="0.3" />
+    </I>
+  ),
+  topo: (
+    <I>
+      <path d="M3 17c3-4 6-5 9-3s6 1 9-3" />
+      <path d="M3 12c3-4 6-5 9-3s6 1 9-3" strokeWidth="1.1" />
+      <path d="M3 21c3-3 6-4 9-2s6 1 9-2" strokeWidth="1.1" />
+    </I>
+  ),
+  key: (
+    <I>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M11 12l9-9M16 7l3 3M14 9l2 2" />
+    </I>
+  ),
   elevation: (
     <I>
       <circle cx="12" cy="12" r="4.5" />
