@@ -63,6 +63,7 @@ pub(crate) fn seed_structure_types(tx: &mut Tx<'_>) {
             name: name.into(),
             shape,
             structural,
+            material: None,
         });
     }
     let beams = [
@@ -103,6 +104,7 @@ pub(crate) fn seed_structure_types(tx: &mut Tx<'_>) {
         tx.insert(ElementData::BeamType {
             name: name.into(),
             shape,
+            material: None,
         });
     }
     for (name, h) in [("Guardrail - 42\"", 42.0), ("Handrail - 36\"", 36.0)] {
@@ -338,6 +340,26 @@ fn column_shape_props(shape: &ColumnShape, props: &mut Vec<Property>) {
     }
 }
 
+fn material_row(doc: &Document, material: Option<ElementId>, props: &mut Vec<Property>) {
+    props.push(crate::ops::choice(
+        "material",
+        "Material",
+        "Materials and Finishes",
+        material.map(|m| m.to_string()).unwrap_or_default(),
+        crate::material::options(doc),
+    ));
+}
+
+fn parse_material(doc: &Document, value: &str) -> CoreResult<Option<ElementId>> {
+    if value.is_empty() {
+        return Ok(None);
+    }
+    let id = crate::ops::parse_id(value)?;
+    crate::material::name_of(doc, id)
+        .map(|_| Some(id))
+        .ok_or_else(|| CoreError::Invalid("pick a material".into()))
+}
+
 fn wf_props(depth: f64, flange: f64, flange_t: f64, web_t: f64, props: &mut Vec<Property>) {
     const G: &str = "Dimensions";
     props.push(len("depth", "d (Depth)", G, depth));
@@ -353,13 +375,20 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
             name,
             shape,
             structural,
+            material,
         } => {
             props.push(text("name", "Type Name", "Identity Data", name));
             column_shape_props(shape, props);
             props.push(flag("structural", "Structural", "Structural", *structural));
+            material_row(doc, *material, props);
         }
-        ElementData::BeamType { name, shape } => {
+        ElementData::BeamType {
+            name,
+            shape,
+            material,
+        } => {
             props.push(text("name", "Type Name", "Identity Data", name));
+            material_row(doc, *material, props);
             match shape {
                 BeamShape::Rectangular { width, depth } => {
                     props.push(len("width", "b (Width)", "Dimensions", *width));
@@ -382,8 +411,15 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
             base_offset,
             top,
             rotation,
+            at,
             ..
         } => {
+            props.push(crate::ops::ro(
+                "location_mark",
+                "Column Location Mark",
+                "Identity Data",
+                crate::detail::column_mark(doc, *at),
+            ));
             props.push(level_choice(doc, "base_level", "Base Level", *base_level));
             props.push(len(
                 "base_offset",
@@ -448,8 +484,10 @@ pub(crate) fn set_property(
             name,
             shape,
             structural,
+            material,
         } => match (key, shape) {
             ("name", _) => *name = non_empty(value)?,
+            ("material", _) => *material = parse_material(doc, value)?,
             ("structural", _) => *structural = value == "yes",
             ("width", ColumnShape::Rectangular { width, .. }) => set_dim(width, value)?,
             ("depth", ColumnShape::Rectangular { depth, .. }) => set_dim(depth, value)?,
@@ -460,8 +498,13 @@ pub(crate) fn set_property(
             ("web_t", ColumnShape::WideFlange { web_t, .. }) => set_dim(web_t, value)?,
             _ => return Err(unknown()),
         },
-        ElementData::BeamType { name, shape } => match (key, shape) {
+        ElementData::BeamType {
+            name,
+            shape,
+            material,
+        } => match (key, shape) {
             ("name", _) => *name = non_empty(value)?,
+            ("material", _) => *material = parse_material(doc, value)?,
             ("width", BeamShape::Rectangular { width, .. }) => set_dim(width, value)?,
             ("depth", BeamShape::Rectangular { depth, .. }) => set_dim(depth, value)?,
             ("depth", BeamShape::WideFlange { depth, .. }) => set_dim(depth, value)?,

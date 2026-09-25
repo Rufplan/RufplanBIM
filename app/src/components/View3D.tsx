@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { errorMessage, ipc, type Mesh } from "../ipc";
+import type { SectionBox } from "../bindings/SectionBox";
+import { apply } from "../fileActions";
+import { errorMessage, ipc, type Mesh, type ViewInfo } from "../ipc";
 import { useAppStore } from "../store";
 
 const COLORS = {
@@ -18,57 +20,143 @@ const COLORS = {
   railing: 0x3a3d40,
   selected: 0x3ecff7,
   edge: 0x1c1c1c,
+  box: 0x1aa7d4,
 };
 
-function material(m: Mesh) {
-  const color =
-    m.category === "Wall"
-      ? m.exterior
-        ? COLORS.exteriorWall
-        : COLORS.interiorWall
-      : m.category === "Floor"
-        ? COLORS.floor
-        : m.category === "Door"
-          ? COLORS.door
-          : m.category === "Window"
-            ? COLORS.glass
-            : m.category === "Roof"
-              ? COLORS.roof
-              : m.category === "Stair"
-                ? COLORS.stair
-                : m.category === "Column"
-                  ? m.exterior
-                    ? COLORS.column
-                    : COLORS.exteriorWall
-                  : m.category === "Beam"
-                    ? COLORS.steel
-                    : m.category === "Railing"
-                      ? COLORS.railing
-                      : COLORS.ceiling;
+function categoryColor(m: Mesh): number {
+  switch (m.category) {
+    case "Wall":
+      return m.exterior ? COLORS.exteriorWall : COLORS.interiorWall;
+    case "Floor":
+      return COLORS.floor;
+    case "Door":
+      return COLORS.door;
+    case "Window":
+      return COLORS.glass;
+    case "Roof":
+      return COLORS.roof;
+    case "Stair":
+      return COLORS.stair;
+    case "Column":
+      return m.exterior ? COLORS.column : COLORS.exteriorWall;
+    case "Beam":
+      return COLORS.steel;
+    case "Railing":
+      return COLORS.railing;
+    default:
+      return COLORS.ceiling;
+  }
+}
+
+/** Shaded color: the element's material (ADR-020) when it has one, else by category. */
+export function meshColor(m: Mesh): number {
+  if (m.color && m.category !== "Window" && m.category !== "Ceiling") {
+    const [r, g, b] = m.color;
+    return (r << 16) | (g << 8) | b;
+  }
+  return categoryColor(m);
+}
+
+function material(m: Mesh, planes: THREE.Plane[]) {
   const seeThrough = m.category === "Ceiling" || m.category === "Window";
   return new THREE.MeshLambertMaterial({
-    color,
+    color: meshColor(m),
     transparent: seeThrough,
     opacity: m.category === "Ceiling" ? 0.55 : m.category === "Window" ? 0.45 : 1,
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,
+    clippingPlanes: planes,
   });
 }
 
+/** The six planes keeping what's inside a section box (three.js clips negative distances). */
+export function boxPlanes(b: SectionBox | null): THREE.Plane[] {
+  if (!b) return [];
+  const planes: THREE.Plane[] = [];
+  for (let i = 0; i < 3; i++) {
+    const n = new THREE.Vector3(i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0);
+    planes.push(new THREE.Plane(n.clone(), -b.min[i]!));
+    planes.push(new THREE.Plane(n.clone().negate(), b.max[i]!));
+  }
+  return planes;
+}
+
+/**
+ * Where a drag ray passes closest to the axis through `at` along axis `axis` (0 x, 1 y,
+ * 2 z): the new coordinate for a section box face.
+ */
+export function dragCoordinate(
+  rayOrigin: THREE.Vector3,
+  rayDir: THREE.Vector3,
+  at: THREE.Vector3,
+  axis: number,
+): number {
+  const a = new THREE.Vector3(axis === 0 ? 1 : 0, axis === 1 ? 1 : 0, axis === 2 ? 1 : 0);
+  const d = rayDir.clone().normalize();
+  const w0 = at.clone().sub(rayOrigin);
+  const b = a.dot(d);
+  const denom = 1 - b * b;
+  if (Math.abs(denom) < 1e-6) return at.getComponent(axis);
+  const s = (b * d.dot(w0) - a.dot(w0)) / denom;
+  return at.getComponent(axis) + s;
+}
+
+interface Three {
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  controls: OrbitControls;
+  group: THREE.Group;
+  boxGroup: THREE.Group;
+  fitted: boolean;
+}
+
+/** Wireframe and six face handles of the section box. */
+function drawBox(t: Three, b: SectionBox | null) {
+  for (const child of [...t.boxGroup.children]) {
+    t.boxGroup.remove(child);
+    if (child instanceof THREE.Mesh || child instanceof THREE.LineSegments) {
+      child.geometry.dispose();
+      (child.material as THREE.Material).dispose();
+    }
+  }
+  if (!b) return;
+  const min = new THREE.Vector3(...b.min);
+  const max = new THREE.Vector3(...b.max);
+  const box = new THREE.Box3(min, max);
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(...box.getSize(new THREE.Vector3()).toArray())),
+    new THREE.LineBasicMaterial({ color: COLORS.box }),
+  );
+  edges.position.copy(box.getCenter(new THREE.Vector3()));
+  t.boxGroup.add(edges);
+  const size = box.getSize(new THREE.Vector3()).length() * 0.012;
+  const c = box.getCenter(new THREE.Vector3());
+  for (let axis = 0; axis < 3; axis++) {
+    for (const end of ["min", "max"] as const) {
+      const p = c.clone();
+      p.setComponent(axis, (end === "min" ? min : max).getComponent(axis));
+      const handle = new THREE.Mesh(
+        new THREE.SphereGeometry(size, 16, 12),
+        new THREE.MeshBasicMaterial({ color: COLORS.box }),
+      );
+      handle.position.copy(p);
+      handle.userData = { axis, end };
+      t.boxGroup.add(handle);
+    }
+  }
+}
+
 /** 3D view. Geometry comes from Rust as triangle soup in mm, z-up. */
-export function View3D() {
+export function View3D({ view }: { view: ViewInfo }) {
   const revision = useAppStore((s) => s.app?.revision ?? 0);
   const selection = useAppStore((s) => s.selection);
+  const sectionBox = view.sectionBox;
   const wrapRef = useRef<HTMLDivElement>(null);
-  const three = useRef<{
-    renderer: THREE.WebGLRenderer;
-    scene: THREE.Scene;
-    camera: THREE.PerspectiveCamera;
-    controls: OrbitControls;
-    group: THREE.Group;
-    fitted: boolean;
-  } | null>(null);
+  const three = useRef<Three | null>(null);
+  // The box as shown (updated live while dragging a handle).
+  const boxRef = useRef<SectionBox | null>(sectionBox);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -76,6 +164,7 @@ export function View3D() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.setClearColor(0xf8f8f6);
+    renderer.localClippingEnabled = true;
     wrap.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b8b0, 2.2));
@@ -89,7 +178,9 @@ export function View3D() {
     controls.screenSpacePanning = true;
     const group = new THREE.Group();
     scene.add(group);
-    three.current = { renderer, scene, camera, controls, group, fitted: false };
+    const boxGroup = new THREE.Group();
+    scene.add(boxGroup);
+    three.current = { renderer, scene, camera, controls, group, boxGroup, fitted: false };
 
     let raf = 0;
     const loop = () => {
@@ -106,12 +197,7 @@ export function View3D() {
     });
     ro.observe(wrap);
 
-    // Click (without dragging) selects the element under the cursor.
-    let down: [number, number] | null = null;
-    const onDown = (e: PointerEvent) => (down = [e.clientX, e.clientY]);
-    const onUp = (e: PointerEvent) => {
-      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || e.button !== 0)
-        return;
+    const rayAt = (e: PointerEvent) => {
       const r = renderer.domElement.getBoundingClientRect();
       const ndc = new THREE.Vector2(
         ((e.clientX - r.left) / r.width) * 2 - 1,
@@ -119,17 +205,70 @@ export function View3D() {
       );
       const ray = new THREE.Raycaster();
       ray.setFromCamera(ndc, camera);
-      const hit = ray.intersectObjects(
+      return ray;
+    };
+    // Dragging a section box handle moves that face along its axis.
+    let drag: { axis: number; end: "min" | "max"; at: THREE.Vector3 } | null = null;
+    let down: [number, number] | null = null;
+    const onDown = (e: PointerEvent) => {
+      down = [e.clientX, e.clientY];
+      if (e.button !== 0 || !boxRef.current) return;
+      const hit = rayAt(e).intersectObjects(
+        boxGroup.children.filter((c) => c instanceof THREE.Mesh),
+        false,
+      )[0];
+      if (hit) {
+        const { axis, end } = hit.object.userData as { axis: number; end: "min" | "max" };
+        drag = { axis, end, at: hit.object.position.clone() };
+        controls.enabled = false;
+        renderer.domElement.setPointerCapture(e.pointerId);
+      }
+    };
+    const onMove = (e: PointerEvent) => {
+      const b = boxRef.current;
+      if (!drag || !b) return;
+      const ray = rayAt(e).ray;
+      const v = dragCoordinate(ray.origin, ray.direction, drag.at, drag.axis);
+      const next: SectionBox = { min: [...b.min], max: [...b.max] };
+      // Keep at least 1' between opposite faces.
+      if (drag.end === "min") next.min[drag.axis] = Math.min(v, b.max[drag.axis]! - 304.8);
+      else next.max[drag.axis] = Math.max(v, b.min[drag.axis]! + 304.8);
+      boxRef.current = next;
+      const t = three.current;
+      if (t) {
+        const planes = boxPlanes(next);
+        for (const child of t.group.children) {
+          const mats = (child as THREE.Mesh).material as THREE.Material;
+          if (mats) mats.clippingPlanes = planes;
+        }
+        drawBox(t, next);
+      }
+    };
+    const onUp = (e: PointerEvent) => {
+      if (drag) {
+        drag = null;
+        controls.enabled = true;
+        const b = boxRef.current;
+        if (b) void apply(() => ipc.setSectionBox(view.id, b.min, b.max));
+        return;
+      }
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || e.button !== 0)
+        return;
+      // Click (without dragging) selects the element under the cursor.
+      const hit = rayAt(e).intersectObjects(
         group.children.filter((c) => c instanceof THREE.Mesh),
         false,
       )[0];
       useAppStore.getState().select(hit ? [hit.object.userData.el as string] : []);
     };
     renderer.domElement.addEventListener("pointerdown", onDown);
+    renderer.domElement.addEventListener("pointermove", onMove);
     renderer.domElement.addEventListener("pointerup", onUp);
     useAppStore
       .getState()
-      .setPrompt("Drag to orbit, right-drag to pan, scroll to zoom. Click to select.");
+      .setPrompt(
+        "Drag to orbit, right-drag to pan, scroll to zoom. Click to select. Turn on Section Box in Properties, then drag its handles.",
+      );
 
     return () => {
       cancelAnimationFrame(raf);
@@ -139,10 +278,11 @@ export function View3D() {
       renderer.domElement.remove();
       three.current = null;
     };
-  }, []);
+  }, [view.id]);
 
   useEffect(() => {
     let live = true;
+    boxRef.current = sectionBox;
     ipc.meshes().then(
       (meshes) => {
         const t = three.current;
@@ -154,11 +294,12 @@ export function View3D() {
             (child.material as THREE.Material).dispose();
           }
         }
+        const planes = boxPlanes(sectionBox);
         for (const m of meshes) {
           const geo = new THREE.BufferGeometry();
           geo.setAttribute("position", new THREE.Float32BufferAttribute(m.positions, 3));
           geo.computeVertexNormals();
-          const mesh = new THREE.Mesh(geo, material(m));
+          const mesh = new THREE.Mesh(geo, material(m, planes));
           mesh.userData = {
             el: m.el,
             base: (mesh.material as THREE.MeshLambertMaterial).color.getHex(),
@@ -166,10 +307,11 @@ export function View3D() {
           t.group.add(mesh);
           const edges = new THREE.LineSegments(
             new THREE.EdgesGeometry(geo, 25),
-            new THREE.LineBasicMaterial({ color: COLORS.edge }),
+            new THREE.LineBasicMaterial({ color: COLORS.edge, clippingPlanes: planes }),
           );
           t.group.add(edges);
         }
+        drawBox(t, sectionBox);
         if (!t.fitted && meshes.length > 0) {
           const box = new THREE.Box3().setFromObject(t.group);
           const c = box.getCenter(new THREE.Vector3());
@@ -188,7 +330,7 @@ export function View3D() {
     return () => {
       live = false;
     };
-  }, [revision]);
+  }, [revision, sectionBox]);
 
   useEffect(() => {
     if (three.current) applySelection(three.current.group, selection);

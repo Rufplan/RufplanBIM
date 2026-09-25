@@ -92,9 +92,10 @@ Read these before writing code:
   floors, ceilings; floor plans, ceiling plans, elevations and 3D; Rufplan styling; design
   stages. Editing tools (ADR-017); layered walls, roofs, stairs (ADR-018); columns, beams,
   railings, L/U stairs, stair openings, attached walls, L/T/U roofs, location lines,
-  layered floors/roofs and cut patterns (ADR-019). The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
+  layered floors/roofs and cut patterns (ADR-019); bound floors, room separators,
+  section box, materials, schedules, callouts (ADR-020). The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
 - Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the sample house.
-- M3 met (except the 3D section box); M4 met pending the owner's scale-ruler print check.
+- M3 met; M4 met pending the owner's scale-ruler print check.
 - M5 built (ADR-016): IFC4 export (validated by IfcOpenShell in CI), Rufplan sign-in,
   project link and Publish into Rufplan's existing deliverables (no schema change).
   Owner actions pending: allow-list the Google redirect URL; allow `application/x-step` in
@@ -103,8 +104,11 @@ Read these before writing code:
   Array, Align, Trim/Extend, Offset, Split, Flip), grips, temporary dimensions, typed lengths;
   incremental regeneration with stamp caches (M2's 50 ms target met), category index,
   project parameters; layered wall types, roofs, stairs and crop regions. M1 and M2 are met
-  except binary IPC. Next: room separation lines, floors following walls, non-convex roofs,
-  stair openings, the 3D section box.
+  except binary IPC.
+- Model integrity and detailing (ADR-020): bound floors/ceilings, room separators, 3D
+  section box, column cleanup, materials library, structure/material schedules, column
+  marks and structural tags, callouts. M3 is fully met. Next: sections hatching cut layers,
+  beam/wall cleanup, section box caps, binary IPC.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.

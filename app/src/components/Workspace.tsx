@@ -52,7 +52,7 @@ export function Workspace() {
       <div className="view-area">
         {view ? (
           view.viewType === "ThreeD" ? (
-            <View3D key={view.id} />
+            <View3D key={view.id} view={view} />
           ) : view.viewType === "Schedule" ? (
             <ScheduleView key={view.id} view={view} />
           ) : (

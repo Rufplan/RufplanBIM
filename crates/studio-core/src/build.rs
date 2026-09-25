@@ -286,7 +286,12 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
         } => {
             props.push(text("name", "Type Name", "Identity Data", name));
             props.push(len("thickness", "Thickness", "Construction", *thickness));
-            crate::compound::layer_properties_in(layers, props, crate::compound::GROUP_TOP_DOWN);
+            crate::compound::layer_properties_in(
+                layers,
+                &crate::material::options(doc),
+                props,
+                crate::compound::GROUP_TOP_DOWN,
+            );
         }
         ElementData::Roof {
             level,
@@ -394,7 +399,9 @@ pub(crate) fn set_property(
             layers,
         } => match key {
             k if k.starts_with("layer") => {
-                crate::compound::set_layer_property(layers, *thickness, k, value)?;
+                crate::compound::set_layer_property(layers, *thickness, k, value, &|m| {
+                    crate::material::name_of(doc, m)
+                })?;
                 if !layers.is_empty() {
                     *thickness = layers.iter().map(|l| l.thickness).sum();
                 }

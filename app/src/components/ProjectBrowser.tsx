@@ -63,7 +63,7 @@ export function ProjectBrowser() {
       <div className="panel-body">
         <Section title="Views">
           {VIEW_GROUPS.map(([type, label]) => {
-            const views = app.views.filter((v) => v.viewType === type);
+            const views = app.views.filter((v) => v.viewType === type && v.calloutOf === null);
             if (views.length === 0) return null;
             return (
               <Section key={type} title={label}>
@@ -71,6 +71,13 @@ export function ProjectBrowser() {
               </Section>
             );
           })}
+          {app.views.some((v) => v.calloutOf !== null) && (
+            <Section title="Callouts">
+              {app.views
+                .filter((v) => v.calloutOf !== null)
+                .map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
+            </Section>
+          )}
         </Section>
         <Section title="Sheets">
           <select
@@ -121,6 +128,23 @@ export function ProjectBrowser() {
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
           </Section>
+          {(
+            [
+              ["Roofs", app.roofTypes],
+              ["Structural Columns", app.columnTypes],
+              ["Structural Framing", app.beamTypes],
+              ["Railings", app.railingTypes],
+            ] as const
+          ).map(([title, types]) => (
+            <Section key={title} title={title} start={false}>
+              {types.map((t) => item(t.id, t.name, () => select([t.id]), selection.includes(t.id)))}
+            </Section>
+          ))}
+        </Section>
+        <Section title="Materials" start={false}>
+          {app.materials.map((m) =>
+            item(m.id, m.name, () => select([m.id]), selection.includes(m.id)),
+          )}
         </Section>
         <Section title="Project">
           {app.projectInfo &&

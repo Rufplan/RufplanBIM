@@ -282,15 +282,12 @@ pub fn create_floor(
 ) -> StateResult {
     edit(&window, &state, |s| {
         let level = s.view_level(view)?;
-        let boundary = if boundary.is_empty() {
-            let model = studio_regen::regenerate(s.doc()?);
-            studio_regen::outer_boundary(&model, level).ok_or_else(|| {
-                anyhow::anyhow!("draw walls on this level first, or sketch the floor boundary")
-            })?
+        if boundary.is_empty() {
+            // Pick Walls: the floor keeps following the walls (ADR-020).
+            s.edit(|d| studio_regen::derived::create_floor_by_walls(d, type_id, level))
         } else {
-            boundary
-        };
-        s.edit(|d| ops::create_floor(d, type_id, level, boundary))
+            s.edit(|d| ops::create_floor(d, type_id, level, boundary))
+        }
     })
 }
 
@@ -350,15 +347,13 @@ pub fn create_ceiling(
 ) -> StateResult {
     edit(&window, &state, |s| {
         let level = s.view_level(view)?;
-        let boundary = match inside {
+        match inside {
+            // Auto Room: the ceiling keeps following the room's walls (ADR-020).
             Some(p) => {
-                let model = studio_regen::regenerate(s.doc()?);
-                studio_regen::room_at(&model, level, p)
-                    .ok_or_else(|| anyhow::anyhow!("click inside a room fully enclosed by walls"))?
+                s.edit(|d| studio_regen::derived::create_ceiling_in_room(d, type_id, level, p))
             }
-            None => boundary,
-        };
-        s.edit(|d| ops::create_ceiling(d, type_id, level, boundary))
+            None => s.edit(|d| ops::create_ceiling(d, type_id, level, boundary)),
+        }
     })
 }
 
@@ -379,6 +374,23 @@ pub fn properties(
     let session = lock(&state)?;
     let doc = session.doc()?;
     let mut sheet = ops::properties(doc, id)?;
+    if matches!(
+        sheet.category,
+        studio_core::Category::Floor | studio_core::Category::Ceiling
+    ) {
+        // A floor or ceiling bound to walls takes its area from the model.
+        let model = studio_regen::regenerate(doc);
+        let area: f64 = model
+            .floors
+            .iter()
+            .chain(&model.ceilings)
+            .filter(|s| s.id == id)
+            .map(|s| s.base.area())
+            .sum();
+        if let Some(row) = sheet.properties.iter_mut().find(|p| p.key == "area") {
+            row.value = studio_core::units::format_area_sf(area);
+        }
+    }
     if sheet.category == studio_core::Category::Room {
         // Area and enclosure are derived from the walls, so they come from regeneration.
         let model = studio_regen::regenerate(doc);
@@ -687,7 +699,11 @@ pub fn set_property(
     state: State<'_, SessionState>,
 ) -> StateResult {
     edit(&window, &state, |s| {
-        s.edit(|d| ops::set_property(d, id, &key, &value, now_ms()))
+        if studio_regen::derived::handles(&key, &value) {
+            s.edit(|d| studio_regen::derived::set_property(d, id, &key, &value))
+        } else {
+            s.edit(|d| ops::set_property(d, id, &key, &value, now_ms()))
+        }
     })
 }
 

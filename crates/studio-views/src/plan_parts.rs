@@ -3,7 +3,7 @@
 use super::{clip_line_convex, ring, Anchor, Builder, Dash, FillKind};
 use studio_core::ElementId;
 use studio_geom::{clip_half_plane, Pt};
-use studio_regen::{Hatch, Model, WallSolid};
+use studio_regen::{BeamSolid, ColumnSolid, CutPattern as Hatch, Model, WallSolid};
 
 /// Stairs based on this level (treads up to the cut plane, a break line, and an UP
 /// arrow) and stairs arriving from below (all treads and DN).
@@ -143,8 +143,14 @@ pub(crate) fn stairs_in_plan(b: &mut Builder, model: &Model, level: ElementId, c
 
 /// Columns through the cut plane in poché (lighter for architectural columns), columns
 /// below it as outlines.
-pub(crate) fn columns_in_plan(b: &mut Builder, model: &Model, elev: f64, cut: f64) {
-    for c in &model.columns {
+pub(crate) fn columns_in_plan(
+    b: &mut Builder,
+    model: &Model,
+    elev: f64,
+    cut: f64,
+    joined: &[ElementId],
+) {
+    for c in model.columns.iter().filter(|c| !joined.contains(&c.id)) {
         let el = Some(c.id);
         if c.z0 <= cut && c.z1 > cut {
             let fill = if c.structural {
@@ -303,7 +309,39 @@ fn hatch(
     );
     let thick = (hi - lo).abs();
     let at = |t: f64, o: f64| origin.add(d.scale(t)).add(n.scale(o));
+    // Lines at `angle` to the band, `spacing` apart, clipped to it.
+    let diagonals = |b: &mut Builder, dir: Pt, spacing: f64, dash: Dash| {
+        let across = dir.perp();
+        let (mut lo_s, mut hi_s) = (f64::INFINITY, f64::NEG_INFINITY);
+        for p in band {
+            let s = p.sub(origin).dot(across);
+            lo_s = lo_s.min(s);
+            hi_s = hi_s.max(s);
+        }
+        let mut s = (lo_s / spacing).ceil() * spacing;
+        let mut n_lines = 0;
+        while s < hi_s && n_lines < 4000 {
+            if let Some((p, q)) = clip_line_convex(origin.add(across.scale(s)), dir, band) {
+                b.line(el, &[p, q], false, 1, dash);
+            }
+            s += spacing;
+            n_lines += 1;
+        }
+    };
     match kind {
+        Hatch::None => {}
+        Hatch::Solid => b.fill(el, vec![ring(band)], FillKind::Poche),
+        Hatch::Rigid => {
+            let sp = b.paper(1.2).max(thick / 3.0);
+            diagonals(b, d.add(n).norm(), sp, Dash::Solid);
+            diagonals(b, d.sub(n).norm(), sp, Dash::Solid);
+        }
+        Hatch::Wood => {
+            // A cross per stretch of framing as long as the band is thick.
+            let sp = (thick * std::f64::consts::SQRT_2).max(b.paper(1.0));
+            diagonals(b, d.add(n).norm(), sp, Dash::Solid);
+            diagonals(b, d.sub(n).norm(), sp, Dash::Solid);
+        }
         Hatch::Insulation => {
             // Batt zigzag: one peak per layer thickness.
             let step = thick / 2.0;
@@ -372,4 +410,53 @@ fn hatch(
             }
         }
     }
+}
+
+/// A column tag: its location mark (grid intersection), up and to the right of it.
+pub(crate) fn column_tag(
+    doc: &studio_core::Document,
+    b: &mut Builder,
+    c: &ColumnSolid,
+    el: Option<ElementId>,
+    offset: Pt,
+) {
+    let mark = studio_core::detail::column_mark(doc, c.at);
+    let text = if mark.is_empty() {
+        type_name(doc, c.id)
+    } else {
+        mark
+    };
+    let at = c.at.add(Pt::new(b.paper(4.0), b.paper(4.0))).add(offset);
+    b.text(el, at, text, 2.5, Anchor::Left);
+}
+
+/// A beam tag: its type (the section size) above the beam's middle, along it.
+pub(crate) fn beam_tag(
+    doc: &studio_core::Document,
+    b: &mut Builder,
+    m: &BeamSolid,
+    el: Option<ElementId>,
+    offset: Pt,
+) {
+    let mut d = m.end.sub(m.start).norm();
+    // Read from the bottom or the right, as drawings are.
+    if d.x < -1e-9 || (d.x.abs() <= 1e-9 && d.y < 0.0) {
+        d = d.scale(-1.0);
+    }
+    let mid = m.start.lerp(m.end, 0.5);
+    let at = mid
+        .add(d.perp().scale(m.width / 2.0 + b.paper(2.0)))
+        .add(offset);
+    let name = type_name(doc, m.id);
+    let short = name.strip_prefix("Steel ").unwrap_or(&name).to_owned();
+    b.text_rot(el, at, short, 2.5, Anchor::Center, d.y.atan2(d.x));
+}
+
+fn type_name(doc: &studio_core::Document, id: ElementId) -> String {
+    doc.data(id)
+        .ok()
+        .and_then(|d| d.type_id())
+        .and_then(|t| doc.data(t).ok())
+        .map(|t| t.name())
+        .unwrap_or_default()
 }

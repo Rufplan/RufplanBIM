@@ -13,6 +13,7 @@ pub struct ColumnSolid {
     pub z0: f64,
     pub z1: f64,
     pub structural: bool,
+    pub color: Option<[u8; 3]>,
 }
 
 impl ColumnSolid {
@@ -36,6 +37,7 @@ pub struct BeamSolid {
     pub z_top: f64,
     pub depth: f64,
     pub prisms: Vec<Prism>,
+    pub color: Option<[u8; 3]>,
 }
 
 /// A railing: rails as boxes along 3D segments, balusters and posts as prisms, and its plan
@@ -181,11 +183,15 @@ pub(crate) fn columns(doc: &Document, elev: &dyn Fn(ElementId) -> f64) -> Vec<Co
                 return None;
             };
             let ElementData::ColumnType {
-                shape, structural, ..
+                name,
+                shape,
+                structural,
+                material,
             } = doc.data(*type_id).ok()?
             else {
                 return None;
             };
+            let color = studio_core::material::resolve_type(doc, *material, name).color;
             let z0 = elev(*base_level) + base_offset;
             let z1 = match top {
                 WallTop::UpToLevel { level, offset } => elev(*level) + offset,
@@ -206,6 +212,7 @@ pub(crate) fn columns(doc: &Document, elev: &dyn Fn(ElementId) -> f64) -> Vec<Co
                 z0,
                 z1,
                 structural: *structural,
+                color: Some(color),
             })
         })
         .collect()
@@ -230,9 +237,15 @@ pub(crate) fn beams(doc: &Document, elev: &dyn Fn(ElementId) -> f64) -> Vec<Beam
             else {
                 return None;
             };
-            let ElementData::BeamType { shape, .. } = doc.data(*type_id).ok()? else {
+            let ElementData::BeamType {
+                name,
+                shape,
+                material,
+            } = doc.data(*type_id).ok()?
+            else {
                 return None;
             };
+            let color = studio_core::material::resolve_type(doc, *material, name).color;
             let top = elev(*level) + offset;
             let (prisms, width, depth) = match *shape {
                 BeamShape::Rectangular { width, depth } => (
@@ -280,6 +293,7 @@ pub(crate) fn beams(doc: &Document, elev: &dyn Fn(ElementId) -> f64) -> Vec<Beam
                 z_top: top,
                 depth,
                 prisms,
+                color: Some(color),
             })
         })
         .collect()

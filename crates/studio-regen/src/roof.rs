@@ -35,6 +35,9 @@ pub struct RoofSolid {
     pub layers: Vec<f64>,
     /// Outlines of the other roofs this one intersects (its fascias inside them are hidden).
     pub others: Vec<Vec<Pt>>,
+    /// The top layer's surface pattern (shingle courses) and shaded color.
+    pub surface: studio_core::SurfacePattern,
+    pub color: Option<[u8; 3]>,
 }
 
 impl RoofSolid {
@@ -103,6 +106,8 @@ impl RoofSolid {
             faces,
             layers: vec![],
             others: vec![],
+            surface: studio_core::SurfacePattern::None,
+            color: None,
         }
     }
 

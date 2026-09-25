@@ -7,15 +7,19 @@
 //! joined to it, the rooms on its level). Results are cached by the document's content
 //! stamp, so repeated calls for the same state (every mouse move's snap and pick) are free.
 
+pub mod derived;
 pub mod parts;
 pub mod roof;
+pub mod takeoff;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use studio_core::{
-    Category, Document, DoorFamily, ElementData, ElementId, WallFunction, WallTop, WindowFamily,
+    Category, Document, DoorFamily, ElementData, ElementId, SlabBound, WallFunction, WallTop,
+    WindowFamily,
 };
+pub use studio_core::{CutPattern, SurfacePattern};
 use studio_geom::{clip_half_plane, line_intersection, union_all, Poly, Prism, Pt};
 
 pub use parts::{BeamSolid, ColumnSolid, RailSolid, StairRun, StairSolid};
@@ -45,52 +49,46 @@ pub struct WallSolid {
     /// start, z) points. `z1` is then the highest of them.
     pub top_profile: Option<Vec<(f64, f64)>>,
     /// Layers drawn with a cut pattern: (exterior-side offset, interior-side offset, pattern).
-    pub hatches: Vec<(f64, f64, Hatch)>,
+    pub hatches: Vec<(f64, f64, CutPattern)>,
+    /// Surface patterns of the exterior and interior faces (their finish materials).
+    pub surfaces: (SurfacePattern, SurfacePattern),
+    /// Shaded color (the exterior finish's material), if the type has layers.
+    pub color: Option<[u8; 3]>,
 }
 
-/// Cut patterns for wall layers, chosen from the layer's function and material name.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Hatch {
-    /// Batt insulation zigzag.
-    Insulation,
-    /// Brick, block and stone: diagonal lines.
-    Masonry,
-    /// Concrete: stipple and aggregate.
-    Concrete,
-}
-
-impl Hatch {
-    pub fn of(layer: &studio_core::WallLayer) -> Option<Hatch> {
-        let n = layer.name.to_lowercase();
-        if layer.function == studio_core::LayerFunction::Insulation
-            || n.contains("insulation")
-            || n.contains("batt")
-        {
-            Some(Hatch::Insulation)
-        } else if n.contains("concrete") {
-            Some(Hatch::Concrete)
-        } else if ["brick", "masonry", "cmu", "block", "stone"]
-            .iter()
-            .any(|k| n.contains(k))
-        {
-            Some(Hatch::Masonry)
-        } else {
-            None
-        }
-    }
-}
-
-/// Hatched bands of a layer build-up `width` thick, as offsets from its center.
-fn hatch_bands(layers: &[studio_core::WallLayer], width: f64) -> Vec<(f64, f64, Hatch)> {
+/// Hatched bands of a layer build-up `width` thick, as offsets from its center, from each
+/// layer's material (ADR-020).
+fn hatch_bands(
+    doc: &Document,
+    layers: &[studio_core::WallLayer],
+    width: f64,
+) -> Vec<(f64, f64, CutPattern)> {
     let mut at = width / 2.0;
     let mut out = vec![];
     for l in layers {
-        if let Some(h) = Hatch::of(l) {
-            out.push((at, at - l.thickness, h));
+        let cut = studio_core::material::resolve(doc, l).cut;
+        if cut != CutPattern::None {
+            out.push((at, at - l.thickness, cut));
         }
         at -= l.thickness;
     }
     out
+}
+
+/// Surface patterns of a build-up's first and last layers, and the first one's color.
+fn finishes(
+    doc: &Document,
+    layers: &[studio_core::WallLayer],
+) -> ((SurfacePattern, SurfacePattern), Option<[u8; 3]>) {
+    let m = |l: Option<&studio_core::WallLayer>| l.map(|l| studio_core::material::resolve(doc, l));
+    let (first, last) = (m(layers.first()), m(layers.last()));
+    (
+        (
+            first.as_ref().map_or(SurfacePattern::None, |m| m.surface),
+            last.as_ref().map_or(SurfacePattern::None, |m| m.surface),
+        ),
+        first.map(|m| m.color),
+    )
 }
 
 impl WallSolid {
@@ -175,6 +173,8 @@ pub struct SlabSolid {
     pub z1: f64,
     /// Depths of the boundaries between layers below the top (mm).
     pub layers: Vec<f64>,
+    /// Shaded color of the top layer's material.
+    pub color: Option<[u8; 3]>,
 }
 
 impl SlabSolid {
@@ -441,7 +441,9 @@ struct RawWall {
     exterior: bool,
     layers: Vec<f64>,
     wraps: (f64, f64),
-    hatches: Vec<(f64, f64, Hatch)>,
+    hatches: Vec<(f64, f64, CutPattern)>,
+    surfaces: (SurfacePattern, SurfacePattern),
+    color: Option<[u8; 3]>,
     attach: bool,
     z0: f64,
     z1: f64,
@@ -472,21 +474,23 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
         else {
             continue;
         };
-        let (thickness, exterior, layers, wraps, hatches) = match doc.data(*type_id) {
-            Ok(ElementData::WallType {
-                thickness,
-                function,
-                layers,
-                ..
-            }) => (
-                *thickness,
-                *function == WallFunction::Exterior,
-                studio_core::compound::layer_boundaries(layers, *thickness),
-                (finish_t(layers.first()), finish_t(layers.last())),
-                hatch_bands(layers, *thickness),
-            ),
-            _ => continue,
-        };
+        let (thickness, exterior, layers, wraps, hatches, (surfaces, color)) =
+            match doc.data(*type_id) {
+                Ok(ElementData::WallType {
+                    thickness,
+                    function,
+                    layers,
+                    ..
+                }) => (
+                    *thickness,
+                    *function == WallFunction::Exterior,
+                    studio_core::compound::layer_boundaries(layers, *thickness),
+                    (finish_t(layers.first()), finish_t(layers.last())),
+                    hatch_bands(doc, layers, *thickness),
+                    finishes(doc, layers),
+                ),
+                _ => continue,
+            };
         let z0 = elev(*base_level) + base_offset;
         let z1 = match top {
             WallTop::UpToLevel { level, offset } => elev(*level) + offset,
@@ -505,6 +509,8 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
             layers,
             wraps,
             hatches,
+            surfaces,
+            color,
             attach: *attach_top,
             z0,
             z1,
@@ -568,6 +574,8 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 wraps: w.wraps,
                 top_profile: None,
                 hatches: w.hatches.clone(),
+                surfaces: w.surfaces,
+                color: w.color,
             }
         })
         .collect();
@@ -600,7 +608,28 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
 
     let mut regions = HashMap::new();
     let mut regions_memo = HashMap::new();
-    let mut level_ids: Vec<ElementId> = walls.iter().map(|w| w.level).collect();
+    // Room separation lines bound rooms like hairline walls (ADR-020).
+    let separators: Vec<(ElementId, ElementId, Poly)> = doc
+        .of(Category::RoomSeparator)
+        .filter_map(|e| match &e.data {
+            ElementData::RoomSeparator { level, start, end } => {
+                let d = end.sub(*start).norm();
+                let (a, b) = (start.sub(d.scale(2.0)), end.add(d.scale(2.0)));
+                let n = d.perp().scale(SEPARATOR_WIDTH / 2.0);
+                Some((
+                    e.id,
+                    *level,
+                    Poly::simple(vec![a.sub(n), b.sub(n), b.add(n), a.add(n)]),
+                ))
+            }
+            _ => None,
+        })
+        .collect();
+    let mut level_ids: Vec<ElementId> = walls
+        .iter()
+        .map(|w| w.level)
+        .chain(separators.iter().map(|s| s.1))
+        .collect();
     level_ids.sort();
     level_ids.dedup();
     for level in level_ids {
@@ -608,6 +637,12 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
             .iter()
             .filter(|w| w.level == level)
             .map(|w| (w.id, w.footprint.clone()))
+            .chain(
+                separators
+                    .iter()
+                    .filter(|s| s.1 == level)
+                    .map(|s| (s.0, s.2.clone())),
+            )
             .collect();
         let union = match memo.regions.get(&level) {
             Some((k, u)) if *k == key => u.clone(),
@@ -621,6 +656,36 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
     }
     memo.regions = regions_memo;
 
+    // A bound floor or ceiling takes its outline from the walls as they are now.
+    let outline = |level: ElementId, bound: &SlabBound, stored: &Vec<Pt>| -> Vec<Pt> {
+        let regs = regions.get(&level);
+        let found = match bound {
+            SlabBound::Sketch => None,
+            SlabBound::Walls => regs.and_then(|r| {
+                r.iter()
+                    .max_by(|a, b| {
+                        studio_geom::signed_area(&a.outer)
+                            .abs()
+                            .total_cmp(&studio_geom::signed_area(&b.outer).abs())
+                    })
+                    .map(|p| p.outer.clone())
+            }),
+            SlabBound::Room { point } => regs.and_then(|r| hole_containing(r, *point)),
+        };
+        let mut ring = found.unwrap_or_else(|| stored.clone());
+        if studio_geom::signed_area(&ring) < 0.0 {
+            ring.reverse();
+        }
+        ring
+    };
+    let slab_color = |type_id: ElementId| match doc.data(type_id) {
+        Ok(ElementData::FloorType { layers, .. } | ElementData::CeilingType { layers, .. }) => {
+            layers
+                .first()
+                .map(|l| studio_core::material::resolve(doc, l).color)
+        }
+        _ => None,
+    };
     let slab = |cat: Category| -> Vec<SlabSolid> {
         doc.of(cat)
             .filter_map(|e| match &e.data {
@@ -629,6 +694,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                     level,
                     offset,
                     boundary,
+                    bound,
                 } => {
                     let t = type_thickness(doc, *type_id)?;
                     let top = elev(*level) + offset;
@@ -636,9 +702,10 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         id: e.id,
                         category: cat,
                         level: *level,
-                        base: Poly::simple(boundary.clone()),
+                        base: Poly::simple(outline(*level, bound, boundary)),
                         z0: top - t,
                         z1: top,
+                        color: slab_color(*type_id),
                         layers: type_layer_depths(doc, *type_id),
                     })
                 }
@@ -647,6 +714,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                     level,
                     height,
                     boundary,
+                    bound,
                 } => {
                     let t = type_thickness(doc, *type_id)?;
                     let bottom = elev(*level) + height;
@@ -654,9 +722,10 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         id: e.id,
                         category: cat,
                         level: *level,
-                        base: Poly::simple(boundary.clone()),
+                        base: Poly::simple(outline(*level, bound, boundary)),
                         z0: bottom,
                         z1: bottom + t,
+                        color: slab_color(*type_id),
                         layers: type_layer_depths(doc, *type_id),
                     })
                 }
@@ -676,8 +745,15 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 slope,
                 sloped,
             } => {
-                let thickness = match doc.data(*type_id).ok()? {
-                    ElementData::RoofType { thickness, .. } => *thickness,
+                let (thickness, top) = match doc.data(*type_id).ok()? {
+                    ElementData::RoofType {
+                        thickness, layers, ..
+                    } => (
+                        *thickness,
+                        layers
+                            .first()
+                            .map(|l| studio_core::material::resolve(doc, l)),
+                    ),
                     _ => return None,
                 };
                 let mut r = RoofSolid::build(
@@ -690,6 +766,10 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                     thickness,
                 );
                 r.layers = type_layer_depths(doc, *type_id);
+                if let Some(m) = top {
+                    r.surface = m.surface;
+                    r.color = Some(m.color);
+                }
                 Some(r)
             }
             _ => None,
@@ -937,6 +1017,9 @@ fn wall_pieces(w: &WallSolid, openings: &[&OpeningSolid]) -> Vec<Prism> {
 }
 
 /// Depths below the top of the boundaries between a floor, ceiling or roof type's layers.
+/// Width of the strip a room separation line adds to its level's room regions (mm).
+pub const SEPARATOR_WIDTH: f64 = 1.0;
+
 fn type_layer_depths(doc: &Document, id: ElementId) -> Vec<f64> {
     let layers = match doc.data(id) {
         Ok(ElementData::FloorType { layers, .. })
@@ -1586,6 +1669,41 @@ mod tests {
         let balusters = rail.posts.len() - 4;
         // Every 4": 3000 mm → 29, 2000 mm → 19.
         assert_eq!(balusters, 28 + 18, "every 4\" between the posts");
+        assert!(*regenerate(&doc) == regenerate_full(&doc));
+    }
+    #[test]
+    fn room_separators_split_an_open_plan() {
+        let (mut doc, l1, wt) = project();
+        rectangle(&mut doc, l1, wt);
+        let whole = ops::create_room(&mut doc, l1, Pt::new(1000.0, 1000.0)).unwrap();
+        let area = |doc: &Document, id| {
+            regenerate(doc)
+                .rooms
+                .iter()
+                .find(|r| r.id == id)
+                .map(|r| r.area())
+                .unwrap()
+        };
+        let before = area(&doc, whole);
+        // A line from the south wall to the north wall at 15'.
+        let x = 15.0 * MM_PER_FT;
+        studio_core::detail::create_room_separator(
+            &mut doc,
+            l1,
+            Pt::new(x, 0.0),
+            Pt::new(x, 30.0 * MM_PER_FT),
+        )
+        .unwrap();
+        let east =
+            ops::create_room(&mut doc, l1, Pt::new(30.0 * MM_PER_FT, 10.0 * MM_PER_FT)).unwrap();
+        let (a, b) = (area(&doc, whole), area(&doc, east));
+        let inner_h = 30.0 * MM_PER_FT - 8.0 * MM_PER_IN;
+        // West: from the wall's inner face (4") to the line; the line itself is a hairline.
+        assert!(
+            (a - (x - 4.0 * MM_PER_IN - SEPARATOR_WIDTH / 2.0) * inner_h).abs() < 1.0e4,
+            "{a}"
+        );
+        assert!((a + b + SEPARATOR_WIDTH * inner_h - before).abs() < 1.0e4);
         assert!(*regenerate(&doc) == regenerate_full(&doc));
     }
 }

@@ -369,3 +369,48 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
 - The sample gained a guardrail around the stair opening on Level 2. Its floor is now cut
   by the stair, as is the Living room ceiling.
 
+## ADR-020 Bound floors, room separators, section box, materials, detailing — Accepted (2026-09-24)
+- **Floors and ceilings follow walls:** `Floor.bound` / `Ceiling.bound` (`SlabBound`: Sketch,
+  Walls, Room { point }). Floor: Pick Walls stores `Walls`; the outline is taken from the
+  level's regenerated wall regions (outer faces), so moving, adding or resizing walls
+  reshapes the floor. Ceiling: Auto Room stores the room point and follows that room.
+  The stored boundary is kept as a fallback when the walls go away. Properties show
+  "Boundary: Follows Walls / Sketched". Detaching freezes the current outline (it needs
+  the model, so it's done in `studio_regen::derived`, as is creating bound slabs).
+- **Room separation lines:** `RoomSeparator { level, start, end }`, drawn as a chain (RS).
+  Each adds a 1 mm strip to its level's room regions, so rooms split along it (the strip
+  costs 0.5 mm × length of each room's area). Thin lines in floor plans; snaps.
+- **3D section box:** `View.section_box` (min/max, model mm) on 3D views. Section Box in
+  Properties starts it around the model with a 1' margin; the six faces are editable
+  lengths there, and in 3D the box shows with a handle on each face to drag. Clipping is
+  done by three.js clipping planes (a rendering concern); caps are not drawn.
+- **Column cleanup:** architectural columns cut by the plan and touching a wall join its
+  poché and outline; structural columns stay separate, drawn over the wall.
+- **Materials:** `Material { name, cut, surface, color }` elements, 19 built in. Cut
+  patterns (none, batt, rigid, masonry, concrete, wood, solid) drive plan hatching;
+  surface patterns (lap, running bond, grid presets) draw in elevations on the face
+  toward the viewer (walls: its finish layer; roofs: courses along the slope), aligned to
+  the project origin and skipped when finer than 0.8 mm on paper; colors drive 3D. Layers
+  (`WallLayer.material`) and column/beam types (`material`) reference materials; unlinked
+  layers still resolve by name (so older files draw as before), and files gain the built-in
+  materials, linked by name, on open. A material in use can't be deleted. Edited in
+  Properties (select it in the browser's Materials section; Manage > New Material /
+  Duplicate). IFC layer sets and column/beam materials use the material names.
+- **Schedules:** Structural Column Schedule (location mark, type, base/top level, length),
+  Structural Framing Schedule (type, reference level, length) and a Material Takeoff (area
+  and volume per material across walls, floors, ceilings, roofs, columns and beams; walls
+  by their material volume, so openings and joins count). Older files gain any missing
+  standard schedule.
+- **Structural tags and marks:** Column Location Mark (Revit's "B-2": the grid
+  intersection within 3', letters first) in properties, schedules and column tags. Tag All
+  also tags columns (their mark) and beams (their size along the beam, in the plan below
+  the level they frame).
+- **Callouts (detail views):** a View with `callout_of` (its parent) and a crop, created by
+  drawing a rectangle (CA) in a plan, elevation or section, at 1 1/2" = 1'-0" (new scales
+  1 1/2" and 3" were added). Callouts of sections and elevations follow their parent's cut.
+  The parent shows a rounded boundary and a head with the sheet it's placed on; double-click
+  opens it. Deleting the parent deletes its callouts. Callouts don't get tags automatically.
+- **File format:** new element kinds and `#[serde(default)]` fields only.
+- The sample's floors and ceilings are bound, and a callout of the southwest corner is
+  placed on A3.0.
+

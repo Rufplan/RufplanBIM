@@ -192,6 +192,13 @@ export const ipc = {
     end: Pt,
     location: string,
   ): S => invoke("create_wall_located", { view, typeId, start, end, location }),
+  // Room separators, callouts, the section box and materials (ADR-020).
+  createRoomSeparator: (view: ElementId, start: Pt, end: Pt): S =>
+    invoke("create_room_separator", { view, start, end }),
+  createCallout: (view: ElementId, a: Pt, b: Pt): S => invoke("create_callout", { view, a, b }),
+  setSectionBox: (view: ElementId, min: number[], max: number[]): S =>
+    invoke("set_section_box", { view, min, max }),
+  createMaterial: (from: ElementId | null): S => invoke("create_material", { from }),
   /** Location lines and stair shapes as [id, label] pairs. */
   drawingOptions: () => invoke<[[string, string][], [string, string][]]>("drawing_options"),
   addProjectParameter: (

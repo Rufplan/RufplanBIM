@@ -2,6 +2,7 @@
 
 mod cloud;
 mod commands;
+mod detailing;
 mod editing;
 mod menu;
 mod session;
@@ -101,6 +102,10 @@ pub fn run() -> anyhow::Result<()> {
             structure::attach_wall_tops,
             structure::create_wall_located,
             structure::drawing_options,
+            detailing::create_room_separator,
+            detailing::create_callout,
+            detailing::set_section_box,
+            detailing::create_material,
             editing::add_project_parameter,
             editing::remove_project_parameter,
             cloud::cloud_status,

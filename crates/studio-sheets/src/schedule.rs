@@ -21,6 +21,20 @@ fn name_of(doc: &Document, id: ElementId) -> String {
     doc.data(id).map(|d| d.name()).unwrap_or_default()
 }
 
+/// Type name of an instance.
+fn type_of(doc: &Document, id: ElementId) -> String {
+    doc.data(id)
+        .ok()
+        .and_then(|d| d.type_id())
+        .map(|t| name_of(doc, t))
+        .unwrap_or_default()
+}
+
+/// A volume in cubic feet, e.g. "12.35 CF".
+pub fn format_volume_cf(mm3: f64) -> String {
+    format!("{:.2} CF", mm3 / 304.8f64.powi(3))
+}
+
 /// Level name of a wall-hosted element.
 fn host_level(doc: &Document, host: ElementId) -> String {
     match doc.data(host) {
@@ -127,6 +141,72 @@ pub fn schedule(doc: &Document, view: ElementId) -> Option<Table> {
                 rows.push((number.clone(), id, vec![number, name]));
             }
             vec!["Sheet Number", "Sheet Name"]
+        }
+        ScheduleKind::Columns => {
+            let model = studio_regen::regenerate(doc);
+            for c in &model.columns {
+                let Ok(ElementData::Column { top, .. }) = doc.data(c.id) else {
+                    continue;
+                };
+                let mark = studio_core::detail::column_mark(doc, c.at);
+                let top_level = match top {
+                    studio_core::WallTop::UpToLevel { level, .. } => name_of(doc, *level),
+                    studio_core::WallTop::Unconnected { .. } => "Unconnected".into(),
+                };
+                rows.push((
+                    mark.clone(),
+                    c.id,
+                    vec![
+                        mark,
+                        type_of(doc, c.id),
+                        name_of(doc, c.level),
+                        top_level,
+                        format_ft_in(c.z1 - c.z0),
+                    ],
+                ));
+            }
+            vec![
+                "Column Location Mark",
+                "Type",
+                "Base Level",
+                "Top Level",
+                "Length",
+            ]
+        }
+        ScheduleKind::Beams => {
+            let model = studio_regen::regenerate(doc);
+            for m in &model.beams {
+                let ty = type_of(doc, m.id);
+                rows.push((
+                    format!("{ty} {}", name_of(doc, m.level)),
+                    m.id,
+                    vec![ty, name_of(doc, m.level), format_ft_in(m.start.dist(m.end))],
+                ));
+            }
+            vec!["Type", "Reference Level", "Length"]
+        }
+        ScheduleKind::MaterialTakeoff => {
+            let model = studio_regen::regenerate(doc);
+            for r in studio_regen::takeoff::material_takeoff(doc, &model) {
+                let id = doc
+                    .of(Category::Material)
+                    .find(|e| e.data.name() == r.material)
+                    .map_or(view, |e| e.id);
+                rows.push((
+                    r.material.clone(),
+                    id,
+                    vec![
+                        r.material,
+                        if r.area > 0.0 {
+                            format_area_sf(r.area)
+                        } else {
+                            String::new()
+                        },
+                        format_volume_cf(r.volume),
+                    ],
+                ));
+            }
+            vec!["Material", "Area", "Volume"]
         }
     };
     rows.sort_by(|a, b| ops::natural_cmp(&a.0, &b.0));

@@ -58,6 +58,13 @@ pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) 
     let mut segs: Vec<(Pt, Pt)> = model.walls.iter().map(|w| (w.start, w.end)).collect();
     segs.extend(model.grids.iter().map(|g| (g.start, g.end)));
     segs.extend(model.beams.iter().map(|b| (b.start, b.end)));
+    segs.extend(
+        doc.of(studio_core::Category::RoomSeparator)
+            .filter_map(|e| match &e.data {
+                studio_core::ElementData::RoomSeparator { start, end, .. } => Some((*start, *end)),
+                _ => None,
+            }),
+    );
 
     let mut cands: Vec<(SnapKind, Pt)> = vec![];
     for (a, b) in &segs {

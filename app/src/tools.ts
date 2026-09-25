@@ -33,6 +33,8 @@ export const SHORTCUTS: Record<string, Tool> = {
   SC: "column",
   BM: "beam",
   RA: "railing",
+  RS: "roomSeparator",
+  CA: "callout",
 };
 
 /** Tools that need a plan view (they place elements on the view's level). */
@@ -42,6 +44,7 @@ export const PLAN_TOOLS: Tool[] = [
   "column",
   "beam",
   "railing",
+  "roomSeparator",
   "wall",
   "door",
   "window",
@@ -55,8 +58,16 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (tool === "level") return view === "Elevation" || view === "Section";
   if (tool === "room" || tool === "section" || tool === "stair") return view === "Plan";
-  if (tool === "roof" || tool === "column" || tool === "beam" || tool === "railing")
+  if (
+    tool === "roof" ||
+    tool === "column" ||
+    tool === "beam" ||
+    tool === "railing" ||
+    tool === "roomSeparator"
+  )
     return view === "Plan";
+  if (tool === "callout")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   // Move works in plan coordinates, and on sheets for viewports.
   if (tool === "move") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
   if (tool === "text" && view === "Sheet") return true;
@@ -73,6 +84,7 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     if (tool === "level") return "Open an elevation to place levels.";
     if (tool === "room") return "Open a floor plan to place rooms.";
     if (tool === "section") return "Open a floor plan to draw a section line.";
+    if (tool === "callout") return "Open a plan, elevation or section to draw a callout.";
     if (tool === "dimension" || tool === "text")
       return "Open a plan, elevation or section to annotate.";
     return "Open a floor or ceiling plan to use this tool.";
@@ -120,6 +132,14 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return n === 0
         ? "Click the beam's start. It frames the floor above this plan."
         : "Click the beam's end, or type a length and press Enter.";
+    case "roomSeparator":
+      return n === 0
+        ? "Click the start of a room separation line (for open plans)."
+        : "Click the next point, or type a length and press Enter. Esc finishes.";
+    case "callout":
+      return n === 0
+        ? 'Click one corner of the area to call out at 1 1/2" = 1\'-0".'
+        : "Click the opposite corner.";
     case "railing":
       return n < 2
         ? "Click the railing path's points."

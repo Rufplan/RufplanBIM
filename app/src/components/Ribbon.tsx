@@ -44,6 +44,16 @@ function ToolButton({
   );
 }
 
+/** Creates a material (a copy of `from`) and selects it so Properties can edit it. */
+async function newMaterial(from: string | null) {
+  const before = new Set(useAppStore.getState().app?.materials.map((m) => m.id) ?? []);
+  if (await apply(() => ipc.createMaterial(from))) {
+    const s = useAppStore.getState();
+    const made = s.app?.materials.find((m) => !before.has(m.id));
+    if (made) s.select([made.id]);
+  }
+}
+
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rb-group">
@@ -77,6 +87,10 @@ export function Ribbon() {
   const linked = app?.rufplan ?? null;
   const selection = useAppStore((s) => s.selection);
   const setParamsOpen = useAppStore((s) => s.setParamsOpen);
+  const selectedMaterial =
+    selection.length === 1 && app?.materials.some((m) => m.id === selection[0])
+      ? selection[0]!
+      : null;
   // Drawing views go on one sheet only; schedules can repeat; 3D and sheets can't be placed.
   const placeable = (app?.views ?? []).filter(
     (v) =>
@@ -143,6 +157,12 @@ export function Ribbon() {
             </Group>
             <Group title="Room">
               <ToolButton tool="room" label="Room" icon={Icons.room} keys="RM" />
+              <ToolButton
+                tool="roomSeparator"
+                label="Room Separator"
+                icon={Icons.separator}
+                keys="RS — open plans"
+              />
             </Group>
           </>
         )}
@@ -242,6 +262,12 @@ export function Ribbon() {
                 icon={Icons.section}
                 keys="draw in a plan"
               />
+              <ToolButton
+                tool="callout"
+                label="Callout"
+                icon={Icons.callout}
+                keys="CA — detail view"
+              />
               <button
                 className="rb-btn"
                 onClick={() => view3d && openView(view3d.id)}
@@ -310,6 +336,27 @@ export function Ribbon() {
               </button>
             </Group>
           </>
+        )}
+        {tab === "Manage" && (
+          <Group title="Materials">
+            <button
+              className="rb-btn"
+              onClick={() => void newMaterial(null)}
+              title="Add a material (cut pattern, surface pattern and color); edit it in Properties"
+            >
+              {Icons.material}
+              <span>New Material</span>
+            </button>
+            <button
+              className="rb-btn"
+              onClick={() => void newMaterial(selectedMaterial)}
+              disabled={!selectedMaterial}
+              title="Duplicate the selected material"
+            >
+              {Icons.copy}
+              <span>Duplicate</span>
+            </button>
+          </Group>
         )}
         {tab === "Manage" && (
           <Group title="Settings">

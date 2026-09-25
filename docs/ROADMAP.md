@@ -29,10 +29,14 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   valleys, wall location lines, layered floor and roof types, finish wraps at ends and
   openings, and cut patterns.
 
-**Shortcuts still open** (see ADR-011): JSON display lists; no room separation lines;
-floors/ceilings don't follow moved walls; roofs on non-right-angled, non-convex footprints
-need sketching per face (no straight skeleton); no material library (cut patterns follow
-layer names); column and beam joins aren't cleaned up against walls. (The regeneration
+- Model integrity and detailing (ADR-020): floors and ceilings that follow walls, room
+  separation lines, the 3D section box, column/wall cleanup, a materials library (cut and
+  surface patterns, colors), column/framing schedules and a material takeoff, column
+  location marks and structural tags, and callouts (detail views).
+
+**Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
+non-convex footprints need sketching per face (no straight skeleton); section box has no
+caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration
 graph, parameter map, endpoint dragging and typed lengths landed in ADR-017; layered walls,
 roofs, stairs and crop regions in ADR-018.) Door leaves are thin: select a door by clicking its leaf or swing arc.
 
@@ -80,11 +84,11 @@ T-joins; joins are clean; edit a wall type and see all plans update in < 50 ms f
 - [x] Doors/windows move with host wall; delete with host
 - [x] Floors by sketched boundary or "pick walls"
 - [x] Rooms: place in bounded region; boundary + area computed; name/number params
-- [ ] 3D view in three.js from wall/floor/opening solids; orbit, section box (basic) — *prototype: walls with openings, doors, windows, floors, ceilings; orbit; no section box yet*
+- [x] 3D view in three.js from wall/floor/opening solids; orbit, section box (basic) — *section box with face handles (ADR-020)*
 
 **Acceptance:** a small two-room building with 3 doors, 4 windows, a floor, and 2 rooms;
 moving a wall updates room areas, door positions and the 3D view.
-*Status 2026-09-24: met, and covered by tests (regen room-area test, modify.rs opening tests); the 3D section box is still open.*
+*Status 2026-09-24: met, and covered by tests (regen room-area test, modify.rs opening tests); the 3D section box landed in ADR-020.*
 
 ## M4 — Documents
 - [x] Annotations: door tag, window tag, room tag (name, number, area), aligned dimensions to wall faces/centerlines, text — *tags are elements created on placement (movable, deletable, Tag All); dimension ends attach to walls/grids and follow them (ADR-015)*

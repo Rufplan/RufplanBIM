@@ -10,6 +10,7 @@ fn layer(name: &str, inches: f64, function: LayerFunction) -> WallLayer {
         name: name.into(),
         thickness: inches * MM_PER_IN,
         function,
+        material: None,
     }
 }
 
@@ -126,18 +127,34 @@ const GROUP: &str = "Structure (Exterior to Interior)";
 pub(crate) const GROUP_TOP_DOWN: &str = "Structure (Top to Bottom)";
 
 /// Property rows for editing a wall type's layers.
-pub(crate) fn layer_properties(layers: &[WallLayer], props: &mut Vec<Property>) {
-    layer_properties_in(layers, props, GROUP);
+pub(crate) fn layer_properties(
+    layers: &[WallLayer],
+    materials: &[PropOption],
+    props: &mut Vec<Property>,
+) {
+    layer_properties_in(layers, materials, props, GROUP);
 }
 
 /// Property rows for editing layers, under `group`.
-pub(crate) fn layer_properties_in(layers: &[WallLayer], props: &mut Vec<Property>, group: &str) {
+pub(crate) fn layer_properties_in(
+    layers: &[WallLayer],
+    materials: &[PropOption],
+    props: &mut Vec<Property>,
+    group: &str,
+) {
     let n = layers.len();
     for (i, l) in layers.iter().enumerate() {
         let tag = format!("{}.", i + 1);
+        props.push(choice(
+            &format!("layer:{i}:material"),
+            &format!("{tag} Material"),
+            group,
+            l.material.map(|m| m.to_string()).unwrap_or_default(),
+            materials.to_vec(),
+        ));
         props.push(text(
             &format!("layer:{i}:name"),
-            &format!("{tag} Material"),
+            &format!("{tag} Description"),
             group,
             &l.name,
         ));
@@ -193,6 +210,7 @@ pub(crate) fn set_layer_property(
     width: f64,
     key: &str,
     value: &str,
+    material_name: &dyn Fn(crate::element::ElementId) -> Option<String>,
 ) -> CoreResult<()> {
     let bad = || CoreError::Invalid(format!("unknown property {key}"));
     if key == "layer:add" {
@@ -215,6 +233,15 @@ pub(crate) fn set_layer_property(
     }
     match what {
         "name" => layers[i].name = non_empty(value)?,
+        "material" if value.is_empty() => layers[i].material = None,
+        "material" => {
+            let id = crate::ops::parse_id(value)?;
+            let name =
+                material_name(id).ok_or_else(|| CoreError::Invalid("pick a material".into()))?;
+            // The layer takes the material's name, as in Revit's layer list.
+            layers[i].material = Some(id);
+            layers[i].name = name;
+        }
         "thickness" => {
             let t = parse_len(value)?;
             if t < 0.0 {
@@ -293,19 +320,19 @@ mod tests {
     #[test]
     fn editing_layers() {
         let mut ls = default_layers("Interior - 4 7/8\" Partition");
-        set_layer_property(&mut ls, 0.0, "layer:add", "").unwrap();
+        set_layer_property(&mut ls, 0.0, "layer:add", "", &|_| None).unwrap();
         assert_eq!(ls.len(), 4);
-        set_layer_property(&mut ls, 0.0, "layer:3:thickness", "1/2\"").unwrap();
+        set_layer_property(&mut ls, 0.0, "layer:3:thickness", "1/2\"", &|_| None).unwrap();
         assert!((ls[3].thickness - 12.7).abs() < 1e-9);
-        set_layer_property(&mut ls, 0.0, "layer:3:up", "").unwrap();
+        set_layer_property(&mut ls, 0.0, "layer:3:up", "", &|_| None).unwrap();
         assert!((ls[2].thickness - 12.7).abs() < 1e-9);
-        set_layer_property(&mut ls, 0.0, "layer:0:function", "Air Gap").unwrap();
+        set_layer_property(&mut ls, 0.0, "layer:0:function", "Air Gap", &|_| None).unwrap();
         assert_eq!(ls[0].function, LayerFunction::AirGap);
-        set_layer_property(&mut ls, 0.0, "layer:0:remove", "").unwrap();
+        set_layer_property(&mut ls, 0.0, "layer:0:remove", "", &|_| None).unwrap();
         assert_eq!(ls.len(), 3);
-        assert!(set_layer_property(&mut ls, 0.0, "layer:9:name", "x").is_err());
+        assert!(set_layer_property(&mut ls, 0.0, "layer:9:name", "x", &|_| None).is_err());
         let mut empty = vec![];
-        set_layer_property(&mut empty, 150.0, "layer:add", "").unwrap();
+        set_layer_property(&mut empty, 150.0, "layer:add", "", &|_| None).unwrap();
         assert!((empty[0].thickness - 150.0).abs() < 1e-9);
     }
 

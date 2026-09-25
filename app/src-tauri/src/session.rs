@@ -41,6 +41,10 @@ pub struct ViewInfo {
     pub on_sheet: Option<ElementId>,
     /// For sheets: the design stages whose sets include it.
     pub stages: Vec<ElementId>,
+    /// 3D views: the section box, when on.
+    pub section_box: Option<studio_core::SectionBox>,
+    /// Callouts: the view they detail.
+    pub callout_of: Option<ElementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -78,6 +82,7 @@ pub struct AppState {
     pub column_types: Vec<NamedItem>,
     pub beam_types: Vec<NamedItem>,
     pub railing_types: Vec<NamedItem>,
+    pub materials: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
     pub current_stage: Option<ElementId>,
     pub project_info: Option<ElementId>,
@@ -165,7 +170,12 @@ impl Session {
             .filter(|e| matches!(e.category(), Category::View | Category::Sheet))
             .filter_map(|e| match &e.data {
                 ElementData::View {
-                    name, kind, scale, ..
+                    name,
+                    kind,
+                    scale,
+                    section_box,
+                    callout_of,
+                    ..
                 } => {
                     let (view_type, level) = match kind {
                         ViewKind::FloorPlan { level } => (ViewType::Plan, Some(*level)),
@@ -188,6 +198,8 @@ impl Session {
                         level,
                         on_sheet: placed.get(&e.id).copied(),
                         stages: vec![],
+                        section_box: *section_box,
+                        callout_of: *callout_of,
                     })
                 }
                 ElementData::Sheet { stages, .. } => Some(ViewInfo {
@@ -199,6 +211,8 @@ impl Session {
                     level: None,
                     on_sheet: None,
                     stages: stages.clone(),
+                    section_box: None,
+                    callout_of: None,
                 }),
                 _ => None,
             })
@@ -240,6 +254,7 @@ impl Session {
             column_types: named(Category::ColumnType),
             beam_types: named(Category::BeamType),
             railing_types: named(Category::RailingType),
+            materials: named(Category::Material),
             stages: ops::stages(doc)
                 .into_iter()
                 .map(|(id, name, abbreviation)| StageItem {
@@ -352,6 +367,27 @@ impl Session {
             project.doc.clear_history();
             if !dirty {
                 project.doc.mark_saved();
+            }
+        }
+        {
+            // Saved before materials and the structure and takeoff schedules (ADR-020).
+            let dirty = project.doc.is_dirty();
+            let had = (
+                project.doc.count(Category::Material),
+                project.doc.count(Category::View),
+            );
+            studio_core::material::ensure_materials(&mut project.doc)?;
+            ops::ensure_schedules(&mut project.doc)?;
+            let changed = had
+                != (
+                    project.doc.count(Category::Material),
+                    project.doc.count(Category::View),
+                );
+            if changed {
+                project.doc.clear_history();
+                if !dirty {
+                    project.doc.mark_saved();
+                }
             }
         }
         self.project = Some(project);
@@ -470,12 +506,10 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
         ops::create_window(doc, casement, north2, f(x), true)?;
     }
 
-    let model = studio_regen::regenerate(doc);
     let slab = ops::first_of(doc, Category::FloorType).context("missing floor type")?;
+    // Floors and ceilings follow the walls (ADR-020).
     for level in [l1, l2] {
-        if let Some(b) = studio_regen::outer_boundary(&model, level) {
-            ops::create_floor(doc, slab, level, b)?;
-        }
+        studio_regen::derived::create_floor_by_walls(doc, slab, level)?;
     }
     let act = doc
         .of(Category::CeilingType)
@@ -483,9 +517,7 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
         .map(|e| e.id)
         .context("missing ceiling type")?;
     for p in [ft(8.0, 15.0), ft(28.0, 6.0), ft(28.0, 21.0)] {
-        if let Some(room) = studio_regen::room_at(&model, l1, p) {
-            ops::create_ceiling(doc, act, l1, room)?;
-        }
+        studio_regen::derived::create_ceiling_in_room(doc, act, l1, p)?;
     }
     for (level, x, y, name) in [
         (l1, 8.0, 15.0, "Living"),
@@ -611,6 +643,8 @@ fn build_sample_documents(
     )?;
     // A cross section through the Living room and Kitchen, looking north.
     let section = ops::create_section(doc, ft(-4.0, 18.0), ft(44.0, 18.0))?;
+    // A 1 1/2" callout of the southwest corner: layer wraps and cut patterns (ADR-020).
+    let corner = studio_core::detail::create_callout(doc, plan1, ft(-1.0, -1.0), ft(4.5, 4.5))?;
 
     let schedule = |doc: &Document, kind: ScheduleKind| {
         view_where(
@@ -659,6 +693,7 @@ fn build_sample_documents(
     let sections = ops::create_sheet(doc, "Sections and Schedules", SheetSize::ArchD)?;
     ops::set_property(doc, sections, "number", "A3.0", 0)?;
     ops::place_view(doc, sections, section, p(300.0, 380.0))?;
+    ops::place_view(doc, sections, corner, p(200.0, 170.0))?;
     ops::place_view(
         doc,
         sections,
@@ -725,7 +760,7 @@ mod tests {
         s.new_project("0.0.1").unwrap();
         let state = s.state().unwrap();
         assert_eq!(state.project.name, "Untitled");
-        assert_eq!(state.views.len(), 13);
+        assert_eq!(state.views.len(), 16);
         assert_eq!(state.views[0].view_type, ViewType::Plan);
         assert_eq!(state.levels.len(), 2);
         assert!(state.current_stage.is_some());
@@ -795,6 +830,34 @@ mod tests {
         assert_eq!(doc.count(Category::Roof), 1);
         assert_eq!(doc.count(Category::Stair), 1);
         assert_eq!(doc.count(Category::Railing), 1);
+        // Floors and ceilings follow the walls; a detail callout of the SW corner.
+        assert!(doc.of(Category::Floor).all(|e| matches!(
+            &e.data,
+            ElementData::Floor {
+                bound: studio_core::SlabBound::Walls,
+                ..
+            }
+        )));
+        assert!(doc.of(Category::Ceiling).all(|e| matches!(
+            &e.data,
+            ElementData::Ceiling {
+                bound: studio_core::SlabBound::Room { .. },
+                ..
+            }
+        )));
+        assert_eq!(
+            doc.of(Category::View)
+                .filter(|e| matches!(
+                    &e.data,
+                    ElementData::View {
+                        callout_of: Some(_),
+                        ..
+                    }
+                ))
+                .count(),
+            1
+        );
+        assert!(doc.count(Category::Material) > 10);
         let model = studio_regen::regenerate(doc);
         let upper = model
             .floors

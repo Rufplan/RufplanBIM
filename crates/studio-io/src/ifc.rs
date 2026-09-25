@@ -327,6 +327,17 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             _ => None,
         }
     };
+    // The material of a column's or beam's type.
+    let type_material = |id: ElementId| {
+        let t = doc.data(id).ok().and_then(|d| d.type_id());
+        match t.and_then(|t| doc.data(t).ok()) {
+            Some(
+                ElementData::ColumnType { name, material, .. }
+                | ElementData::BeamType { name, material, .. },
+            ) => studio_core::material::resolve_type(doc, *material, name).name,
+            _ => String::new(),
+        }
+    };
     let type_name = |id: ElementId| {
         doc.data(id)
             .ok()
@@ -603,7 +614,7 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             s(&ty)
         ));
         contained.entry(storey).or_default().push(e);
-        materials.entry(ty).or_default().push(e);
+        materials.entry(type_material(col.id)).or_default().push(e);
         let lb = w.add(format!(
             "IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN({}),$)",
             if col.structural { ".T." } else { ".F." }
@@ -637,7 +648,7 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             s(&ty)
         ));
         contained.entry(storey).or_default().push(e);
-        materials.entry(ty).or_default().push(e);
+        materials.entry(type_material(beam.id)).or_default().push(e);
         summary.beams += 1;
     }
     for rail in &model.railings {
@@ -762,11 +773,13 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         };
         let mut ls = vec![];
         for l in layers {
-            let m = match layer_materials.get(&l.name) {
+            // The layer's material (ADR-020), so every layer of one material shares it.
+            let mname = studio_core::material::resolve(doc, l).name;
+            let m = match layer_materials.get(&mname) {
                 Some(m) => *m,
                 None => {
-                    let m = w.add(format!("IFCMATERIAL({},$,$)", s(&l.name)));
-                    layer_materials.insert(l.name.clone(), m);
+                    let m = w.add(format!("IFCMATERIAL({},$,$)", s(&mname)));
+                    layer_materials.insert(mname.clone(), m);
                     m
                 }
             };
@@ -985,6 +998,8 @@ mod tests {
             ".HANDRAIL.",
             "IFCARBITRARYPROFILEDEFWITHVOIDS(",
             "'Wood Joist Floor",
+            "IFCMATERIAL('Structural Steel'",
+            "IFCMATERIAL('Batt Insulation'",
         ] {
             assert!(ifc.contains(entity), "missing {entity}");
         }

@@ -56,6 +56,66 @@ mod tests {
     }
 
     #[test]
+    fn structure_and_material_schedules() {
+        let (mut doc, _, _) = project();
+        let l1 = doc.levels()[0].0;
+        let l2 = doc.levels()[1].0;
+        let ft = MM_PER_FT;
+        let g = ops::create_grid(
+            &mut doc,
+            Pt::new(4.0 * ft, -5.0 * ft),
+            Pt::new(4.0 * ft, 20.0 * ft),
+        )
+        .unwrap();
+        ops::set_property(&mut doc, g, "name", "2", 0).unwrap();
+        let a = ops::create_grid(
+            &mut doc,
+            Pt::new(-5.0 * ft, 8.0 * ft),
+            Pt::new(20.0 * ft, 8.0 * ft),
+        )
+        .unwrap();
+        ops::set_property(&mut doc, a, "name", "C", 0).unwrap();
+        let named = |doc: &Document, cat: Category, n: &str| {
+            doc.of(cat)
+                .find(|e| e.data.name().starts_with(n))
+                .unwrap()
+                .id
+        };
+        let ct = named(&doc, Category::ColumnType, "Steel W10");
+        studio_core::structure::create_column(&mut doc, ct, l1, Pt::new(4.0 * ft, 8.0 * ft), 0.0)
+            .unwrap();
+        let bt = named(&doc, Category::BeamType, "Glulam");
+        studio_core::structure::create_beam(
+            &mut doc,
+            bt,
+            l2,
+            Pt::new(0.0, 8.0 * ft),
+            Pt::new(12.0 * ft, 8.0 * ft),
+        )
+        .unwrap();
+        let c = schedule(&doc, schedule_view(&doc, "Structural Column Schedule")).unwrap();
+        assert_eq!(
+            c.rows,
+            [vec!["C-2", "Steel W10x33", "Level 1", "Level 2", "10'-0\""]]
+        );
+        let b = schedule(&doc, schedule_view(&doc, "Structural Framing Schedule")).unwrap();
+        assert_eq!(
+            b.rows,
+            [vec!["Glulam - 5 1/8\" x 12\"", "Level 2", "12'-0\""]]
+        );
+        let m = schedule(&doc, schedule_view(&doc, "Material Takeoff")).unwrap();
+        assert_eq!(m.columns, ["Material", "Area", "Volume"]);
+        let row = |n: &str| m.rows.iter().find(|r| r[0] == n).cloned().unwrap();
+        // The glulam beam: 5 1/8" × 12" × 12' = 5.125 CF, volume only.
+        assert_eq!(row("Glulam"), ["Glulam", "", "5.13 CF"]);
+        assert!(row("Structural Steel")[2].ends_with(" CF"));
+        assert!(
+            !row("Gypsum Board")[1].is_empty(),
+            "wall finishes have area"
+        );
+    }
+
+    #[test]
     fn door_schedule_lists_doors() {
         let (doc, _, _) = project();
         let t = schedule(&doc, schedule_view(&doc, "Door Schedule")).unwrap();

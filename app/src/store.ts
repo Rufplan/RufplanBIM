@@ -17,6 +17,8 @@ export type Tool =
   | "column"
   | "beam"
   | "railing"
+  | "roomSeparator"
+  | "callout"
   | "dimension"
   | "text"
   | "section"
@@ -47,6 +49,8 @@ export const TOOL_LABELS: Record<Tool, string> = {
   column: "Column",
   beam: "Beam",
   railing: "Railing",
+  roomSeparator: "Room Separator",
+  callout: "Callout",
   select: "Select",
   room: "Room",
   move: "Move",

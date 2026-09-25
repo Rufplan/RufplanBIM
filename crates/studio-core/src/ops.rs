@@ -7,7 +7,7 @@ use ts_rs::TS;
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
     Anchor, Category, Compass, CropBox, DoorFamily, ElementData, ElementId, LocationLine,
-    RufplanLink, ScheduleKind, SheetSize, StageChange, ViewKind, WallFunction, WallTop,
+    RufplanLink, ScheduleKind, SheetSize, SlabBound, StageChange, ViewKind, WallFunction, WallTop,
     WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
@@ -29,6 +29,8 @@ pub const SCALES: &[(u32, &str)] = &[
     (24, "1/2\" = 1'-0\""),
     (16, "3/4\" = 1'-0\""),
     (12, "1\" = 1'-0\""),
+    (8, "1 1/2\" = 1'-0\""),
+    (4, "3\" = 1'-0\""),
 ];
 
 pub fn scale_label(scale: u32) -> String {
@@ -89,6 +91,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
         }
         seed_opening_types(tx);
         crate::structure::seed_structure_types(tx);
+        crate::material::seed_materials(tx);
         for (facing, name) in [
             (Compass::North, "North"),
             (Compass::South, "South"),
@@ -195,6 +198,9 @@ const SCHEDULES: &[(ScheduleKind, &str)] = &[
     (ScheduleKind::Windows, "Window Schedule"),
     (ScheduleKind::Rooms, "Room Schedule"),
     (ScheduleKind::Sheets, "Sheet Index"),
+    (ScheduleKind::Columns, "Structural Column Schedule"),
+    (ScheduleKind::Beams, "Structural Framing Schedule"),
+    (ScheduleKind::MaterialTakeoff, "Material Takeoff"),
 ];
 
 fn seed_schedules(tx: &mut Tx<'_>) {
@@ -207,22 +213,31 @@ fn seed_schedules(tx: &mut Tx<'_>) {
     }
 }
 
-/// Adds the standard schedules to a project that has none (files from before M4).
+/// Adds any standard schedule the project doesn't have yet (files from before M4, and
+/// the structure and material schedules of ADR-020).
 pub fn ensure_schedules(doc: &mut Document) -> CoreResult<()> {
-    let has = doc.iter().any(|e| {
-        matches!(
-            &e.data,
+    let has: Vec<ScheduleKind> = doc
+        .of(Category::View)
+        .filter_map(|e| match &e.data {
             ElementData::View {
-                kind: ViewKind::Schedule { .. },
+                kind: ViewKind::Schedule { kind },
                 ..
-            }
-        )
-    });
-    if has {
+            } => Some(*kind),
+            _ => None,
+        })
+        .collect();
+    let missing: Vec<(ScheduleKind, &str)> = SCHEDULES
+        .iter()
+        .filter(|(k, _)| !has.contains(k))
+        .copied()
+        .collect();
+    if missing.is_empty() {
         return Ok(());
     }
     doc.transact("Add schedules", |tx| {
-        seed_schedules(tx);
+        for (kind, name) in missing {
+            tx.insert(ElementData::view(name, ViewKind::Schedule { kind }, 1));
+        }
         Ok(())
     })
 }
@@ -783,7 +798,72 @@ pub fn create_floor(
             level,
             offset: 0.0,
             boundary: ccw(boundary),
+            bound: SlabBound::Sketch,
         }))
+    })
+}
+
+/// A floor whose boundary follows the outer faces of its level's walls (Floor: Pick
+/// Walls). `boundary` is their current outline, kept in case the walls go away.
+pub fn create_floor_by_walls(
+    doc: &mut Document,
+    type_id: ElementId,
+    level: ElementId,
+    boundary: Vec<Pt>,
+) -> CoreResult<ElementId> {
+    doc.transact("Create floor", |tx| {
+        Ok(tx.insert(ElementData::Floor {
+            type_id,
+            level,
+            offset: 0.0,
+            boundary: ccw(boundary),
+            bound: SlabBound::Walls,
+        }))
+    })
+}
+
+/// A ceiling that follows the room enclosing `inside` (Ceiling: Auto Room).
+pub fn create_ceiling_in_room(
+    doc: &mut Document,
+    type_id: ElementId,
+    level: ElementId,
+    boundary: Vec<Pt>,
+    inside: Pt,
+) -> CoreResult<ElementId> {
+    doc.transact("Create ceiling", |tx| {
+        Ok(tx.insert(ElementData::Ceiling {
+            type_id,
+            level,
+            height: DEFAULT_CEILING_HEIGHT,
+            boundary: ccw(boundary),
+            bound: SlabBound::Room { point: inside },
+        }))
+    })
+}
+
+/// Sets where a floor's or ceiling's boundary comes from. Detaching (`Sketch`) passes the
+/// shape it currently has, so it stays put.
+pub fn set_slab_bound(
+    doc: &mut Document,
+    id: ElementId,
+    to: SlabBound,
+    boundary: Option<Vec<Pt>>,
+) -> CoreResult<()> {
+    doc.transact("Change boundary", |tx| {
+        tx.modify(id, |d| match d {
+            ElementData::Floor {
+                bound, boundary: b, ..
+            }
+            | ElementData::Ceiling {
+                bound, boundary: b, ..
+            } => {
+                *bound = to;
+                if let Some(nb) = boundary {
+                    *b = ccw(nb);
+                }
+            }
+            _ => {}
+        })
     })
 }
 
@@ -799,6 +879,7 @@ pub fn create_ceiling(
             level,
             height: DEFAULT_CEILING_HEIGHT,
             boundary: ccw(boundary),
+            bound: SlabBound::Sketch,
         }))
     })
 }
@@ -852,13 +933,30 @@ fn target_level(tx: &Tx<'_>, target: ElementId) -> Option<ElementId> {
             tx.data(*host).ok()?.level()
         }
         ElementData::Room { level, .. } => Some(*level),
+        ElementData::Column { base_level, .. } => Some(*base_level),
+        // Beams frame the floor above the plan they're tagged in (seen overhead there).
+        ElementData::Beam { level, .. } => {
+            let z = tx.data(*level).ok().and_then(|d| match d {
+                ElementData::Level { elevation, .. } => Some(*elevation),
+                _ => None,
+            })?;
+            tx.of(Category::Level)
+                .filter_map(|e| match &e.data {
+                    ElementData::Level { elevation, .. } if *elevation < z - 1.0 => {
+                        Some((*elevation, e.id))
+                    }
+                    _ => None,
+                })
+                .max_by(|a, b| a.0.total_cmp(&b.0))
+                .map_or(Some(*level), |l| Some(l.1))
+        }
         _ => None,
     }
 }
 
 fn plan_views_of(tx: &Tx<'_>, level: ElementId) -> Vec<ElementId> {
     tx.iter()
-        .filter(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level: l }, .. } if *l == level))
+        .filter(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level: l }, callout_of: None, .. } if *l == level))
         .map(|e| e.id)
         .collect()
 }
@@ -903,7 +1001,11 @@ pub fn tag_all(doc: &mut Document, view: ElementId) -> CoreResult<usize> {
             .filter(|e| {
                 matches!(
                     e.category(),
-                    Category::Door | Category::Window | Category::Room
+                    Category::Door
+                        | Category::Window
+                        | Category::Room
+                        | Category::Column
+                        | Category::Beam
                 )
             })
             .map(|e| e.id)
@@ -1005,6 +1107,16 @@ pub fn delete(doc: &mut Document, ids: &[ElementId]) -> CoreResult<usize> {
             return Err(CoreError::Invalid(
                 "project information can't be deleted".into(),
             ));
+        }
+        if matches!(doc.data(*id)?, ElementData::Material { .. }) {
+            let n = crate::material::uses(doc, *id);
+            if n > 0 {
+                return Err(CoreError::Invalid(format!(
+                    "{} is used by {n} type{}; pick another material for its layers first",
+                    doc.data(*id)?.name(),
+                    if n == 1 { "" } else { "s" }
+                )));
+            }
         }
         if matches!(doc.data(*id)?, ElementData::View { .. }) && doc.of(Category::View).count() <= 1
         {
@@ -1186,6 +1298,30 @@ pub(crate) fn level_options(doc: &Document) -> Vec<PropOption> {
 }
 
 /// Properties of an element for the properties panel.
+fn bound_row(bound: SlabBound, attached: &str, label: &str) -> Property {
+    choice(
+        "bound",
+        "Boundary",
+        "Constraints",
+        match bound {
+            SlabBound::Sketch => "sketch",
+            SlabBound::Walls => "walls",
+            SlabBound::Room { .. } => "room",
+        }
+        .into(),
+        vec![
+            PropOption {
+                id: attached.into(),
+                label: label.into(),
+            },
+            PropOption {
+                id: "sketch".into(),
+                label: "Sketched".into(),
+            },
+        ],
+    )
+}
+
 pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
     let el = doc.get(id).ok_or(CoreError::NotFound(id))?;
     let mut props = vec![];
@@ -1211,7 +1347,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         } => {
             props.push(text("name", "Type Name", "Identity Data", name));
             props.push(len("thickness", "Width", "Construction", *thickness));
-            crate::compound::layer_properties(layers, &mut props);
+            crate::compound::layer_properties(layers, &crate::material::options(doc), &mut props);
             props.push(choice(
                 "function",
                 "Function",
@@ -1314,6 +1450,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             props.push(len("thickness", "Thickness", "Construction", *thickness));
             crate::compound::layer_properties_in(
                 layers,
+                &crate::material::options(doc),
                 &mut props,
                 crate::compound::GROUP_TOP_DOWN,
             );
@@ -1337,6 +1474,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 "Constraints",
                 *offset,
             ));
+            if let ElementData::Floor { bound, .. } = &el.data {
+                props.push(bound_row(*bound, "walls", "Follows Walls"));
+            }
             props.push(ro(
                 "area",
                 "Area",
@@ -1363,6 +1503,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 "Constraints",
                 *height,
             ));
+            if let ElementData::Ceiling { bound, .. } = &el.data {
+                props.push(bound_row(*bound, "room", "Follows Room"));
+            }
             props.push(ro(
                 "area",
                 "Area",
@@ -1376,8 +1519,35 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             scale,
             crop,
             show_crop,
+            section_box,
+            callout_of,
         } => {
             props.push(text("name", "View Name", "Identity Data", name));
+            if let Some(parent) = callout_of {
+                props.push(ro(
+                    "callout_of",
+                    "Callout Of",
+                    "Identity Data",
+                    doc.data(*parent).map(|d| d.name()).unwrap_or_default(),
+                ));
+            }
+            if matches!(kind, ViewKind::ThreeD) {
+                props.push(flag(
+                    "section_box",
+                    "Section Box",
+                    "Extents",
+                    section_box.is_some(),
+                ));
+                if let Some(b) = section_box {
+                    for (i, (lo, hi)) in [("West", "East"), ("South", "North"), ("Bottom", "Top")]
+                        .iter()
+                        .enumerate()
+                    {
+                        props.push(len(&format!("box_min_{i}"), lo, "Extents", b.min[i]));
+                        props.push(len(&format!("box_max_{i}"), hi, "Extents", b.max[i]));
+                    }
+                }
+            }
             // Schedules have no drawing scale.
             if !matches!(kind, ViewKind::Schedule { .. }) {
                 props.push(choice(
@@ -1759,6 +1929,22 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         | ElementData::RailingType { .. } => {
             crate::structure::properties(doc, id, &mut props);
         }
+        ElementData::Material { .. } => crate::material::properties(doc, id, &mut props),
+        ElementData::RoomSeparator { level, start, end } => {
+            props.push(choice(
+                "level",
+                "Level",
+                "Constraints",
+                level.to_string(),
+                level_options(doc),
+            ));
+            props.push(ro(
+                "length",
+                "Length",
+                "Dimensions",
+                format_ft_in(start.dist(*end)),
+            ));
+        }
     }
     crate::params::param_properties(doc, id, &mut props);
     Ok(PropertySheet {
@@ -1801,6 +1987,9 @@ pub fn set_property(
     ) {
         return crate::build::set_property(doc, id, key, value);
     }
+    if matches!(data, ElementData::Material { .. }) {
+        return crate::material::set_property(doc, id, key, value);
+    }
     if matches!(
         data,
         ElementData::Column { .. }
@@ -1831,7 +2020,9 @@ pub fn set_property(
             layers,
         } => match key {
             k if k.starts_with("layer") => {
-                crate::compound::set_layer_property(layers, *thickness, k, value)?;
+                crate::compound::set_layer_property(layers, *thickness, k, value, &|m| {
+                    crate::material::name_of(doc, m)
+                })?;
                 if !layers.is_empty() {
                     *thickness = layers.iter().map(|l| l.thickness).sum();
                 }
@@ -1862,7 +2053,9 @@ pub fn set_property(
             layers,
         } => match key {
             k if k.starts_with("layer") => {
-                crate::compound::set_layer_property(layers, *thickness, k, value)?;
+                crate::compound::set_layer_property(layers, *thickness, k, value, &|m| {
+                    crate::material::name_of(doc, m)
+                })?;
                 if !layers.is_empty() {
                     *thickness = layers.iter().map(|l| l.thickness).sum();
                 }
@@ -1926,22 +2119,33 @@ pub fn set_property(
             type_id,
             level,
             offset,
+            bound,
             ..
         } => match key {
             "type" => *type_id = parse_id(value)?,
             "level" => *level = parse_id(value)?,
             "offset" => *offset = parse_len(value)?,
+            // Detaching needs the current outline: see studio_regen::derived.
+            "bound" if value == "walls" => *bound = SlabBound::Walls,
             _ => return Err(unknown()),
         },
         ElementData::Ceiling {
             type_id,
             level,
             height,
-            ..
+            bound,
+            boundary,
         } => match key {
             "type" => *type_id = parse_id(value)?,
             "level" => *level = parse_id(value)?,
             "height" => *height = parse_len(value)?,
+            "bound" if value == "room" => {
+                let n = boundary.len().max(1) as f64;
+                let c = boundary.iter().fold(Pt::default(), |a, p| a.add(*p));
+                *bound = SlabBound::Room {
+                    point: c.scale(1.0 / n),
+                }
+            }
             _ => return Err(unknown()),
         },
         ElementData::View {
@@ -1950,8 +2154,25 @@ pub fn set_property(
             kind,
             crop,
             show_crop,
+            section_box,
+            ..
         } => match key {
             "name" => *name = non_empty(value)?,
+            // Turning the box on needs the model's extents: see studio_regen::derived.
+            "section_box" if value != "yes" => *section_box = None,
+            k if k.starts_with("box_") => {
+                let b = section_box
+                    .as_mut()
+                    .ok_or_else(|| CoreError::Invalid("turn on the section box first".into()))?;
+                let v = parse_len(value)?;
+                let (end, axis) = k[4..].split_once('_').ok_or_else(unknown)?;
+                let i: usize = axis.parse().map_err(|_| unknown())?;
+                match (end, i) {
+                    ("min", 0..=2) => b.min[i] = v,
+                    ("max", 0..=2) => b.max[i] = v,
+                    _ => return Err(unknown()),
+                }
+            }
             "crop" => {
                 *crop = if value == "yes" {
                     Some(crop.unwrap_or(CropBox {
@@ -2107,7 +2328,9 @@ pub fn set_property(
         | ElementData::Beam { .. }
         | ElementData::BeamType { .. }
         | ElementData::Railing { .. }
-        | ElementData::RailingType { .. } => return Err(unknown()),
+        | ElementData::RailingType { .. }
+        | ElementData::Material { .. }
+        | ElementData::RoomSeparator { .. } => return Err(unknown()),
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {
@@ -2290,8 +2513,8 @@ mod tests {
         let doc = seeded();
         assert_eq!(doc.levels().len(), 2);
         assert_eq!(doc.of(Category::WallType).count(), 4);
-        // 2 levels × (plan + RCP) + 4 elevations + 3D + 4 schedules.
-        assert_eq!(doc.of(Category::View).count(), 13);
+        // 2 levels × (plan + RCP) + 4 elevations + 3D + 7 schedules.
+        assert_eq!(doc.of(Category::View).count(), 16);
         assert_eq!(stages(&doc).len(), 6);
         let info = project_info(&doc).unwrap();
         let sheet = properties(&doc, info).unwrap();
@@ -2390,9 +2613,9 @@ mod tests {
         let mut doc = seeded();
         let l3 = create_level(&mut doc, 2.0 * DEFAULT_FLOOR_TO_FLOOR).unwrap();
         assert_eq!(doc.data(l3).unwrap().name(), "Level 3");
-        assert_eq!(doc.of(Category::View).count(), 15);
+        assert_eq!(doc.of(Category::View).count(), 18);
         delete(&mut doc, &[l3]).unwrap();
-        assert_eq!(doc.of(Category::View).count(), 13);
+        assert_eq!(doc.of(Category::View).count(), 16);
     }
 
     fn wall_and_types(doc: &mut Document) -> (ElementId, ElementId, ElementId) {
@@ -2524,7 +2747,7 @@ mod tests {
                     }
                 ))
                 .count(),
-            4
+            7
         );
         let s = create_section(&mut doc, Pt::new(0.0, 0.0), Pt::new(5000.0, 0.0)).unwrap();
         assert_eq!(doc.data(s).unwrap().name(), "Section 1");

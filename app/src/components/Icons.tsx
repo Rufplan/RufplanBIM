@@ -196,6 +196,25 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  separator: (
+    <I>
+      <path d="M3 4h18v16H3z" strokeWidth="1.6" />
+      <path d="M12 4v16" strokeWidth="1" strokeDasharray="2 1.5" />
+    </I>
+  ),
+  callout: (
+    <I>
+      <rect x="3" y="7" width="12" height="12" rx="3" />
+      <path d="M15 7l3-3" />
+      <circle cx="19.5" cy="3.8" r="2.3" />
+    </I>
+  ),
+  material: (
+    <I>
+      <path d="M4 4h16v16H4z" />
+      <path d="M4 12l8-8M4 20L20 4M12 20l8-8" strokeWidth="1.1" />
+    </I>
+  ),
   stair: (
     <I>
       <path d="M3 20h4v-4h4v-4h4V8h4V4" strokeWidth="1.8" />

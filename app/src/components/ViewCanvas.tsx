@@ -70,7 +70,18 @@ function useLatest<A extends unknown[]>(fn: (...args: A) => Promise<void>) {
 }
 
 /** Tools whose next point can be typed as a distance (or, for Rotate, an angle). */
-const TYPED_TOOLS = ["wall", "grid", "move", "copy", "array", "rotate", "stair", "beam", "railing"];
+const TYPED_TOOLS = [
+  "wall",
+  "grid",
+  "move",
+  "copy",
+  "array",
+  "rotate",
+  "stair",
+  "beam",
+  "railing",
+  "roomSeparator",
+];
 
 interface Editor {
   /** Typing a length (or angle) for the next point, or a temporary dimension's value. */
@@ -165,16 +176,21 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       if (drawing) {
         const sn = snapRef.current;
         // A rubber band from the placed points (Rotate: center and reference ray).
+        const a = pts.current[0];
+        const c = sn?.pt;
+        // A callout previews as its rectangle.
+        const rect =
+          s.tool === "callout" && a && c ? [a, { x: c.x, y: a.y }, c, { x: a.x, y: c.y }] : null;
         drawOverlay(
           ctx,
           cam.current,
           w,
           h,
-          pts.current,
-          sn?.pt ?? null,
+          rect ?? pts.current,
+          rect ? null : (sn?.pt ?? null),
           sn?.kind ?? null,
           sn?.label ?? null,
-          s.tool === "floor" || s.tool === "ceiling",
+          rect !== null || s.tool === "floor" || s.tool === "ceiling",
         );
       }
     });
@@ -508,6 +524,25 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         }
         break;
       }
+      case "roomSeparator": {
+        // Chained like walls: each click continues from the last point.
+        if (from && !samePt(from, p)) {
+          const ok = await apply(() => ipc.createRoomSeparator(view.id, from, p));
+          pts.current = ok ? [p] : pts.current;
+        } else if (!from) {
+          pts.current = [p];
+        }
+        break;
+      }
+      case "callout": {
+        if (from && Math.abs(from.x - p.x) > 1 && Math.abs(from.y - p.y) > 1) {
+          pts.current = [];
+          if (await apply(() => ipc.createCallout(view.id, from, p))) s.setTool("select");
+        } else if (!from) {
+          pts.current = [p];
+        }
+        break;
+      }
       case "beam": {
         if (from && !samePt(from, p)) {
           await apply(() => ipc.createBeam(view.id, s.toolTypes.beam, from, p));
@@ -696,7 +731,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     }
     if (
       SELECTION_TOOLS.includes(s.tool) ||
-      ["wall", "grid", "stair", "beam", "railing"].includes(s.tool)
+      ["wall", "grid", "stair", "beam", "railing", "roomSeparator", "callout"].includes(s.tool)
     ) {
       await placePoint(p, raw);
       return;

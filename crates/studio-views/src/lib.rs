@@ -258,11 +258,21 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         scale,
         crop,
         show_crop,
+        callout_of,
         ..
     } = doc.data(view).ok()?
     else {
         return None;
     };
+    // A callout of a section or elevation shows its parent's cut, even after it moves.
+    let parent_kind = callout_of.and_then(|p| match doc.data(p) {
+        Ok(ElementData::View {
+            kind: k @ (ViewKind::Section { .. } | ViewKind::Elevation { .. }),
+            ..
+        }) => Some(k.clone()),
+        _ => None,
+    });
+    let kind = parent_kind.as_ref().unwrap_or(kind);
     let model = regenerate(doc);
     let mut b = Builder {
         items: vec![],
@@ -296,6 +306,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
     annotations(doc, &mut b, view);
+    callout_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
     let (items, bounds) = match crop {
         Some(c) => {
@@ -560,6 +571,29 @@ fn plan(
         };
         b.fill(Some(*id), vec![ring(&base.outer)], fill);
     }
+    // Architectural columns in a wall join it: one poché and one outline, as in Revit.
+    // Structural columns stay separate and are drawn over the wall.
+    let joined: Vec<&studio_regen::ColumnSolid> = model
+        .columns
+        .iter()
+        .filter(|c| !c.structural && c.z0 <= cut && c.z1 > cut)
+        .filter(|c| {
+            cut_pieces.iter().any(|(_, p)| {
+                p.contains(c.at)
+                    || c.base.outer.iter().any(|q| p.contains(*q))
+                    || p.outer.iter().any(|q| c.base.contains(*q))
+            })
+        })
+        .collect();
+    for c in &joined {
+        let fill = if detail {
+            FillKind::PocheLight
+        } else {
+            FillKind::Poche
+        };
+        b.fill(Some(c.id), vec![ring(&c.base.outer)], fill);
+    }
+    let joined_ids: Vec<ElementId> = joined.iter().map(|c| c.id).collect();
     if detail {
         plan_parts::wall_layer_detail(b, &cut_walls, cut);
     }
@@ -567,6 +601,7 @@ fn plan(
         &cut_pieces
             .iter()
             .map(|(_, p)| (*p).clone())
+            .chain(joined.iter().map(|c| c.base.clone()))
             .collect::<Vec<_>>(),
     );
     for region in &merged {
@@ -584,7 +619,22 @@ fn plan(
     {
         opening_symbol(b, Some(o.id), o);
     }
-    plan_parts::columns_in_plan(b, model, elev, cut);
+    plan_parts::columns_in_plan(b, model, elev, cut, &joined_ids);
+    if !ceiling {
+        // Room separation lines (thin, like Revit's).
+        for e in doc.of(Category::RoomSeparator) {
+            if let ElementData::RoomSeparator {
+                level: l,
+                start,
+                end,
+            } = &e.data
+            {
+                if *l == level {
+                    b.line(Some(e.id), &[*start, *end], false, 1, Dash::Solid);
+                }
+            }
+        }
+    }
     if !ceiling {
         plan_parts::beams_in_plan(b, model, elev, cut);
         plan_parts::stairs_in_plan(b, model, level, cut);
@@ -613,6 +663,10 @@ fn plan(
                 .find(|o| o.id == *target && cut_ids.contains(&o.host))
             {
                 opening_tag(doc, b, o, Some(e.id), *offset);
+            } else if let Some(c) = model.columns.iter().find(|c| c.id == *target) {
+                plan_parts::column_tag(doc, b, c, Some(e.id), *offset);
+            } else if let Some(m) = model.beams.iter().find(|m| m.id == *target) {
+                plan_parts::beam_tag(doc, b, m, Some(e.id), *offset);
             }
         }
         section_markers(doc, b);
@@ -1110,6 +1164,8 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         detail: Option<OpeningKind>,
         /// A sloped face's outline in (u, z); rectangles leave this empty.
         poly: Option<Vec<Pt>>,
+        /// Surface pattern lines in (u, z), drawn with the face (ADR-020).
+        lines: Vec<[Pt; 2]>,
     }
     let face = |el: ElementId, pts: &[Pt], z0: f64, z1: f64, fill: FillKind| {
         let us: Vec<f64> = pts.iter().map(|p| u_of(*p)).collect();
@@ -1127,6 +1183,7 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             fill,
             detail: None,
             poly: None,
+            lines: vec![],
         }
     };
     let mut faces: Vec<Face> = vec![];
@@ -1138,6 +1195,9 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         match seen(&w.footprint.outer) {
             Seen::Beyond => {
                 let mut f = face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper);
+                // The face toward the viewer carries its finish's surface pattern.
+                let toward = w.dir().perp().dot(look) < 0.0;
+                let surface = if toward { w.surfaces.0 } else { w.surfaces.1 };
                 if let Some(prof) = &w.top_profile {
                     // Seen square on, the top follows the roof above it.
                     let d = w.dir();
@@ -1151,6 +1211,17 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
                     if studio_geom::signed_area(&outline).abs() > 1.0 {
                         f.poly = Some(outline);
                     }
+                }
+                if f.u1 - f.u0 > 1.0 {
+                    let outline = f.poly.clone().unwrap_or_else(|| {
+                        vec![
+                            Pt::new(f.u0, f.z0),
+                            Pt::new(f.u1, f.z0),
+                            Pt::new(f.u1, f.z1),
+                            Pt::new(f.u0, f.z1),
+                        ]
+                    });
+                    f.lines = surface_lines(&outline, surface, 1.0, b.paper(0.8));
                 }
                 faces.push(f);
             }
@@ -1289,6 +1360,7 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             fill: FillKind::Paper,
             detail: None,
             poly: Some(uz),
+            lines: vec![],
         })
     };
     // Rails: the outline of each box as seen (a sloped bar along a stair).
@@ -1321,21 +1393,35 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
                 fill: FillKind::Paper,
                 detail: None,
                 poly: Some(hull),
+                lines: vec![],
             });
         }
     }
     for r in &model.roofs {
+        // Courses along the slope show as level lines this far apart.
+        let rise = r.slope.sin().max(0.05);
+        let roof_face = |s: &[[f64; 3]], faces: &mut Vec<Face>| {
+            let Some(mut f) = poly_face(r.id, s) else {
+                return;
+            };
+            if sloped_top(s) {
+                if let Some(p) = &f.poly {
+                    f.lines = surface_lines(p, r.surface, rise, b.paper(0.8));
+                }
+            }
+            faces.push(f);
+        };
         match seen(&r.boundary) {
             Seen::Beyond => {
                 for s in r.surfaces() {
-                    faces.extend(poly_face(r.id, &s));
+                    roof_face(&s, &mut faces);
                 }
             }
             Seen::Cut => {
                 // What lies beyond the cut plane, then the cut profile.
                 for s in r.surfaces() {
                     let kept = clip3(&s, depth_of);
-                    faces.extend(poly_face(r.id, &kept));
+                    roof_face(&kept, &mut faces);
                 }
                 let t = if r.is_flat() {
                     r.thickness
@@ -1412,6 +1498,9 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             ],
         };
         b.fill(Some(f.el), vec![ring(&r)], f.fill);
+        for seg in &f.lines {
+            b.line(Some(f.el), seg, false, 1, Dash::Solid);
+        }
         b.line(Some(f.el), &r, true, 2, Dash::Solid);
         if let Some(kind) = f.detail {
             opening_elevation_detail(b, f.el, kind, f.u0, f.u1, f.z0, f.z1);
@@ -1534,6 +1623,174 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         maxx,
         zmax + b.paper(30.0),
     ]
+}
+
+/// True for a roof's sloped top face (not a vertical fascia or a flat face seen edge-on).
+fn sloped_top(poly: &[[f64; 3]]) -> bool {
+    if poly.len() < 3 {
+        return false;
+    }
+    let (a, b, c) = (poly[0], poly[1], poly[2]);
+    let u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    let v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    let n = [
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+    ];
+    let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+    len > 1e-9 && n[2].abs() / len > 0.2 && n[2].abs() / len < 0.999
+}
+
+/// Where the horizontal line at height `z` crosses `poly` (even-odd), as u-intervals.
+fn level_spans(poly: &[Pt], z: f64) -> Vec<(f64, f64)> {
+    let n = poly.len();
+    let mut xs = vec![];
+    for i in 0..n {
+        let (p, q) = (poly[i], poly[(i + 1) % n]);
+        if (p.y <= z) != (q.y <= z) {
+            xs.push(p.x + (q.x - p.x) * (z - p.y) / (q.y - p.y));
+        }
+    }
+    xs.sort_by(f64::total_cmp);
+    xs.chunks(2)
+        .filter(|c| c.len() == 2 && c[1] - c[0] > 0.5)
+        .map(|c| (c[0], c[1]))
+        .collect()
+}
+
+/// Surface pattern lines inside a face outline in (u, z), aligned to the project origin
+/// so patterns line up across walls. `vscale` shrinks vertical spacing (courses along a
+/// slope seen in elevation); patterns finer than `min` are skipped at this scale.
+pub(crate) fn surface_lines(
+    outline: &[Pt],
+    s: studio_core::SurfacePattern,
+    vscale: f64,
+    min: f64,
+) -> Vec<[Pt; 2]> {
+    use studio_core::SurfacePattern as S;
+    let (course, unit, stagger) = match s {
+        S::None => return vec![],
+        S::Lap { spacing } => (spacing, 0.0, false),
+        S::Running { course, unit } => (course, unit, true),
+        S::Grid { width, height } => (height, width, false),
+    };
+    let dz = course * vscale;
+    if dz < min || (unit > 0.0 && unit < min) {
+        return vec![];
+    }
+    let (z0, z1) = outline
+        .iter()
+        .fold((f64::INFINITY, f64::NEG_INFINITY), |a, p| {
+            (a.0.min(p.y), a.1.max(p.y))
+        });
+    let mut out = vec![];
+    // Course by course, from the one containing the face's bottom edge.
+    let mut k = (z0 / dz).floor() as i64;
+    const MAX: usize = 6000;
+    while (k as f64) * dz < z1 && out.len() < MAX {
+        let z = k as f64 * dz;
+        if z > z0 + 0.5 {
+            for (a, b) in level_spans(outline, z) {
+                out.push([Pt::new(a, z), Pt::new(b, z)]);
+            }
+        }
+        if unit > 0.0 {
+            // Head joints within this course, staggered every other course for a bond.
+            let (za, zb) = (z.max(z0), (z + dz).min(z1));
+            let shift = if stagger && k.rem_euclid(2) == 1 {
+                unit / 2.0
+            } else {
+                0.0
+            };
+            for (a, b) in level_spans(outline, (za + zb) / 2.0) {
+                let mut j = ((a - shift) / unit).floor() as i64;
+                while (j as f64) * unit + shift < b - 0.5 && out.len() < MAX {
+                    let u = j as f64 * unit + shift;
+                    if u > a + 0.5 {
+                        out.push([Pt::new(u, za), Pt::new(u, zb)]);
+                    }
+                    j += 1;
+                }
+            }
+        }
+        k += 1;
+    }
+    out
+}
+
+/// Callout boundaries of `view`'s callouts, with a tag naming each (Revit's callout head).
+fn callout_markers(doc: &Document, b: &mut Builder, view: ElementId) {
+    for e in doc.of(Category::View) {
+        let ElementData::View {
+            callout_of: Some(parent),
+            crop: Some(c),
+            name,
+            ..
+        } = &e.data
+        else {
+            continue;
+        };
+        if *parent != view {
+            continue;
+        }
+        let el = Some(e.id);
+        // Rounded corners, as Revit draws callouts.
+        let r = b
+            .paper(3.0)
+            .min((c.max.x - c.min.x) / 4.0)
+            .min((c.max.y - c.min.y) / 4.0);
+        let mut pts = vec![];
+        let corners = [
+            (
+                Pt::new(c.max.x - r, c.min.y + r),
+                -std::f64::consts::FRAC_PI_2,
+            ),
+            (Pt::new(c.max.x - r, c.max.y - r), 0.0),
+            (
+                Pt::new(c.min.x + r, c.max.y - r),
+                std::f64::consts::FRAC_PI_2,
+            ),
+            (Pt::new(c.min.x + r, c.min.y + r), std::f64::consts::PI),
+        ];
+        for (center, a0) in corners {
+            pts.extend(arc(center, r, a0, std::f64::consts::FRAC_PI_2));
+        }
+        b.line(el, &pts, true, 3, Dash::Solid);
+        // Head: a bubble off the top-right corner with the callout's sheet (if placed).
+        let corner = Pt::new(c.max.x, c.max.y);
+        let head = corner.add(Pt::new(b.paper(8.0), b.paper(8.0)));
+        b.line(
+            el,
+            &[corner, head.sub(Pt::new(b.paper(3.5), b.paper(3.5)))],
+            false,
+            2,
+            Dash::Solid,
+        );
+        b.circle(el, head, 5.0, 2, false);
+        let sheet = doc.iter().find_map(|v| match &v.data {
+            ElementData::Viewport {
+                sheet, view: vv, ..
+            } if *vv == e.id => Some(*sheet),
+            _ => None,
+        });
+        let number = sheet
+            .and_then(|s| {
+                studio_core::ops::sheets(doc)
+                    .into_iter()
+                    .find(|x| x.0 == s)
+                    .map(|x| x.1)
+            })
+            .unwrap_or_else(|| "—".into());
+        b.text(el, head, number, 2.6, Anchor::Center);
+        b.text(
+            el,
+            head.add(Pt::new(b.paper(7.0), 0.0)),
+            name.to_uppercase(),
+            2.2,
+            Anchor::Left,
+        );
+    }
 }
 
 /// The part of a planar 3D polygon where `depth` (of its plan position) is ≥ 0.
@@ -1946,6 +2203,8 @@ pub struct Mesh {
     pub category: Category,
     /// Exterior walls render in a different tone.
     pub exterior: bool,
+    /// Shaded color from the element's material (ADR-020), when it has one.
+    pub color: Option<[u8; 3]>,
     /// Triangle soup, 9 floats per triangle, mm, z-up.
     pub positions: Vec<f32>,
 }
@@ -1969,6 +2228,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: w.id,
             category: Category::Wall,
             exterior: w.exterior,
+            color: w.color,
             positions,
         });
     }
@@ -1981,6 +2241,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: o.id,
             category,
             exterior: false,
+            color: None,
             positions: o.panel(depth, o.z0, o.z1).triangles(),
         });
     }
@@ -1989,6 +2250,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: s.id,
             category: s.category,
             exterior: false,
+            color: s.color,
             positions: s.prism().triangles(),
         });
     }
@@ -1997,6 +2259,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: r.id,
             category: Category::Roof,
             exterior: true,
+            color: r.color,
             positions: r.triangles(),
         });
     }
@@ -2005,6 +2268,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: s.id,
             category: Category::Stair,
             exterior: false,
+            color: None,
             positions: s.steps.iter().flat_map(|p| p.triangles()).collect(),
         });
     }
@@ -2013,6 +2277,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: c.id,
             category: Category::Column,
             exterior: c.structural,
+            color: c.color,
             positions: c.prism().triangles(),
         });
     }
@@ -2021,6 +2286,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             el: bm.id,
             category: Category::Beam,
             exterior: true,
+            color: bm.color,
             positions: bm.prisms.iter().flat_map(|p| p.triangles()).collect(),
         });
     }
@@ -2040,6 +2306,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 Category::Railing
             },
             exterior: false,
+            color: None,
             positions,
         });
     }
@@ -3139,10 +3406,22 @@ mod tests {
         // The core's layer lines stop short of the ends by the wrap.
         let core = 4000.0 - 2.0 * 0.875 * MM_PER_IN;
         assert!(lines.iter().any(|(n, l)| *n == 2 && (l - core).abs() < 0.5));
-        // CMU diagonals and the rigid insulation's zigzag.
-        let diagonals = lines.iter().filter(|(n, l)| *n == 2 && *l < 400.0).count();
-        assert!(diagonals > 50, "{diagonals}");
-        assert!(lines.iter().any(|(n, _)| *n > 40), "insulation zigzag");
+        // CMU diagonals one way; the rigid insulation (ADR-020) crosshatches both ways.
+        let slopes: Vec<f64> = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(w))
+            .filter_map(|i| match &i.prim {
+                Prim::Line { pts, .. } if pts.len() == 2 => {
+                    let (dx, dy) = (pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
+                    (dx.abs() > 1e-6 && dy.abs() > 1e-6 && dx.hypot(dy) < 400.0).then(|| dy / dx)
+                }
+                _ => None,
+            })
+            .collect();
+        let up = slopes.iter().filter(|s| (**s - 1.0).abs() < 1e-6).count();
+        let down = slopes.iter().filter(|s| (**s + 1.0).abs() < 1e-6).count();
+        assert!(up > 50 && down > 5, "{up} / {down}");
         // At 1/8" the wall is plain poché again.
         ops::set_property(&mut doc, plan, "scale", "96", 0).unwrap();
         let dl = display_list(&doc, plan).unwrap();
@@ -3212,5 +3491,208 @@ mod tests {
             })
             .count();
         assert!(layer_lines >= 6, "{layer_lines}");
+    }
+    #[test]
+    fn surface_patterns_course_and_bond() {
+        let rect = [
+            Pt::new(0.0, 0.0),
+            Pt::new(1000.0, 0.0),
+            Pt::new(1000.0, 2000.0),
+            Pt::new(0.0, 2000.0),
+        ];
+        let lap = surface_lines(
+            &rect,
+            studio_core::SurfacePattern::Lap { spacing: 200.0 },
+            1.0,
+            10.0,
+        );
+        assert_eq!(lap.len(), 9, "200 to 1800");
+        assert!(lap.iter().all(|s| (s[0].x, s[1].x) == (0.0, 1000.0)));
+        let bond = surface_lines(
+            &rect,
+            studio_core::SurfacePattern::Running {
+                course: 500.0,
+                unit: 400.0,
+            },
+            1.0,
+            10.0,
+        );
+        let joints: Vec<&[Pt; 2]> = bond.iter().filter(|s| s[0].x == s[1].x).collect();
+        // Four courses, joints at 400/800 and 200/600 alternately.
+        assert_eq!(bond.len() - joints.len(), 3);
+        assert_eq!(joints.len(), 8);
+        assert!(joints.iter().any(|s| s[0].x == 200.0 && s[0].y == 500.0));
+        assert!(joints.iter().any(|s| s[0].x == 400.0 && s[0].y == 1000.0));
+        // Too fine for the scale: nothing.
+        assert!(surface_lines(
+            &rect,
+            studio_core::SurfacePattern::Lap { spacing: 5.0 },
+            1.0,
+            10.0
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn siding_shows_in_elevation() {
+        let (doc, _, _, _) = roofed_house();
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::North
+                }
+            )
+        });
+        let walls: Vec<ElementId> = doc.of(Category::Wall).map(|e| e.id).collect();
+        let dl = display_list(&doc, south).unwrap();
+        let courses = dl
+            .items
+            .iter()
+            .filter(|i| i.el.is_some_and(|e| walls.contains(&e)))
+            .filter(|i| matches!(&i.prim, Prim::Line { pts, w: 1, .. } if pts.len() == 2 && pts[0][1] == pts[1][1]))
+            .count();
+        // 8" lap siding on a 10' wall: 14 courses, on the south face at least.
+        assert!(courses >= 14, "{courses}");
+    }
+
+    #[test]
+    fn callouts_mark_their_parent_and_show_the_region_at_detail_scale() {
+        let (mut doc, l1, _, _) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let ft = studio_core::units::MM_PER_FT;
+        let c = studio_core::detail::create_callout(
+            &mut doc,
+            plan,
+            Pt::new(-2.0 * ft, -2.0 * ft),
+            Pt::new(6.0 * ft, 6.0 * ft),
+        )
+        .unwrap();
+        let parent = display_list(&doc, plan).unwrap();
+        assert!(parent
+            .items
+            .iter()
+            .any(|i| i.el == Some(c) && matches!(&i.prim, Prim::Circle { .. })));
+        assert!(parent.items.iter().any(|i| i.el == Some(c)
+            && matches!(&i.prim, Prim::Text { text, .. } if text == "CALLOUT OF LEVEL 1")));
+        let dl = display_list(&doc, c).unwrap();
+        assert_eq!(dl.scale, 8);
+        let m = 8.0 * 8.0;
+        assert_eq!(
+            dl.bounds,
+            [-2.0 * ft - m, -2.0 * ft - m, 6.0 * ft + m, 6.0 * ft + m]
+        );
+        // At 1 1/2" the corner's layers and cut patterns show.
+        let walls: Vec<ElementId> = doc.of(Category::Wall).map(|e| e.id).collect();
+        let thin = dl
+            .items
+            .iter()
+            .filter(|i| i.el.is_some_and(|e| walls.contains(&e)))
+            .filter(|i| matches!(&i.prim, Prim::Line { w: 1, .. }))
+            .count();
+        assert!(thin > 4, "{thin}");
+    }
+
+    #[test]
+    fn structure_tags_joined_columns_and_separators_in_plan() {
+        let (mut doc, l1, _, _) = roofed_house();
+        studio_core::structure::ensure_structure_types(&mut doc).unwrap();
+        let ft = studio_core::units::MM_PER_FT;
+        let g1 = ops::create_grid(
+            &mut doc,
+            Pt::new(20.0 * ft, -5.0 * ft),
+            Pt::new(20.0 * ft, 35.0 * ft),
+        )
+        .unwrap();
+        ops::set_property(&mut doc, g1, "name", "3", 0).unwrap();
+        let ga = ops::create_grid(
+            &mut doc,
+            Pt::new(-5.0 * ft, 15.0 * ft),
+            Pt::new(45.0 * ft, 15.0 * ft),
+        )
+        .unwrap();
+        ops::set_property(&mut doc, ga, "name", "B", 0).unwrap();
+        let steel = doc
+            .of(Category::ColumnType)
+            .find(|e| e.data.name().starts_with("Steel W10"))
+            .unwrap()
+            .id;
+        let col = studio_core::structure::create_column(
+            &mut doc,
+            steel,
+            l1,
+            Pt::new(20.0 * ft, 15.0 * ft),
+            0.0,
+        )
+        .unwrap();
+        let bt = doc
+            .of(Category::BeamType)
+            .find(|e| e.data.name().starts_with("Steel W12"))
+            .unwrap()
+            .id;
+        let l2 = doc.levels()[1].0;
+        let beam = studio_core::structure::create_beam(
+            &mut doc,
+            bt,
+            l2,
+            Pt::new(0.0, 15.0 * ft),
+            Pt::new(40.0 * ft, 15.0 * ft),
+        )
+        .unwrap();
+        // An architectural column in the west wall joins it.
+        let arch = doc
+            .of(Category::ColumnType)
+            .find(|e| e.data.name().starts_with("Architectural"))
+            .unwrap()
+            .id;
+        let pilaster =
+            studio_core::structure::create_column(&mut doc, arch, l1, Pt::new(0.0, 10.0 * ft), 0.0)
+                .unwrap();
+        let sep = studio_core::detail::create_room_separator(
+            &mut doc,
+            l1,
+            Pt::new(0.0, 25.0 * ft),
+            Pt::new(40.0 * ft, 25.0 * ft),
+        )
+        .unwrap();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let tagged = ops::tag_all(&mut doc, plan).unwrap();
+        assert!(tagged >= 3, "column, pilaster and beam");
+        let dl = display_list(&doc, plan).unwrap();
+        let text = |s: &str| {
+            dl.items
+                .iter()
+                .any(|i| matches!(&i.prim, Prim::Text { text, .. } if text == s))
+        };
+        assert!(text("B-3"), "column location mark");
+        assert!(text("W12x26"), "beam size");
+        let tag_of = |target: ElementId| {
+            doc.iter()
+                .any(|e| matches!(&e.data, ElementData::Tag { target: t, .. } if *t == target))
+        };
+        assert!(tag_of(col) && tag_of(beam));
+        // The pilaster's poché merges into the wall: no outline of its own.
+        assert!(dl
+            .items
+            .iter()
+            .any(|i| i.el == Some(pilaster) && matches!(&i.prim, Prim::Fill { .. })));
+        assert!(!dl
+            .items
+            .iter()
+            .any(|i| i.el == Some(pilaster) && matches!(&i.prim, Prim::Line { w: 4, .. })));
+        assert!(dl
+            .items
+            .iter()
+            .any(|i| i.el == Some(col) && matches!(&i.prim, Prim::Line { w: 4, .. })));
+        assert!(dl
+            .items
+            .iter()
+            .any(|i| i.el == Some(sep) && matches!(&i.prim, Prim::Line { w: 1, .. })));
     }
 }

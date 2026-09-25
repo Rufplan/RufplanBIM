@@ -77,6 +77,8 @@ pub enum Category {
     Beam,
     RailingType,
     Railing,
+    Material,
+    RoomSeparator,
 }
 
 impl Category {
@@ -113,6 +115,8 @@ impl Category {
             Category::Beam => "Beam",
             Category::RailingType => "RailingType",
             Category::Railing => "Railing",
+            Category::Material => "Material",
+            Category::RoomSeparator => "RoomSeparator",
         }
     }
 }
@@ -168,11 +172,160 @@ impl LayerFunction {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct WallLayer {
-    /// Material name, e.g. "Gypsum Board".
+    /// Layer description, e.g. "Gypsum Board" (the material's name when one is picked).
     pub name: String,
     /// mm.
     pub thickness: f64,
     pub function: LayerFunction,
+    /// The layer's material (ADR-020); None falls back to rules on the name.
+    #[serde(default)]
+    pub material: Option<ElementId>,
+}
+
+/// How a material's cut face is hatched in plans and sections.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum CutPattern {
+    #[default]
+    None,
+    /// Batt insulation zigzag.
+    Insulation,
+    /// Rigid insulation: a diagonal crosshatch.
+    Rigid,
+    /// Brick, block and stone: diagonal lines.
+    Masonry,
+    /// Diagonal dashes with aggregate triangles.
+    Concrete,
+    /// Framing lumber: a sparse diagonal cross.
+    Wood,
+    /// Solid fill (steel at small scales).
+    Solid,
+}
+
+impl CutPattern {
+    pub const ALL: [CutPattern; 7] = [
+        CutPattern::None,
+        CutPattern::Insulation,
+        CutPattern::Rigid,
+        CutPattern::Masonry,
+        CutPattern::Concrete,
+        CutPattern::Wood,
+        CutPattern::Solid,
+    ];
+    pub fn label(self) -> &'static str {
+        match self {
+            CutPattern::None => "None",
+            CutPattern::Insulation => "Batt Insulation",
+            CutPattern::Rigid => "Rigid Insulation",
+            CutPattern::Masonry => "Masonry",
+            CutPattern::Concrete => "Concrete",
+            CutPattern::Wood => "Wood Framing",
+            CutPattern::Solid => "Solid Fill",
+        }
+    }
+    pub fn parse(s: &str) -> Option<CutPattern> {
+        CutPattern::ALL
+            .into_iter()
+            .find(|c| c.label() == s || format!("{c:?}") == s)
+    }
+}
+
+/// How a material's surface reads in elevations (lines at true size, mm).
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum SurfacePattern {
+    #[default]
+    None,
+    /// Horizontal lines (lap siding, shingle courses) `spacing` apart.
+    Lap { spacing: f64 },
+    /// Running bond: courses `course` high, units `unit` long, joints staggered by half.
+    Running { course: f64, unit: f64 },
+    /// A rectangular grid (tile, panels) `width` × `height`.
+    Grid { width: f64, height: f64 },
+}
+
+impl SurfacePattern {
+    /// Built-in patterns as (id, label, pattern), for the material's properties.
+    pub fn presets() -> Vec<(&'static str, &'static str, SurfacePattern)> {
+        const IN: f64 = 25.4;
+        vec![
+            ("none", "None", SurfacePattern::None),
+            (
+                "lap6",
+                "Lap Siding 6\"",
+                SurfacePattern::Lap { spacing: 6.0 * IN },
+            ),
+            (
+                "lap8",
+                "Lap Siding 8\"",
+                SurfacePattern::Lap { spacing: 8.0 * IN },
+            ),
+            (
+                "shingle5",
+                "Shingle Courses 5\"",
+                SurfacePattern::Lap { spacing: 5.0 * IN },
+            ),
+            (
+                "brick",
+                "Brick Running Bond",
+                SurfacePattern::Running {
+                    course: 8.0 / 3.0 * IN,
+                    unit: 8.0 * IN,
+                },
+            ),
+            (
+                "block",
+                "Block 8x16",
+                SurfacePattern::Running {
+                    course: 8.0 * IN,
+                    unit: 16.0 * IN,
+                },
+            ),
+            (
+                "panel4x8",
+                "Panels 4'x8'",
+                SurfacePattern::Grid {
+                    width: 48.0 * IN,
+                    height: 96.0 * IN,
+                },
+            ),
+            (
+                "tile2x2",
+                "Tile 2'x2'",
+                SurfacePattern::Grid {
+                    width: 24.0 * IN,
+                    height: 24.0 * IN,
+                },
+            ),
+        ]
+    }
+    pub fn preset_id(self) -> &'static str {
+        Self::presets()
+            .into_iter()
+            .find(|(_, _, p)| *p == self)
+            .map_or("custom", |(id, _, _)| id)
+    }
+}
+
+/// Where a floor's or ceiling's boundary comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum SlabBound {
+    /// The stored sketch.
+    #[default]
+    Sketch,
+    /// The outer faces of the walls on its level (Floor: Pick Walls); follows them.
+    Walls,
+    /// The room enclosing `point` (Ceiling: Auto Room); follows its walls.
+    Room { point: Pt },
+}
+
+/// A 3D view's section box (mm, model coordinates).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct SectionBox {
+    pub min: [f64; 3],
+    pub max: [f64; 3],
 }
 
 /// Which line of a wall its drawn points follow (Revit's Location Line). The wall is
@@ -350,6 +503,9 @@ pub enum ScheduleKind {
     Windows,
     Rooms,
     Sheets,
+    Columns,
+    Beams,
+    MaterialTakeoff,
 }
 
 /// Printed sheet sizes (landscape).
@@ -472,7 +628,10 @@ pub enum ElementData {
         type_id: ElementId,
         level: ElementId,
         offset: f64,
+        /// The sketch (or, when bound, the last shape it followed).
         boundary: Vec<Pt>,
+        #[serde(default)]
+        bound: SlabBound,
     },
     CeilingType {
         name: String,
@@ -487,6 +646,8 @@ pub enum ElementData {
         level: ElementId,
         height: f64,
         boundary: Vec<Pt>,
+        #[serde(default)]
+        bound: SlabBound,
     },
     View {
         name: String,
@@ -499,6 +660,12 @@ pub enum ElementData {
         /// Whether the crop boundary is drawn (it is never printed).
         #[serde(default = "yes")]
         show_crop: bool,
+        /// 3D views: the section box, when on.
+        #[serde(default)]
+        section_box: Option<SectionBox>,
+        /// A callout (detail view) of this parent view (ADR-020).
+        #[serde(default)]
+        callout_of: Option<ElementId>,
     },
     ProjectInfo {
         name: String,
@@ -656,6 +823,8 @@ pub enum ElementData {
         shape: ColumnShape,
         /// Structural columns print as cut material; architectural ones as outlines.
         structural: bool,
+        #[serde(default)]
+        material: Option<ElementId>,
     },
     /// A vertical column centered at `at`, rotated `rotation` radians, from its base level
     /// (plus offset) up to its top constraint.
@@ -670,6 +839,8 @@ pub enum ElementData {
     BeamType {
         name: String,
         shape: BeamShape,
+        #[serde(default)]
+        material: Option<ElementId>,
     },
     /// A beam along `start` → `end` whose top sits at `level + offset`.
     Beam {
@@ -690,6 +861,20 @@ pub enum ElementData {
         level: ElementId,
         offset: f64,
         path: Vec<Pt>,
+    },
+    /// A material: cut pattern, elevation surface pattern and shaded color (ADR-020).
+    Material {
+        name: String,
+        cut: CutPattern,
+        surface: SurfacePattern,
+        /// sRGB.
+        color: [u8; 3],
+    },
+    /// A room-bounding line on `level` for open plans (Revit's Room Separation Line).
+    RoomSeparator {
+        level: ElementId,
+        start: Pt,
+        end: Pt,
     },
     /// A design stage (ADR-010).
     Stage {
@@ -744,6 +929,8 @@ impl ElementData {
             ElementData::Beam { .. } => Category::Beam,
             ElementData::RailingType { .. } => Category::RailingType,
             ElementData::Railing { .. } => Category::Railing,
+            ElementData::Material { .. } => Category::Material,
+            ElementData::RoomSeparator { .. } => Category::RoomSeparator,
         }
     }
 
@@ -766,7 +953,9 @@ impl ElementData {
             | ElementData::Ceiling { type_id, level, .. } => {
                 vec![*type_id, *level]
             }
-            ElementData::Room { level, .. } => vec![*level],
+            ElementData::Room { level, .. } | ElementData::RoomSeparator { level, .. } => {
+                vec![*level]
+            }
             ElementData::Roof { type_id, level, .. }
             | ElementData::Beam { type_id, level, .. }
             | ElementData::Railing { type_id, level, .. } => vec![*type_id, *level],
@@ -794,10 +983,14 @@ impl ElementData {
                 vec![*type_id, *host]
             }
             ElementData::View {
-                kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
-                ..
+                kind, callout_of, ..
             } => {
-                vec![*level]
+                // A callout goes with its parent view.
+                let mut v: Vec<ElementId> = callout_of.iter().copied().collect();
+                if let ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } = kind {
+                    v.push(*level);
+                }
+                v
             }
             _ => vec![],
         }
@@ -817,7 +1010,9 @@ impl ElementData {
             | ElementData::RoofType { name, .. }
             | ElementData::ColumnType { name, .. }
             | ElementData::BeamType { name, .. }
-            | ElementData::RailingType { name, .. } => name.clone(),
+            | ElementData::RailingType { name, .. }
+            | ElementData::Material { name, .. } => name.clone(),
+            ElementData::RoomSeparator { .. } => "Room Separator".into(),
             ElementData::Column { .. } => "Column".into(),
             ElementData::Beam { .. } => "Beam".into(),
             ElementData::Railing { .. } => "Railing".into(),
@@ -849,7 +1044,8 @@ impl ElementData {
             | ElementData::Room { level, .. }
             | ElementData::Roof { level, .. }
             | ElementData::Beam { level, .. }
-            | ElementData::Railing { level, .. } => Some(*level),
+            | ElementData::Railing { level, .. }
+            | ElementData::RoomSeparator { level, .. } => Some(*level),
             ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
                 Some(*base_level)
             }
@@ -885,6 +1081,8 @@ impl ElementData {
             scale,
             crop: None,
             show_crop: true,
+            section_box: None,
+            callout_of: None,
         }
     }
 
@@ -892,6 +1090,16 @@ impl ElementData {
     pub fn validate(&self) -> Result<(), crate::CoreError> {
         let bad = |m: &str| Err(crate::CoreError::Invalid(m.into()));
         match self {
+            ElementData::RoomSeparator { start, end, .. } if start.dist(*end) < 1.0 => {
+                bad("room separator is too short")
+            }
+            ElementData::Material { name, .. } if name.trim().is_empty() => {
+                bad("a material needs a name")
+            }
+            ElementData::View {
+                section_box: Some(b),
+                ..
+            } if (0..3).any(|i| b.max[i] - b.min[i] < 100.0) => bad("section box is too small"),
             ElementData::Wall { start, end, .. } if start.dist(*end) < 1.0 => {
                 bad("wall is too short")
             }

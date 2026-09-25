@@ -8,6 +8,10 @@ export type Mesh = { el: ElementId, category: Category,
  */
 exterior: boolean, 
 /**
+ * Shaded color from the element's material (ADR-020), when it has one.
+ */
+color: [number, number, number] | null, 
+/**
  * Triangle soup, 9 floats per triangle, mm, z-up.
  */
 positions: Array<number>, };
