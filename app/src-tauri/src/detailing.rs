@@ -35,6 +35,23 @@ pub fn create_room_separator(
     })
 }
 
+/// An elevation marker at `at` (interior, or a building elevation), looking at the nearest
+/// wall.
+#[tauri::command]
+pub fn create_elevation_marker(
+    view: ElementId,
+    at: Pt,
+    interior: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        let level = s.view_level(view)?;
+        s.edit(|d| studio_regen::derived::create_elevation_marker(d, level, at, interior))?;
+        Ok(())
+    })
+}
+
 /// A callout of `view` between corners `a` and `b` (view coordinates).
 #[tauri::command]
 pub fn create_callout(

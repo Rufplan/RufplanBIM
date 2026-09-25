@@ -3,7 +3,7 @@
 use studio_geom::{line_intersection, project_to_segment, Pt};
 
 use crate::document::{CoreError, CoreResult, Document};
-use crate::element::{Category, CropBox, ElementData, ElementId, ViewKind};
+use crate::element::{Category, Compass, CropBox, ElementData, ElementId, ViewKind};
 
 /// Scale of a new callout: 1 1/2" = 1'-0", where layer wraps and cut patterns read.
 pub const CALLOUT_SCALE: u32 = 8;
@@ -112,6 +112,133 @@ pub fn column_mark(doc: &Document, at: Pt) -> String {
         }
     }
     best.map(|b| b.1).unwrap_or_default()
+}
+
+/// The four directions of an elevation marker, in Revit's order around the body.
+pub const DIRECTIONS: [Compass; 4] = [Compass::North, Compass::East, Compass::South, Compass::West];
+
+pub fn compass_name(c: Compass) -> &'static str {
+    match c {
+        Compass::North => "North",
+        Compass::East => "East",
+        Compass::South => "South",
+        Compass::West => "West",
+    }
+}
+
+/// The views of an elevation marker, by direction.
+pub fn marker_views(doc: &Document, marker: ElementId) -> Vec<(Compass, ElementId)> {
+    let mut v: Vec<(Compass, ElementId)> = doc
+        .of(Category::View)
+        .filter_map(|e| match &e.data {
+            ElementData::View {
+                kind: ViewKind::MarkerElevation { marker: m, facing },
+                ..
+            } if *m == marker => Some((*facing, e.id)),
+            _ => None,
+        })
+        .collect();
+    v.sort_by_key(|(c, _)| DIRECTIONS.iter().position(|d| d == c));
+    v
+}
+
+/// Places an elevation marker with views looking the given directions, named as given.
+pub fn create_elevation_marker(
+    doc: &mut Document,
+    level: ElementId,
+    at: Pt,
+    interior: bool,
+    views: &[(Compass, String)],
+) -> CoreResult<ElementId> {
+    doc.transact("Create elevation", |tx| {
+        if !matches!(tx.data(level)?, ElementData::Level { .. }) {
+            return Err(CoreError::Invalid(
+                "elevations are placed on a level".into(),
+            ));
+        }
+        let marker = tx.insert(ElementData::ElevationMarker {
+            level,
+            at,
+            interior,
+        });
+        for (facing, name) in views {
+            tx.insert(ElementData::view(
+                name.clone(),
+                ViewKind::MarkerElevation {
+                    marker,
+                    facing: *facing,
+                },
+                48,
+            ));
+        }
+        Ok(marker)
+    })
+}
+
+/// Turns one direction of a marker on (a new view named `name`) or off (deleting it).
+pub fn set_marker_view(
+    doc: &mut Document,
+    marker: ElementId,
+    facing: Compass,
+    name: Option<String>,
+) -> CoreResult<()> {
+    if !matches!(doc.data(marker)?, ElementData::ElevationMarker { .. }) {
+        return Err(CoreError::Invalid("that isn't an elevation marker".into()));
+    }
+    let existing = marker_views(doc, marker)
+        .into_iter()
+        .find(|(c, _)| *c == facing)
+        .map(|x| x.1);
+    match (name, existing) {
+        (Some(n), None) => doc.transact("Add elevation view", |tx| {
+            tx.insert(ElementData::view(
+                n,
+                ViewKind::MarkerElevation { marker, facing },
+                48,
+            ));
+            Ok(())
+        }),
+        (None, Some(v)) => {
+            crate::ops::delete(doc, &[v])?;
+            Ok(())
+        }
+        _ => Ok(()),
+    }
+}
+
+/// The direction to look from `at` toward the nearest wall on `level` (Revit points a new
+/// marker at the nearest wall).
+pub fn facing_nearest_wall(doc: &Document, level: ElementId, at: Pt) -> Compass {
+    let nearest = doc
+        .of(Category::Wall)
+        .filter_map(|e| match &e.data {
+            ElementData::Wall {
+                base_level,
+                start,
+                end,
+                ..
+            } if *base_level == level => {
+                let (t, d) = project_to_segment(at, *start, *end);
+                Some((d, start.lerp(*end, t)))
+            }
+            _ => None,
+        })
+        .min_by(|a, b| a.0.total_cmp(&b.0));
+    let Some((_, q)) = nearest else {
+        return Compass::North;
+    };
+    let v = q.sub(at);
+    if v.x.abs() > v.y.abs() {
+        if v.x > 0.0 {
+            Compass::East
+        } else {
+            Compass::West
+        }
+    } else if v.y >= 0.0 {
+        Compass::North
+    } else {
+        Compass::South
+    }
 }
 
 #[cfg(test)]

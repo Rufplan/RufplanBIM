@@ -1022,3 +1022,22 @@ button:disabled {
   color: var(--muted);
   padding: 0 4px;
 }
+
+/* ---------- Sketch mode (ADR-021) ---------- */
+.rb-tab.contextual {
+  background: #3c9a4a;
+  color: var(--white);
+}
+.rb-items.rb-draw {
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  gap: 2px;
+}
+.rb-btn.rb-small {
+  width: 74px;
+  height: 44px;
+}
+.rb-btn.rb-small span {
+  font-size: 9px;
+  letter-spacing: 0.4px;
+}

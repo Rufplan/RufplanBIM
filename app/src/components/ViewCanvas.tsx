@@ -12,6 +12,7 @@ import {
   type ViewInfo,
 } from "../ipc";
 import { apply } from "../fileActions";
+import { drawOptions, editBoundary, filletRadius } from "../sketch";
 import { SELECTION_TOOLS, useAppStore } from "../store";
 import {
   THEME,
@@ -20,6 +21,7 @@ import {
   drawOverlay,
   drawPreview,
   drawRefLine,
+  drawSketch,
   drawTempDims,
   fit,
   tempDimBox,
@@ -124,6 +126,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   // Align's reference line and Trim's first wall.
   const refLine = useRef<RefLine | null>(null);
   const firstPick = useRef<{ id: ElementId; at: Pt } | null>(null);
+  // Sketch mode: the draw tool's preview, the first pick of Trim/Fillet, a dragged vertex.
+  const sketchPreview = useRef<Pt[][]>([]);
+  const sketchFirst = useRef<{ i: number; at: Pt } | null>(null);
+  const vertexDrag = useRef<{ from: Pt; to: Pt | null } | null>(null);
+  const sketchMode = useAppStore((s) => s.sketchUi.mode);
   const frame = useRef(0);
   const redrawRef = useRef<() => void>(() => {});
 
@@ -137,7 +144,40 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       const { w, h } = size;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const s = useAppStore.getState();
-      draw(ctx, dl, cam.current, w, h, { selected: new Set(s.selection), hover: hover.current });
+      const sk = s.app?.sketch ?? null;
+      draw(ctx, dl, cam.current, w, h, {
+        selected: new Set(s.selection),
+        hover: hover.current,
+        faded: sk !== null,
+        hidden: sk?.target ?? null,
+      });
+      if (sk && sk.view === view.id) {
+        const sel = new Set(s.sketchUi.sel);
+        const grips: Pt[] = [];
+        sk.curves.forEach((c, i) => {
+          if (sel.has(i) && c.isLine) grips.push(c.pts[0]!, c.pts[c.pts.length - 1]!);
+        });
+        const vd = vertexDrag.current;
+        const shown = vd?.to
+          ? sk.curves.map((c) => ({
+              ...c,
+              pts: c.pts.map((q) =>
+                Math.hypot(q.x - vd.from.x, q.y - vd.from.y) < 1 ? vd.to! : q,
+              ),
+            }))
+          : sk.curves;
+        drawSketch(
+          ctx,
+          cam.current,
+          w,
+          h,
+          shown,
+          sel,
+          new Set(sk.bad),
+          sketchPreview.current,
+          grips,
+        );
+      }
       const hd = handles.current;
       if (s.tool === "select" && hd) {
         drawTempDims(ctx, cam.current, w, h, gripDrag.current ? [] : hd.dims);
@@ -186,7 +226,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
           cam.current,
           w,
           h,
-          rect ?? pts.current,
+          s.tool === "sketch" ? [] : (rect ?? pts.current),
           rect ? null : (sn?.pt ?? null),
           sn?.kind ?? null,
           sn?.label ?? null,
@@ -194,7 +234,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         );
       }
     });
-  }, [dl, size, view.viewType]);
+  }, [dl, size, view.viewType, view.id]);
   useLayoutEffect(() => {
     redrawRef.current = redraw;
   });
@@ -276,9 +316,15 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   // (An open typed-value box belongs to the tool that opened it; see `editor.tool`.)
   useEffect(() => {
     resetRefs();
+    sketchPreview.current = [];
+    sketchFirst.current = null;
     useAppStore.getState().setPrompt(promptFor(tool, 0, view.viewType));
     redrawRef.current();
-  }, [tool, view.viewType, resetRefs]);
+  }, [tool, view.viewType, resetRefs, sketchMode]);
+
+  // A new sketch state from Rust redraws the sketch.
+  const sketchState = useAppStore((s) => s.app?.sketch);
+  useEffect(() => redrawRef.current(), [sketchState]);
 
   const setCam = (c: Camera) => {
     cam.current = c;
@@ -332,6 +378,113 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     if (g) g.to = snapRef.current.pt;
     redraw();
   });
+
+  /** What the sketch tool would add for the cursor (computed in Rust). */
+  const sketchPreviewAt = useLatest(async (cursor: Pt, tol: number) => {
+    const s = useAppStore.getState();
+    const ui = s.sketchUi;
+    const m = ui.mode;
+    const draws = !["Modify", "Trim", "FilletArc"].includes(m);
+    if (!draws || (!m.startsWith("Pick") && pts.current.length === 0)) {
+      if (sketchPreview.current.length) {
+        sketchPreview.current = [];
+        redraw();
+      }
+      return;
+    }
+    const options = await drawOptions();
+    sketchPreview.current = await ipc.sketchPreview(
+      m,
+      pts.current,
+      cursor,
+      options,
+      tol,
+      ui.tab,
+      ui.core,
+    );
+    redraw();
+  });
+
+  /** A vertex grip (end of a selected sketch line) under a screen point. */
+  const sketchGripAt = (sx: number, sy: number): Pt | null => {
+    const s = useAppStore.getState();
+    const sk = s.app?.sketch;
+    if (!sk || !cam.current || s.sketchUi.mode !== "Modify") return null;
+    for (const i of s.sketchUi.sel) {
+      const c = sk.curves[i];
+      if (!c?.isLine) continue;
+      for (const q of [c.pts[0]!, c.pts[c.pts.length - 1]!]) {
+        const [gx, gy] = toScreen(cam.current, size.w, size.h, q.x, q.y);
+        if (Math.abs(gx - sx) <= 6 && Math.abs(gy - sy) <= 6) return q;
+      }
+    }
+    return null;
+  };
+
+  /** A click in sketch mode, by the active boundary line tool. */
+  async function sketchClick(raw: Pt, shift: boolean) {
+    const s = useAppStore.getState();
+    const ui = s.sketchUi;
+    const zoom = cam.current?.zoom ?? 1;
+    const pickTol = 8 / zoom;
+    const m = ui.mode;
+    const offset = async () => (await drawOptions()).offset;
+    if (m === "PickWalls") {
+      await apply(async () => ipc.sketchPickWalls(raw, pickTol, ui.tab, ui.core, await offset()));
+      s.setSketchUi({ tab: false });
+    } else if (m === "PickLines") {
+      await apply(async () => ipc.sketchPickLine(raw, pickTol, await offset(), ui.lock));
+    } else if (m === "Modify") {
+      const i = await ipc.sketchHit(raw, pickTol);
+      if (i === null) s.setSketchUi({ sel: shift ? ui.sel : [] });
+      else if (shift)
+        s.setSketchUi({ sel: ui.sel.includes(i) ? ui.sel.filter((x) => x !== i) : [...ui.sel, i] });
+      else s.setSketchUi({ sel: [i] });
+    } else if (m === "Trim" || m === "FilletArc") {
+      const i = await ipc.sketchHit(raw, pickTol);
+      if (i === null) {
+        s.setError("Click a boundary line.");
+      } else if (!sketchFirst.current) {
+        sketchFirst.current = { i, at: raw };
+      } else {
+        const a = sketchFirst.current;
+        sketchFirst.current = null;
+        if (m === "Trim") await apply(() => ipc.sketchTrim(a.i, a.at, i, raw));
+        else {
+          const r = await filletRadius();
+          await apply(() => ipc.sketchFillet(a.i, i, r));
+        }
+      }
+    } else {
+      const from = pts.current[pts.current.length - 1] ?? null;
+      const p = (await ipc.snap(view.id, raw, from, 12 / zoom)).pt;
+      await sketchPoint(p);
+      return;
+    }
+    s.setPrompt(promptFor("sketch", sketchFirst.current ? 1 : 0, view.viewType));
+    redraw();
+  }
+
+  /** The next point of a draw tool (clicked, snapped or typed). */
+  async function sketchPoint(p: Pt) {
+    const s = useAppStore.getState();
+    const m = s.sketchUi.mode;
+    const need = m === "StartEndRadiusArc" || m === "CenterEndsArc" ? 3 : 2;
+    const from = pts.current[pts.current.length - 1];
+    if (from && samePt(from, p)) return;
+    const all = [...pts.current, p];
+    if (all.length < need) {
+      pts.current = all;
+    } else {
+      const options = await drawOptions();
+      const ok = await apply(() => ipc.sketchDraw(m as never, all, options));
+      // Chained lines continue from the end of the last one.
+      pts.current = ok && m === "Line" && s.sketchUi.chain ? [p] : ok ? [] : pts.current;
+      sketchPreview.current = [];
+    }
+    s.setPrompt(promptFor("sketch", pts.current.length, view.viewType));
+    redraw();
+  }
 
   const dimensionAt = useLatest(async (p: Pt) => {
     const [a, b] = pts.current;
@@ -400,6 +553,21 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   useEffect(() => {
     const onCancel = () => {
       const s = useAppStore.getState();
+      if (s.tool === "sketch") {
+        // Esc ends the current line chain, then returns to Modify; it never leaves sketch mode.
+        if (pts.current.length || sketchFirst.current) {
+          pts.current = [];
+          sketchFirst.current = null;
+          sketchPreview.current = [];
+        } else if (s.sketchUi.mode !== "Modify") {
+          s.setSketchUi({ mode: "Modify" });
+        } else {
+          s.setSketchUi({ sel: [] });
+        }
+        s.setPrompt(promptFor("sketch", 0, view.viewType));
+        redraw();
+        return;
+      }
       if ((s.tool === "floor" || s.tool === "ceiling") && pts.current.length >= 3) {
         pts.current = [];
         redraw();
@@ -413,7 +581,9 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       const key = (e as CustomEvent<string>).detail;
       const s = useAppStore.getState();
       const hasBase = pts.current.length > 0 && (s.tool !== "rotate" || pts.current.length === 2);
-      if (!TYPED_TOOLS.includes(s.tool) || !hasBase || !startsTypedValue(key)) return;
+      const typedTool =
+        TYPED_TOOLS.includes(s.tool) || (s.tool === "sketch" && s.sketchUi.mode === "Line");
+      if (!typedTool || !hasBase || !startsTypedValue(key)) return;
       const sn = snapRef.current?.pt;
       const at = sn && cam.current ? toScreen(cam.current, size.w, size.h, sn.x, sn.y) : null;
       setEditor({
@@ -589,7 +759,8 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       return;
     }
     const p = pointAtLength(from, toward, mm);
-    if (p) await placePoint(p, p);
+    if (p && s.tool === "sketch") await sketchPoint(p);
+    else if (p) await placePoint(p, p);
   }
 
   async function commitTempDim(e: Editor) {
@@ -626,6 +797,16 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       return;
     }
     if (!toolAllowed(s.tool, view.viewType)) return;
+    if (s.tool === "sketch") {
+      await sketchClick(raw, shift);
+      return;
+    }
+    if (s.tool === "elevation") {
+      const p = (await ipc.snap(view.id, raw, null, tol)).pt;
+      if (await apply(() => ipc.createElevationMarker(view.id, p, s.elevationInterior)))
+        s.setTool("select");
+      return;
+    }
     if (s.tool === "door" || s.tool === "window") {
       const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
       const pv = typeId ? await ipc.openingPreview(view.id, typeId, raw, tol) : null;
@@ -778,6 +959,12 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     const levelPlan = s.app.views.find((v) => v.level === id && v.viewType === "Plan");
     const target = asView ?? levelPlan;
     if (target && target.id !== view.id) s.openView(target.id);
+    else if (!target) {
+      // Double-clicking a floor or ceiling edits its boundary, as in Revit.
+      const sheet = await ipc.properties(id).catch(() => null);
+      if (sheet && (sheet.category === "Floor" || sheet.category === "Ceiling"))
+        await editBoundary(id);
+    }
   }
 
   return (
@@ -801,6 +988,8 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
           if (e.button === 0) {
             const g = gripAt(x, y);
             if (g !== null) gripDrag.current = { index: g, to: null };
+            const v = sketchGripAt(x, y);
+            if (v) vertexDrag.current = { from: v, to: null };
           }
         }}
         onMouseMove={(e) => {
@@ -833,6 +1022,27 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
                 : `X ${ft(p.x)}'   ${vertical} ${ft(p.y)}'`,
             );
           const s = useAppStore.getState();
+          if (vertexDrag.current) {
+            const vd = vertexDrag.current;
+            if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
+            void ipc.snap(view.id, p, null, 12 / cam.current.zoom).then((r) => {
+              if (vertexDrag.current === vd) {
+                vd.to = r.pt;
+                redraw();
+              }
+            });
+            return;
+          }
+          if (s.tool === "sketch") {
+            const m = s.sketchUi.mode;
+            if (m === "PickWalls" || m === "PickLines") {
+              sketchPreviewAt(p, 8 / cam.current.zoom);
+            } else if (m !== "Modify" && m !== "Trim" && m !== "FilletArc") {
+              snapAt(p, 12 / cam.current.zoom);
+              sketchPreviewAt(snapRef.current?.pt ?? p, 8 / cam.current.zoom);
+            }
+            return;
+          }
           if (gripDrag.current) {
             if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
             snapAt(p, 12 / cam.current.zoom);
@@ -858,6 +1068,13 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         onMouseUp={(e) => {
           const d = drag.current;
           drag.current = null;
+          const vd = vertexDrag.current;
+          if (vd) {
+            vertexDrag.current = null;
+            if (vd.to && d?.moved) void apply(() => ipc.sketchMoveVertex(vd.from, vd.to!));
+            else redraw();
+            if (d?.moved) return;
+          }
           const g = gripDrag.current;
           if (g) {
             gripDrag.current = null;
@@ -872,6 +1089,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
           if (!d || d.moved) return;
           const [sx, sy] = local(e);
           if (e.button === 0) void click(sx, sy, e.shiftKey);
+          if (e.button === 2 && useAppStore.getState().tool === "sketch") {
+            window.dispatchEvent(new Event("tool-cancel"));
+            return;
+          }
           if (e.button === 2) {
             const s = useAppStore.getState();
             if ((s.tool === "floor" || s.tool === "ceiling") && pts.current.length >= 3)

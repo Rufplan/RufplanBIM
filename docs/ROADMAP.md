@@ -34,6 +34,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   surface patterns, colors), column/framing schedules and a material takeoff, column
   location marks and structural tags, and callouts (detail views).
 
+- Sketch mode and symbols (ADR-021): Revit's boundary sketch for floors and ceilings (every
+  Boundary Line tool, Pick Walls with Tab, locked wall lines, Finish checks), Revit level
+  heads and elevation marks, and interior elevation markers with room-cropped views.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

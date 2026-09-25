@@ -273,6 +273,8 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         _ => None,
     });
     let kind = parent_kind.as_ref().unwrap_or(kind);
+    // Interior elevations crop to their room unless the view has its own crop.
+    let mut auto_crop: Option<CropBox> = None;
     let model = regenerate(doc);
     let mut b = Builder {
         items: vec![],
@@ -303,12 +305,31 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
                 projected(&model, &mut b, d.perp(), Some(&cut)),
             )
         }
+        ViewKind::MarkerElevation { marker, facing } => {
+            let look = facing.look();
+            match doc.data(*marker) {
+                Ok(ElementData::ElevationMarker {
+                    level,
+                    at,
+                    interior: true,
+                }) => {
+                    let (cut, c) = interior_cut(doc, &model, *level, *at, look);
+                    auto_crop = Some(c);
+                    (
+                        ViewType::Elevation,
+                        projected(&model, &mut b, look, Some(&cut)),
+                    )
+                }
+                _ => (ViewType::Elevation, projected(&model, &mut b, look, None)),
+            }
+        }
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
     annotations(doc, &mut b, view);
     callout_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
-    let (items, bounds) = match crop {
+    let crop = crop.or(auto_crop);
+    let (items, bounds) = match &crop {
         Some(c) => {
             let mut items = crop_items(b.items, c);
             if *show_crop {
@@ -679,6 +700,7 @@ fn plan(
     }
     if !ceiling {
         elevation_markers(doc, b, lo, hi, margin);
+        placed_elevation_marks(doc, b, level);
     }
     let mut pts = vec![lo, hi];
     for it in &b.items {
@@ -1006,17 +1028,236 @@ fn elevation_markers(doc: &Document, b: &mut Builder, lo: Pt, hi: Pt, margin: f6
         };
         // The marker points back at the building (the direction the elevation looks).
         let look = out.scale(-1.0);
-        let r = b.paper(5.0);
-        b.circle(Some(v.id), c, 5.0, 2, false);
-        let tip = c.add(look.scale(r * 1.7));
-        let side = look.perp().scale(r * 0.95);
-        let base = c.add(look.scale(r * 0.25));
+        elevation_mark(doc, b, Some(v.id), c, &[(v.id, look)]);
+    }
+}
+
+/// Revit's Level Head - Circle: a datum target (a circle with two opposite quarters filled)
+/// at the end of the level line, with the name and elevation above the line beside it.
+pub(crate) fn level_head(b: &mut Builder, el: ElementId, end: Pt, name: &str, elevation: f64) {
+    let r = b.paper(2.4);
+    let c = end.add(Pt::new(r, 0.0));
+    let el = Some(el);
+    let quarter = |a0: f64| {
+        let mut q = vec![c];
+        q.extend(arc(c, r, a0, std::f64::consts::FRAC_PI_2));
+        q
+    };
+    b.fill(
+        el,
+        vec![ring(&arc(c, r, 0.0, std::f64::consts::TAU))],
+        FillKind::Paper,
+    );
+    b.fill(
+        el,
+        vec![ring(&quarter(std::f64::consts::FRAC_PI_2))],
+        FillKind::Ink,
+    );
+    b.fill(
+        el,
+        vec![ring(&quarter(-std::f64::consts::FRAC_PI_2))],
+        FillKind::Ink,
+    );
+    b.circle(el, c, 2.4, 2, false);
+    b.line(
+        el,
+        &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
+        false,
+        1,
+        Dash::Solid,
+    );
+    b.line(
+        el,
+        &[c.sub(Pt::new(0.0, r)), c.add(Pt::new(0.0, r))],
+        false,
+        1,
+        Dash::Solid,
+    );
+    // Name over elevation, both above the line, ending at the head.
+    let x = end.x - b.paper(1.0);
+    b.text(
+        el,
+        Pt::new(x, end.y + b.paper(5.2)),
+        name.to_owned(),
+        2.8,
+        Anchor::Right,
+    );
+    b.text(
+        el,
+        Pt::new(x, end.y + b.paper(1.6)),
+        revit_ft_in(elevation),
+        2.4,
+        Anchor::Right,
+    );
+}
+
+/// Feet-inches with spaced dash, as Revit prints levels: 10' - 0".
+fn revit_ft_in(mm: f64) -> String {
+    format_ft_in(mm).replacen("'-", "' - ", 1)
+}
+
+/// A view's reference on a sheet: its detail number (order placed) and the sheet number.
+pub(crate) fn view_ref(doc: &Document, view: ElementId) -> Option<(String, String)> {
+    let sheet = doc.iter().find_map(|e| match &e.data {
+        ElementData::Viewport { sheet, view: v, .. } if *v == view => Some(*sheet),
+        _ => None,
+    })?;
+    let mut on_sheet: Vec<ElementId> = doc
+        .iter()
+        .filter_map(|e| match &e.data {
+            ElementData::Viewport {
+                sheet: s, view: v, ..
+            } if *s == sheet => Some(*v),
+            _ => None,
+        })
+        .collect();
+    on_sheet.sort();
+    let n = on_sheet.iter().position(|v| *v == view)? + 1;
+    let number = studio_core::ops::sheets(doc)
+        .into_iter()
+        .find(|s| s.0 == sheet)
+        .map(|s| s.1)?;
+    Some((n.to_string(), number))
+}
+
+/// Revit's elevation mark: a round body with a filled arrow pointer for each view (the
+/// pointer is the view: double-click it to open). One view shows its detail number over
+/// its sheet number; several show each detail number by its pointer.
+pub(crate) fn elevation_mark(
+    doc: &Document,
+    b: &mut Builder,
+    body: Option<ElementId>,
+    c: Pt,
+    pointers: &[(ElementId, Pt)],
+) {
+    let rp = 4.5;
+    let r = b.paper(rp);
+    // Each pointer is a filled arrowhead outside the body, on the side it looks.
+    for (view, look) in pointers {
+        let side = look.perp().scale(r * 0.7);
+        let base = c.add(look.scale(r * 0.7));
+        let tip = c.add(look.scale(r * 1.8));
         b.fill(
-            Some(v.id),
+            Some(*view),
             vec![ring(&[tip, base.add(side), base.sub(side)])],
             FillKind::Ink,
         );
     }
+    b.fill(
+        body,
+        vec![ring(&arc(c, r, 0.0, std::f64::consts::TAU))],
+        FillKind::Paper,
+    );
+    b.circle(body, c, rp, 2, false);
+    match pointers {
+        [(view, _)] => {
+            let (detail, sheet) =
+                view_ref(doc, *view).unwrap_or_else(|| ("—".into(), String::new()));
+            b.line(
+                body,
+                &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
+                false,
+                1,
+                Dash::Solid,
+            );
+            b.text(
+                Some(*view),
+                c.add(Pt::new(0.0, b.paper(1.9))),
+                detail,
+                2.2,
+                Anchor::Center,
+            );
+            b.text(
+                Some(*view),
+                c.sub(Pt::new(0.0, b.paper(2.6))),
+                sheet,
+                1.8,
+                Anchor::Center,
+            );
+        }
+        _ => {
+            for (view, look) in pointers {
+                let label = view_ref(doc, *view).map_or_else(|| "—".into(), |r| r.0);
+                let at = c.add(look.scale(r * 0.42)).sub(Pt::new(0.0, b.paper(0.7)));
+                b.text(Some(*view), at, label, 1.8, Anchor::Center);
+            }
+        }
+    }
+}
+
+/// Elevation markers placed on `level` (interior) and building markers on any level.
+fn placed_elevation_marks(doc: &Document, b: &mut Builder, level: ElementId) {
+    for e in doc.of(Category::ElevationMarker) {
+        let ElementData::ElevationMarker {
+            level: l,
+            at,
+            interior,
+        } = &e.data
+        else {
+            continue;
+        };
+        if *interior && *l != level {
+            continue;
+        }
+        let pointers: Vec<(ElementId, Pt)> = studio_core::detail::marker_views(doc, e.id)
+            .into_iter()
+            .map(|(c, v)| (v, c.look()))
+            .collect();
+        elevation_mark(doc, b, Some(e.id), *at, &pointers);
+    }
+}
+
+/// An interior elevation's cut: through the marker, as wide as its room plus a foot each
+/// side (so the side walls show cut), to the far wall; and its crop, floor to the level
+/// above.
+fn interior_cut(
+    doc: &Document,
+    model: &Model,
+    level: ElementId,
+    at: Pt,
+    look: Pt,
+) -> (Cut, CropBox) {
+    let right = Pt::new(look.y, -look.x);
+    let ft = studio_core::units::MM_PER_FT;
+    let room = studio_regen::room_at(model, level, at).unwrap_or_else(|| {
+        let h = 10.0 * ft;
+        vec![
+            at.add(Pt::new(-h, -h)),
+            at.add(Pt::new(h, -h)),
+            at.add(Pt::new(h, h)),
+            at.add(Pt::new(-h, h)),
+        ]
+    });
+    let us: Vec<f64> = room.iter().map(|p| p.sub(at).dot(right)).collect();
+    let ds: Vec<f64> = room.iter().map(|p| p.sub(at).dot(look)).collect();
+    let umin = us.iter().copied().fold(f64::INFINITY, f64::min);
+    let umax = us.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let dmax = ds.iter().copied().fold(f64::NEG_INFINITY, f64::max).max(ft);
+    let side = ft;
+    let length = umax - umin + 2.0 * side;
+    let elev = doc.level_elevation(level).unwrap_or(0.0);
+    let top = model
+        .levels
+        .iter()
+        .map(|l| l.elevation)
+        .filter(|z| *z > elev + 1.0)
+        .fold(f64::INFINITY, f64::min);
+    let top = if top.is_finite() {
+        top
+    } else {
+        elev + 10.0 * ft
+    };
+    (
+        Cut {
+            origin: at.add(right.scale(umin - side)),
+            length,
+            depth: dmax + side,
+        },
+        CropBox {
+            min: Pt::new(0.0, elev - side),
+            max: Pt::new(length, top + side),
+        },
+    )
 }
 
 /// Clips a rectangular hatch grid (spacing `dx` along x, `dy` along y) to a ring.
@@ -1555,24 +1796,7 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             1,
             Dash::Center,
         );
-        let r = 3.0;
-        let c = Pt::new(x1 + b.paper(r), l.elevation);
-        b.circle(Some(l.id), c, r, 2, true);
-        let tx = x1 + b.paper(r * 2.0 + 2.0);
-        b.text(
-            Some(l.id),
-            Pt::new(tx, l.elevation + b.paper(2.8)),
-            l.name.clone(),
-            4.2,
-            Anchor::Left,
-        );
-        b.text(
-            Some(l.id),
-            Pt::new(tx, l.elevation - b.paper(2.8)),
-            format_ft_in(l.elevation),
-            3.6,
-            Anchor::Left,
-        );
+        level_head(b, l.id, Pt::new(x1, l.elevation), &l.name, l.elevation);
     }
 
     for g in &model.grids {
@@ -1767,22 +1991,36 @@ fn callout_markers(doc: &Document, b: &mut Builder, view: ElementId) {
             2,
             Dash::Solid,
         );
+        // Detail number over sheet number, as Revit's callout head.
+        let hr = b.paper(5.0);
+        b.fill(
+            el,
+            vec![ring(&arc(head, hr, 0.0, std::f64::consts::TAU))],
+            FillKind::Paper,
+        );
         b.circle(el, head, 5.0, 2, false);
-        let sheet = doc.iter().find_map(|v| match &v.data {
-            ElementData::Viewport {
-                sheet, view: vv, ..
-            } if *vv == e.id => Some(*sheet),
-            _ => None,
-        });
-        let number = sheet
-            .and_then(|s| {
-                studio_core::ops::sheets(doc)
-                    .into_iter()
-                    .find(|x| x.0 == s)
-                    .map(|x| x.1)
-            })
-            .unwrap_or_else(|| "—".into());
-        b.text(el, head, number, 2.6, Anchor::Center);
+        b.line(
+            el,
+            &[head.sub(Pt::new(hr, 0.0)), head.add(Pt::new(hr, 0.0))],
+            false,
+            1,
+            Dash::Solid,
+        );
+        let (detail, number) = view_ref(doc, e.id).unwrap_or_else(|| ("—".into(), String::new()));
+        b.text(
+            el,
+            head.add(Pt::new(0.0, b.paper(2.1))),
+            detail,
+            2.4,
+            Anchor::Center,
+        );
+        b.text(
+            el,
+            head.sub(Pt::new(0.0, b.paper(2.9))),
+            number,
+            2.0,
+            Anchor::Center,
+        );
         b.text(
             el,
             head.add(Pt::new(b.paper(7.0), 0.0)),
@@ -2513,11 +2751,14 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert!(texts.contains(&"Level 2".to_string()) && texts.contains(&"10'-0\"".to_string()));
-        // The south wall (nearest) is drawn after the north wall (farthest).
+        assert!(texts.contains(&"Level 2".to_string()) && texts.contains(&"10' - 0\"".to_string()));
+        // The south wall (nearest) is drawn after the north wall (farthest); level heads
+        // (drawn last) aside.
+        let levels: Vec<ElementId> = doc.levels().iter().map(|l| l.0).collect();
         let fills: Vec<_> = dl
             .items
             .iter()
+            .filter(|i| !i.el.is_some_and(|e| levels.contains(&e)))
             .filter(|i| {
                 matches!(
                     i.prim,
@@ -3694,5 +3935,120 @@ mod tests {
             .items
             .iter()
             .any(|i| i.el == Some(sep) && matches!(&i.prim, Prim::Line { w: 1, .. })));
+    }
+    #[test]
+    fn interior_elevation_markers_crop_to_the_room_and_show_cut_side_walls() {
+        let (mut doc, l1, _, _) = roofed_house();
+        let ft = studio_core::units::MM_PER_FT;
+        let room = ops::create_room(&mut doc, l1, Pt::new(20.0 * ft, 15.0 * ft)).unwrap();
+        ops::set_property(&mut doc, room, "name", "Great Room", 0).unwrap();
+        // Nearer the north wall: the marker looks north.
+        let at = Pt::new(20.0 * ft, 24.0 * ft);
+        let m = studio_regen::derived::create_elevation_marker(&mut doc, l1, at, true).unwrap();
+        let views = studio_core::detail::marker_views(&doc, m);
+        assert_eq!(views.len(), 1);
+        assert_eq!(views[0].0, studio_core::Compass::North);
+        let v = views[0].1;
+        assert_eq!(doc.data(v).unwrap().name(), "Great Room - North");
+        let dl = display_list(&doc, v).unwrap();
+        assert_eq!(dl.view_type, ViewType::Elevation);
+        // Cropped to the room plus a foot each side, floor to the level above.
+        let width = 40.0 * ft - 8.0 * MM_PER_IN + 2.0 * ft;
+        let m8 = 48.0 * 8.0;
+        assert!(
+            (dl.bounds[2] - dl.bounds[0] - (width + 2.0 * m8)).abs() < 1.0,
+            "{:?}",
+            dl.bounds
+        );
+        assert!((dl.bounds[3] - (11.0 * ft + m8)).abs() < 1.0);
+        // The east and west walls are cut at the edges.
+        let walls: Vec<ElementId> = doc.of(Category::Wall).map(|e| e.id).collect();
+        let cut = dl
+            .items
+            .iter()
+            .filter(|i| i.el.is_some_and(|e| walls.contains(&e)))
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Poche | FillKind::PocheLight,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert!(cut >= 2, "{cut}");
+        // The marker in plan: its body and a pointer that is the view.
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let pdl = display_list(&doc, plan).unwrap();
+        assert!(pdl
+            .items
+            .iter()
+            .any(|i| i.el == Some(m) && matches!(&i.prim, Prim::Circle { .. })));
+        assert!(pdl.items.iter().any(|i| i.el == Some(v)
+            && matches!(
+                &i.prim,
+                Prim::Fill {
+                    fill: FillKind::Ink,
+                    ..
+                }
+            )));
+        // Check the other three boxes; uncheck one; delete the marker.
+        for dir in ["East", "South", "West"] {
+            studio_regen::derived::set_property(&mut doc, m, &format!("view_{dir}"), "yes")
+                .unwrap();
+        }
+        assert_eq!(studio_core::detail::marker_views(&doc, m).len(), 4);
+        assert!(doc
+            .of(Category::View)
+            .any(|e| e.data.name() == "Great Room - West"));
+        ops::set_property(&mut doc, m, "view_South", "no", 0).unwrap();
+        assert_eq!(studio_core::detail::marker_views(&doc, m).len(), 3);
+        let before = doc.of(Category::View).count();
+        ops::delete(&mut doc, &[m]).unwrap();
+        assert_eq!(doc.of(Category::View).count(), before - 3);
+    }
+
+    #[test]
+    fn level_heads_look_like_revit() {
+        let (doc, _, _, _) = roofed_house();
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::South
+                }
+            )
+        });
+        let dl = display_list(&doc, south).unwrap();
+        let l2 = doc.levels()[1].0;
+        let mine: Vec<&Item> = dl.items.iter().filter(|i| i.el == Some(l2)).collect();
+        let quarters = mine
+            .iter()
+            .filter(|i| {
+                matches!(
+                    &i.prim,
+                    Prim::Fill {
+                        fill: FillKind::Ink,
+                        ..
+                    }
+                )
+            })
+            .count();
+        assert_eq!(quarters, 2, "two filled quarters of the datum target");
+        // Name above elevation, both above the line.
+        let y = |s: &str| {
+            mine.iter()
+                .find_map(|i| match &i.prim {
+                    Prim::Text { text, at, .. } if text == s => Some(at[1]),
+                    _ => None,
+                })
+                .unwrap()
+        };
+        let z = 10.0 * studio_core::units::MM_PER_FT;
+        assert!(y("Level 2") > y("10' - 0\"") && y("10' - 0\"") > z);
     }
 }

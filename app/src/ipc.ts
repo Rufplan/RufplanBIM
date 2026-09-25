@@ -27,6 +27,9 @@ import type { RufplanLink } from "./bindings/RufplanLink";
 import type { Pt } from "./bindings/Pt";
 import type { SnapResult } from "./bindings/SnapResult";
 import type { ViewInfo } from "./bindings/ViewInfo";
+import type { DrawOptions } from "./bindings/DrawOptions";
+import type { DrawTool } from "./bindings/DrawTool";
+import type { SketchKind } from "./bindings/SketchKind";
 
 export type {
   AppState,
@@ -199,6 +202,42 @@ export const ipc = {
   setSectionBox: (view: ElementId, min: number[], max: number[]): S =>
     invoke("set_section_box", { view, min, max }),
   createMaterial: (from: ElementId | null): S => invoke("create_material", { from }),
+  // Boundary sketch mode (ADR-021).
+  sketchBegin: (
+    view: ElementId,
+    kind: SketchKind,
+    target: ElementId | null,
+    typeId: ElementId | null,
+  ): S => invoke("sketch_begin", { view, kind, target, typeId }),
+  sketchDraw: (tool: DrawTool, pts: Pt[], options: DrawOptions): S =>
+    invoke("sketch_draw", { tool, pts, options }),
+  sketchPickWalls: (cursor: Pt, tol: number, chain: boolean, core: boolean, offset: number): S =>
+    invoke("sketch_pick_walls", { cursor, tol, chain, core, offset }),
+  sketchPickLine: (cursor: Pt, tol: number, offset: number, lockToWall: boolean): S =>
+    invoke("sketch_pick_line", { cursor, tol, offset, lockToWall }),
+  sketchHit: (p: Pt, tol: number) => invoke<number | null>("sketch_hit", { p, tol }),
+  sketchFillet: (a: number, b: number, radius: number): S =>
+    invoke("sketch_fillet", { a, b, radius }),
+  sketchTrim: (a: number, aPick: Pt, b: number, bPick: Pt): S =>
+    invoke("sketch_trim", { a, aPick, b, bPick }),
+  sketchDelete: (indices: number[]): S => invoke("sketch_delete", { indices }),
+  sketchMoveVertex: (from: Pt, to: Pt): S => invoke("sketch_move_vertex", { from, to }),
+  sketchFlip: (indices: number[]): S => invoke("sketch_flip", { indices }),
+  sketchUndo: (redo: boolean): S => invoke("sketch_undo", { redo }),
+  sketchSetType: (typeId: ElementId): S => invoke("sketch_set_type", { typeId }),
+  sketchFinish: (): S => invoke("sketch_finish"),
+  sketchCancel: (): S => invoke("sketch_cancel"),
+  sketchPreview: (
+    mode: string,
+    pts: Pt[],
+    cursor: Pt,
+    options: DrawOptions,
+    tol: number,
+    chain: boolean,
+    core: boolean,
+  ) => invoke<Pt[][]>("sketch_preview", { mode, pts, cursor, options, tol, chain, core }),
+  createElevationMarker: (view: ElementId, at: Pt, interior: boolean): S =>
+    invoke("create_elevation_marker", { view, at, interior }),
   /** Location lines and stair shapes as [id, label] pairs. */
   drawingOptions: () => invoke<[[string, string][], [string, string][]]>("drawing_options"),
   addProjectParameter: (

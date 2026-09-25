@@ -95,6 +95,8 @@ pub struct AppState {
     pub rufplan: Option<studio_core::RufplanLink>,
     /// User-defined project parameters.
     pub param_defs: Vec<studio_core::ParamDef>,
+    /// The boundary sketch in progress, if any.
+    pub sketch: Option<crate::sketching::SketchInfo>,
 }
 
 #[derive(Debug, Default)]
@@ -102,9 +104,32 @@ pub struct Session {
     project: Option<Project>,
     path: Option<PathBuf>,
     revision: u64,
+    /// A floor or ceiling boundary sketch in progress (ADR-021).
+    sketch: Option<crate::sketching::SketchSession>,
 }
 
 impl Session {
+    pub fn sketch(&self) -> Option<&crate::sketching::SketchSession> {
+        self.sketch.as_ref()
+    }
+
+    pub fn set_sketch(&mut self, s: Option<crate::sketching::SketchSession>) {
+        self.sketch = s;
+    }
+
+    /// The document and the sketch in progress, together.
+    pub fn doc_and_sketch(
+        &mut self,
+    ) -> anyhow::Result<(&Document, &mut crate::sketching::SketchSession)> {
+        let doc = self
+            .project
+            .as_ref()
+            .map(|p| &p.doc)
+            .context("no project is open")?;
+        let sk = self.sketch.as_mut().context("no sketch in progress")?;
+        Ok((doc, sk))
+    }
+
     pub fn doc(&self) -> anyhow::Result<&Document> {
         self.project
             .as_ref()
@@ -184,6 +209,7 @@ impl Session {
                         ViewKind::ThreeD => (ViewType::ThreeD, None),
                         ViewKind::Section { .. } => (ViewType::Section, None),
                         ViewKind::Schedule { .. } => (ViewType::Schedule, None),
+                        ViewKind::MarkerElevation { .. } => (ViewType::Elevation, None),
                     };
                     Some(ViewInfo {
                         id: e.id,
@@ -280,6 +306,7 @@ impl Session {
             },
             rufplan: ops::rufplan_link(doc),
             param_defs: studio_core::params::defs(doc),
+            sketch: self.sketch.as_ref().map(|s| s.info()),
         })
     }
 
@@ -290,6 +317,7 @@ impl Session {
         doc.clear_history();
         doc.mark_saved();
         self.project = Some(Project::new(app_version, doc));
+        self.sketch = None;
         self.path = None;
         self.revision += 1;
         Ok(())
@@ -391,6 +419,7 @@ impl Session {
             }
         }
         self.project = Some(project);
+        self.sketch = None;
         self.path = Some(path.to_owned());
         self.revision += 1;
         Ok(())
@@ -528,6 +557,11 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
     ] {
         let r = ops::create_room(doc, level, ft(x, y))?;
         ops::set_property(doc, r, "name", name, 0)?;
+    }
+    // An interior elevation marker in the Kitchen with all four views (ADR-021).
+    let marker = studio_regen::derived::create_elevation_marker(doc, l1, ft(28.0, 17.0), true)?;
+    for dir in ["North", "East", "South", "West"] {
+        studio_regen::derived::set_property(doc, marker, &format!("view_{dir}"), "yes")?;
     }
     // Exterior walls run clockwise so their layered faces (siding out, gypsum in) face
     // the right way; flipping keeps every door and window where it is.
@@ -831,12 +865,10 @@ mod tests {
         assert_eq!(doc.count(Category::Stair), 1);
         assert_eq!(doc.count(Category::Railing), 1);
         // Floors and ceilings follow the walls; a detail callout of the SW corner.
+        // Floors are sketches of the perimeter walls' outer faces, locked to them.
         assert!(doc.of(Category::Floor).all(|e| matches!(
             &e.data,
-            ElementData::Floor {
-                bound: studio_core::SlabBound::Walls,
-                ..
-            }
+            ElementData::Floor { sketch, .. } if studio_core::sketch::has_locked(sketch)
         )));
         assert!(doc.of(Category::Ceiling).all(|e| matches!(
             &e.data,
@@ -858,6 +890,10 @@ mod tests {
             1
         );
         assert!(doc.count(Category::Material) > 10);
+        assert_eq!(doc.count(Category::ElevationMarker), 1);
+        assert!(doc
+            .of(Category::View)
+            .any(|e| e.data.name() == "Kitchen - East"));
         let model = studio_regen::regenerate(doc);
         let upper = model
             .floors

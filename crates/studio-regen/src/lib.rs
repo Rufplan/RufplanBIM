@@ -686,50 +686,64 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
         }
         _ => None,
     };
+    // A sketched slab's pieces (outer loops with their openings), else its outline.
+    type Loops = [Vec<studio_core::sketch::SketchCurve>];
+    let bases = |level: ElementId, bound: &SlabBound, boundary: &Vec<Pt>, sketch: &Loops| {
+        if sketch.is_empty() {
+            vec![Poly::simple(outline(level, bound, boundary))]
+        } else {
+            studio_core::sketch::polygons(doc, sketch)
+        }
+    };
     let slab = |cat: Category| -> Vec<SlabSolid> {
         doc.of(cat)
-            .filter_map(|e| match &e.data {
-                ElementData::Floor {
-                    type_id,
-                    level,
-                    offset,
-                    boundary,
-                    bound,
-                } => {
-                    let t = type_thickness(doc, *type_id)?;
-                    let top = elev(*level) + offset;
-                    Some(SlabSolid {
+            .flat_map(|e| -> Vec<SlabSolid> {
+                let (type_id, level, z0, z1, bases) = match &e.data {
+                    ElementData::Floor {
+                        type_id,
+                        level,
+                        offset,
+                        boundary,
+                        bound,
+                        sketch,
+                    } => {
+                        let Some(t) = type_thickness(doc, *type_id) else {
+                            return vec![];
+                        };
+                        let top = elev(*level) + offset;
+                        let b = bases(*level, bound, boundary, sketch);
+                        (*type_id, *level, top - t, top, b)
+                    }
+                    ElementData::Ceiling {
+                        type_id,
+                        level,
+                        height,
+                        boundary,
+                        bound,
+                        sketch,
+                    } => {
+                        let Some(t) = type_thickness(doc, *type_id) else {
+                            return vec![];
+                        };
+                        let bottom = elev(*level) + height;
+                        let b = bases(*level, bound, boundary, sketch);
+                        (*type_id, *level, bottom, bottom + t, b)
+                    }
+                    _ => return vec![],
+                };
+                bases
+                    .into_iter()
+                    .map(|base| SlabSolid {
                         id: e.id,
                         category: cat,
-                        level: *level,
-                        base: Poly::simple(outline(*level, bound, boundary)),
-                        z0: top - t,
-                        z1: top,
-                        color: slab_color(*type_id),
-                        layers: type_layer_depths(doc, *type_id),
+                        level,
+                        base,
+                        z0,
+                        z1,
+                        color: slab_color(type_id),
+                        layers: type_layer_depths(doc, type_id),
                     })
-                }
-                ElementData::Ceiling {
-                    type_id,
-                    level,
-                    height,
-                    boundary,
-                    bound,
-                } => {
-                    let t = type_thickness(doc, *type_id)?;
-                    let bottom = elev(*level) + height;
-                    Some(SlabSolid {
-                        id: e.id,
-                        category: cat,
-                        level: *level,
-                        base: Poly::simple(outline(*level, bound, boundary)),
-                        z0: bottom,
-                        z1: bottom + t,
-                        color: slab_color(*type_id),
-                        layers: type_layer_depths(doc, *type_id),
-                    })
-                }
-                _ => None,
+                    .collect()
             })
             .collect()
     };

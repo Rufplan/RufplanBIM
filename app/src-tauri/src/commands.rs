@@ -229,7 +229,15 @@ pub fn snap(
     state: State<'_, SessionState>,
 ) -> CommandResult<SnapResult> {
     let session = lock(&state)?;
-    Ok(studio_views::snap(session.doc()?, view, point, from, tol))
+    let mut r = studio_views::snap(session.doc()?, view, point, from, tol);
+    // In sketch mode, the sketch's own ends and midpoints snap first.
+    if let Some(q) = crate::sketching::sketch_snap(&session, point, tol) {
+        if from.is_none_or(|f| f.dist(q) > 1.0) {
+            r.pt = q;
+            r.kind = studio_views::snap::SnapKind::Endpoint;
+        }
+    }
+    Ok(r)
 }
 
 #[tauri::command]

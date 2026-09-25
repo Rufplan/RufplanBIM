@@ -74,6 +74,7 @@ export function appState(path: string | null, dirty = false): AppState {
     issuances: [],
     rufplan: null,
     roofTypes: [],
+    sketch: null,
     columnTypes: [{ id: "00000000-0000-7000-8000-000000000025", name: "Steel W10x33" }],
     beamTypes: [{ id: "00000000-0000-7000-8000-000000000026", name: "Steel W12x26" }],
     railingTypes: [{ id: "00000000-0000-7000-8000-000000000027", name: 'Guardrail - 42"' }],
@@ -121,6 +122,58 @@ export function installFakeBackend(): FakeBackend {
           return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
         case "handles":
           return { grips: [], dims: [] };
+        case "sketch_begin":
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              sketch: {
+                kind: a.kind as "Floor" | "Ceiling",
+                view: a.view as string,
+                target: (a.target as string | null) ?? null,
+                typeId: (a.typeId as string | null) ?? ids.ft,
+                curves: [],
+                bad: [],
+                error: null,
+                canUndo: false,
+                canRedo: false,
+              },
+            };
+          return fake.state;
+        case "sketch_draw":
+          if (fake.state?.sketch) {
+            const p = a.pts as { x: number; y: number }[];
+            fake.state = {
+              ...fake.state,
+              sketch: {
+                ...fake.state.sketch,
+                curves: [...fake.state.sketch.curves, { pts: p, locked: false, isLine: true }],
+                canUndo: true,
+              },
+            };
+          }
+          return fake.state;
+        case "sketch_finish":
+          if (fake.state?.sketch) {
+            fake.state =
+              fake.state.sketch.curves.length === 0
+                ? {
+                    ...fake.state,
+                    sketch: {
+                      ...fake.state.sketch,
+                      error:
+                        "Lines must be in closed loops. The highlighted lines are open on one end.",
+                    },
+                  }
+                : { ...fake.state, sketch: null };
+          }
+          return fake.state;
+        case "sketch_cancel":
+          if (fake.state) fake.state = { ...fake.state, sketch: null };
+          return fake.state;
+        case "sketch_preview":
+          return [];
+        case "parse_length":
+          return a.text === '0"' ? 0 : 304.8;
         case "create_material":
           if (fake.state)
             fake.state = {

@@ -414,3 +414,53 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
 - The sample's floors and ceilings are bound, and a callout of the southwest corner is
   placed on A3.0.
 
+## ADR-021 Revit sketch mode for floor boundaries; Revit level and elevation symbols; interior elevations — Accepted (2026-09-24)
+- **Sketch mode:** Floor (SB), Sketch Ceiling (CS), Edit Boundary (Modify tab) and
+  double-clicking a floor or ceiling enter sketch mode. The sketch lives in the session
+  (not the model) until Finish; the ribbon becomes Revit's contextual tab ("Modify | Create
+  Floor Boundary") with Mode (Finish ✓ / Cancel ✗), Draw (the Boundary Line tools) and
+  Modify groups; the model draws halftone and the element being edited is hidden; sketch
+  lines are magenta. Sketch mode has its own undo/redo (Ctrl+Z / Ctrl+Y); Esc ends the
+  current chain, then returns to Modify, and never leaves the sketch.
+- **Draw tools:** Line (Chain, Offset, Radius: chained corners filleted), Rectangle
+  (Offset, Radius: rounded corners), Inscribed and Circumscribed Polygon (Sides, Offset),
+  Circle (Offset), Start-End-Radius Arc, Center-ends Arc (up to a half circle, toward the
+  cursor), Fillet Arc (two lines, Radius), Pick Lines (wall faces, centerlines and grids;
+  Offset toward the cursor; Lock keeps a wall line on its wall) and Pick Walls (the face on
+  the cursor's side; Offset; Extend into wall (to core); **Tab** picks the whole chain of
+  connected walls, all inside or all outside). Picked lines trim to each other at their
+  corners. Typed lengths work for lines; the sketch's own ends and midpoints snap.
+- **Modify in sketch:** select lines (Shift adds), drag a vertex (every line end there moves),
+  Trim/Extend to Corner (keeping the clicked parts), Delete, and Flip (Space) for picked
+  wall lines, moving them to the wall's other face with their corners.
+- **Model:** `Floor.sketch` / `Ceiling.sketch` hold the boundary loops (`SketchCurve`: lines,
+  optionally locked to a `WallRef` face with an offset, and arcs). Regeneration puts each
+  locked line on its wall's current face and re-intersects it with its neighbors, so the
+  floor follows moved walls, and changes of wall type thickness, like Revit's locked
+  sketch lines. Loops inside other loops are openings; separate loops are separate pieces
+  of one floor. Pick Walls floors made outside sketch mode (and the sample's) are the same
+  locked perimeter sketch. "Boundary: Sketched" unlocks the lines where they are;
+  "Follows Walls" re-picks the perimeter.
+- **Finish** checks, with Revit's messages and the lines highlighted red: "Lines must be in
+  closed loops. The highlighted lines are open on one end.", "Lines must not intersect",
+  "Highlighted lines overlap. Lines may not overlap.", an empty sketch, zero-area loops.
+  Finish creates the floor (or updates the edited one) as one undo step.
+- **Not yet:** slope arrows, span direction, tangent-end arcs, splines, and the modify
+  tools (move, copy, rotate, mirror, offset) on sketch lines.
+- **Level heads:** Revit's Level Head – Circle: a datum target (two opposite quarters
+  filled) at the line's end, with the name over the elevation (`10' - 0"`) above the line.
+- **Elevation marks:** a round body with a filled arrowhead pointer per view (double-click a
+  pointer to open its view; the body selects the marker). One view shows its detail
+  number over its sheet number; several show each detail number by its pointer. Detail
+  numbers are the order views were placed on their sheet. Callout heads use the same
+  detail-over-sheet form.
+- **Interior elevations:** `ElevationMarker { level, at, interior }` with `MarkerElevation
+  { marker, facing }` views (deleting the marker deletes them). The Elevation tool (EL, with
+  Interior / Building type in the options bar) places a marker looking at the nearest wall;
+  the marker's Properties turn the North/East/South/West views on and off, named after the
+  room ("Kitchen - North"). An interior view cuts through the marker, as wide as the room
+  plus 1' each side (so side walls show cut) to the far wall, and crops floor to the level
+  above (its own crop, if set, wins). Building markers draw a plain elevation. The sample's
+  Kitchen has a four-view interior marker.
+- **File format:** new element kinds, a new view kind and `#[serde(default)]` fields only.
+

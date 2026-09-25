@@ -4,6 +4,7 @@ import type { NamedItem } from "./NamedItem";
 import type { ParamDef } from "./ParamDef";
 import type { ProjectStatus } from "./ProjectStatus";
 import type { RufplanLink } from "./RufplanLink";
+import type { SketchInfo } from "./SketchInfo";
 import type { StageItem } from "./StageItem";
 import type { ViewInfo } from "./ViewInfo";
 
@@ -26,4 +27,8 @@ rufplan: RufplanLink | null,
 /**
  * User-defined project parameters.
  */
-paramDefs: Array<ParamDef>, };
+paramDefs: Array<ParamDef>, 
+/**
+ * The boundary sketch in progress, if any.
+ */
+sketch: SketchInfo | null, };

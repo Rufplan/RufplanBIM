@@ -79,6 +79,7 @@ pub enum Category {
     Railing,
     Material,
     RoomSeparator,
+    ElevationMarker,
 }
 
 impl Category {
@@ -117,6 +118,7 @@ impl Category {
             Category::Railing => "Railing",
             Category::Material => "Material",
             Category::RoomSeparator => "RoomSeparator",
+            Category::ElevationMarker => "ElevationMarker",
         }
     }
 }
@@ -558,6 +560,12 @@ pub enum ViewKind {
     Schedule {
         kind: ScheduleKind,
     },
+    /// One direction of an elevation marker (ADR-021), looking `facing` (a North view looks
+    /// north, at the room's north wall). Interior ones are cropped to the marker's room.
+    MarkerElevation {
+        marker: ElementId,
+        facing: Compass,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -632,6 +640,9 @@ pub enum ElementData {
         boundary: Vec<Pt>,
         #[serde(default)]
         bound: SlabBound,
+        /// Boundary loops as sketched (ADR-021); when present they define the outline.
+        #[serde(default)]
+        sketch: Vec<Vec<crate::sketch::SketchCurve>>,
     },
     CeilingType {
         name: String,
@@ -648,6 +659,8 @@ pub enum ElementData {
         boundary: Vec<Pt>,
         #[serde(default)]
         bound: SlabBound,
+        #[serde(default)]
+        sketch: Vec<Vec<crate::sketch::SketchCurve>>,
     },
     View {
         name: String,
@@ -870,6 +883,13 @@ pub enum ElementData {
         /// sRGB.
         color: [u8; 3],
     },
+    /// An elevation marker placed in plan: up to four views, one per direction (Revit's
+    /// Elevation tool; interior ones look at the walls of the room they're in).
+    ElevationMarker {
+        level: ElementId,
+        at: Pt,
+        interior: bool,
+    },
     /// A room-bounding line on `level` for open plans (Revit's Room Separation Line).
     RoomSeparator {
         level: ElementId,
@@ -931,6 +951,7 @@ impl ElementData {
             ElementData::Railing { .. } => Category::Railing,
             ElementData::Material { .. } => Category::Material,
             ElementData::RoomSeparator { .. } => Category::RoomSeparator,
+            ElementData::ElevationMarker { .. } => Category::ElevationMarker,
         }
     }
 
@@ -953,7 +974,9 @@ impl ElementData {
             | ElementData::Ceiling { type_id, level, .. } => {
                 vec![*type_id, *level]
             }
-            ElementData::Room { level, .. } | ElementData::RoomSeparator { level, .. } => {
+            ElementData::Room { level, .. }
+            | ElementData::RoomSeparator { level, .. }
+            | ElementData::ElevationMarker { level, .. } => {
                 vec![*level]
             }
             ElementData::Roof { type_id, level, .. }
@@ -987,8 +1010,13 @@ impl ElementData {
             } => {
                 // A callout goes with its parent view.
                 let mut v: Vec<ElementId> = callout_of.iter().copied().collect();
-                if let ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } = kind {
-                    v.push(*level);
+                match kind {
+                    ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } => {
+                        v.push(*level)
+                    }
+                    // The marker's views go with it.
+                    ViewKind::MarkerElevation { marker, .. } => v.push(*marker),
+                    _ => {}
                 }
                 v
             }
@@ -1013,6 +1041,12 @@ impl ElementData {
             | ElementData::RailingType { name, .. }
             | ElementData::Material { name, .. } => name.clone(),
             ElementData::RoomSeparator { .. } => "Room Separator".into(),
+            ElementData::ElevationMarker { interior, .. } => if *interior {
+                "Interior Elevation"
+            } else {
+                "Building Elevation"
+            }
+            .into(),
             ElementData::Column { .. } => "Column".into(),
             ElementData::Beam { .. } => "Beam".into(),
             ElementData::Railing { .. } => "Railing".into(),
@@ -1045,7 +1079,8 @@ impl ElementData {
             | ElementData::Roof { level, .. }
             | ElementData::Beam { level, .. }
             | ElementData::Railing { level, .. }
-            | ElementData::RoomSeparator { level, .. } => Some(*level),
+            | ElementData::RoomSeparator { level, .. }
+            | ElementData::ElevationMarker { level, .. } => Some(*level),
             ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
                 Some(*base_level)
             }

@@ -1,7 +1,48 @@
 // Tool helpers that don't touch React or IPC, so they're easy to test.
 import type { Pt } from "./bindings/Pt";
 import type { ViewType } from "./bindings/ViewType";
-import type { Tool } from "./store";
+import { useAppStore, type SketchMode, type Tool } from "./store";
+
+/** Status-bar prompt in sketch mode, as Revit words it. */
+export function sketchPrompt(mode: SketchMode, n: number): string {
+  switch (mode) {
+    case "Modify":
+      return "Click boundary lines to select; drag their ends; Delete removes; Space flips a picked wall line. Finish ✓ or Cancel ✗ on the ribbon.";
+    case "Line":
+      return n === 0
+        ? "Click to enter line start point."
+        : "Click to enter line end point, or type a length and press Enter.";
+    case "Rectangle":
+      return n === 0 ? "Click to enter rectangle start point." : "Click to enter other corner.";
+    case "InscribedPolygon":
+    case "CircumscribedPolygon":
+      return n === 0 ? "Click to enter polygon center." : "Click to enter polygon radius.";
+    case "Circle":
+      return n === 0 ? "Click to enter circle center." : "Click to enter circle radius.";
+    case "StartEndRadiusArc":
+      return n === 0
+        ? "Click to enter arc start point."
+        : n === 1
+          ? "Click to enter arc end point."
+          : "Click to enter a point on the arc (sets its radius).";
+    case "CenterEndsArc":
+      return n === 0
+        ? "Click to enter arc center point."
+        : n === 1
+          ? "Click to enter arc start point (sets the radius)."
+          : "Click to enter arc end point.";
+    case "FilletArc":
+      return n === 0 ? "Select first line to fillet." : "Select second line to fillet.";
+    case "PickLines":
+      return "Select a line, wall face or grid to add a boundary line.";
+    case "PickWalls":
+      return "Select walls to add boundary lines. Press Tab to pick a chain of walls; the side you point at is the face used.";
+    case "Trim":
+      return n === 0
+        ? "Click the first line to trim/extend (the part to keep)."
+        : "Click the second line (the part to keep).";
+  }
+}
 
 /** Revit-style two-letter keyboard shortcuts. */
 export const SHORTCUTS: Record<string, Tool> = {
@@ -10,7 +51,6 @@ export const SHORTCUTS: Record<string, Tool> = {
   GR: "grid",
   LL: "level",
   SB: "floor",
-  FP: "floorAuto",
   CL: "ceilingAuto",
   CS: "ceiling",
   DR: "door",
@@ -35,6 +75,7 @@ export const SHORTCUTS: Record<string, Tool> = {
   RA: "railing",
   RS: "roomSeparator",
   CA: "callout",
+  EL: "elevation",
 };
 
 /** Tools that need a plan view (they place elements on the view's level). */
@@ -66,6 +107,7 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
     tool === "roomSeparator"
   )
     return view === "Plan";
+  if (tool === "sketch" || tool === "elevation") return view === "Plan" || view === "CeilingPlan";
   if (tool === "callout")
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   // Move works in plan coordinates, and on sheets for viewports.
@@ -132,6 +174,10 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return n === 0
         ? "Click the beam's start. It frames the floor above this plan."
         : "Click the beam's end, or type a length and press Enter.";
+    case "sketch":
+      return sketchPrompt(useAppStore.getState().sketchUi.mode, n);
+    case "elevation":
+      return "Click to place an elevation marker; it looks at the nearest wall. Check more views on the marker in Properties.";
     case "roomSeparator":
       return n === 0
         ? "Click the start of a room separation line (for open plans)."

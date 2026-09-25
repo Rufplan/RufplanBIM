@@ -124,8 +124,22 @@ fn transformed(
             *start = x.apply(*start);
             *end = x.apply(*end);
         }
-        ElementData::Floor { boundary, .. } | ElementData::Ceiling { boundary, .. } => {
+        ElementData::Floor {
+            boundary, sketch, ..
+        }
+        | ElementData::Ceiling {
+            boundary, sketch, ..
+        } => {
             *boundary = ccw(boundary.iter().map(|p| x.apply(*p)).collect());
+            // Locked lines of copied walls follow the copies (ADR-021).
+            for c in sketch.iter_mut().flatten() {
+                *c = c.mapped(&|p| x.apply(p), mirror);
+                if let crate::sketch::SketchCurve::Line { wall: Some(r), .. } = c {
+                    if let Some(n) = map.get(&r.wall) {
+                        r.wall = *n;
+                    }
+                }
+            }
         }
         ElementData::Roof {
             boundary, sloped, ..
@@ -144,6 +158,11 @@ fn transformed(
             *end = x.apply(*end);
         }
         ElementData::Room { point, .. } => *point = x.apply(*point),
+        ElementData::ElevationMarker { at, .. } => *at = x.apply(*at),
+        ElementData::RoomSeparator { start, end, .. } => {
+            *start = x.apply(*start);
+            *end = x.apply(*end);
+        }
         ElementData::TextNote { view, at, .. } => {
             if !is_plan_view(tx, *view) {
                 return None;

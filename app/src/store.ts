@@ -19,6 +19,8 @@ export type Tool =
   | "railing"
   | "roomSeparator"
   | "callout"
+  | "elevation"
+  | "sketch"
   | "dimension"
   | "text"
   | "section"
@@ -51,6 +53,8 @@ export const TOOL_LABELS: Record<Tool, string> = {
   railing: "Railing",
   roomSeparator: "Room Separator",
   callout: "Callout",
+  elevation: "Elevation",
+  sketch: "Boundary Sketch",
   select: "Select",
   room: "Room",
   move: "Move",
@@ -99,6 +103,40 @@ export interface ToolOptions {
   stairShape: string;
 }
 
+/** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
+export type SketchMode =
+  | "Modify"
+  | "Line"
+  | "Rectangle"
+  | "InscribedPolygon"
+  | "CircumscribedPolygon"
+  | "Circle"
+  | "StartEndRadiusArc"
+  | "CenterEndsArc"
+  | "FilletArc"
+  | "PickLines"
+  | "PickWalls"
+  | "Trim";
+
+/** Sketch mode's UI settings (the sketch itself lives in Rust: `app.sketch`). */
+export interface SketchUi {
+  mode: SketchMode;
+  /** Selected sketch curves (indices). */
+  sel: number[];
+  /** Line: keep drawing from the last point. */
+  chain: boolean;
+  offset: string;
+  radiusOn: boolean;
+  radius: string;
+  sides: number;
+  /** Pick Walls: Extend into wall (to core). */
+  core: boolean;
+  /** Pick Lines: lock to the wall. */
+  lock: boolean;
+  /** Pick Walls: Tab picks the whole chain of walls under the cursor. */
+  tab: boolean;
+}
+
 /** Tools that act on the current selection. */
 export const SELECTION_TOOLS: Tool[] = ["move", "copy", "rotate", "mirror", "array"];
 
@@ -129,6 +167,11 @@ interface UiState {
   options: ToolOptions;
   /** The Project Parameters dialog is open. */
   paramsOpen: boolean;
+  sketchUi: SketchUi;
+  setSketchUi: (patch: Partial<SketchUi>) => void;
+  /** Elevation tool: interior (true) or building elevations. */
+  elevationInterior: boolean;
+  setElevationInterior: (v: boolean) => void;
 
   /** `fresh` = a different project was just created or opened. */
   setApp: (app: AppState | null, fresh?: boolean) => void;
@@ -183,6 +226,21 @@ export const useAppStore = create<UiState>((set, get) => ({
     stairShape: "straight",
   },
   paramsOpen: false,
+  sketchUi: {
+    mode: "PickWalls",
+    sel: [],
+    chain: true,
+    offset: '0"',
+    radiusOn: false,
+    radius: "1'-0\"",
+    sides: 6,
+    core: false,
+    lock: true,
+    tab: false,
+  },
+  setSketchUi: (patch) => set((s) => ({ sketchUi: { ...s.sketchUi, ...patch } })),
+  elevationInterior: true,
+  setElevationInterior: (elevationInterior) => set({ elevationInterior }),
 
   setApp: (app, fresh = false) => {
     const s = get();
@@ -200,12 +258,17 @@ export const useAppStore = create<UiState>((set, get) => ({
     }
     const activeView =
       s.activeView && openViews.includes(s.activeView) ? s.activeView : (openViews[0] ?? null);
+    // Sketch mode follows the model's sketch session (ADR-021).
+    const tool: Tool = app.sketch ? "sketch" : s.tool === "sketch" ? "select" : s.tool;
+    const curves = app.sketch?.curves.length ?? 0;
     set({
       app,
       error: null,
       openViews,
       activeView,
-      selection: sameProject ? s.selection : [],
+      tool,
+      sketchUi: { ...s.sketchUi, sel: s.sketchUi.sel.filter((i) => i < curves) },
+      selection: sameProject && !app.sketch ? s.selection : [],
       toolTypes: {
         wall: firstId(app.wallTypes, s.toolTypes.wall),
         floor: firstId(app.floorTypes, s.toolTypes.floor),

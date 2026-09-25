@@ -1,3 +1,4 @@
+import { deleteSketchSelection, flipSketchSelection, startSketch } from "./sketch";
 import { useEffect, useRef } from "react";
 import { errorMessage, ipc } from "./ipc";
 import {
@@ -109,6 +110,44 @@ export function App() {
       const ui = useAppStore.getState();
       if (isTyping(e.target) || ui.confirm || ui.rufplan || ui.paramsOpen) return;
       const ctrl = e.ctrlKey || e.metaKey;
+      if (ui.app?.sketch) {
+        // Sketch mode keys (ADR-021): its own undo, Delete, Space (flip), Tab (chain).
+        if (ctrl && (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y")) {
+          e.preventDefault();
+          const redo = e.key.toLowerCase() === "y" || e.shiftKey;
+          void apply(() => ipc.sketchUndo(redo));
+          return;
+        }
+        if (e.key === "Delete" || e.key === "Backspace") {
+          deleteSketchSelection();
+          return;
+        }
+        if (e.key === " ") {
+          e.preventDefault();
+          flipSketchSelection();
+          return;
+        }
+        if (e.key === "Tab" && ui.sketchUi.mode === "PickWalls") {
+          e.preventDefault();
+          ui.setSketchUi({ tab: !ui.sketchUi.tab });
+          return;
+        }
+        if (e.key === "Escape") {
+          window.dispatchEvent(new Event("tool-cancel"));
+          return;
+        }
+        if (!ctrl && !e.altKey && startsTypedValue(e.key)) {
+          window.dispatchEvent(new CustomEvent("typed-value", { detail: e.key }));
+          return;
+        }
+        if ((keys.current + e.key).toUpperCase().endsWith("ZF")) {
+          keys.current = "";
+          window.dispatchEvent(new Event("view-fit"));
+          return;
+        }
+        keys.current = (keys.current + e.key).slice(-1);
+        return;
+      }
       if (ctrl && e.key.toLowerCase() === "z") {
         e.preventDefault();
         void (e.shiftKey ? redo() : undo());
@@ -136,7 +175,10 @@ export function App() {
         }
         const r = shortcut(keys.current, e.key);
         keys.current = r.buffer;
-        if (r.tool) useAppStore.getState().setTool(r.tool);
+        // Floor (SB) and Sketch Ceiling (CS) enter sketch mode.
+        if (r.tool === "floor") void startSketch("Floor");
+        else if (r.tool === "ceiling") void startSketch("Ceiling");
+        else if (r.tool) useAppStore.getState().setTool(r.tool);
       }
     };
     window.addEventListener("keydown", onKey);

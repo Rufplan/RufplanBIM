@@ -89,14 +89,18 @@ export function PropertiesPanel() {
   const sheet = loaded && loaded.id === target ? loaded : null;
 
   // While a placement tool is active, the panel shows which type it will place (like Revit).
-  const toolKind: keyof typeof toolTypes | null =
-    tool === "wall" ||
-    tool === "door" ||
-    tool === "window" ||
-    tool === "roof" ||
-    tool === "column" ||
-    tool === "beam" ||
-    tool === "railing"
+  const sketching = app?.sketch ?? null;
+  const toolKind: keyof typeof toolTypes | null = sketching
+    ? sketching.kind === "Floor"
+      ? "floor"
+      : "ceiling"
+    : tool === "wall" ||
+        tool === "door" ||
+        tool === "window" ||
+        tool === "roof" ||
+        tool === "column" ||
+        tool === "beam" ||
+        tool === "railing"
       ? tool
       : tool.startsWith("floor")
         ? "floor"
@@ -142,11 +146,16 @@ export function PropertiesPanel() {
       <div className="panel-body">
         {toolKind ? (
           <div className="prop-type">
-            <div className="prop-kicker">{TOOL_LABELS[tool]} — Type</div>
+            <div className="prop-kicker">
+              {sketching ? (sketching.kind === "Floor" ? "Floor" : "Ceiling") : TOOL_LABELS[tool]} —
+              Type
+            </div>
             <TypeSelector
-              value={toolTypes[toolKind]}
+              value={sketching ? sketching.typeId : toolTypes[toolKind]}
               options={toolOptions}
-              onChange={(id) => setToolType(toolKind, id)}
+              onChange={(id) =>
+                sketching ? void apply(() => ipc.sketchSetType(id)) : setToolType(toolKind, id)
+              }
             />
           </div>
         ) : selection.length > 1 ? (

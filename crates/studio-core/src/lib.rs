@@ -11,6 +11,7 @@ pub mod material;
 pub mod modify;
 pub mod ops;
 pub mod params;
+pub mod sketch;
 pub mod structure;
 pub mod units;
 

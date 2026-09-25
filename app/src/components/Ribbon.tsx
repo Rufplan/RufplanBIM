@@ -14,6 +14,8 @@ import { refreshCloud } from "../rufplan";
 import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
+import { SketchRibbon } from "./SketchRibbon";
+import { editBoundary, startSketch } from "../sketch";
 
 function ToolButton({
   tool,
@@ -97,6 +99,28 @@ export function Ribbon() {
       v.viewType === "Schedule" ||
       (v.viewType !== "ThreeD" && v.viewType !== "Sheet" && v.onSheet === null),
   );
+  const activeIsPlanLike = useAppStore((s) => {
+    const t = activeViewInfo(s)?.viewType;
+    return t === "Plan" || t === "CeilingPlan";
+  });
+  // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
+  if (app?.sketch) return <SketchRibbon />;
+  const sketchButton = (
+    kind: "Floor" | "Ceiling",
+    label: string,
+    icon: ReactNode,
+    keys: string,
+  ) => (
+    <button
+      className="rb-btn"
+      onClick={() => void startSketch(kind)}
+      disabled={!activeIsPlanLike}
+      title={`${label} (${keys}) — sketch the boundary: pick walls, lines, rectangles, arcs…`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
   return (
     <div className="ribbon" role="toolbar" aria-label="Tools">
       <div className="rb-tabs" role="tablist" aria-label="Ribbon tabs">
@@ -125,20 +149,14 @@ export function Ribbon() {
               <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
               <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
               <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
-              <ToolButton
-                tool="floorAuto"
-                label="Floor"
-                icon={Icons.floorAuto}
-                keys="FP — pick walls"
-              />
-              <ToolButton tool="floor" label="Floor Sketch" icon={Icons.floor} keys="SB" />
+              {sketchButton("Floor", "Floor", Icons.floorAuto, "SB")}
               <ToolButton
                 tool="ceilingAuto"
                 label="Ceiling"
                 icon={Icons.ceiling}
                 keys="CL — auto room"
               />
-              <ToolButton tool="ceiling" label="Ceiling Sketch" icon={Icons.floor} keys="CS" />
+              {sketchButton("Ceiling", "Sketch Ceiling", Icons.floor, "CS")}
             </Group>
             <Group title="Datum">
               <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
@@ -207,6 +225,15 @@ export function Ribbon() {
               </button>
               <button
                 className="rb-btn"
+                onClick={() => selection[0] && void editBoundary(selection[0])}
+                disabled={selection.length !== 1}
+                title="Edit the selected floor's or ceiling's boundary sketch (or double-click it)"
+              >
+                {Icons.floor}
+                <span>Edit Boundary</span>
+              </button>
+              <button
+                className="rb-btn"
                 onClick={() => void apply(() => ipc.attachWallTops(selection, true))}
                 disabled={selection.length === 0}
                 title="Attach the selected walls' tops to the roof above"
@@ -261,6 +288,12 @@ export function Ribbon() {
                 label="Section"
                 icon={Icons.section}
                 keys="draw in a plan"
+              />
+              <ToolButton
+                tool="elevation"
+                label="Elevation"
+                icon={Icons.elevation}
+                keys="EL — interior or building"
               />
               <ToolButton
                 tool="callout"

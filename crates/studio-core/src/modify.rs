@@ -37,12 +37,25 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     *start = start.add(delta);
                     *end = end.add(delta);
                 }
-                ElementData::Floor { boundary, .. } | ElementData::Ceiling { boundary, .. } => {
+                ElementData::Floor {
+                    boundary, sketch, ..
+                }
+                | ElementData::Ceiling {
+                    boundary, sketch, ..
+                } => {
                     for p in boundary.iter_mut() {
                         *p = p.add(delta);
                     }
+                    for c in sketch.iter_mut().flatten() {
+                        *c = c.mapped(&|p| p.add(delta), false);
+                    }
                 }
                 ElementData::Room { point, .. } => *point = point.add(delta),
+                ElementData::ElevationMarker { at, .. } => *at = at.add(delta),
+                ElementData::RoomSeparator { start, end, .. } => {
+                    *start = start.add(delta);
+                    *end = end.add(delta);
+                }
                 ElementData::TextNote { at, .. } => *at = at.add(delta),
                 ElementData::Viewport { center, .. } => *center = center.add(delta),
                 ElementData::Dimension {

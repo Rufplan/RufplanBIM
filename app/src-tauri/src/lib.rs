@@ -6,6 +6,7 @@ mod detailing;
 mod editing;
 mod menu;
 mod session;
+mod sketching;
 mod structure;
 
 use tauri::{Emitter, Manager, WindowEvent};
@@ -104,8 +105,24 @@ pub fn run() -> anyhow::Result<()> {
             structure::drawing_options,
             detailing::create_room_separator,
             detailing::create_callout,
+            detailing::create_elevation_marker,
             detailing::set_section_box,
             detailing::create_material,
+            sketching::sketch_begin,
+            sketching::sketch_draw,
+            sketching::sketch_pick_walls,
+            sketching::sketch_pick_line,
+            sketching::sketch_hit,
+            sketching::sketch_fillet,
+            sketching::sketch_trim,
+            sketching::sketch_delete,
+            sketching::sketch_move_vertex,
+            sketching::sketch_flip,
+            sketching::sketch_undo,
+            sketching::sketch_set_type,
+            sketching::sketch_finish,
+            sketching::sketch_cancel,
+            sketching::sketch_preview,
             editing::add_project_parameter,
             editing::remove_project_parameter,
             cloud::cloud_status,

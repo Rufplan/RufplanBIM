@@ -46,8 +46,106 @@ export function OptionsBar() {
       {label}
     </label>
   );
+  const ui = useAppStore((s) => s.sketchUi);
+  const setUi = useAppStore((s) => s.setSketchUi);
+  const interior = useAppStore((s) => s.elevationInterior);
+  const setInterior = useAppStore((s) => s.setElevationInterior);
   let body: React.ReactNode = null;
-  if (tool === "copy") body = check("copyMultiple", "Multiple");
+  const sketchCheck = (key: "chain" | "radiusOn" | "core" | "lock", label: string) => (
+    <label className="ob-check">
+      <input
+        type="checkbox"
+        checked={ui[key]}
+        onChange={(e) => setUi({ [key]: e.target.checked })}
+      />
+      {label}
+    </label>
+  );
+  const sketchText = (key: "offset" | "radius", label: string, disabled = false) => (
+    <label className="ob-field">
+      {label}
+      <input
+        aria-label={label}
+        value={ui[key]}
+        disabled={disabled}
+        onChange={(e) => setUi({ [key]: e.target.value })}
+      />
+    </label>
+  );
+  if (tool === "sketch") {
+    const m = ui.mode;
+    const radius = (
+      <>
+        {sketchCheck("radiusOn", "Radius")}
+        {sketchText("radius", "Radius value", !ui.radiusOn)}
+      </>
+    );
+    body =
+      m === "Line" ? (
+        <>
+          {sketchCheck("chain", "Chain")}
+          {sketchText("offset", "Offset")}
+          {radius}
+        </>
+      ) : m === "Rectangle" ? (
+        <>
+          {sketchText("offset", "Offset")}
+          {radius}
+        </>
+      ) : m === "InscribedPolygon" || m === "CircumscribedPolygon" ? (
+        <>
+          <label className="ob-field">
+            Sides
+            <input
+              type="number"
+              min={3}
+              max={64}
+              aria-label="Sides"
+              value={ui.sides || ""}
+              onChange={(e) => setUi({ sides: Number(e.target.value) || 0 })}
+            />
+          </label>
+          {sketchText("offset", "Offset")}
+        </>
+      ) : m === "Circle" ? (
+        sketchText("offset", "Offset")
+      ) : m === "FilletArc" ? (
+        sketchText("radius", "Radius")
+      ) : m === "PickWalls" ? (
+        <>
+          {sketchText("offset", "Offset")}
+          {sketchCheck("core", "Extend into wall (to core)")}
+          <span className="ob-hint">
+            {ui.tab ? "Chain: all connected walls" : "Tab picks a chain of walls"}
+          </span>
+        </>
+      ) : m === "PickLines" ? (
+        <>
+          {sketchText("offset", "Offset")}
+          {sketchCheck("lock", "Lock")}
+        </>
+      ) : (
+        <span className="ob-hint">
+          {m === "Trim"
+            ? "Click the parts to keep"
+            : "Select lines; drag ends; Space flips; Del deletes"}
+        </span>
+      );
+  } else if (tool === "elevation")
+    body = (
+      <label className="ob-field">
+        Type
+        <select
+          aria-label="Elevation type"
+          value={interior ? "interior" : "building"}
+          onChange={(e) => setInterior(e.target.value === "interior")}
+        >
+          <option value="interior">Interior Elevation</option>
+          <option value="building">Building Elevation</option>
+        </select>
+      </label>
+    );
+  else if (tool === "copy") body = check("copyMultiple", "Multiple");
   else if (tool === "rotate") body = check("rotateCopy", "Copy");
   else if (tool === "mirror") body = check("mirrorCopy", "Copy");
   else if (tool === "array")

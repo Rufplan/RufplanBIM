@@ -196,6 +196,12 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  elevation: (
+    <I>
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 3l3 5H9zM21 12l-5 3V9zM12 21l-3-5h6zM3 12l5-3v6z" fill="currentColor" />
+    </I>
+  ),
   separator: (
     <I>
       <path d="M3 4h18v16H3z" strokeWidth="1.6" />

@@ -799,6 +799,7 @@ pub fn create_floor(
             offset: 0.0,
             boundary: ccw(boundary),
             bound: SlabBound::Sketch,
+            sketch: vec![],
         }))
     })
 }
@@ -818,6 +819,7 @@ pub fn create_floor_by_walls(
             offset: 0.0,
             boundary: ccw(boundary),
             bound: SlabBound::Walls,
+            sketch: vec![],
         }))
     })
 }
@@ -837,6 +839,7 @@ pub fn create_ceiling_in_room(
             height: DEFAULT_CEILING_HEIGHT,
             boundary: ccw(boundary),
             bound: SlabBound::Room { point: inside },
+            sketch: vec![],
         }))
     })
 }
@@ -880,6 +883,7 @@ pub fn create_ceiling(
             height: DEFAULT_CEILING_HEIGHT,
             boundary: ccw(boundary),
             bound: SlabBound::Sketch,
+            sketch: vec![],
         }))
     })
 }
@@ -1474,8 +1478,16 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 "Constraints",
                 *offset,
             ));
-            if let ElementData::Floor { bound, .. } = &el.data {
-                props.push(bound_row(*bound, "walls", "Follows Walls"));
+            if let ElementData::Floor { bound, sketch, .. } = &el.data {
+                // A sketch with lines locked to walls follows them (ADR-021).
+                let b = if sketch.is_empty() {
+                    *bound
+                } else if crate::sketch::has_locked(sketch) {
+                    SlabBound::Walls
+                } else {
+                    SlabBound::Sketch
+                };
+                props.push(bound_row(b, "walls", "Follows Walls"));
             }
             props.push(ro(
                 "area",
@@ -1571,6 +1583,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 ViewKind::ThreeD => "3D View",
                 ViewKind::Section { .. } => "Section",
                 ViewKind::Schedule { .. } => "Schedule",
+                ViewKind::MarkerElevation { .. } => "Elevation",
             };
             if let ViewKind::Section { depth, .. } = kind {
                 props.push(len("depth", "Far Clip Offset", "Extents", *depth));
@@ -1930,6 +1943,38 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::structure::properties(doc, id, &mut props);
         }
         ElementData::Material { .. } => crate::material::properties(doc, id, &mut props),
+        ElementData::ElevationMarker {
+            level, interior, ..
+        } => {
+            props.push(ro(
+                "type",
+                "Type",
+                "Identity Data",
+                if *interior {
+                    "Interior Elevation"
+                } else {
+                    "Building Elevation"
+                }
+                .into(),
+            ));
+            props.push(ro(
+                "level",
+                "Level",
+                "Constraints",
+                doc.data(*level).map(|d| d.name()).unwrap_or_default(),
+            ));
+            // Revit's check boxes around the marker: one view per direction.
+            let views = crate::detail::marker_views(doc, id);
+            for c in crate::detail::DIRECTIONS {
+                let name = crate::detail::compass_name(c);
+                props.push(flag(
+                    &format!("view_{name}"),
+                    &format!("{name} View"),
+                    "Views",
+                    views.iter().any(|v| v.0 == c),
+                ));
+            }
+        }
         ElementData::RoomSeparator { level, start, end } => {
             props.push(choice(
                 "level",
@@ -1989,6 +2034,15 @@ pub fn set_property(
     }
     if matches!(data, ElementData::Material { .. }) {
         return crate::material::set_property(doc, id, key, value);
+    }
+    if let (ElementData::ElevationMarker { .. }, Some(dir)) = (&data, key.strip_prefix("view_")) {
+        let facing = crate::detail::DIRECTIONS
+            .into_iter()
+            .find(|c| crate::detail::compass_name(*c) == dir)
+            .ok_or_else(|| CoreError::Invalid(format!("unknown direction {dir}")))?;
+        // Adding a view needs its room's name: see studio_regen::derived.
+        let name = (value == "yes").then(|| format!("Elevation - {dir}"));
+        return crate::detail::set_marker_view(doc, id, facing, name);
     }
     if matches!(
         data,
@@ -2135,6 +2189,7 @@ pub fn set_property(
             height,
             bound,
             boundary,
+            ..
         } => match key {
             "type" => *type_id = parse_id(value)?,
             "level" => *level = parse_id(value)?,
@@ -2330,7 +2385,8 @@ pub fn set_property(
         | ElementData::Railing { .. }
         | ElementData::RailingType { .. }
         | ElementData::Material { .. }
-        | ElementData::RoomSeparator { .. } => return Err(unknown()),
+        | ElementData::RoomSeparator { .. }
+        | ElementData::ElevationMarker { .. } => return Err(unknown()),
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {

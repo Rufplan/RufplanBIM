@@ -17,6 +17,8 @@ export const THEME = {
   inkMid: "#1c1c1c",
   muted: "#888888",
   cyan: "#3ECFF7",
+  /** Revit's sketch line color. */
+  sketch: "#c832b4",
   cyanFill: "rgba(62, 207, 247, 0.8)",
   hover: "rgba(62, 207, 247, 0.6)",
 };
@@ -84,6 +86,9 @@ export function zoomAt(
 export interface Highlight {
   selected: Set<string>;
   hover: string | null;
+  /** Sketch mode: the model draws faded (Revit's halftone), minus the element edited. */
+  faded?: boolean;
+  hidden?: string | null;
 }
 
 export function draw(
@@ -100,9 +105,11 @@ export function draw(
   ctx.lineJoin = "miter";
   ctx.lineCap = "butt";
   const S = (x: number, y: number) => toScreen(cam, w, h, x, y);
+  if (hl.faded) ctx.globalAlpha = 0.4;
 
   for (const item of dl.items) {
     const el = item.el;
+    if (hl.hidden && el === hl.hidden) continue;
     const isSel = el !== null && hl.selected.has(el);
     const isHover = !isSel && el !== null && hl.hover === el;
     const p = item.prim;
@@ -392,5 +399,66 @@ export function drawRefLine(
   ctx.moveTo(ax, ay);
   ctx.lineTo(bx, by);
   ctx.stroke();
+  ctx.restore();
+}
+
+/** A boundary sketch (ADR-021): magenta lines as Revit draws them; selected lines cyan,
+ * lines Finish complained about red, the draw tool's preview dashed, and vertex grips. */
+export function drawSketch(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  curves: { pts: Pt[]; locked: boolean }[],
+  selected: Set<number>,
+  bad: Set<number>,
+  preview: Pt[][],
+  grips: Pt[],
+) {
+  ctx.save();
+  const S = (p: Pt) => toScreen(cam, w, h, p.x, p.y);
+  const path = (pts: Pt[]) => {
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const [sx, sy] = S(p);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    });
+  };
+  curves.forEach((c, i) => {
+    path(c.pts);
+    ctx.setLineDash([]);
+    ctx.lineWidth = selected.has(i) ? 3 : 2;
+    ctx.strokeStyle = bad.has(i) ? "#e0261d" : selected.has(i) ? THEME.cyan : THEME.sketch;
+    ctx.stroke();
+    if (c.locked && selected.has(i) && c.pts.length >= 2) {
+      // A lock mark at the middle of a line locked to its wall.
+      const a = c.pts[0]!;
+      const b = c.pts[c.pts.length - 1]!;
+      const [mx, my] = S({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = THEME.ink;
+      ctx.strokeRect(mx - 4, my - 1, 8, 6);
+      ctx.beginPath();
+      ctx.arc(mx, my - 1, 3, Math.PI, 0);
+      ctx.stroke();
+    }
+  });
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = THEME.sketch;
+  for (const p of preview) {
+    path(p);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  for (const g of grips) {
+    const [sx, sy] = S(g);
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = THEME.ink;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(sx - 4, sy - 4, 8, 8);
+    ctx.strokeRect(sx - 4, sy - 4, 8, 8);
+  }
   ctx.restore();
 }
