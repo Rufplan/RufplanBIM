@@ -1043,9 +1043,6 @@ button:disabled {
 }
 
 /* ---------- 3D view (ADR-022) ---------- */
-.canvas-wrap.view3d {
-  position: relative;
-}
 .view3d[data-tool]:not([data-tool="select"]) canvas {
   cursor: crosshair;
 }
