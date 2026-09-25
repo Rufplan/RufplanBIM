@@ -30,6 +30,7 @@ import type { ViewInfo } from "./bindings/ViewInfo";
 import type { DrawOptions } from "./bindings/DrawOptions";
 import type { DrawTool } from "./bindings/DrawTool";
 import type { SketchKind } from "./bindings/SketchKind";
+import type { OpeningPreview3d } from "./bindings/OpeningPreview3d";
 
 export type {
   AppState,
@@ -236,8 +237,14 @@ export const ipc = {
     chain: boolean,
     core: boolean,
   ) => invoke<Pt[][]>("sketch_preview", { mode, pts, cursor, options, tol, chain, core }),
-  createElevationMarker: (view: ElementId, at: Pt, interior: boolean): S =>
-    invoke("create_elevation_marker", { view, at, interior }),
+  createElevationMarker: (
+    view: ElementId,
+    at: Pt,
+    interior: boolean,
+    typeId: ElementId | null,
+  ): S => invoke("create_elevation_marker", { view, at, interior, typeId }),
+  openingPreview3d: (typeId: ElementId, host: ElementId, p: Pt) =>
+    invoke<OpeningPreview3d | null>("opening_preview_3d", { typeId, host, p }),
   /** Location lines and stair shapes as [id, label] pairs. */
   drawingOptions: () => invoke<[[string, string][], [string, string][]]>("drawing_options"),
   addProjectParameter: (

@@ -75,6 +75,11 @@ export function appState(path: string | null, dirty = false): AppState {
     rufplan: null,
     roofTypes: [],
     sketch: null,
+    elevationMarkerTypes: [
+      { id: "00000000-0000-7000-8000-000000000060", name: "Interior Elevation" },
+      { id: "00000000-0000-7000-8000-000000000061", name: "Building Elevation" },
+    ],
+    levelElevations: [0],
     columnTypes: [{ id: "00000000-0000-7000-8000-000000000025", name: "Steel W10x33" }],
     beamTypes: [{ id: "00000000-0000-7000-8000-000000000026", name: "Steel W12x26" }],
     railingTypes: [{ id: "00000000-0000-7000-8000-000000000027", name: 'Guardrail - 42"' }],

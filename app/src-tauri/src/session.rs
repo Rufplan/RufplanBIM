@@ -73,6 +73,8 @@ pub struct AppState {
     pub revision: u64,
     pub views: Vec<ViewInfo>,
     pub levels: Vec<NamedItem>,
+    /// Elevations of `levels` (mm), for the 3D view's work planes.
+    pub level_elevations: Vec<f64>,
     pub wall_types: Vec<NamedItem>,
     pub floor_types: Vec<NamedItem>,
     pub ceiling_types: Vec<NamedItem>,
@@ -83,6 +85,7 @@ pub struct AppState {
     pub beam_types: Vec<NamedItem>,
     pub railing_types: Vec<NamedItem>,
     pub materials: Vec<NamedItem>,
+    pub elevation_marker_types: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
     pub current_stage: Option<ElementId>,
     pub project_info: Option<ElementId>,
@@ -267,6 +270,7 @@ impl Session {
             project,
             revision: self.revision,
             views,
+            level_elevations: levels.iter().map(|l| l.2).collect(),
             levels: levels
                 .into_iter()
                 .map(|(id, name, _)| NamedItem { id, name })
@@ -281,6 +285,7 @@ impl Session {
             beam_types: named(Category::BeamType),
             railing_types: named(Category::RailingType),
             materials: named(Category::Material),
+            elevation_marker_types: named(Category::ElevationMarkerType),
             stages: ops::stages(doc)
                 .into_iter()
                 .map(|(id, name, abbreviation)| StageItem {
@@ -401,14 +406,17 @@ impl Session {
             // Saved before materials and the structure and takeoff schedules (ADR-020).
             let dirty = project.doc.is_dirty();
             let had = (
-                project.doc.count(Category::Material),
+                project.doc.count(Category::Material)
+                    + project.doc.count(Category::ElevationMarkerType),
                 project.doc.count(Category::View),
             );
             studio_core::material::ensure_materials(&mut project.doc)?;
+            studio_core::detail::ensure_mark_types(&mut project.doc)?;
             ops::ensure_schedules(&mut project.doc)?;
             let changed = had
                 != (
-                    project.doc.count(Category::Material),
+                    project.doc.count(Category::Material)
+                        + project.doc.count(Category::ElevationMarkerType),
                     project.doc.count(Category::View),
                 );
             if changed {

@@ -312,6 +312,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
                     level,
                     at,
                     interior: true,
+                    ..
                 }) => {
                     let (cut, c) = interior_cut(doc, &model, *level, *at, look);
                     auto_crop = Some(c);
@@ -1014,11 +1015,13 @@ fn elevation_markers(doc: &Document, b: &mut Builder, lo: Pt, hi: Pt, margin: f6
     for v in doc.of(Category::View) {
         let ElementData::View {
             kind: ViewKind::Elevation { facing },
+            mark_type,
             ..
         } = &v.data
         else {
             continue;
         };
+        let symbol = studio_core::detail::mark_symbol(doc, *mark_type, false);
         let out = facing.look();
         let c = match (out.x as i32, out.y as i32) {
             (0, 1) => Pt::new(mid.x, hi.y + off),
@@ -1028,7 +1031,7 @@ fn elevation_markers(doc: &Document, b: &mut Builder, lo: Pt, hi: Pt, margin: f6
         };
         // The marker points back at the building (the direction the elevation looks).
         let look = out.scale(-1.0);
-        elevation_mark(doc, b, Some(v.id), c, &[(v.id, look)]);
+        elevation_mark(doc, b, Some(v.id), c, &[(v.id, look)], symbol);
     }
 }
 
@@ -1129,57 +1132,123 @@ pub(crate) fn elevation_mark(
     body: Option<ElementId>,
     c: Pt,
     pointers: &[(ElementId, Pt)],
+    (style, rp): (studio_core::MarkStyle, f64),
 ) {
-    let rp = 4.5;
+    use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, TAU};
+    use studio_core::MarkStyle;
     let r = b.paper(rp);
-    // Each pointer is a filled arrowhead outside the body, on the side it looks.
-    for (view, look) in pointers {
-        let side = look.perp().scale(r * 0.7);
-        let base = c.add(look.scale(r * 0.7));
-        let tip = c.add(look.scale(r * 1.8));
-        b.fill(
-            Some(*view),
-            vec![ring(&[tip, base.add(side), base.sub(side)])],
-            FillKind::Ink,
-        );
+    let angle = |v: Pt| v.y.atan2(v.x);
+    match style {
+        MarkStyle::CircleArrow => {
+            // Each pointer is a filled arrowhead outside the body, on the side it looks.
+            for (view, look) in pointers {
+                let side = look.perp().scale(r * 0.7);
+                let base = c.add(look.scale(r * 0.7));
+                let tip = c.add(look.scale(r * 1.8));
+                b.fill(
+                    Some(*view),
+                    vec![ring(&[tip, base.add(side), base.sub(side)])],
+                    FillKind::Ink,
+                );
+            }
+            b.fill(body, vec![ring(&arc(c, r, 0.0, TAU))], FillKind::Paper);
+            b.circle(body, c, rp, 2, false);
+        }
+        MarkStyle::CircleHalf => {
+            b.fill(body, vec![ring(&arc(c, r, 0.0, TAU))], FillKind::Paper);
+            // The body's half (or quarter, with several views) toward each view, filled,
+            // with a point beyond it.
+            let sweep = if pointers.len() > 1 {
+                FRAC_PI_2
+            } else {
+                std::f64::consts::PI
+            };
+            for (view, look) in pointers {
+                let a0 = angle(*look) - sweep / 2.0;
+                let mut wedge = vec![c];
+                wedge.extend(arc(c, r, a0, sweep));
+                b.fill(Some(*view), vec![ring(&wedge)], FillKind::Ink);
+                let side = look.perp().scale(r * 0.45);
+                let tip = c.add(look.scale(r * 1.55));
+                let base = c.add(look.scale(r * 0.85));
+                b.fill(
+                    Some(*view),
+                    vec![ring(&[tip, base.add(side), base.sub(side)])],
+                    FillKind::Ink,
+                );
+            }
+            b.circle(body, c, rp, 2, false);
+        }
+        MarkStyle::Diamond => {
+            // A square turned 45° around the circle; each view fills its corner.
+            let d = r * std::f64::consts::SQRT_2;
+            let corners = [
+                Pt::new(0.0, 1.0),
+                Pt::new(1.0, 0.0),
+                Pt::new(0.0, -1.0),
+                Pt::new(-1.0, 0.0),
+            ]
+            .map(|v| c.add(v.scale(d)));
+            b.fill(body, vec![ring(&corners)], FillKind::Paper);
+            for (view, look) in pointers {
+                let corner = c.add(look.scale(d));
+                let a = angle(*look);
+                let mut region = vec![corner];
+                region.extend(arc(c, r, a - FRAC_PI_4, FRAC_PI_2).into_iter().rev());
+                b.fill(Some(*view), vec![ring(&region)], FillKind::Ink);
+            }
+            b.line(body, &corners, true, 2, Dash::Solid);
+            b.circle(body, c, rp, 1, false);
+        }
     }
-    b.fill(
-        body,
-        vec![ring(&arc(c, r, 0.0, std::f64::consts::TAU))],
-        FillKind::Paper,
-    );
-    b.circle(body, c, rp, 2, false);
+    let ink_half = style == MarkStyle::CircleHalf;
     match pointers {
-        [(view, _)] => {
+        [(view, look)] => {
             let (detail, sheet) =
                 view_ref(doc, *view).unwrap_or_else(|| ("—".into(), String::new()));
-            b.line(
-                body,
-                &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
-                false,
-                1,
-                Dash::Solid,
-            );
-            b.text(
-                Some(*view),
-                c.add(Pt::new(0.0, b.paper(1.9))),
-                detail,
-                2.2,
-                Anchor::Center,
-            );
-            b.text(
-                Some(*view),
-                c.sub(Pt::new(0.0, b.paper(2.6))),
-                sheet,
-                1.8,
-                Anchor::Center,
-            );
+            if ink_half {
+                // The empty half carries the reference.
+                let at = c.sub(look.scale(r * 0.45)).sub(Pt::new(0.0, b.paper(0.8)));
+                b.text(
+                    Some(*view),
+                    at,
+                    format!("{detail}/{sheet}"),
+                    1.6,
+                    Anchor::Center,
+                );
+            } else {
+                b.line(
+                    body,
+                    &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
+                    false,
+                    1,
+                    Dash::Solid,
+                );
+                b.text(
+                    Some(*view),
+                    c.add(Pt::new(0.0, r * 0.42)),
+                    detail,
+                    rp * 0.49,
+                    Anchor::Center,
+                );
+                b.text(
+                    Some(*view),
+                    c.sub(Pt::new(0.0, r * 0.58)),
+                    sheet,
+                    rp * 0.4,
+                    Anchor::Center,
+                );
+            }
         }
         _ => {
             for (view, look) in pointers {
                 let label = view_ref(doc, *view).map_or_else(|| "—".into(), |r| r.0);
-                let at = c.add(look.scale(r * 0.42)).sub(Pt::new(0.0, b.paper(0.7)));
-                b.text(Some(*view), at, label, 1.8, Anchor::Center);
+                let at = c
+                    .add(look.scale(r * if ink_half { 0.5 } else { 0.42 }))
+                    .sub(Pt::new(0.0, b.paper(0.7)));
+                if !ink_half {
+                    b.text(Some(*view), at, label, rp * 0.4, Anchor::Center);
+                }
             }
         }
     }
@@ -1192,10 +1261,12 @@ fn placed_elevation_marks(doc: &Document, b: &mut Builder, level: ElementId) {
             level: l,
             at,
             interior,
+            type_id,
         } = &e.data
         else {
             continue;
         };
+        let symbol = studio_core::detail::mark_symbol(doc, *type_id, *interior);
         if *interior && *l != level {
             continue;
         }
@@ -1203,7 +1274,7 @@ fn placed_elevation_marks(doc: &Document, b: &mut Builder, level: ElementId) {
             .into_iter()
             .map(|(c, v)| (v, c.look()))
             .collect();
-        elevation_mark(doc, b, Some(e.id), *at, &pointers);
+        elevation_mark(doc, b, Some(e.id), *at, &pointers, symbol);
     }
 }
 
@@ -2174,6 +2245,57 @@ pub struct OpeningPreview {
     pub items: Vec<Item>,
 }
 
+/// A door or window placed from the 3D view (ADR-022): where it would go in `host` for a
+/// hit at plan point `p`, and its box as triangles for the ghost preview.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct OpeningPreview3d {
+    pub preview: OpeningPreview,
+    pub positions: Vec<f32>,
+}
+
+pub fn opening_preview_3d(
+    doc: &Document,
+    type_id: ElementId,
+    host: ElementId,
+    p: Pt,
+) -> Option<OpeningPreview3d> {
+    let ElementData::Wall { base_level, .. } = doc.data(host).ok()? else {
+        return None;
+    };
+    let plan = doc.of(Category::View).find(|e| {
+        matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, callout_of: None, .. } if level == base_level)
+    })?;
+    let pv = opening_preview(doc, plan.id, type_id, p, 50.0)?;
+    if pv.host != host {
+        return None;
+    }
+    let (width, height, sill) = match doc.data(type_id).ok()? {
+        ElementData::DoorType { width, height, .. } => (*width, *height, 0.0),
+        ElementData::WindowType {
+            width,
+            height,
+            sill,
+            ..
+        } => (*width, *height, *sill),
+        _ => return None,
+    };
+    let w = regenerate(doc).walls.iter().find(|w| w.id == host)?.clone();
+    let d = w.dir();
+    let n = d.perp().scale(w.thickness / 2.0 + 20.0);
+    let c = w.start.add(d.scale(pv.offset));
+    let (a, b2) = (c.sub(d.scale(width / 2.0)), c.add(d.scale(width / 2.0)));
+    let prism = studio_geom::Prism {
+        base: studio_geom::Poly::simple(vec![a.sub(n), b2.sub(n), b2.add(n), a.add(n)]),
+        z0: w.z0 + sill,
+        z1: w.z0 + sill + height,
+    };
+    Some(OpeningPreview3d {
+        preview: pv,
+        positions: prism.triangles(),
+    })
+}
+
 /// Where a door or window of `type_id` would go for a cursor at `p` in a plan view.
 pub fn opening_preview(
     doc: &Document,
@@ -2443,6 +2565,8 @@ pub struct Mesh {
     pub exterior: bool,
     /// Shaded color from the element's material (ADR-020), when it has one.
     pub color: Option<[u8; 3]>,
+    /// The level it's on (for placing in 3D, ADR-022).
+    pub level: Option<ElementId>,
     /// Triangle soup, 9 floats per triangle, mm, z-up.
     pub positions: Vec<f32>,
 }
@@ -2467,6 +2591,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Wall,
             exterior: w.exterior,
             color: w.color,
+            level: Some(w.level),
             positions,
         });
     }
@@ -2480,6 +2605,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category,
             exterior: false,
             color: None,
+            level: m.walls.iter().find(|w| w.id == o.host).map(|w| w.level),
             positions: o.panel(depth, o.z0, o.z1).triangles(),
         });
     }
@@ -2489,6 +2615,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: s.category,
             exterior: false,
             color: s.color,
+            level: Some(s.level),
             positions: s.prism().triangles(),
         });
     }
@@ -2498,6 +2625,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Roof,
             exterior: true,
             color: r.color,
+            level: Some(r.level),
             positions: r.triangles(),
         });
     }
@@ -2507,6 +2635,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Stair,
             exterior: false,
             color: None,
+            level: Some(s.base_level),
             positions: s.steps.iter().flat_map(|p| p.triangles()).collect(),
         });
     }
@@ -2516,6 +2645,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Column,
             exterior: c.structural,
             color: c.color,
+            level: Some(c.level),
             positions: c.prism().triangles(),
         });
     }
@@ -2525,6 +2655,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Beam,
             exterior: true,
             color: bm.color,
+            level: Some(bm.level),
             positions: bm.prisms.iter().flat_map(|p| p.triangles()).collect(),
         });
     }
@@ -2545,6 +2676,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             },
             exterior: false,
             color: None,
+            level: Some(r.level),
             positions,
         });
     }
@@ -4050,5 +4182,107 @@ mod tests {
         };
         let z = 10.0 * studio_core::units::MM_PER_FT;
         assert!(y("Level 2") > y("10' - 0\"") && y("10' - 0\"") > z);
+    }
+    #[test]
+    fn marker_types_switch_symbol_and_interior() {
+        let (mut doc, l1, _, _) = roofed_house();
+        let ft = studio_core::units::MM_PER_FT;
+        assert_eq!(doc.count(Category::ElevationMarkerType), 5);
+        let m = studio_regen::derived::create_elevation_marker(
+            &mut doc,
+            l1,
+            Pt::new(20.0 * ft, 24.0 * ft),
+            true,
+        )
+        .unwrap();
+        let named = |doc: &Document, n: &str| {
+            doc.of(Category::ElevationMarkerType)
+                .find(|e| e.data.name() == n)
+                .unwrap()
+                .id
+        };
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let v = studio_core::detail::marker_views(&doc, m)[0].1;
+        // The diamond: a square body outline and a filled corner.
+        let diamond = named(&doc, "Interior Elevation - Diamond");
+        ops::set_property(&mut doc, m, "type", &diamond.to_string(), 0).unwrap();
+        let dl = display_list(&doc, plan).unwrap();
+        assert!(dl.items.iter().any(|i| i.el == Some(m)
+            && matches!(&i.prim, Prim::Line { pts, closed: true, .. } if pts.len() == 4)));
+        assert!(dl.items.iter().any(|i| i.el == Some(v)
+            && matches!(
+                &i.prim,
+                Prim::Fill {
+                    fill: FillKind::Ink,
+                    ..
+                }
+            )));
+        // A building type: the view is a plain elevation (no room crop).
+        let building = named(&doc, "Building Elevation");
+        ops::set_property(&mut doc, m, "type", &building.to_string(), 0).unwrap();
+        assert!(matches!(
+            doc.data(m).unwrap(),
+            ElementData::ElevationMarker {
+                interior: false,
+                ..
+            }
+        ));
+        let ev = display_list(&doc, v).unwrap();
+        assert!(
+            ev.bounds[2] - ev.bounds[0] > 40.0 * ft,
+            "the whole building"
+        );
+        // Building elevations pick their mark too.
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::South
+                }
+            )
+        });
+        let half = named(&doc, "Building Elevation - Half Circle");
+        ops::set_property(&mut doc, south, "mark_type", &half.to_string(), 0).unwrap();
+        assert!(
+            matches!(doc.data(south).unwrap(), ElementData::View { mark_type: Some(t), .. } if *t == half)
+        );
+    }
+
+    #[test]
+    fn doors_and_windows_place_from_3d_hits() {
+        let (doc, _, _, _) = roofed_house();
+        let ft = studio_core::units::MM_PER_FT;
+        let south = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|w| w.start.y.abs() < 1.0 && w.end.y.abs() < 1.0)
+            .unwrap()
+            .id;
+        let dt = doc
+            .of(Category::DoorType)
+            .find(|e| e.data.name().starts_with("Single Flush 36"))
+            .unwrap()
+            .id;
+        // A hit on the south wall's outer face, 12' along.
+        let pv = opening_preview_3d(&doc, dt, south, Pt::new(12.0 * ft, -4.0 * MM_PER_IN)).unwrap();
+        assert!(pv.preview.valid && pv.preview.host == south);
+        assert!(!pv.positions.is_empty());
+        let zmax = pv
+            .positions
+            .chunks(3)
+            .map(|v| v[2])
+            .fold(f32::MIN, f32::max);
+        assert!(
+            (f64::from(zmax) - 84.0 * MM_PER_IN).abs() < 1.0,
+            "a 7' door"
+        );
+        let m = meshes(&doc);
+        assert!(m
+            .iter()
+            .filter(|x| x.category == Category::Wall)
+            .all(|x| x.level.is_some()));
     }
 }

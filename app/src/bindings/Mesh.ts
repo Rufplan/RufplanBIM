@@ -12,6 +12,10 @@ exterior: boolean,
  */
 color: [number, number, number] | null, 
 /**
+ * The level it's on (for placing in 3D, ADR-022).
+ */
+level: ElementId | null, 
+/**
  * Triangle soup, 9 floats per triangle, mm, z-up.
  */
 positions: Array<number>, };

@@ -9,6 +9,11 @@ import { activeViewInfo, useAppStore } from "./store";
 export async function startSketch(kind: "Floor" | "Ceiling") {
   const s = useAppStore.getState();
   const v = activeViewInfo(s);
+  // In 3D, floors and ceilings are placed by picking (Pick Walls, Auto Room).
+  if (v?.viewType === "ThreeD") {
+    s.setTool(kind === "Floor" ? "floorAuto" : "ceilingAuto");
+    return;
+  }
   if (!v || (v.viewType !== "Plan" && v.viewType !== "CeilingPlan")) {
     s.setError("Open a floor or ceiling plan to sketch a boundary.");
     return;

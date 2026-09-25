@@ -134,6 +134,7 @@ export function ProjectBrowser() {
               ["Structural Columns", app.columnTypes],
               ["Structural Framing", app.beamTypes],
               ["Railings", app.railingTypes],
+              ["Elevation Marks", app.elevationMarkerTypes],
             ] as const
           ).map(([title, types]) => (
             <Section key={title} title={title} start={false}>

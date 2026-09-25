@@ -42,14 +42,41 @@ pub fn create_elevation_marker(
     view: ElementId,
     at: Pt,
     interior: bool,
+    type_id: Option<ElementId>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
     edit_state(&window, &state, |s| {
         let level = s.view_level(view)?;
-        s.edit(|d| studio_regen::derived::create_elevation_marker(d, level, at, interior))?;
+        // The type decides interior or building (ADR-022).
+        let interior = match type_id.and_then(|t| s.doc().ok()?.data(t).ok()) {
+            Some(studio_core::ElementData::ElevationMarkerType { interior, .. }) => *interior,
+            _ => interior,
+        };
+        let m =
+            s.edit(|d| studio_regen::derived::create_elevation_marker(d, level, at, interior))?;
+        if let Some(t) = type_id {
+            s.edit(|d| studio_core::ops::set_property(d, m, "type", &t.to_string(), 0))?;
+        }
         Ok(())
     })
+}
+
+/// A door or window placed on `host` from the 3D view: where it would go for a hit at `p`.
+#[tauri::command]
+pub fn opening_preview_3d(
+    type_id: ElementId,
+    host: ElementId,
+    p: Pt,
+    state: State<'_, SessionState>,
+) -> Result<Option<studio_views::OpeningPreview3d>, CommandError> {
+    let session = lock(&state)?;
+    Ok(studio_views::opening_preview_3d(
+        session.doc()?,
+        type_id,
+        host,
+        p,
+    ))
 }
 
 /// A callout of `view` between corners `a` and `b` (view coordinates).

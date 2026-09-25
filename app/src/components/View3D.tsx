@@ -109,6 +109,7 @@ interface Three {
   controls: OrbitControls;
   group: THREE.Group;
   boxGroup: THREE.Group;
+  gridGroup: THREE.Group;
   fitted: boolean;
 }
 
@@ -148,6 +149,69 @@ function drawBox(t: Three, b: SectionBox | null) {
   }
 }
 
+/** The ground plane's grid (ADR-022): hairline Rufplan cyan, 4' squares with a stronger line
+ * every 20', centered on the model. */
+export function groundGrid(center: THREE.Vector3, half: number, z: number): THREE.Group {
+  const minor = 1219.2;
+  const n = Math.ceil(half / minor);
+  const cx = Math.round(center.x / (minor * 5)) * minor * 5;
+  const cy = Math.round(center.y / (minor * 5)) * minor * 5;
+  const lines = (major: boolean) => {
+    const pts: number[] = [];
+    for (let i = -n; i <= n; i++) {
+      if ((i % 5 === 0) !== major) continue;
+      const o = i * minor;
+      pts.push(cx + o, cy - n * minor, z, cx + o, cy + n * minor, z);
+      pts.push(cx - n * minor, cy + o, z, cx + n * minor, cy + o, z);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    const mat = new THREE.LineBasicMaterial({
+      color: 0x3ecff7,
+      transparent: true,
+      opacity: major ? 0.38 : 0.16,
+      depthWrite: false,
+    });
+    return new THREE.LineSegments(geo, mat);
+  };
+  const g = new THREE.Group();
+  g.add(lines(false), lines(true));
+  g.renderOrder = -1;
+  return g;
+}
+
+/** The floor plan of a level (3D tools place through it, ADR-022). */
+function planOf(level: string | null | undefined): string | null {
+  const app = useAppStore.getState().app;
+  return (
+    app?.views.find((v) => v.viewType === "Plan" && v.level === level && v.calloutOf === null)
+      ?.id ?? null
+  );
+}
+
+/** The status-bar prompt for a tool in 3D. */
+export function prompt3d(tool: string): string {
+  switch (tool) {
+    case "door":
+    case "window":
+      return `Hover over a wall and click to place the ${tool}; the face you point at sets which way it faces.`;
+    case "wall":
+      return "Click the wall's start on the level's work plane (Level in the options bar), then each next point. Esc finishes.";
+    case "column":
+      return "Click on the level's work plane to place a column.";
+    case "floorAuto":
+      return "Click a wall: a floor at the outer faces of that level's walls.";
+    case "ceilingAuto":
+      return "Click a floor inside a room: a ceiling filling that room.";
+    case "roof":
+      return "Click a wall: a hip roof over that level's walls.";
+    case "room":
+      return "Click a floor inside an area enclosed by walls to place a room.";
+    default:
+      return "Drag to orbit, right-drag to pan, scroll to zoom. Click to select. Turn on Section Box in Properties, then drag its handles.";
+  }
+}
+
 /** 3D view. Geometry comes from Rust as triangle soup in mm, z-up. */
 export function View3D({ view }: { view: ViewInfo }) {
   const revision = useAppStore((s) => s.app?.revision ?? 0);
@@ -180,7 +244,21 @@ export function View3D({ view }: { view: ViewInfo }) {
     scene.add(group);
     const boxGroup = new THREE.Group();
     scene.add(boxGroup);
-    three.current = { renderer, scene, camera, controls, group, boxGroup, fitted: false };
+    // Placement ghosts (a door's box, a wall's rubber band) and the ground grid.
+    const ghost = new THREE.Group();
+    scene.add(ghost);
+    const gridGroup = new THREE.Group();
+    scene.add(gridGroup);
+    three.current = {
+      renderer,
+      scene,
+      camera,
+      controls,
+      group,
+      boxGroup,
+      gridGroup,
+      fitted: false,
+    };
 
     let raf = 0;
     const loop = () => {
@@ -207,6 +285,178 @@ export function View3D({ view }: { view: ViewInfo }) {
       ray.setFromCamera(ndc, camera);
       return ray;
     };
+    // ---- Placing in 3D (ADR-022) ----
+    const clearGhost = () => {
+      for (const c of [...ghost.children]) {
+        ghost.remove(c);
+        if (c instanceof THREE.Mesh || c instanceof THREE.Line) {
+          c.geometry.dispose();
+          (c.material as THREE.Material).dispose();
+        }
+      }
+    };
+    const meshHit = (e: PointerEvent) => {
+      const hit = rayAt(e).intersectObjects(
+        group.children.filter((c) => c instanceof THREE.Mesh),
+        false,
+      )[0];
+      if (!hit) return null;
+      const u = hit.object.userData as { el: string; category: string; level: string | null };
+      return { ...u, point: hit.point };
+    };
+    // The work plane of the level picked in the options bar.
+    const planeHit = (e: PointerEvent) => {
+      const s = useAppStore.getState();
+      const levels = s.app?.levels ?? [];
+      const level = s.level3d ?? levels[0]?.id ?? null;
+      const i = levels.findIndex((l) => l.id === level);
+      const z = s.app?.levelElevations[i] ?? 0;
+      const q = new THREE.Vector3();
+      const ok = rayAt(e).ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -z), q);
+      return ok ? { point: q, level, z } : null;
+    };
+    const snapTol = (q: THREE.Vector3) => Math.max(100, camera.position.distanceTo(q) * 0.012);
+    let wallFrom: { x: number; y: number } | null = null;
+    const addGhostMesh = (positions: number[], valid: boolean) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      geo.computeVertexNormals();
+      ghost.add(
+        new THREE.Mesh(
+          geo,
+          new THREE.MeshBasicMaterial({
+            color: valid ? 0x3ecff7 : 0xc0352b,
+            transparent: true,
+            opacity: 0.45,
+            depthTest: false,
+          }),
+        ),
+      );
+    };
+    const addGhostLine = (pts: THREE.Vector3[]) => {
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      ghost.add(
+        new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x3ecff7, depthTest: false })),
+      );
+    };
+    const addCursor = (q: THREE.Vector3) => {
+      const r = Math.max(60, camera.position.distanceTo(q) * 0.006);
+      addGhostLine([q.clone().setX(q.x - r), q.clone().setX(q.x + r)]);
+      addGhostLine([q.clone().setY(q.y - r), q.clone().setY(q.y + r)]);
+    };
+    let hoverBusy = false;
+    let hoverNext: PointerEvent | null = null;
+    const hover3d = async (e: PointerEvent) => {
+      const s = useAppStore.getState();
+      const tool = s.tool;
+      if (tool === "door" || tool === "window") {
+        const h = meshHit(e);
+        const typeId = tool === "door" ? s.toolTypes.door : s.toolTypes.window;
+        const pv =
+          h?.category === "Wall" && typeId
+            ? await ipc.openingPreview3d(typeId, h.el, { x: h.point.x, y: h.point.y })
+            : null;
+        clearGhost();
+        if (pv) addGhostMesh(pv.positions, pv.preview.valid);
+      } else if (tool === "wall" || tool === "column") {
+        const h = planeHit(e);
+        clearGhost();
+        if (!h) return;
+        const plan = planOf(h.level);
+        const sn = plan
+          ? await ipc.snap(plan, { x: h.point.x, y: h.point.y }, wallFrom, snapTol(h.point))
+          : null;
+        const q = new THREE.Vector3(sn?.pt.x ?? h.point.x, sn?.pt.y ?? h.point.y, h.z);
+        clearGhost();
+        addCursor(q);
+        if (tool === "wall" && wallFrom)
+          addGhostLine([new THREE.Vector3(wallFrom.x, wallFrom.y, h.z), q]);
+        s.setCursor(sn?.label ?? "");
+      } else {
+        clearGhost();
+      }
+    };
+    const onHover = (e: PointerEvent) => {
+      if (useAppStore.getState().tool === "select") return;
+      if (hoverBusy) {
+        hoverNext = e;
+        return;
+      }
+      hoverBusy = true;
+      void hover3d(e).finally(() => {
+        hoverBusy = false;
+        const next = hoverNext;
+        hoverNext = null;
+        if (next) onHover(next);
+      });
+    };
+    const click3d = async (e: PointerEvent) => {
+      const s = useAppStore.getState();
+      const tool = s.tool;
+      if (tool === "door" || tool === "window") {
+        const h = meshHit(e);
+        const typeId = tool === "door" ? s.toolTypes.door : s.toolTypes.window;
+        if (h?.category !== "Wall" || !typeId) {
+          s.setError(`Click a wall to place the ${tool}.`);
+          return;
+        }
+        const pv = await ipc.openingPreview3d(typeId, h.el, { x: h.point.x, y: h.point.y });
+        if (!pv?.preview.valid) {
+          s.setError("That spot overlaps another door or window in this wall.");
+          return;
+        }
+        await apply(() =>
+          ipc.createOpening(typeId, pv.preview.host, pv.preview.offset, pv.preview.flipFacing),
+        );
+        clearGhost();
+      } else if (tool === "wall" || tool === "column") {
+        const h = planeHit(e);
+        const plan = h ? planOf(h.level) : null;
+        if (!h || !plan) {
+          s.setError("That level has no floor plan to place on.");
+          return;
+        }
+        const sn = await ipc.snap(plan, { x: h.point.x, y: h.point.y }, wallFrom, snapTol(h.point));
+        const q = sn.pt;
+        if (tool === "column") {
+          await apply(() => ipc.createColumn(plan, s.toolTypes.column, q));
+        } else if (!wallFrom) {
+          wallFrom = q;
+        } else if (s.toolTypes.wall) {
+          const from = wallFrom;
+          if (await apply(() => ipc.createWall(plan, s.toolTypes.wall!, from, q))) wallFrom = q;
+        }
+      } else {
+        const h = meshHit(e);
+        const plan = planOf(h?.level);
+        if (!h || !plan) {
+          s.setError(tool === "roof" || tool === "floorAuto" ? "Click a wall." : "Click a floor.");
+          return;
+        }
+        const at = { x: h.point.x, y: h.point.y };
+        if (tool === "floorAuto" && s.toolTypes.floor)
+          await apply(() => ipc.createFloor(plan, s.toolTypes.floor!, []));
+        else if (tool === "ceilingAuto" && s.toolTypes.ceiling)
+          await apply(() => ipc.createCeiling(plan, s.toolTypes.ceiling!, [], at));
+        else if (tool === "roof") await apply(() => ipc.createRoof(plan, s.toolTypes.roof));
+        else if (tool === "room") await apply(() => ipc.createRoom(plan, at));
+      }
+    };
+    const onCancel = () => {
+      const s = useAppStore.getState();
+      if (wallFrom) wallFrom = null;
+      else if (s.tool !== "select") s.setTool("select");
+      clearGhost();
+    };
+    window.addEventListener("tool-cancel", onCancel);
+    const unsubTool = useAppStore.subscribe((s, prev) => {
+      if (s.tool !== prev.tool) {
+        wallFrom = null;
+        clearGhost();
+        s.setPrompt(prompt3d(s.tool));
+      }
+    });
+
     // Dragging a section box handle moves that face along its axis.
     let drag: { axis: number; end: "min" | "max"; at: THREE.Vector3 } | null = null;
     let down: [number, number] | null = null;
@@ -226,7 +476,10 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
     const onMove = (e: PointerEvent) => {
       const b = boxRef.current;
-      if (!drag || !b) return;
+      if (!drag || !b) {
+        onHover(e);
+        return;
+      }
       const ray = rayAt(e).ray;
       const v = dragCoordinate(ray.origin, ray.direction, drag.at, drag.axis);
       const next: SectionBox = { min: [...b.min], max: [...b.max] };
@@ -252,8 +505,16 @@ export function View3D({ view }: { view: ViewInfo }) {
         if (b) void apply(() => ipc.setSectionBox(view.id, b.min, b.max));
         return;
       }
-      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || e.button !== 0)
+      if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return;
+      if (e.button === 2 && useAppStore.getState().tool !== "select") {
+        onCancel();
         return;
+      }
+      if (e.button !== 0) return;
+      if (useAppStore.getState().tool !== "select") {
+        void click3d(e);
+        return;
+      }
       // Click (without dragging) selects the element under the cursor.
       const hit = rayAt(e).intersectObjects(
         group.children.filter((c) => c instanceof THREE.Mesh),
@@ -264,13 +525,11 @@ export function View3D({ view }: { view: ViewInfo }) {
     renderer.domElement.addEventListener("pointerdown", onDown);
     renderer.domElement.addEventListener("pointermove", onMove);
     renderer.domElement.addEventListener("pointerup", onUp);
-    useAppStore
-      .getState()
-      .setPrompt(
-        "Drag to orbit, right-drag to pan, scroll to zoom. Click to select. Turn on Section Box in Properties, then drag its handles.",
-      );
+    useAppStore.getState().setPrompt(prompt3d(useAppStore.getState().tool));
 
     return () => {
+      window.removeEventListener("tool-cancel", onCancel);
+      unsubTool();
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
@@ -302,6 +561,8 @@ export function View3D({ view }: { view: ViewInfo }) {
           const mesh = new THREE.Mesh(geo, material(m, planes));
           mesh.userData = {
             el: m.el,
+            category: m.category,
+            level: m.level,
             base: (mesh.material as THREE.MeshLambertMaterial).color.getHex(),
           };
           t.group.add(mesh);
@@ -323,6 +584,16 @@ export function View3D({ view }: { view: ViewInfo }) {
           t.camera.position.set(-15000, -20000, 12000);
           t.controls.target.set(6000, 4500, 1500);
         }
+        // The ground grid around the model, on the lowest level.
+        for (const c of [...t.gridGroup.children]) t.gridGroup.remove(c);
+        if (meshes.length > 0) {
+          const box = new THREE.Box3().setFromObject(t.group);
+          const c = box.getCenter(new THREE.Vector3());
+          const half = box.getSize(new THREE.Vector3()).length() * 0.9 + 12000;
+          const z0 = Math.min(0, ...(useAppStore.getState().app?.levelElevations ?? [0]));
+          t.gridGroup.add(groundGrid(c, half, z0 - 1));
+        }
+        t.gridGroup.visible = useAppStore.getState().grid3d;
         applySelection(t.group, useAppStore.getState().selection);
       },
       (e) => useAppStore.getState().setError(errorMessage(e)),
@@ -336,7 +607,25 @@ export function View3D({ view }: { view: ViewInfo }) {
     if (three.current) applySelection(three.current.group, selection);
   }, [selection]);
 
-  return <div ref={wrapRef} className="canvas-wrap view3d" />;
+  const grid3d = useAppStore((s) => s.grid3d);
+  const setGrid3d = useAppStore((s) => s.setGrid3d);
+  const tool = useAppStore((s) => s.tool);
+  useEffect(() => {
+    if (three.current) three.current.gridGroup.visible = grid3d;
+  }, [grid3d]);
+
+  return (
+    <div ref={wrapRef} className="canvas-wrap view3d" data-tool={tool}>
+      <button
+        className={`view3d-chip${grid3d ? " on" : ""}`}
+        aria-pressed={grid3d}
+        onClick={() => setGrid3d(!grid3d)}
+        title="Show or hide the ground plane grid"
+      >
+        Ground Grid
+      </button>
+    </div>
+  );
 }
 
 function applySelection(group: THREE.Group, selection: string[]) {

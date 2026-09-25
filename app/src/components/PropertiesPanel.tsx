@@ -117,6 +117,7 @@ export function PropertiesPanel() {
     column: app.columnTypes,
     beam: app.beamTypes,
     railing: app.railingTypes,
+    elevationMarker: app.elevationMarkerTypes,
   };
   const toolOptions = toolKind ? typesByKind[toolKind] : [];
 
@@ -130,6 +131,7 @@ export function PropertiesPanel() {
     Column: "column",
     Beam: "beam",
     Railing: "railing",
+    ElevationMarker: "elevationMarker",
   };
   const instanceKind = sheet ? categoryKind[sheet.category] : undefined;
   const instanceTypes = instanceKind ? typesByKind[instanceKind] : null;

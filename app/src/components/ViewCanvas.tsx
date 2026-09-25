@@ -803,7 +803,8 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     }
     if (s.tool === "elevation") {
       const p = (await ipc.snap(view.id, raw, null, tol)).pt;
-      if (await apply(() => ipc.createElevationMarker(view.id, p, s.elevationInterior)))
+      const markType = s.elevationType ?? s.app?.elevationMarkerTypes[0]?.id ?? null;
+      if (await apply(() => ipc.createElevationMarker(view.id, p, true, markType)))
         s.setTool("select");
       return;
     }

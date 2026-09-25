@@ -48,8 +48,15 @@ export function OptionsBar() {
   );
   const ui = useAppStore((s) => s.sketchUi);
   const setUi = useAppStore((s) => s.setSketchUi);
-  const interior = useAppStore((s) => s.elevationInterior);
-  const setInterior = useAppStore((s) => s.setElevationInterior);
+  const markTypes = useAppStore((s) => s.app?.elevationMarkerTypes);
+  const elevationType = useAppStore((s) => s.elevationType);
+  const setElevationType = useAppStore((s) => s.setElevationType);
+  const levels = useAppStore((s) => s.app?.levels);
+  const level3d = useAppStore((s) => s.level3d);
+  const setLevel3d = useAppStore((s) => s.setLevel3d);
+  const in3d = useAppStore(
+    (s) => s.app?.views.find((v) => v.id === s.activeView)?.viewType === "ThreeD",
+  );
   let body: React.ReactNode = null;
   const sketchCheck = (key: "chain" | "radiusOn" | "core" | "lock", label: string) => (
     <label className="ob-check">
@@ -137,11 +144,31 @@ export function OptionsBar() {
         Type
         <select
           aria-label="Elevation type"
-          value={interior ? "interior" : "building"}
-          onChange={(e) => setInterior(e.target.value === "interior")}
+          value={elevationType ?? markTypes?.[0]?.id ?? ""}
+          onChange={(e) => setElevationType(e.target.value)}
         >
-          <option value="interior">Interior Elevation</option>
-          <option value="building">Building Elevation</option>
+          {(markTypes ?? []).map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  else if (in3d && (tool === "wall" || tool === "column"))
+    body = (
+      <label className="ob-field">
+        Level
+        <select
+          aria-label="Placement level"
+          value={level3d ?? levels?.[0]?.id ?? ""}
+          onChange={(e) => setLevel3d(e.target.value)}
+        >
+          {(levels ?? []).map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
         </select>
       </label>
     );

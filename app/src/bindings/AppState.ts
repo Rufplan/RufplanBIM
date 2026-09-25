@@ -15,7 +15,11 @@ export type AppState = { project: ProjectStatus,
 /**
  * Bumps on every model change; canvases refetch when it changes.
  */
-revision: number, views: Array<ViewInfo>, levels: Array<NamedItem>, wallTypes: Array<NamedItem>, floorTypes: Array<NamedItem>, ceilingTypes: Array<NamedItem>, doorTypes: Array<NamedItem>, windowTypes: Array<NamedItem>, roofTypes: Array<NamedItem>, columnTypes: Array<NamedItem>, beamTypes: Array<NamedItem>, railingTypes: Array<NamedItem>, materials: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
+revision: number, views: Array<ViewInfo>, levels: Array<NamedItem>, 
+/**
+ * Elevations of `levels` (mm), for the 3D view's work planes.
+ */
+levelElevations: Array<number>, wallTypes: Array<NamedItem>, floorTypes: Array<NamedItem>, ceilingTypes: Array<NamedItem>, doorTypes: Array<NamedItem>, windowTypes: Array<NamedItem>, roofTypes: Array<NamedItem>, columnTypes: Array<NamedItem>, beamTypes: Array<NamedItem>, railingTypes: Array<NamedItem>, materials: Array<NamedItem>, elevationMarkerTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
 /**
  * Issued sets, oldest first.
  */

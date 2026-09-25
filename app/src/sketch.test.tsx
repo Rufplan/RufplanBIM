@@ -85,7 +85,7 @@ describe("floor boundary sketch mode (ADR-021)", () => {
     await userEvent.keyboard("EL");
     expect(useAppStore.getState().tool).toBe("elevation");
     const type = await screen.findByRole("combobox", { name: "Elevation type" });
-    await userEvent.selectOptions(type, "building");
-    expect(useAppStore.getState().elevationInterior).toBe(false);
+    await userEvent.selectOptions(type, "00000000-0000-7000-8000-000000000061");
+    expect(useAppStore.getState().elevationType).toBe("00000000-0000-7000-8000-000000000061");
   });
 });

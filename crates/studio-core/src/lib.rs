@@ -18,9 +18,9 @@ pub mod units;
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};
 pub use element::{
     Anchor, BeamShape, Category, ColumnShape, Compass, CropBox, CutPattern, DoorFamily, Element,
-    ElementData, ElementId, LayerFunction, LocationLine, RufplanLink, ScheduleKind, SectionBox,
-    SheetSize, SlabBound, StageChange, StairShape, SurfacePattern, ViewKind, WallFunction,
-    WallLayer, WallTop, WindowFamily,
+    ElementData, ElementId, LayerFunction, LocationLine, MarkStyle, RufplanLink, ScheduleKind,
+    SectionBox, SheetSize, SlabBound, StageChange, StairShape, SurfacePattern, ViewKind,
+    WallFunction, WallLayer, WallTop, WindowFamily,
 };
 pub use params::{ParamDef, ParamKind, ParamScope, ParamValue};
 

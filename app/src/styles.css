@@ -1041,3 +1041,29 @@ button:disabled {
   font-size: 9px;
   letter-spacing: 0.4px;
 }
+
+/* ---------- 3D view (ADR-022) ---------- */
+.canvas-wrap.view3d {
+  position: relative;
+}
+.view3d[data-tool]:not([data-tool="select"]) canvas {
+  cursor: crosshair;
+}
+.view3d-chip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border: 1px solid var(--cyan);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+}
+.view3d-chip.on {
+  background: var(--cyan);
+}

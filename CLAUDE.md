@@ -94,7 +94,8 @@ Read these before writing code:
   railings, L/U stairs, stair openings, attached walls, L/T/U roofs, location lines,
   layered floors/roofs and cut patterns (ADR-019); bound floors, room separators,
   section box, materials, schedules, callouts (ADR-020); Revit sketch mode for floor and
-  ceiling boundaries, Revit level and elevation symbols, interior elevations (ADR-021). The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
+  ceiling boundaries, Revit level and elevation symbols, interior elevations (ADR-021);
+  elevation mark families, editing in 3D, 3D ground grid (ADR-022). The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
 - Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the sample house.
 - M3 met; M4 met pending the owner's scale-ruler print check.
 - M5 built (ADR-016): IFC4 export (validated by IfcOpenShell in CI), Rufplan sign-in,

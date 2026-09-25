@@ -80,6 +80,7 @@ pub enum Category {
     Material,
     RoomSeparator,
     ElevationMarker,
+    ElevationMarkerType,
 }
 
 impl Category {
@@ -119,6 +120,7 @@ impl Category {
             Category::Material => "Material",
             Category::RoomSeparator => "RoomSeparator",
             Category::ElevationMarker => "ElevationMarker",
+            Category::ElevationMarkerType => "ElevationMarkerType",
         }
     }
 }
@@ -320,6 +322,34 @@ pub enum SlabBound {
     Walls,
     /// The room enclosing `point` (Ceiling: Auto Room); follows its walls.
     Room { point: Pt },
+}
+
+/// How an elevation mark is drawn (the symbol of its family type, ADR-022).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum MarkStyle {
+    /// A round body with a filled arrowhead per view.
+    #[default]
+    CircleArrow,
+    /// A round body whose half toward each view is filled, with a point.
+    CircleHalf,
+    /// A circle in a square turned 45°, the corner toward each view filled.
+    Diamond,
+}
+
+impl MarkStyle {
+    pub const ALL: [MarkStyle; 3] = [
+        MarkStyle::CircleArrow,
+        MarkStyle::CircleHalf,
+        MarkStyle::Diamond,
+    ];
+    pub fn label(self) -> &'static str {
+        match self {
+            MarkStyle::CircleArrow => "Circle - Filled Arrow",
+            MarkStyle::CircleHalf => "Circle - Filled Half",
+            MarkStyle::Diamond => "Diamond - Filled Corners",
+        }
+    }
 }
 
 /// A 3D view's section box (mm, model coordinates).
@@ -679,6 +709,9 @@ pub enum ElementData {
         /// A callout (detail view) of this parent view (ADR-020).
         #[serde(default)]
         callout_of: Option<ElementId>,
+        /// Building elevations: the elevation mark type drawn for them in plans (ADR-022).
+        #[serde(default)]
+        mark_type: Option<ElementId>,
     },
     ProjectInfo {
         name: String,
@@ -889,6 +922,17 @@ pub enum ElementData {
         level: ElementId,
         at: Pt,
         interior: bool,
+        /// Its family type (symbol and interior/building); None: the default of its kind.
+        #[serde(default)]
+        type_id: Option<ElementId>,
+    },
+    /// An elevation mark family type (ADR-022): interior or building, and its symbol.
+    ElevationMarkerType {
+        name: String,
+        interior: bool,
+        style: MarkStyle,
+        /// Body radius on paper, mm.
+        size: f64,
     },
     /// A room-bounding line on `level` for open plans (Revit's Room Separation Line).
     RoomSeparator {
@@ -952,6 +996,7 @@ impl ElementData {
             ElementData::Material { .. } => Category::Material,
             ElementData::RoomSeparator { .. } => Category::RoomSeparator,
             ElementData::ElevationMarker { .. } => Category::ElevationMarker,
+            ElementData::ElevationMarkerType { .. } => Category::ElevationMarkerType,
         }
     }
 
@@ -1039,12 +1084,13 @@ impl ElementData {
             | ElementData::ColumnType { name, .. }
             | ElementData::BeamType { name, .. }
             | ElementData::RailingType { name, .. }
-            | ElementData::Material { name, .. } => name.clone(),
+            | ElementData::Material { name, .. }
+            | ElementData::ElevationMarkerType { name, .. } => name.clone(),
             ElementData::RoomSeparator { .. } => "Room Separator".into(),
             ElementData::ElevationMarker { interior, .. } => if *interior {
-                "Interior Elevation"
+                "Interior Elevation Mark"
             } else {
-                "Building Elevation"
+                "Building Elevation Mark"
             }
             .into(),
             ElementData::Column { .. } => "Column".into(),
@@ -1104,6 +1150,7 @@ impl ElementData {
             | ElementData::Column { type_id, .. }
             | ElementData::Beam { type_id, .. }
             | ElementData::Railing { type_id, .. } => Some(*type_id),
+            ElementData::ElevationMarker { type_id, .. } => *type_id,
             _ => None,
         }
     }
@@ -1118,6 +1165,7 @@ impl ElementData {
             show_crop: true,
             section_box: None,
             callout_of: None,
+            mark_type: None,
         }
     }
 

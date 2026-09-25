@@ -92,6 +92,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
         seed_opening_types(tx);
         crate::structure::seed_structure_types(tx);
         crate::material::seed_materials(tx);
+        crate::detail::seed_mark_types(tx);
         for (facing, name) in [
             (Compass::North, "North"),
             (Compass::South, "South"),
@@ -1533,8 +1534,20 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             show_crop,
             section_box,
             callout_of,
+            mark_type,
         } => {
             props.push(text("name", "View Name", "Identity Data", name));
+            if matches!(kind, ViewKind::Elevation { .. }) {
+                // The mark drawn for this building elevation in plans (ADR-022).
+                let current = mark_type.or_else(|| crate::detail::default_mark_type(doc, false));
+                props.push(choice(
+                    "mark_type",
+                    "Elevation Mark",
+                    "Graphics",
+                    current.map(|t| t.to_string()).unwrap_or_default(),
+                    crate::detail::mark_type_options(doc),
+                ));
+            }
             if let Some(parent) = callout_of {
                 props.push(ro(
                     "callout_of",
@@ -1943,20 +1956,47 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::structure::properties(doc, id, &mut props);
         }
         ElementData::Material { .. } => crate::material::properties(doc, id, &mut props),
-        ElementData::ElevationMarker {
-            level, interior, ..
+        ElementData::ElevationMarkerType {
+            name,
+            interior,
+            style,
+            size,
         } => {
-            props.push(ro(
-                "type",
-                "Type",
-                "Identity Data",
-                if *interior {
-                    "Interior Elevation"
-                } else {
-                    "Building Elevation"
-                }
-                .into(),
+            props.push(text("name", "Type Name", "Identity Data", name));
+            props.push(flag(
+                "interior",
+                "Interior (crops to the room)",
+                "Constraints",
+                *interior,
             ));
+            props.push(choice(
+                "style",
+                "Symbol",
+                "Graphics",
+                format!("{style:?}"),
+                crate::element::MarkStyle::ALL
+                    .iter()
+                    .map(|s| PropOption {
+                        id: format!("{s:?}"),
+                        label: s.label().into(),
+                    })
+                    .collect(),
+            ));
+            props.push(text(
+                "size",
+                "Body Radius (paper mm)",
+                "Graphics",
+                &format!("{size}"),
+            ));
+        }
+        ElementData::ElevationMarker {
+            level,
+            interior,
+            type_id,
+            ..
+        } => {
+            // The family type is chosen in the type selector above (ADR-022).
+            let _ = (type_id, interior);
             props.push(ro(
                 "level",
                 "Level",
@@ -2034,6 +2074,72 @@ pub fn set_property(
     }
     if matches!(data, ElementData::Material { .. }) {
         return crate::material::set_property(doc, id, key, value);
+    }
+    if let (ElementData::ElevationMarker { .. }, "type") = (&data, key) {
+        let t = parse_id(value)?;
+        let ElementData::ElevationMarkerType { interior: to, .. } = doc.data(t)? else {
+            return Err(CoreError::Invalid("pick an elevation mark type".into()));
+        };
+        let to = *to;
+        return doc.transact("Change type", |tx| {
+            tx.modify(id, |d| {
+                if let ElementData::ElevationMarker {
+                    type_id, interior, ..
+                } = d
+                {
+                    *type_id = Some(t);
+                    // Interior marks crop their views to the room; building marks don't.
+                    *interior = to;
+                }
+            })
+        });
+    }
+    if let ElementData::ElevationMarkerType { .. } = &data {
+        return doc.transact("Change mark type", |tx| {
+            let mut d = tx.data(id)?.clone();
+            if let ElementData::ElevationMarkerType {
+                name,
+                interior,
+                style,
+                size,
+            } = &mut d
+            {
+                match key {
+                    "name" => *name = non_empty(value)?,
+                    "interior" => *interior = value == "yes",
+                    "style" => {
+                        *style = crate::element::MarkStyle::ALL
+                            .into_iter()
+                            .find(|s| format!("{s:?}") == value || s.label() == value)
+                            .ok_or_else(|| CoreError::Invalid(format!("unknown symbol {value}")))?
+                    }
+                    "size" => {
+                        let v: f64 = value
+                            .trim()
+                            .trim_end_matches("mm")
+                            .trim()
+                            .parse()
+                            .map_err(|_| CoreError::Invalid("size is paper mm, e.g. 5".into()))?;
+                        if !(1.0..=20.0).contains(&v) {
+                            return Err(CoreError::Invalid("size is 1 to 20 mm".into()));
+                        }
+                        *size = v;
+                    }
+                    _ => return Err(CoreError::Invalid(format!("unknown property {key}"))),
+                }
+            }
+            tx.set(id, d)
+        });
+    }
+    if let (ElementData::View { .. }, "mark_type") = (&data, key) {
+        let t = parse_id(value)?;
+        return doc.transact("Change elevation mark", |tx| {
+            tx.modify(id, |d| {
+                if let ElementData::View { mark_type, .. } = d {
+                    *mark_type = Some(t);
+                }
+            })
+        });
     }
     if let (ElementData::ElevationMarker { .. }, Some(dir)) = (&data, key.strip_prefix("view_")) {
         let facing = crate::detail::DIRECTIONS
@@ -2386,7 +2492,8 @@ pub fn set_property(
         | ElementData::RailingType { .. }
         | ElementData::Material { .. }
         | ElementData::RoomSeparator { .. }
-        | ElementData::ElevationMarker { .. } => return Err(unknown()),
+        | ElementData::ElevationMarker { .. }
+        | ElementData::ElevationMarkerType { .. } => return Err(unknown()),
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {

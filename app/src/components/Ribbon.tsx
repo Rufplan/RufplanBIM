@@ -101,8 +101,11 @@ export function Ribbon() {
   );
   const activeIsPlanLike = useAppStore((s) => {
     const t = activeViewInfo(s)?.viewType;
-    return t === "Plan" || t === "CeilingPlan";
+    return t === "Plan" || t === "CeilingPlan" || t === "ThreeD";
   });
+  const activeIs3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
+  const grid3d = useAppStore((s) => s.grid3d);
+  const setGrid3d = useAppStore((s) => s.setGrid3d);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
   const sketchButton = (
@@ -309,6 +312,16 @@ export function Ribbon() {
               >
                 {Icons.view3d}
                 <span>3D View</span>
+              </button>
+              <button
+                className={`rb-btn${activeIs3d && grid3d ? " active" : ""}`}
+                onClick={() => setGrid3d(!grid3d)}
+                disabled={!activeIs3d}
+                aria-pressed={grid3d}
+                title="Show the ground plane's grid in 3D"
+              >
+                {Icons.grid}
+                <span>Ground Grid</span>
               </button>
               <button
                 className="rb-btn"

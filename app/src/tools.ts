@@ -95,8 +95,21 @@ export const PLAN_TOOLS: Tool[] = [
   "ceilingAuto",
 ];
 
+/** Tools that also work in the 3D view (ADR-022). */
+export const TOOLS_3D: Tool[] = [
+  "wall",
+  "door",
+  "window",
+  "floorAuto",
+  "ceilingAuto",
+  "roof",
+  "column",
+  "room",
+];
+
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
+  if (view === "ThreeD") return TOOLS_3D.includes(tool);
   if (tool === "level") return view === "Elevation" || view === "Section";
   if (tool === "room" || tool === "section" || tool === "stair") return view === "Plan";
   if (

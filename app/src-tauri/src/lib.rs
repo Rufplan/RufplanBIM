@@ -106,6 +106,7 @@ pub fn run() -> anyhow::Result<()> {
             detailing::create_room_separator,
             detailing::create_callout,
             detailing::create_elevation_marker,
+            detailing::opening_preview_3d,
             detailing::set_section_box,
             detailing::create_material,
             sketching::sketch_begin,

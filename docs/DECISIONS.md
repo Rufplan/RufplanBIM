@@ -464,3 +464,23 @@ Open: key plan, revisions, issuances, sheet sets by stage (M4 checklist), view c
   Kitchen has a four-view interior marker.
 - **File format:** new element kinds, a new view kind and `#[serde(default)]` fields only.
 
+## ADR-022 Elevation mark families, editing in 3D, 3D ground grid — Accepted (2026-09-24)
+- **Elevation mark types:** `ElevationMarkerType { name, interior, style, size }`, listed under
+  Families > Elevation Marks and edited in Properties (name, Interior, Symbol, body radius).
+  Built in: Interior Elevation, Interior Elevation - Diamond, Building Elevation, Building
+  Elevation - Half Circle, Building Elevation - Diamond. Symbols: Circle - Filled Arrow,
+  Circle - Filled Half, Diamond - Filled Corners. A placed marker's type is picked in the
+  type selector at the top of Properties, like any Revit family instance; switching between
+  an interior and a building type changes its views (interior views crop to the room,
+  building views don't). The four building elevations pick their mark in their view
+  Properties (Elevation Mark). The Elevation tool's options bar picks the type to place.
+- **Editing in 3D:** Wall and Column place on the work plane of the level chosen in the
+  options bar (snapping as in that level's plan; walls chain until Esc or right-click);
+  Door and Window place on the wall face under the cursor with a cyan ghost of the opening
+  (red where it would overlap); Floor (Pick Walls), Ceiling (Auto Room), Roof (by
+  footprint) and Room act on the level of the wall or floor clicked. Each goes through the
+  same commands as the plan tools, via that level's floor plan. Meshes carry their level.
+- **Ground grid:** a hairline Rufplan-cyan grid on the lowest level: 4' squares with a
+  stronger line every 20', around the model. Toggle with the Ground Grid chip in the 3D
+  view or the View tab. Not clipped by the section box; not pickable.
+

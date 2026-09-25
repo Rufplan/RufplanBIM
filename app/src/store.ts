@@ -169,9 +169,15 @@ interface UiState {
   paramsOpen: boolean;
   sketchUi: SketchUi;
   setSketchUi: (patch: Partial<SketchUi>) => void;
-  /** Elevation tool: interior (true) or building elevations. */
-  elevationInterior: boolean;
-  setElevationInterior: (v: boolean) => void;
+  /** Elevation tool: the mark type to place (its family type decides interior/building). */
+  elevationType: ElementId | null;
+  setElevationType: (id: ElementId | null) => void;
+  /** 3D view: the ground plane's cyan grid is shown. */
+  grid3d: boolean;
+  setGrid3d: (on: boolean) => void;
+  /** 3D view: the level walls and columns are placed on. */
+  level3d: ElementId | null;
+  setLevel3d: (id: ElementId | null) => void;
 
   /** `fresh` = a different project was just created or opened. */
   setApp: (app: AppState | null, fresh?: boolean) => void;
@@ -239,8 +245,12 @@ export const useAppStore = create<UiState>((set, get) => ({
     tab: false,
   },
   setSketchUi: (patch) => set((s) => ({ sketchUi: { ...s.sketchUi, ...patch } })),
-  elevationInterior: true,
-  setElevationInterior: (elevationInterior) => set({ elevationInterior }),
+  elevationType: null,
+  setElevationType: (elevationType) => set({ elevationType }),
+  grid3d: true,
+  setGrid3d: (grid3d) => set({ grid3d }),
+  level3d: null,
+  setLevel3d: (level3d) => set({ level3d }),
 
   setApp: (app, fresh = false) => {
     const s = get();

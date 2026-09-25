@@ -3,7 +3,7 @@
 use studio_geom::{line_intersection, project_to_segment, Pt};
 
 use crate::document::{CoreError, CoreResult, Document};
-use crate::element::{Category, Compass, CropBox, ElementData, ElementId, ViewKind};
+use crate::element::{Category, Compass, CropBox, ElementData, ElementId, MarkStyle, ViewKind};
 
 /// Scale of a new callout: 1 1/2" = 1'-0", where layer wraps and cut patterns read.
 pub const CALLOUT_SCALE: u32 = 8;
@@ -150,6 +150,7 @@ pub fn create_elevation_marker(
     interior: bool,
     views: &[(Compass, String)],
 ) -> CoreResult<ElementId> {
+    let type_id = default_mark_type(doc, interior);
     doc.transact("Create elevation", |tx| {
         if !matches!(tx.data(level)?, ElementData::Level { .. }) {
             return Err(CoreError::Invalid(
@@ -160,6 +161,7 @@ pub fn create_elevation_marker(
             level,
             at,
             interior,
+            type_id,
         });
         for (facing, name) in views {
             tx.insert(ElementData::view(
@@ -239,6 +241,92 @@ pub fn facing_nearest_wall(doc: &Document, level: ElementId, at: Pt) -> Compass 
     } else {
         Compass::South
     }
+}
+
+/// Built-in elevation mark types: (name, interior, style, body radius in paper mm).
+const MARK_TYPES: &[(&str, bool, MarkStyle, f64)] = &[
+    ("Interior Elevation", true, MarkStyle::CircleArrow, 4.0),
+    (
+        "Interior Elevation - Diamond",
+        true,
+        MarkStyle::Diamond,
+        4.0,
+    ),
+    ("Building Elevation", false, MarkStyle::CircleArrow, 5.0),
+    (
+        "Building Elevation - Half Circle",
+        false,
+        MarkStyle::CircleHalf,
+        5.0,
+    ),
+    (
+        "Building Elevation - Diamond",
+        false,
+        MarkStyle::Diamond,
+        5.0,
+    ),
+];
+
+pub(crate) fn seed_mark_types(tx: &mut crate::document::Tx<'_>) {
+    for (name, interior, style, size) in MARK_TYPES {
+        tx.insert(ElementData::ElevationMarkerType {
+            name: (*name).into(),
+            interior: *interior,
+            style: *style,
+            size: *size,
+        });
+    }
+}
+
+/// Adds the elevation mark types to projects saved before them.
+pub fn ensure_mark_types(doc: &mut Document) -> CoreResult<()> {
+    if doc.count(Category::ElevationMarkerType) > 0 {
+        return Ok(());
+    }
+    doc.transact("Add elevation mark types", |tx| {
+        seed_mark_types(tx);
+        Ok(())
+    })
+}
+
+/// The first mark type of the kind (interior or building).
+pub fn default_mark_type(doc: &Document, interior: bool) -> Option<ElementId> {
+    let mut v: Vec<(String, ElementId)> = doc
+        .of(Category::ElevationMarkerType)
+        .filter(|e| matches!(&e.data, ElementData::ElevationMarkerType { interior: i, .. } if *i == interior))
+        .map(|e| (e.data.name(), e.id))
+        .collect();
+    v.sort();
+    v.first().map(|x| x.1)
+}
+
+/// How a mark of type `type_id` (or the default of its kind) draws: style and radius.
+pub fn mark_symbol(doc: &Document, type_id: Option<ElementId>, interior: bool) -> (MarkStyle, f64) {
+    let t = type_id.or_else(|| default_mark_type(doc, interior));
+    match t.and_then(|t| doc.data(t).ok()) {
+        Some(ElementData::ElevationMarkerType { style, size, .. }) => (*style, *size),
+        _ => (MarkStyle::CircleArrow, if interior { 4.0 } else { 5.0 }),
+    }
+}
+
+/// Mark type choices as (id, label), interior ones first.
+pub fn mark_type_options(doc: &Document) -> Vec<crate::ops::PropOption> {
+    let mut v: Vec<(bool, String, ElementId)> = doc
+        .of(Category::ElevationMarkerType)
+        .filter_map(|e| match &e.data {
+            ElementData::ElevationMarkerType { interior, name, .. } => {
+                Some((!interior, name.clone(), e.id))
+            }
+            _ => None,
+        })
+        .collect();
+    v.sort();
+    v.into_iter()
+        .map(|(_, name, id)| crate::ops::PropOption {
+            id: id.to_string(),
+            label: name,
+        })
+        .collect()
 }
 
 #[cfg(test)]
