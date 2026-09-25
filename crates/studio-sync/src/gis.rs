@@ -162,7 +162,10 @@ pub fn parse_regrid(body: &[u8]) -> SyncResult<Parcel> {
         .ok_or_else(|| SyncError::Decode("Regrid: no parcels in the response".into()))?;
     let f = features
         .first()
-        .ok_or_else(|| SyncError::Api("no parcel found at that spot".into()))?;
+        .ok_or_else(|| SyncError::Api(
+            "Regrid has no parcel at that spot. Click inside a lot, not on a street. A Regrid trial token only covers Regrid's sample counties; parcels elsewhere need a paid plan."
+                .into(),
+        ))?;
     let geom = f
         .get("geometry")
         .ok_or_else(|| SyncError::Decode("Regrid: the parcel has no geometry".into()))?;
