@@ -26,6 +26,8 @@ pub struct SketchSession {
     /// The floor or ceiling whose boundary is being edited (None: a new one).
     pub target: Option<ElementId>,
     pub type_id: ElementId,
+    /// Height of the sketch's work plane in 3D (mm).
+    pub elevation: f64,
     pub curves: Vec<SketchCurve>,
     undo: Vec<Vec<SketchCurve>>,
     redo: Vec<Vec<SketchCurve>>,
@@ -50,6 +52,9 @@ pub struct SketchItem {
 pub struct SketchInfo {
     pub kind: SketchKind,
     pub view: ElementId,
+    pub level: ElementId,
+    /// Height of the work plane the sketch is drawn on in 3D (mm).
+    pub elevation: f64,
     pub target: Option<ElementId>,
     pub type_id: ElementId,
     pub curves: Vec<SketchItem>,
@@ -64,6 +69,8 @@ impl SketchSession {
         SketchInfo {
             kind: self.kind,
             view: self.view,
+            level: self.level,
+            elevation: self.elevation,
             target: self.target,
             type_id: self.type_id,
             curves: self
@@ -113,14 +120,17 @@ fn default_type(doc: &Document, kind: SketchKind) -> Option<ElementId> {
     studio_core::ops::first_of(doc, cat)
 }
 
-/// Enters sketch mode: a new floor or ceiling on the view's level, or Edit Boundary of
-/// `target`.
+/// Enters sketch mode: a new floor or ceiling on the view's level (or `level`, from 3D), or
+/// Edit Boundary of `target`. Outside a plan the sketch goes through the level's plan
+/// (ADR-025).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn sketch_begin(
     view: ElementId,
     kind: SketchKind,
     target: Option<ElementId>,
     type_id: Option<ElementId>,
+    level: Option<ElementId>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
@@ -147,19 +157,31 @@ pub fn sketch_begin(
             (level, curves, t)
         }
         None => {
-            let level = session.view_level(view)?;
+            let level = match (session.view_level(view), level) {
+                (Ok(l), _) => l,
+                (Err(_), Some(l)) => l,
+                (Err(e), None) => return Err(e.into()),
+            };
             let t = type_id
                 .or_else(|| default_type(doc, kind))
                 .ok_or_else(|| anyhow::anyhow!("no types for this sketch"))?;
             (level, vec![], t)
         }
     };
+    let view = if session.view_level(view).is_ok() {
+        view
+    } else {
+        sketch::plan_for(doc, level, kind)
+            .ok_or_else(|| anyhow::anyhow!("that level has no floor plan to sketch through"))?
+    };
+    let elevation = sketch::work_plane_z(doc, level, kind, target)?;
     session.set_sketch(Some(SketchSession {
         kind,
         view,
         level,
         target,
         type_id,
+        elevation,
         curves,
         undo: vec![],
         redo: vec![],

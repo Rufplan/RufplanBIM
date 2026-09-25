@@ -50,6 +50,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   Select All Instances, Repeat; Temporary Hide/Isolate, Hide in View, Visibility/Graphics;
   Thin Lines, 3D visual styles, zoom commands and one-pick snap overrides.
 
+- Sketching in 3D (ADR-025): Floor and Sketch Ceiling sketch mode on the level's work plane in
+  the 3D view with every draw, pick and modify tool; Edit Boundary and double-click on floors
+  and ceilings in 3D; Move and Copy in 3D.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

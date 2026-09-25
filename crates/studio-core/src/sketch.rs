@@ -1244,6 +1244,59 @@ pub fn finish(
     .map_err(fail)
 }
 
+/// The plan a sketch on `level` is drawn through when it starts outside a plan (from 3D,
+/// ADR-025): the level's ceiling plan for a ceiling, its floor plan otherwise (or the other
+/// if that's all there is). Callouts don't count.
+pub fn plan_for(doc: &Document, level: ElementId, kind: SketchKind) -> Option<ElementId> {
+    let mut floor = None;
+    let mut ceiling = None;
+    for e in doc.of(Category::View) {
+        if let ElementData::View {
+            kind: vk,
+            callout_of: None,
+            ..
+        } = &e.data
+        {
+            match vk {
+                crate::element::ViewKind::FloorPlan { level: l } if *l == level => {
+                    floor = floor.or(Some(e.id))
+                }
+                crate::element::ViewKind::CeilingPlan { level: l } if *l == level => {
+                    ceiling = ceiling.or(Some(e.id))
+                }
+                _ => {}
+            }
+        }
+    }
+    match kind {
+        SketchKind::Floor => floor.or(ceiling),
+        SketchKind::Ceiling => ceiling.or(floor),
+    }
+}
+
+/// The height a sketch is drawn at in 3D (mm): the level for a floor, the ceiling's height
+/// above it for a ceiling (the default height for a new one).
+pub fn work_plane_z(
+    doc: &Document,
+    level: ElementId,
+    kind: SketchKind,
+    target: Option<ElementId>,
+) -> CoreResult<f64> {
+    let z = doc.level_elevation(level)?;
+    Ok(match kind {
+        SketchKind::Floor => z,
+        SketchKind::Ceiling => {
+            let h = target
+                .and_then(|id| match doc.data(id) {
+                    Ok(ElementData::Ceiling { height, .. }) => Some(*height),
+                    _ => None,
+                })
+                .unwrap_or(crate::ops::DEFAULT_CEILING_HEIGHT);
+            z + h
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1252,6 +1305,29 @@ mod tests {
 
     fn ft(x: f64, y: f64) -> Pt {
         Pt::new(x * MM_PER_FT, y * MM_PER_FT)
+    }
+
+    #[test]
+    fn sketches_from_3d_go_through_the_levels_plan_at_its_height() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let levels = doc.levels();
+        let (l2, z2) = (levels[1].0, levels[1].2);
+        let floor_plan = plan_for(&doc, l2, SketchKind::Floor).unwrap();
+        assert!(matches!(
+            doc.data(floor_plan).unwrap(),
+            ElementData::View { kind: crate::element::ViewKind::FloorPlan { level }, .. } if *level == l2
+        ));
+        let rcp = plan_for(&doc, l2, SketchKind::Ceiling).unwrap();
+        assert!(matches!(
+            doc.data(rcp).unwrap(),
+            ElementData::View { kind: crate::element::ViewKind::CeilingPlan { level }, .. } if *level == l2
+        ));
+        assert_eq!(work_plane_z(&doc, l2, SketchKind::Floor, None).unwrap(), z2);
+        assert_eq!(
+            work_plane_z(&doc, l2, SketchKind::Ceiling, None).unwrap(),
+            z2 + 9.0 * MM_PER_FT
+        );
     }
 
     fn house() -> (Document, ElementId, Vec<ElementId>) {

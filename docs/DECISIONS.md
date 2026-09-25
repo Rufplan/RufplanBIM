@@ -546,3 +546,25 @@ Owner request (2026-09-24): "add all the typical Revit shortcuts like align AL a
   (`studio_views::snap_only`).
 - **Not yet:** importing or exporting Revit's KeyboardShortcuts.xml, filters and graphic
   overrides in V/G, and hiding annotation subcategories.
+
+## ADR-025 Sketching and modifying floors in 3D — Accepted (2026-09-25)
+Owner request (2026-09-25): "allow to draw and sketch and modify a floor from 3D view".
+- **Sketch mode from 3D:** Floor (SB) and Sketch Ceiling in a 3D view enter the same sketch
+  mode as in plans (ADR-021), on the level chosen in the options bar. `sketch_begin` takes an
+  optional `level`; outside a plan the sketch goes through that level's plan
+  (`sketch::plan_for`: its floor plan for a floor, its ceiling plan for a ceiling) for
+  snapping and Pick Lines, so the model and commands are unchanged.
+- **Work plane:** the sketch is drawn at `sketch::work_plane_z`: the level for a floor, the
+  ceiling's height above the level for a ceiling (9'-0" for a new one). Sketch lines are
+  magenta over the model, selected lines cyan, invalid ones red.
+- **Tools in 3D:** Line, Rectangle, polygons, circle and arcs click on the work plane with
+  snaps and a live preview. Pick Walls and Pick Lines take the wall face under the cursor
+  (Tab picks the chain). Modify selects lines (Shift adds) and drags their ends. Trim/Extend
+  and Fillet Arc work, as do Delete, Flip, undo and Finish/Cancel on the ribbon. Esc ends a
+  chain, then returns to Modify. Typed lengths stay a plan feature.
+- **Modifying in 3D:** Edit Boundary (ribbon, or double-click a floor or ceiling) opens its
+  sketch in 3D, and hides the element while it's being edited. Move (MV) and Copy (CO) take
+  two points on the plane through the first one (on an element or the work plane), snapping
+  through that level's plan. Properties edits (type, offsets, thickness) already applied.
+- Also fixed: after a model change, the 3D view keeps Temporary Hide/Isolate and the visual
+  style, and hidden meshes can no longer be picked.

@@ -149,7 +149,10 @@ export function installFakeBackend(): FakeBackend {
               ...fake.state,
               sketch: {
                 kind: a.kind as "Floor" | "Ceiling",
-                view: a.view as string,
+                // From 3D, the sketch goes through the level's plan (ADR-025).
+                view: a.view === ids.v3d ? ids.plan1 : (a.view as string),
+                level: (a.level as string | null) ?? ids.l1,
+                elevation: 0,
                 target: (a.target as string | null) ?? null,
                 typeId: (a.typeId as string | null) ?? ids.ft,
                 curves: [],

@@ -9,19 +9,17 @@ import { activeViewInfo, useAppStore } from "./store";
 export async function startSketch(kind: "Floor" | "Ceiling") {
   const s = useAppStore.getState();
   const v = activeViewInfo(s);
-  // In 3D, floors and ceilings are placed by picking (Pick Walls, Auto Room).
-  if (v?.viewType === "ThreeD") {
-    s.setTool(kind === "Floor" ? "floorAuto" : "ceilingAuto");
+  // In 3D, the sketch is on the work plane of the options bar's level (ADR-025).
+  const in3d = v?.viewType === "ThreeD";
+  if (!v || (!in3d && v.viewType !== "Plan" && v.viewType !== "CeilingPlan")) {
+    s.setError("Open a floor or ceiling plan, or a 3D view, to sketch a boundary.");
     return;
   }
-  if (!v || (v.viewType !== "Plan" && v.viewType !== "CeilingPlan")) {
-    s.setError("Open a floor or ceiling plan to sketch a boundary.");
-    return;
-  }
+  const level = in3d ? (s.level3d ?? s.app?.levels[0]?.id ?? null) : null;
   const type = kind === "Floor" ? s.toolTypes.floor : s.toolTypes.ceiling;
   // Revit starts floors with Pick Walls and ceilings with Line.
   s.setSketchUi({ mode: kind === "Floor" ? "PickWalls" : "Line", sel: [], tab: false });
-  await apply(() => ipc.sketchBegin(v.id, kind, null, type));
+  await apply(() => ipc.sketchBegin(v.id, kind, null, type, level));
 }
 
 /** Edit Boundary of a floor or ceiling (also on double-click). */

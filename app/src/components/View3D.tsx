@@ -3,8 +3,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { SectionBox } from "../bindings/SectionBox";
 import { apply } from "../fileActions";
-import { errorMessage, ipc, type Mesh, type ViewInfo } from "../ipc";
+import { errorMessage, ipc, type Mesh, type Pt, type ViewInfo } from "../ipc";
+import { drawOptions, editBoundary, filletRadius } from "../sketch";
 import { useAppStore } from "../store";
+import { samePt, sketchPrompt } from "../tools";
 
 const COLORS = {
   exteriorWall: 0xe9e7e2,
@@ -189,9 +191,17 @@ function planOf(level: string | null | undefined): string | null {
   );
 }
 
-/** The status-bar prompt for a tool in 3D. */
-export function prompt3d(tool: string): string {
+/** The status-bar prompt for a tool in 3D (`n`: points placed so far). */
+export function prompt3d(tool: string, n = 0): string {
   switch (tool) {
+    case "sketch":
+      // Typed lengths are for plan views.
+      return `${sketchPrompt(useAppStore.getState().sketchUi.mode, n).replace(", or type a length and press Enter", "")} Drawn on the level's work plane.`;
+    case "move":
+    case "copy":
+      return n === 0
+        ? `Click the start point to ${tool} from (on an element or the work plane).`
+        : `Click the end point to ${tool} to.`;
     case "door":
     case "window":
       return `Hover over a wall and click to place the ${tool}; the face you point at sets which way it faces.`;
@@ -297,7 +307,7 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
     const meshHit = (e: PointerEvent) => {
       const hit = rayAt(e).intersectObjects(
-        group.children.filter((c) => c instanceof THREE.Mesh),
+        group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
         false,
       )[0];
       if (!hit) return null;
@@ -344,6 +354,281 @@ export function View3D({ view }: { view: ViewInfo }) {
       addGhostLine([q.clone().setX(q.x - r), q.clone().setX(q.x + r)]);
       addGhostLine([q.clone().setY(q.y - r), q.clone().setY(q.y + r)]);
     };
+    // ---- Boundary sketches in 3D (ADR-025): drawn on the sketch's work plane ----
+    const sketchGroup = new THREE.Group();
+    scene.add(sketchGroup);
+    let skPts: Pt[] = [];
+    let skFirst: { i: number; at: Pt } | null = null;
+    let skPreview: Pt[][] = [];
+    let skCursor: THREE.Vector3 | null = null;
+    let vertexDrag: { from: Pt; to: Pt | null } | null = null;
+    const skLine = (pts: Pt[], z: number, color: number, opacity = 1) => {
+      const geo = new THREE.BufferGeometry().setFromPoints(
+        pts.map((q) => new THREE.Vector3(q.x, q.y, z)),
+      );
+      const line = new THREE.Line(
+        geo,
+        new THREE.LineBasicMaterial({
+          color,
+          depthTest: false,
+          transparent: opacity < 1,
+          opacity,
+        }),
+      );
+      line.renderOrder = 10;
+      sketchGroup.add(line);
+    };
+    /** Ends of the selected boundary lines (their grips). */
+    const sketchGrips = (): Pt[] => {
+      const s = useAppStore.getState();
+      const sk = s.app?.sketch;
+      if (!sk || s.sketchUi.mode !== "Modify") return [];
+      const out: Pt[] = [];
+      for (const i of s.sketchUi.sel) {
+        const c = sk.curves[i];
+        if (c?.isLine) out.push(c.pts[0]!, c.pts[c.pts.length - 1]!);
+      }
+      return out;
+    };
+    const drawSketch3d = () => {
+      for (const c of [...sketchGroup.children]) {
+        sketchGroup.remove(c);
+        if (c instanceof THREE.Mesh || c instanceof THREE.Line) {
+          c.geometry.dispose();
+          (c.material as THREE.Material).dispose();
+        }
+      }
+      const s = useAppStore.getState();
+      const sk = s.app?.sketch;
+      if (!sk) return;
+      const z = sk.elevation + 5;
+      const sel = new Set(s.sketchUi.sel);
+      const bad = new Set(sk.bad);
+      const vd = vertexDrag;
+      sk.curves.forEach((c, i) => {
+        const pts = vd?.to
+          ? c.pts.map((q) => (Math.hypot(q.x - vd.from.x, q.y - vd.from.y) < 1 ? vd.to! : q))
+          : c.pts;
+        skLine(pts, z, bad.has(i) ? 0xe0261d : sel.has(i) ? 0x3ecff7 : 0xc832b4);
+      });
+      for (const pl of skPreview) skLine(pl, z, 0x3ecff7, 0.85);
+      if (skCursor) {
+        const r = Math.max(60, camera.position.distanceTo(skCursor) * 0.006);
+        skLine(
+          [
+            { x: skCursor.x - r, y: skCursor.y },
+            { x: skCursor.x + r, y: skCursor.y },
+          ],
+          z,
+          0x3ecff7,
+        );
+        skLine(
+          [
+            { x: skCursor.x, y: skCursor.y - r },
+            { x: skCursor.x, y: skCursor.y + r },
+          ],
+          z,
+          0x3ecff7,
+        );
+        if (skPts.length) skLine([skPts[skPts.length - 1]!, skCursor], z, 0x3ecff7, 0.5);
+      }
+      for (const g of sketchGrips()) {
+        const at = new THREE.Vector3(g.x, g.y, z);
+        const grip = new THREE.Mesh(
+          new THREE.SphereGeometry(Math.max(40, camera.position.distanceTo(at) * 0.005), 12, 8),
+          new THREE.MeshBasicMaterial({ color: 0x3ecff7, depthTest: false }),
+        );
+        grip.position.copy(at);
+        grip.renderOrder = 11;
+        sketchGroup.add(grip);
+      }
+    };
+    /** Where a ray meets the sketch's work plane. */
+    const sketchPlaneHit = (e: PointerEvent) => {
+      const sk = useAppStore.getState().app?.sketch;
+      if (!sk) return null;
+      const q = new THREE.Vector3();
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -sk.elevation);
+      return rayAt(e).ray.intersectPlane(plane, q) ? q : null;
+    };
+    /** Pick Walls / Pick Lines: the wall face under the cursor (nudged off it, so the side is
+     * clear), else the work plane. */
+    const pickCursor = (e: PointerEvent) => {
+      const h = rayAt(e).intersectObjects(
+        group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+        false,
+      )[0];
+      if (h && h.object.userData.category === "Wall" && h.face) {
+        const n = h.face.normal;
+        return { at: { x: h.point.x + n.x * 5, y: h.point.y + n.y * 5 }, q: h.point };
+      }
+      const q = sketchPlaneHit(e);
+      return q ? { at: { x: q.x, y: q.y }, q } : null;
+    };
+    /** The selected line end under the cursor (within 8 px), to drag. */
+    const gripAt3d = (e: PointerEvent): Pt | null => {
+      const sk = useAppStore.getState().app?.sketch;
+      if (!sk) return null;
+      const r = renderer.domElement.getBoundingClientRect();
+      for (const g of sketchGrips()) {
+        const v = new THREE.Vector3(g.x, g.y, sk.elevation).project(camera);
+        const sx = ((v.x + 1) / 2) * r.width + r.left;
+        const sy = ((1 - v.y) / 2) * r.height + r.top;
+        if (Math.hypot(sx - e.clientX, sy - e.clientY) <= 8) return g;
+      }
+      return null;
+    };
+    const sketchHover = async (e: PointerEvent) => {
+      const s = useAppStore.getState();
+      const sk = s.app?.sketch;
+      if (!sk) return;
+      const ui = s.sketchUi;
+      const m = ui.mode;
+      if (vertexDrag) {
+        const q = sketchPlaneHit(e);
+        if (q) vertexDrag.to = (await ipc.snap(sk.view, { x: q.x, y: q.y }, null, snapTol(q))).pt;
+        drawSketch3d();
+        return;
+      }
+      skCursor = null;
+      skPreview = [];
+      if (m === "PickWalls" || m === "PickLines") {
+        const c = pickCursor(e);
+        if (c)
+          skPreview = await ipc.sketchPreview(
+            m,
+            [],
+            c.at,
+            await drawOptions(),
+            snapTol(c.q),
+            ui.tab,
+            ui.core,
+          );
+      } else if (m !== "Modify" && m !== "Trim" && m !== "FilletArc") {
+        const q = sketchPlaneHit(e);
+        if (q) {
+          const from = skPts[skPts.length - 1] ?? null;
+          const sn = await ipc.snap(sk.view, { x: q.x, y: q.y }, from, snapTol(q));
+          skCursor = new THREE.Vector3(sn.pt.x, sn.pt.y, sk.elevation);
+          s.setCursor(sn.label ?? "");
+          if (skPts.length)
+            skPreview = await ipc.sketchPreview(
+              m,
+              skPts,
+              sn.pt,
+              await drawOptions(),
+              snapTol(q),
+              ui.tab,
+              ui.core,
+            );
+        }
+      }
+      drawSketch3d();
+    };
+    const sketchClick3d = async (e: PointerEvent) => {
+      const s = useAppStore.getState();
+      const sk = s.app?.sketch;
+      if (!sk) return;
+      const ui = s.sketchUi;
+      const m = ui.mode;
+      const offset = async () => (await drawOptions()).offset;
+      if (m === "PickWalls" || m === "PickLines") {
+        const c = pickCursor(e);
+        if (!c) return;
+        const tol = snapTol(c.q);
+        if (m === "PickWalls") {
+          await apply(async () => ipc.sketchPickWalls(c.at, tol, ui.tab, ui.core, await offset()));
+          s.setSketchUi({ tab: false });
+        } else {
+          await apply(async () => ipc.sketchPickLine(c.at, tol, await offset(), ui.lock));
+        }
+        return;
+      }
+      const q = sketchPlaneHit(e);
+      if (!q) return;
+      const raw = { x: q.x, y: q.y };
+      const tol = snapTol(q);
+      if (m === "Modify") {
+        const i = await ipc.sketchHit(raw, tol);
+        const shift = e.shiftKey;
+        if (i === null) s.setSketchUi({ sel: shift ? ui.sel : [] });
+        else if (shift)
+          s.setSketchUi({
+            sel: ui.sel.includes(i) ? ui.sel.filter((x) => x !== i) : [...ui.sel, i],
+          });
+        else s.setSketchUi({ sel: [i] });
+      } else if (m === "Trim" || m === "FilletArc") {
+        const i = await ipc.sketchHit(raw, tol);
+        if (i === null) s.setError("Click a boundary line.");
+        else if (!skFirst) skFirst = { i, at: raw };
+        else {
+          const a = skFirst;
+          skFirst = null;
+          if (m === "Trim") await apply(() => ipc.sketchTrim(a.i, a.at, i, raw));
+          else {
+            const r = await filletRadius();
+            await apply(() => ipc.sketchFillet(a.i, i, r));
+          }
+        }
+      } else {
+        const from = skPts[skPts.length - 1] ?? null;
+        const pt = (await ipc.snap(sk.view, raw, from, tol)).pt;
+        if (from && samePt(from, pt)) return;
+        const need = m === "StartEndRadiusArc" || m === "CenterEndsArc" ? 3 : 2;
+        const all = [...skPts, pt];
+        if (all.length < need) skPts = all;
+        else {
+          const options = await drawOptions();
+          const ok = await apply(() => ipc.sketchDraw(m as never, all, options));
+          // Chained lines continue from the end of the last one.
+          skPts = ok && m === "Line" && ui.chain ? [pt] : ok ? [] : skPts;
+          skPreview = [];
+        }
+      }
+      s.setPrompt(prompt3d("sketch", skFirst ? 1 : skPts.length));
+      drawSketch3d();
+    };
+    const cancelSketch3d = () => {
+      const s = useAppStore.getState();
+      // Esc ends the current chain, then returns to Modify; it never leaves sketch mode.
+      if (skPts.length || skFirst) {
+        skPts = [];
+        skFirst = null;
+      } else if (s.sketchUi.mode !== "Modify") {
+        s.setSketchUi({ mode: "Modify" });
+      } else {
+        s.setSketchUi({ sel: [] });
+      }
+      skPreview = [];
+      skCursor = null;
+      s.setPrompt(prompt3d("sketch"));
+      drawSketch3d();
+    };
+    const unsubSketch = useAppStore.subscribe((s, prev) => {
+      if (s.sketchUi.mode !== prev.sketchUi.mode) {
+        skPts = [];
+        skFirst = null;
+        skPreview = [];
+        if (s.tool === "sketch") s.setPrompt(prompt3d("sketch"));
+      }
+      if (s.app?.sketch !== prev.app?.sketch || s.sketchUi !== prev.sketchUi) drawSketch3d();
+    });
+    drawSketch3d();
+
+    // ---- Move and Copy in 3D (ADR-025): two points on a horizontal plane ----
+    let moveFrom: { q: THREE.Vector3; plan: string | null } | null = null;
+    const movePoint = async (e: PointerEvent) => {
+      if (!moveFrom) return null;
+      const q = new THREE.Vector3();
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -moveFrom.q.z);
+      if (!rayAt(e).ray.intersectPlane(plane, q)) return null;
+      const from = { x: moveFrom.q.x, y: moveFrom.q.y };
+      const sn = moveFrom.plan
+        ? await ipc.snap(moveFrom.plan, { x: q.x, y: q.y }, from, snapTol(q))
+        : null;
+      return new THREE.Vector3(sn?.pt.x ?? q.x, sn?.pt.y ?? q.y, moveFrom.q.z);
+    };
+
     let hoverBusy = false;
     let hoverNext: PointerEvent | null = null;
     const hover3d = async (e: PointerEvent) => {
@@ -372,6 +657,14 @@ export function View3D({ view }: { view: ViewInfo }) {
         if (tool === "wall" && wallFrom)
           addGhostLine([new THREE.Vector3(wallFrom.x, wallFrom.y, h.z), q]);
         s.setCursor(sn?.label ?? "");
+      } else if (tool === "sketch") {
+        await sketchHover(e);
+      } else if ((tool === "move" || tool === "copy") && moveFrom) {
+        const q = await movePoint(e);
+        clearGhost();
+        if (!q || !moveFrom) return;
+        addCursor(q);
+        addGhostLine([moveFrom.q, q]);
       } else {
         clearGhost();
       }
@@ -393,6 +686,40 @@ export function View3D({ view }: { view: ViewInfo }) {
     const click3d = async (e: PointerEvent) => {
       const s = useAppStore.getState();
       const tool = s.tool;
+      if (tool === "sketch") {
+        await sketchClick3d(e);
+        return;
+      }
+      if (tool === "move" || tool === "copy") {
+        if (s.selection.length === 0) {
+          s.setError(
+            `Select what to ${tool} first, then choose ${tool === "move" ? "Move" : "Copy"}.`,
+          );
+          return;
+        }
+        if (!moveFrom) {
+          const h = meshHit(e);
+          const w = h ? null : planeHit(e);
+          const q = h?.point ?? w?.point;
+          if (!q) return;
+          moveFrom = { q: q.clone(), plan: planOf(h?.level ?? w?.level) };
+          s.setPrompt(prompt3d(tool, 1));
+          return;
+        }
+        const q = await movePoint(e);
+        if (!q) return;
+        const delta = { x: q.x - moveFrom.q.x, y: q.y - moveFrom.q.y };
+        if (Math.hypot(delta.x, delta.y) < 0.5) return;
+        const ok =
+          tool === "move"
+            ? await apply(() => ipc.moveElements(s.selection, delta))
+            : await apply(() => ipc.copyElements(s.selection, delta, 1));
+        clearGhost();
+        if (tool === "copy" && s.options.copyMultiple) return;
+        moveFrom = null;
+        if (ok) s.setTool("select");
+        return;
+      }
       if (tool === "door" || tool === "window") {
         const h = meshHit(e);
         const typeId = tool === "door" ? s.toolTypes.door : s.toolTypes.window;
@@ -444,7 +771,12 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
     const onCancel = () => {
       const s = useAppStore.getState();
+      if (s.tool === "sketch") {
+        cancelSketch3d();
+        return;
+      }
       if (wallFrom) wallFrom = null;
+      else if (moveFrom) moveFrom = null;
       else if (s.tool !== "select") s.setTool("select");
       clearGhost();
     };
@@ -452,6 +784,11 @@ export function View3D({ view }: { view: ViewInfo }) {
     const unsubTool = useAppStore.subscribe((s, prev) => {
       if (s.tool !== prev.tool) {
         wallFrom = null;
+        moveFrom = null;
+        skPts = [];
+        skFirst = null;
+        skPreview = [];
+        skCursor = null;
         clearGhost();
         s.setPrompt(prompt3d(s.tool));
       }
@@ -462,6 +799,16 @@ export function View3D({ view }: { view: ViewInfo }) {
     let down: [number, number] | null = null;
     const onDown = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
+      // Dragging a selected boundary line's end (sketch Modify).
+      if (e.button === 0 && useAppStore.getState().tool === "sketch") {
+        const g = gripAt3d(e);
+        if (g) {
+          vertexDrag = { from: g, to: null };
+          controls.enabled = false;
+          renderer.domElement.setPointerCapture(e.pointerId);
+          return;
+        }
+      }
       if (e.button !== 0 || !boxRef.current) return;
       const hit = rayAt(e).intersectObjects(
         boxGroup.children.filter((c) => c instanceof THREE.Mesh),
@@ -498,6 +845,15 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
     };
     const onUp = (e: PointerEvent) => {
+      if (vertexDrag) {
+        const vd = vertexDrag;
+        vertexDrag = null;
+        controls.enabled = true;
+        if (vd.to && !samePt(vd.from, vd.to))
+          void apply(() => ipc.sketchMoveVertex(vd.from, vd.to!));
+        drawSketch3d();
+        return;
+      }
       if (drag) {
         drag = null;
         controls.enabled = true;
@@ -517,11 +873,22 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
       // Click (without dragging) selects the element under the cursor.
       const hit = rayAt(e).intersectObjects(
-        group.children.filter((c) => c instanceof THREE.Mesh),
+        group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
         false,
       )[0];
       useAppStore.getState().select(hit ? [hit.object.userData.el as string] : []);
     };
+    // Double-click a floor or ceiling: Edit Boundary, as in plans.
+    const onDouble = (e: MouseEvent) => {
+      if (useAppStore.getState().tool !== "select") return;
+      const h = rayAt(e as PointerEvent).intersectObjects(
+        group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+        false,
+      )[0];
+      const u = h?.object.userData as { el: string; category: string } | undefined;
+      if (u && (u.category === "Floor" || u.category === "Ceiling")) void editBoundary(u.el);
+    };
+    renderer.domElement.addEventListener("dblclick", onDouble);
     renderer.domElement.addEventListener("pointerdown", onDown);
     renderer.domElement.addEventListener("pointermove", onMove);
     renderer.domElement.addEventListener("pointerup", onUp);
@@ -529,7 +896,9 @@ export function View3D({ view }: { view: ViewInfo }) {
 
     return () => {
       window.removeEventListener("tool-cancel", onCancel);
+      renderer.domElement.removeEventListener("dblclick", onDouble);
       unsubTool();
+      unsubSketch();
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
@@ -594,7 +963,9 @@ export function View3D({ view }: { view: ViewInfo }) {
           t.gridGroup.add(groundGrid(c, half, z0 - 1));
         }
         t.gridGroup.visible = useAppStore.getState().grid3d;
-        applySelection(t.group, useAppStore.getState().selection);
+        const st = useAppStore.getState();
+        applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
+        applySelection(t.group, st.selection);
       },
       (e) => useAppStore.getState().setError(errorMessage(e)),
     );
@@ -606,9 +977,10 @@ export function View3D({ view }: { view: ViewInfo }) {
   // Temporary Hide/Isolate and the visual style (ADR-024), applied to the meshes shown.
   const temp = useAppStore((s) => s.tempHide[view.id] ?? null);
   const visualStyle = useAppStore((s) => s.visualStyle);
+  const sketchTarget = useAppStore((s) => s.app?.sketch?.target ?? null);
   useEffect(() => {
     if (three.current) applyDisplay(three.current.group, temp, visualStyle);
-  }, [temp, visualStyle, revision]);
+  }, [temp, visualStyle, revision, sketchTarget]);
 
   useEffect(() => {
     if (three.current) applySelection(three.current.group, selection);
@@ -641,13 +1013,15 @@ function applyDisplay(
   temp: { isolate: boolean; ids: string[]; categories: string[] } | null,
   visualStyle: string,
 ) {
+  // The floor or ceiling whose boundary is being edited is hidden meanwhile.
+  const editing = useAppStore.getState().app?.sketch?.target ?? null;
   let lastMesh: THREE.Mesh | null = null;
   for (const child of group.children) {
     if (child instanceof THREE.Mesh) {
       lastMesh = child;
       const u = child.userData as { el: string; category: string; base: number };
       const hit = temp ? temp.ids.includes(u.el) || temp.categories.includes(u.category) : false;
-      child.visible = !temp || (temp.isolate ? hit : !hit);
+      child.visible = (!temp || (temp.isolate ? hit : !hit)) && u.el !== editing;
       const mat = child.material as THREE.MeshLambertMaterial;
       mat.wireframe = visualStyle === "wireframe";
       mat.color.setHex(visualStyle === "hiddenLine" ? 0xffffff : u.base);

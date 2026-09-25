@@ -115,7 +115,8 @@ Read these before writing code:
 - Revit keyboard shortcuts (ADR-024): the two-letter defaults (AL, TR, MV, CO, PN, HH, VV,
   ZF, SE…), a Keyboard Shortcuts dialog (KS) with overrides saved per computer, pinning,
   Temporary Hide/Isolate, Hide in View, Visibility/Graphics, Thin Lines and 3D styles.
+- Sketching in 3D (ADR-025): floor/ceiling sketch mode, Edit Boundary, Move and Copy in 3D.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-24
+- Last updated: 2026-09-25

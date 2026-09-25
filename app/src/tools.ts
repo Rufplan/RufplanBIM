@@ -79,6 +79,10 @@ export const TOOLS_3D: Tool[] = [
   "roof",
   "column",
   "room",
+  // Boundary sketches on the level's work plane, and moving or copying the selection (ADR-025).
+  "sketch",
+  "move",
+  "copy",
 ];
 
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
