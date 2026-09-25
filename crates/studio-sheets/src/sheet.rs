@@ -107,11 +107,16 @@ pub fn viewport_items(
     let s = f64::from(*scale);
     let [x0, y0, x1, y1] = dl.bounds;
     let c = Pt::new((x0 + x1) / 2.0, (y0 + y1) / 2.0);
-    // The crop boundary (drawn with the view as its element) never prints.
+    // The crop boundary (drawn with the view as its element) and cameras never print.
     let drawn: Vec<Item> = dl
         .items
         .into_iter()
-        .filter(|it| it.el != Some(view))
+        .filter(|it| {
+            it.el != Some(view)
+                && !it
+                    .el
+                    .is_some_and(|e| studio_core::camera::camera_of(doc, e).is_some())
+        })
         .collect();
     let items = transform(
         drawn,

@@ -589,3 +589,40 @@ topo and map overlay to 2-4 zoom out times from the lot".
   the lot's longer side centered on it, plus Beyond the lot. A grid over 40,000 points doubles
   its spacing until it fits (`site::topo_grid`). The overlay covers the same area.
 - **Owner setup:** the Google key needs the Maps Static API enabled (it already was).
+
+## ADR-027 Rendering tab: cameras and path-traced renders — Accepted (2026-09-25)
+Owner request (2026-09-25): "another tab after architecture called rendering, with camera
+tools similar to Revit, and a separate button to render a view from that angle".
+Owner decision (2026-09-25): photoreal path tracing with **three-gpu-pathtracer** (MIT, built
+on our three.js; plus three-mesh-bvh), over an enhanced real-time render with no new
+dependency.
+- **Camera (Revit's tool):** in a floor plan, click the eye, then the target. The options bar
+  has Perspective and Offset (eye height, 5'-6" by default). It makes a perspective 3D view
+  named "3D View 1", "3D View 2"… and opens it.
+- **Model:** views gain `camera: Option<ViewCamera>` (`#[serde(default)]`). A camera stores
+  its level, the eye and target in plan, and their heights above the level (so it moves with
+  the level), plus a vertical field of view.
+  - Properties: Eye Elevation, Target Elevation, Field of View, Reference Level.
+  - Orbiting or zooming a camera view saves its pose once navigation settles (undoable, "Move
+    camera"). The default {3D} view keeps its own orbit as before.
+- **In plans:** cameras show on floor plans of their level, as Revit's camera glyph with its
+  view cone out to the target. Clicking one selects its view. Grips drag the eye and target.
+  Cameras never print on sheets.
+- **Render (RR):** on the Rendering tab, for the active 3D or camera view.
+  - Settings: output size (720p to 4K), quality (32 to 2048 samples), sun date and time,
+    background (sky or white), exposure.
+  - The image sharpens progressively; Stop keeps it, and Save Image writes a PNG. The bytes go
+    to Rust as the raw request body.
+  - Materials by category: transmissive glass, metallic steel and railings, matte elsewhere,
+    with each element's material color. The satellite image drapes the topography when that
+    overlay is on. Without topography, a plain ground is added.
+  - The sun is NOAA's solar position at the site's latitude and longitude (central USA
+    without a site), turned by the Angle to True North (`camera::sun_position`). A
+    procedural sky provides the fill light.
+  - The scene is built synchronously: the library's async build needs a web worker, which our
+    content security policy doesn't allow. The path tracer is loaded only when Render is
+    first used.
+- **Verified:** a headless software-WebGL render of a test house showed the sky, sun shadows
+  and glass. Final quality depends on the GPU.
+- **Not yet:** saving renders into the project (for sheets), artificial lights, material
+  textures and bump maps, entourage (people, trees), depth of field, and camera crop regions.

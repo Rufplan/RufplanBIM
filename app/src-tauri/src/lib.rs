@@ -5,6 +5,7 @@ mod commands;
 mod detailing;
 mod editing;
 mod menu;
+mod render_cmds;
 mod session;
 mod shortcut_cmds;
 mod site_cmds;
@@ -125,6 +126,10 @@ pub fn run() -> anyhow::Result<()> {
             site_cmds::site_fetch_topo,
             site_cmds::site_imagery_frame,
             site_cmds::site_imagery,
+            render_cmds::create_camera,
+            render_cmds::set_camera_pose,
+            render_cmds::sun_position,
+            render_cmds::save_render,
             sketching::sketch_begin,
             sketching::sketch_draw,
             sketching::sketch_pick_walls,

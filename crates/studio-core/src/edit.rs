@@ -779,6 +779,12 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                 })
             })
         }
+        (
+            ElementData::View {
+                camera: Some(_), ..
+            },
+            "camera:eye" | "camera:target",
+        ) => crate::camera::drag(doc, id, key == "camera:eye", to),
         (ElementData::View { crop: Some(c), .. }, k) if k.starts_with("crop:") => {
             let mut c: CropBox = c;
             match k {

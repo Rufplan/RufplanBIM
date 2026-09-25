@@ -118,6 +118,8 @@ Read these before writing code:
 - Sketching in 3D (ADR-025): floor/ceiling sketch mode, Edit Boundary, Move and Copy in 3D.
 - Satellite overlay (ADR-026): Google Static Maps imagery on the topo in 3D and Site plans
   (never saved), topography over 2x-4x the lot.
+- Rendering tab (ADR-027): Camera tool and camera views, path-traced Render (RR) with the
+  site's sun (three-gpu-pathtracer, loaded on first use).
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.

@@ -89,7 +89,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (view === "ThreeD") return TOOLS_3D.includes(tool);
   if (tool === "level") return view === "Elevation" || view === "Section";
-  if (tool === "room" || tool === "section" || tool === "stair") return view === "Plan";
+  if (tool === "room" || tool === "section" || tool === "stair" || tool === "camera")
+    return view === "Plan";
   if (
     tool === "roof" ||
     tool === "column" ||
@@ -172,6 +173,10 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return sketchPrompt(useAppStore.getState().sketchUi.mode, n);
     case "tag":
       return "Click a door, window, room, column or beam to tag it.";
+    case "camera":
+      return n === 0
+        ? "Click in the plan to place the camera's eye point."
+        : "Click the target point: where the camera looks.";
     case "matchType":
       return n === 0
         ? "Click the element whose type to copy."

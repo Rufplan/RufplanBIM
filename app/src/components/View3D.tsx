@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import type { CameraPose } from "../bindings/CameraPose";
 import type { SectionBox } from "../bindings/SectionBox";
 import { apply } from "../fileActions";
 import { errorMessage, ipc, type Mesh, type Pt, type ViewInfo } from "../ipc";
@@ -183,6 +184,16 @@ export function groundGrid(center: THREE.Vector3, half: number, z: number): THRE
   return g;
 }
 
+/** Each open 3D view's camera as last shown, for Render (ADR-027). */
+export const liveCameras = new Map<string, CameraPose>();
+
+/** Whether two poses are the same to the millimetre and the degree. */
+export function samePose(a: CameraPose, b: CameraPose): boolean {
+  const near = (p: number[], q: number[], tol: number) =>
+    p.every((v, i) => Math.abs(v - q[i]!) < tol);
+  return near(a.eye, b.eye, 1) && near(a.target, b.target, 1) && Math.abs(a.fov - b.fov) < 0.5;
+}
+
 /** The floor plan of a level (3D tools place through it, ADR-022). */
 function planOf(level: string | null | undefined): string | null {
   const app = useAppStore.getState().app;
@@ -272,6 +283,25 @@ export function View3D({ view }: { view: ViewInfo }) {
       gridGroup,
       fitted: false,
     };
+
+    // A camera view saves its pose when navigation settles (ADR-027).
+    let saveTimer = 0;
+    const onCameraChange = () => {
+      const pose: CameraPose = {
+        eye: camera.position.toArray(),
+        target: controls.target.toArray(),
+        fov: camera.fov,
+      };
+      liveCameras.set(view.id, pose);
+      const saved = useAppStore.getState().app?.views.find((v) => v.id === view.id)?.camera;
+      if (!saved || samePose(saved, pose)) return;
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        const now = useAppStore.getState().app?.views.find((v) => v.id === view.id)?.camera;
+        if (now && !samePose(now, pose)) void apply(() => ipc.setCameraPose(view.id, pose));
+      }, 700);
+    };
+    controls.addEventListener("change", onCameraChange);
 
     let raf = 0;
     const loop = () => {
@@ -899,6 +929,8 @@ export function View3D({ view }: { view: ViewInfo }) {
 
     return () => {
       window.removeEventListener("tool-cancel", onCancel);
+      window.clearTimeout(saveTimer);
+      controls.removeEventListener("change", onCameraChange);
       renderer.domElement.removeEventListener("dblclick", onDouble);
       unsubTool();
       unsubSketch();
@@ -977,6 +1009,27 @@ export function View3D({ view }: { view: ViewInfo }) {
       live = false;
     };
   }, [revision, sectionBox, view.id]);
+
+  // A camera view looks from its camera; the default 3D view keeps its own orbit.
+  const pose = view.camera;
+  const poseKey = pose ? JSON.stringify(pose) : "";
+  useEffect(() => {
+    const t = three.current;
+    if (!t || !pose) return;
+    const now: CameraPose = {
+      eye: t.camera.position.toArray(),
+      target: t.controls.target.toArray(),
+      fov: t.camera.fov,
+    };
+    if (t.fitted && samePose(now, pose)) return;
+    t.camera.position.set(pose.eye[0]!, pose.eye[1]!, pose.eye[2]!);
+    t.controls.target.set(pose.target[0]!, pose.target[1]!, pose.target[2]!);
+    t.camera.fov = pose.fov;
+    t.camera.updateProjectionMatrix();
+    t.fitted = true;
+    liveCameras.set(view.id, pose);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poseKey, view.id]);
 
   // Temporary Hide/Isolate and the visual style (ADR-024), applied to the meshes shown.
   const temp = useAppStore((s) => s.tempHide[view.id] ?? null);

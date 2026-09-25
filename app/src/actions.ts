@@ -107,6 +107,15 @@ export async function runAction(action: Action) {
     case "keyboard":
       s.setUi({ viewDialog: "keyboard" });
       return;
+    case "render":
+      if (view?.viewType !== "ThreeD") {
+        s.setError(
+          "Open a 3D or camera view to render it (make one with Camera on the Rendering tab).",
+        );
+        return;
+      }
+      s.setUi({ viewDialog: "render" });
+      return;
     case "snapEndpoint":
       s.setSnapOverride("Endpoint");
       return;

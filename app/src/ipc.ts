@@ -8,6 +8,8 @@ import type { AppState } from "./bindings/AppState";
 import type { Category } from "./bindings/Category";
 import type { Handles } from "./bindings/Handles";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
+import type { CameraPose } from "./bindings/CameraPose";
+import type { SunPosition } from "./bindings/SunPosition";
 import type { OffsetPreview } from "./bindings/OffsetPreview";
 import type { ParamDef } from "./bindings/ParamDef";
 import type { RefLine } from "./bindings/RefLine";
@@ -282,6 +284,18 @@ export const ipc = {
   siteFetchTopo: (spacing: number, margin: number, extent = 1): S =>
     invoke("site_fetch_topo", { spacing, margin, extent }),
   siteImageryFrame: () => invoke<ImageryFrame>("site_imagery_frame"),
+  // Cameras and renderings (ADR-027).
+  createCamera: (view: ElementId, eye: Pt, target: Pt, height: number): S =>
+    invoke("create_camera", { view, eye, target, height }),
+  setCameraPose: (view: ElementId, pose: CameraPose): S =>
+    invoke("set_camera_pose", { view, pose }),
+  sunPosition: (month: number, day: number, hour: number) =>
+    invoke<SunPosition>("sun_position", { month, day, hour }),
+  /** Writes an image file; the bytes go as the raw request body. */
+  saveRender: (path: string, bytes: Uint8Array) =>
+    invoke<void>("save_render", bytes, { headers: { path: encodeURIComponent(path) } }),
+  saveImageDialog: (name: string) =>
+    save({ defaultPath: name, filters: [{ name: "PNG image", extensions: ["png"] }] }),
   /** The satellite image's bytes (JPEG). */
   siteImagery: (frame: ImageryFrame) => invoke<ArrayBuffer>("site_imagery", { frame }),
   openingPreview3d: (typeId: ElementId, host: ElementId, p: Pt) =>

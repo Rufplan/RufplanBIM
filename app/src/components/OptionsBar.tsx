@@ -190,6 +190,24 @@ export function OptionsBar() {
         />
       </label>
     );
+  else if (tool === "camera")
+    body = (
+      <>
+        <label className="ob-check">
+          <input type="checkbox" checked readOnly aria-label="Perspective" />
+          Perspective
+        </label>
+        <label className="ob-field">
+          Offset
+          <input
+            aria-label="Camera eye height"
+            title="Eye height above the plan's level"
+            value={o.cameraHeight}
+            onChange={(e) => set("cameraHeight", e.target.value)}
+          />
+        </label>
+      </>
+    );
   else if (tool === "offset")
     body = (
       <label className="ob-field">

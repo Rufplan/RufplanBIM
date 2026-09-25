@@ -86,10 +86,19 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 type Tab =
-  "Site" | "Architecture" | "Structure" | "Modify" | "Annotate" | "View" | "Manage" | "Rufplan";
+  | "Site"
+  | "Architecture"
+  | "Rendering"
+  | "Structure"
+  | "Modify"
+  | "Annotate"
+  | "View"
+  | "Manage"
+  | "Rufplan";
 const TABS: Tab[] = [
   "Site",
   "Architecture",
+  "Rendering",
   "Structure",
   "Modify",
   "Annotate",
@@ -103,7 +112,8 @@ export function Ribbon() {
   const hasSelection = useAppStore((s) => s.selection.length > 0);
   const app = useAppStore((s) => s.app);
   const openView = useAppStore((s) => s.openView);
-  const view3d = app?.views.find((v) => v.viewType === "ThreeD");
+  const view3d = app?.views.find((v) => v.viewType === "ThreeD" && !v.camera);
+  const cameraViews = app?.views.filter((v) => v.camera) ?? [];
   const activeIsSheet = useAppStore((s) => activeViewInfo(s)?.viewType === "Sheet");
   const activeIsPlan = useAppStore((s) => activeViewInfo(s)?.viewType === "Plan");
   const cloud = useAppStore((s) => s.cloud);
@@ -275,6 +285,55 @@ export function Ribbon() {
               >
                 {Icons.key}
                 <span>API Keys</span>
+              </button>
+            </Group>
+          </>
+        )}
+        {tab === "Rendering" && (
+          <>
+            <Group title="Camera">
+              <ToolButton
+                tool="camera"
+                label="Camera"
+                icon={Icons.camera}
+                keys="in a plan: eye, then target"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => view3d && openView(view3d.id)}
+                disabled={!view3d}
+                title="Default 3D view"
+              >
+                {Icons.view3d}
+                <span>3D View</span>
+              </button>
+              {cameraViews.length > 0 && (
+                <label className="rb-select" title="Open a camera view">
+                  <span>Camera Views</span>
+                  <select
+                    aria-label="Camera views"
+                    value=""
+                    onChange={(e) => e.target.value && openView(e.target.value)}
+                  >
+                    <option value="">Open…</option>
+                    {cameraViews.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </Group>
+            <Group title="Render">
+              <button
+                className="rb-btn"
+                onClick={() => void runAction("render")}
+                disabled={!activeIs3d}
+                title="Render (RR): a photoreal, path-traced image of this 3D or camera view"
+              >
+                {Icons.render}
+                <span>Render</span>
               </button>
             </Group>
           </>

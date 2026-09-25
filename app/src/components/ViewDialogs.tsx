@@ -10,6 +10,7 @@ import {
   saveOverrides,
 } from "../shortcuts";
 import { activeViewInfo, useAppStore } from "../store";
+import { RenderDialog } from "./RenderDialog";
 
 // Keyboard Shortcuts (KS) and Visibility/Graphics (VV) dialogs (ADR-024).
 
@@ -18,6 +19,7 @@ export function ViewDialogs() {
   const close = () => useAppStore.getState().setUi({ viewDialog: null });
   if (which === "keyboard") return <KeyboardDialog onClose={close} />;
   if (which === "visibility") return <VisibilityDialog onClose={close} />;
+  if (which === "render") return <RenderDialog onClose={close} />;
   return null;
 }
 

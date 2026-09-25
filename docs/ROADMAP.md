@@ -57,6 +57,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
 - Satellite overlay (ADR-026): Google imagery draped on the 3D topography and under the Site
   plan (toggle), and topography over 2x to 4x the lot.
 
+- Rendering (ADR-027): a Rendering tab with Revit's Camera tool (eye, then target, in a plan)
+  making perspective camera views, cameras shown and gripped in plans, and Render (RR): a
+  path-traced image with the sun at the site's date and time, saved as PNG.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

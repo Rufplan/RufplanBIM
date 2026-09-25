@@ -1,6 +1,7 @@
 //! Element store, parameters, types, transactions and undo/redo.
 
 pub mod build;
+pub mod camera;
 pub mod compound;
 pub mod detail;
 pub mod document;

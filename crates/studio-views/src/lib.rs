@@ -329,6 +329,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     };
     annotations(doc, &mut b, view);
     callout_markers(doc, &mut b, view);
+    camera_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
     let crop = crop.or(auto_crop);
     // Hide in View (ADR-024).
@@ -2064,6 +2065,59 @@ pub(crate) fn surface_lines(
 }
 
 /// Callout boundaries of `view`'s callouts, with a tag naming each (Revit's callout head).
+/// Cameras on this floor plan's level (ADR-027), as Revit shows them: the camera at the
+/// eye, its view cone out to the target, and the target. Drawn with the camera's view as
+/// their element, so they select it and never print.
+fn camera_markers(doc: &Document, b: &mut Builder, view: ElementId) {
+    let Ok(ElementData::View {
+        kind: ViewKind::FloorPlan { level },
+        ..
+    }) = doc.data(view)
+    else {
+        return;
+    };
+    for e in doc.of(Category::View) {
+        let ElementData::View {
+            camera: Some(cam), ..
+        } = &e.data
+        else {
+            continue;
+        };
+        if cam.level != *level {
+            continue;
+        }
+        let el = Some(e.id);
+        let (eye, l, r) = studio_core::camera::cone(cam, 16.0 / 9.0);
+        b.line(el, &[l, eye, r], false, 1, Dash::Dashed);
+        b.line(el, &[l, r], false, 1, Dash::Dashed);
+        b.line(
+            el,
+            &arc(cam.target, b.paper(1.2), 0.0, std::f64::consts::TAU),
+            true,
+            1,
+            Dash::Solid,
+        );
+        // The camera: a body behind the eye and a lens toward the target.
+        let d = cam.target.sub(cam.eye).norm();
+        let n = d.perp();
+        let (len, half) = (b.paper(4.0), b.paper(1.5));
+        let back = eye.sub(d.scale(b.paper(1.6)));
+        let body = [
+            back.add(n.scale(half)),
+            back.sub(n.scale(half)),
+            back.sub(n.scale(half)).sub(d.scale(len)),
+            back.add(n.scale(half)).sub(d.scale(len)),
+        ];
+        b.line(el, &body, true, 2, Dash::Solid);
+        let lens = [
+            eye,
+            back.add(n.scale(half * 0.7)),
+            back.sub(n.scale(half * 0.7)),
+        ];
+        b.fill(el, vec![ring(&lens)], FillKind::Ink);
+    }
+}
+
 fn callout_markers(doc: &Document, b: &mut Builder, view: ElementId) {
     for e in doc.of(Category::View) {
         let ElementData::View {
@@ -2840,6 +2894,43 @@ mod tests {
 
     fn count(dl: &DisplayList, f: impl Fn(&Prim) -> bool) -> usize {
         dl.items.iter().filter(|i| f(&i.prim)).count()
+    }
+
+    #[test]
+    fn cameras_show_in_plans_of_their_level_only() {
+        let (mut doc, l1) = building();
+        let plan_of = |doc: &Document, l: ElementId| {
+            doc.of(Category::View)
+                .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, callout_of: None, site: false, .. } if *level == l))
+                .unwrap()
+                .id
+        };
+        let cam = studio_core::camera::create_camera(
+            &mut doc,
+            l1,
+            Pt::new(-5000.0, -5000.0),
+            Pt::new(3000.0, 3000.0),
+            studio_core::camera::DEFAULT_EYE_HEIGHT,
+        )
+        .unwrap();
+        let v1 = plan_of(&doc, l1);
+        let dl = display_list(&doc, v1).unwrap();
+        let mine: Vec<_> = dl.items.iter().filter(|i| i.el == Some(cam)).collect();
+        assert!(mine.len() >= 5, "cone, far edge, target, body, lens");
+        assert_eq!(pick(&dl, Pt::new(-5000.0, -5000.0), 300.0), Some(cam));
+        let l2 = doc.levels()[1].0;
+        let dl2 = display_list(&doc, plan_of(&doc, l2)).unwrap();
+        assert!(dl2.items.iter().all(|i| i.el != Some(cam)));
+        // Its grips: the eye and the target.
+        let h = handles::handles(&doc, v1, &[cam]);
+        let keys: Vec<_> = h.grips.iter().map(|g| g.key.as_str()).collect();
+        assert_eq!(keys, ["camera:eye", "camera:target"]);
+        studio_core::edit::drag_handle(&mut doc, cam, "camera:target", Pt::new(4000.0, 0.0))
+            .unwrap();
+        assert_eq!(
+            studio_core::camera::camera_of(&doc, cam).unwrap().target,
+            Pt::new(4000.0, 0.0)
+        );
     }
 
     #[test]

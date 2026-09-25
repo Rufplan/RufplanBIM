@@ -25,6 +25,7 @@ export type Tool =
   | "tag"
   | "matchType"
   | "mirrorPick"
+  | "camera"
   | "dimension"
   | "text"
   | "section"
@@ -62,6 +63,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   tag: "Tag by Category",
   matchType: "Match Type Properties",
   mirrorPick: "Mirror - Pick Axis",
+  camera: "Camera",
   select: "Select",
   room: "Room",
   move: "Move",
@@ -108,6 +110,8 @@ export interface ToolOptions {
   wallLocation: string;
   /** Stair: shape id (straight, l-left, l-right, u-left, u-right). */
   stairShape: string;
+  /** Camera: eye height above the plan's level, as typed (Revit's Offset). */
+  cameraHeight: string;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -198,7 +202,7 @@ interface UiState {
   visualStyle: "shaded" | "hiddenLine" | "wireframe";
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
-  viewDialog: "keyboard" | "visibility" | null;
+  viewDialog: "keyboard" | "visibility" | "render" | null;
   setUi: (
     patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
   ) => void;
@@ -266,6 +270,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     offsetDistance: "2'-0\"",
     wallLocation: "Centerline",
     stairShape: "straight",
+    cameraHeight: "5' 6\"",
   },
   paramsOpen: false,
   sketchUi: {

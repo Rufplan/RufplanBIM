@@ -196,6 +196,18 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  camera: (
+    <I>
+      <rect x="3" y="8" width="12" height="9" rx="1" />
+      <path d="M15 11l6-3v9l-6-3z" />
+    </I>
+  ),
+  render: (
+    <I>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" />
+    </I>
+  ),
   pin: (
     <I>
       <path d="M9 3h6l-1 6 3 3H7l3-3z" />

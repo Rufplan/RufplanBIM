@@ -53,6 +53,7 @@ export function appState(path: string | null, dirty = false): AppState {
     hiddenCategories: [],
     hiddenCount: 0,
     site: false,
+    camera: null as AppState["views"][number]["camera"],
   });
   return {
     project: { name, path, schemaVersion: 2, appVersion: "0.0.1", dirty },
@@ -138,6 +139,28 @@ export function installFakeBackend(): FakeBackend {
           return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
         case "handles":
           return { grips: [], dims: [] };
+        case "create_camera":
+          if (fake.state) {
+            const eye = a.eye as { x: number; y: number };
+            const target = a.target as { x: number; y: number };
+            const h = a.height as number;
+            const base = fake.state.views.find((x) => x.viewType === "ThreeD")!;
+            fake.state = {
+              ...fake.state,
+              views: [
+                ...fake.state.views,
+                {
+                  ...base,
+                  id: "00000000-0000-7000-8000-0000000000c1",
+                  name: "3D View 1",
+                  camera: { eye: [eye.x, eye.y, h], target: [target.x, target.y, h], fov: 50 },
+                },
+              ],
+            };
+          }
+          return fake.state;
+        case "sun_position":
+          return { dir: [0.3, -0.5, 0.8], altitude: 53, azimuth: 211 };
         case "site_imagery_frame":
           return {
             lat: 37.7773,

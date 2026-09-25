@@ -1542,9 +1542,37 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             section_box,
             callout_of,
             mark_type,
+            camera,
             ..
         } => {
             props.push(text("name", "View Name", "Identity Data", name));
+            if let Some(c) = camera {
+                // Revit's camera parameters (ADR-027).
+                props.push(len(
+                    "eye_elevation",
+                    "Eye Elevation",
+                    "Camera",
+                    c.eye_height,
+                ));
+                props.push(len(
+                    "target_elevation",
+                    "Target Elevation",
+                    "Camera",
+                    c.target_height,
+                ));
+                props.push(text(
+                    "fov",
+                    "Field of View (°)",
+                    "Camera",
+                    &format!("{:.0}", c.fov),
+                ));
+                props.push(ro(
+                    "camera_level",
+                    "Reference Level",
+                    "Camera",
+                    doc.data(c.level).map(|d| d.name()).unwrap_or_default(),
+                ));
+            }
             if matches!(kind, ViewKind::Elevation { .. }) {
                 // The mark drawn for this building elevation in plans (ADR-022).
                 let current = mark_type.or_else(|| crate::detail::default_mark_type(doc, false));
@@ -2336,9 +2364,31 @@ pub fn set_property(
             crop,
             show_crop,
             section_box,
+            camera,
             ..
         } => match key {
             "name" => *name = non_empty(value)?,
+            "eye_elevation" | "target_elevation" | "fov" => {
+                let c = camera
+                    .as_mut()
+                    .ok_or_else(|| CoreError::Invalid("that view has no camera".into()))?;
+                match key {
+                    "eye_elevation" => c.eye_height = parse_len(value)?,
+                    "target_elevation" => c.target_height = parse_len(value)?,
+                    _ => {
+                        let v: f64 =
+                            value.trim().trim_end_matches('°').parse().map_err(|_| {
+                                CoreError::Invalid("enter an angle in degrees".into())
+                            })?;
+                        if !(10.0..=120.0).contains(&v) {
+                            return Err(CoreError::Invalid(
+                                "use a field of view from 10° to 120°".into(),
+                            ));
+                        }
+                        c.fov = v;
+                    }
+                }
+            }
             // Turning the box on needs the model's extents: see studio_regen::derived.
             "section_box" if value != "yes" => *section_box = None,
             k if k.starts_with("box_") => {

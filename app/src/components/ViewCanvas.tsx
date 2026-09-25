@@ -825,6 +825,23 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         }
         break;
       }
+      case "camera": {
+        // Revit's Camera: the eye, then the target; the new perspective view opens.
+        if (from && !samePt(from, p)) {
+          pts.current = [];
+          const before = new Set((s.app?.views ?? []).map((v) => v.id));
+          const height = (await ipc.parseLength(s.options.cameraHeight)) ?? 1676.4;
+          if (await apply(() => ipc.createCamera(view.id, from, p, height))) {
+            const made = useAppStore
+              .getState()
+              .app?.views.find((v) => v.camera && !before.has(v.id));
+            if (made) useAppStore.getState().openView(made.id);
+          }
+        } else {
+          pts.current = [p];
+        }
+        break;
+      }
       case "callout": {
         if (from && Math.abs(from.x - p.x) > 1 && Math.abs(from.y - p.y) > 1) {
           pts.current = [];

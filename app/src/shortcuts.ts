@@ -35,7 +35,8 @@ export type Action =
   | "shaded"
   | "properties"
   | "viewProperties"
-  | "keyboard";
+  | "keyboard"
+  | "render";
 
 export type Command = { tool: Tool } | { action: Action };
 
@@ -269,6 +270,9 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     keys: ["KS"],
     command: a("keyboard"),
   },
+  // Rendering (ADR-027)
+  { id: "camera", label: "Camera", group: "Rendering", keys: [], command: t("camera") },
+  { id: "render", label: "Render", group: "Rendering", keys: ["RR"], command: a("render") },
   // Snaps (for the next pick)
   {
     id: "snapEndpoint",

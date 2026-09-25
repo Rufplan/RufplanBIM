@@ -722,6 +722,9 @@ pub enum ElementData {
         hidden: Vec<ElementId>,
         #[serde(default)]
         hidden_categories: Vec<Category>,
+        /// Camera views (ADR-027): the perspective eye and target.
+        #[serde(default)]
+        camera: Option<crate::camera::ViewCamera>,
     },
     ProjectInfo {
         name: String,
@@ -1205,6 +1208,7 @@ impl ElementData {
             site: false,
             hidden: vec![],
             hidden_categories: vec![],
+            camera: None,
         }
     }
 

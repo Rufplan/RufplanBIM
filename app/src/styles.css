@@ -1238,3 +1238,74 @@ button:disabled {
   color: rgba(28, 28, 28, 0.75);
   pointer-events: none;
 }
+
+/* Rendering tab (ADR-027). */
+.rb-select {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+.rb-select select {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+.modal.render-dialog {
+  width: min(1180px, 96vw);
+  max-height: 92vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+.render-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.render-side .row {
+  display: flex;
+  gap: 8px;
+}
+.render-side .row > * {
+  flex: 1;
+}
+.render-stage {
+  position: relative;
+  background: #1c1c1c;
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.render-stage canvas {
+  max-width: 100%;
+  max-height: 78vh;
+  width: auto !important;
+  height: auto !important;
+}
+.render-stage .render-empty {
+  color: #bdbdbd;
+  font-size: 13px;
+  padding: 24px;
+  text-align: center;
+}
+.render-progress {
+  font-size: 12px;
+  color: #6b6b6b;
+  min-height: 1.4em;
+}
+.render-bar {
+  height: 3px;
+  background: var(--border);
+}
+.render-bar > div {
+  height: 100%;
+  background: var(--cyan);
+}

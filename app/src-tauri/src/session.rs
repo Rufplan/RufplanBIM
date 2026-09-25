@@ -50,6 +50,8 @@ pub struct ViewInfo {
     pub hidden_count: usize,
     /// A site plan (satellite overlay, ADR-026).
     pub site: bool,
+    /// Camera views: the camera in model space (ADR-027).
+    pub camera: Option<studio_core::camera::CameraPose>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -226,6 +228,7 @@ impl Session {
                     hidden,
                     hidden_categories,
                     site,
+                    camera,
                     ..
                 } => {
                     let (view_type, level) = match kind {
@@ -255,6 +258,7 @@ impl Session {
                         hidden_categories: hidden_categories.clone(),
                         hidden_count: hidden.len(),
                         site: *site,
+                        camera: camera.map(|c| studio_core::camera::pose(doc, &c)),
                     })
                 }
                 ElementData::Sheet { stages, .. } => Some(ViewInfo {
@@ -271,6 +275,7 @@ impl Session {
                     hidden_categories: vec![],
                     hidden_count: 0,
                     site: false,
+                    camera: None,
                 }),
                 _ => None,
             })

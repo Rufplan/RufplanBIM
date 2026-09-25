@@ -82,6 +82,10 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
         return out;
     };
     let plan = is_plan(kind);
+    let view_level = match kind {
+        ViewKind::FloorPlan { level } => Some(*level),
+        _ => None,
+    };
     let model = regenerate(doc);
     let one = ids.len() == 1;
     for id in ids {
@@ -154,6 +158,23 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                         anchor: None,
                     });
                 }
+            }
+            // A camera's eye and target, in plans of its level (ADR-027).
+            ElementData::View {
+                camera: Some(c), ..
+            } if plan && *id != view && view_level == Some(c.level) => {
+                out.grips.push(Grip {
+                    id: *id,
+                    key: "camera:eye".into(),
+                    at: c.eye,
+                    anchor: Some(c.target),
+                });
+                out.grips.push(Grip {
+                    id: *id,
+                    key: "camera:target".into(),
+                    at: c.target,
+                    anchor: Some(c.eye),
+                });
             }
             ElementData::View { crop: Some(c), .. } if *id == view => {
                 let mid = |a: Pt, b: Pt| a.lerp(b, 0.5);
