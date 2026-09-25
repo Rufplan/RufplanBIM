@@ -1,13 +1,13 @@
 //! Snapping for drawing tools, computed in Rust so every tool snaps the same way.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use studio_core::units::{format_ft_in, MM_PER_IN};
 use studio_core::{Document, ElementData, ElementId, ViewKind};
 use studio_geom::{line_intersection, project_to_segment, Pt};
 use studio_regen::regenerate;
 use ts_rs::TS;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, TS)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum SnapKind {
     Endpoint,
@@ -30,6 +30,26 @@ pub struct SnapResult {
 
 /// Snaps `p` in `view`. `from` is the tool's previous point, `tol` the snap radius in mm.
 pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) -> SnapResult {
+    snap_only(doc, view, p, from, tol, None)
+}
+
+/// Like [`snap`], with Revit's one-pick snap overrides (ADR-024): only snaps of kind
+/// `only` count, and `Some(SnapKind::None)` turns snapping off (SO).
+pub fn snap_only(
+    doc: &Document,
+    view: ElementId,
+    p: Pt,
+    from: Option<Pt>,
+    tol: f64,
+    only: Option<SnapKind>,
+) -> SnapResult {
+    if only == Some(SnapKind::None) {
+        return SnapResult {
+            pt: p,
+            kind: SnapKind::None,
+            label: None,
+        };
+    }
     let is_plan = matches!(
         doc.data(view),
         Ok(ElementData::View {
@@ -113,6 +133,7 @@ pub fn snap(doc: &Document, view: ElementId, p: Pt, from: Option<Pt>, tol: f64) 
 
     let best = cands
         .into_iter()
+        .filter(|(k, _)| only.is_none_or(|o| *k == o))
         .filter(|(_, q)| q.dist(p) <= tol)
         .filter(|(_, q)| from.is_none_or(|f| f.dist(*q) > 1.0))
         .min_by(|(k1, q1), (k2, q2)| k1.cmp(k2).then(q1.dist(p).total_cmp(&q2.dist(p))));
@@ -180,6 +201,37 @@ mod tests {
         let r = snap(&doc, v, Pt::new(1000.0, 50.0), None, 200.0);
         assert_eq!(r.kind, SnapKind::Nearest);
         assert!((r.pt.y).abs() < 1e-9 && (r.pt.x - 1000.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn snap_override_keeps_only_that_kind() {
+        let (doc, v) = plan_with_wall();
+        // SM: only the midpoint counts, even with the endpoint nearer.
+        let r = snap_only(
+            &doc,
+            v,
+            Pt::new(3050.0, 30.0),
+            None,
+            1200.0,
+            Some(SnapKind::Midpoint),
+        );
+        assert_eq!(r.kind, SnapKind::Midpoint);
+        assert_eq!(r.pt, Pt::new(2000.0, 0.0));
+        // SE: the nearest endpoint.
+        let r = snap_only(
+            &doc,
+            v,
+            Pt::new(2030.0, 40.0),
+            None,
+            2500.0,
+            Some(SnapKind::Endpoint),
+        );
+        assert_eq!(r.kind, SnapKind::Endpoint);
+        assert_eq!(r.pt, Pt::new(4000.0, 0.0));
+        // SO: the raw point.
+        let p = Pt::new(4010.0, 7.0);
+        let r = snap_only(&doc, v, p, None, 200.0, Some(SnapKind::None));
+        assert_eq!((r.kind, r.pt), (SnapKind::None, p));
     }
 
     #[test]

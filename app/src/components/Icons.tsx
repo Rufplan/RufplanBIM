@@ -196,6 +196,29 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  pin: (
+    <I>
+      <path d="M9 3h6l-1 6 3 3H7l3-3z" />
+      <path d="M12 12v9" />
+    </I>
+  ),
+  unpin: (
+    <I>
+      <path d="M9 3h6l-1 6 3 3H7l3-3z" />
+      <path d="M12 12v9M4 4l16 16" />
+    </I>
+  ),
+  eye: (
+    <I>
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </I>
+  ),
+  thin: (
+    <I>
+      <path d="M4 7h16M4 12h16M4 17h16" strokeWidth="0.8" />
+    </I>
+  ),
   mapPin: (
     <I>
       <path d="M12 21s-6.5-6.2-6.5-11.2a6.5 6.5 0 0113 0C18.5 14.8 12 21 12 21z" />

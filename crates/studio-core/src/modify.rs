@@ -17,6 +17,7 @@ use crate::element::{ElementData, ElementId};
 ///
 /// Validation (openings must still fit their walls) applies as for any transaction.
 pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreResult<()> {
+    crate::visibility::ensure_unpinned(doc, ids)?;
     if delta.len() < tol::LINEAR {
         return Ok(());
     }

@@ -34,7 +34,8 @@ describe("modify tools", () => {
     const pairs: [string, string][] = [
       ["CO", "copy"],
       ["RO", "rotate"],
-      ["MM", "mirror"],
+      ["MM", "mirrorPick"],
+      ["DM", "mirror"],
       ["AR", "array"],
       ["AL", "align"],
       ["TR", "trim"],

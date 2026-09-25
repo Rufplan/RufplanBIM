@@ -45,6 +45,9 @@ pub struct ViewInfo {
     pub section_box: Option<studio_core::SectionBox>,
     /// Callouts: the view they detail.
     pub callout_of: Option<ElementId>,
+    /// Hide in View: categories hidden, and how many elements are hidden one by one.
+    pub hidden_categories: Vec<Category>,
+    pub hidden_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -218,6 +221,8 @@ impl Session {
                     scale,
                     section_box,
                     callout_of,
+                    hidden,
+                    hidden_categories,
                     ..
                 } => {
                     let (view_type, level) = match kind {
@@ -244,6 +249,8 @@ impl Session {
                         stages: vec![],
                         section_box: *section_box,
                         callout_of: *callout_of,
+                        hidden_categories: hidden_categories.clone(),
+                        hidden_count: hidden.len(),
                     })
                 }
                 ElementData::Sheet { stages, .. } => Some(ViewInfo {
@@ -257,6 +264,8 @@ impl Session {
                     stages: stages.clone(),
                     section_box: None,
                     callout_of: None,
+                    hidden_categories: vec![],
+                    hidden_count: 0,
                 }),
                 _ => None,
             })

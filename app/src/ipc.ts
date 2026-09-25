@@ -1,3 +1,4 @@
+import { useAppStore } from "./store";
 // The only module that talks to Rust. Payload types are generated from Rust by ts-rs.
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -26,6 +27,7 @@ import type { PublishResult } from "./bindings/PublishResult";
 import type { RufplanLink } from "./bindings/RufplanLink";
 import type { Pt } from "./bindings/Pt";
 import type { SnapResult } from "./bindings/SnapResult";
+import type { SnapKind } from "./bindings/SnapKind";
 import type { ViewInfo } from "./bindings/ViewInfo";
 import type { DrawOptions } from "./bindings/DrawOptions";
 import type { DrawTool } from "./bindings/DrawTool";
@@ -76,11 +78,18 @@ export const ipc = {
   projectSave: (path?: string): S => invoke("project_save", { path: path ?? null }),
 
   displayList: (view: ElementId) => invoke<DisplayList | null>("view_display_list", { view }),
-  meshes: () => invoke<Mesh[]>("view_meshes"),
+  meshes: (view: ElementId | null = null) => invoke<Mesh[]>("view_meshes", { view }),
   pick: (view: ElementId, point: Pt, tol: number) =>
     invoke<ElementId | null>("pick", { view, point, tol }),
-  snap: (view: ElementId, point: Pt, from: Pt | null, tol: number) =>
-    invoke<SnapResult>("snap", { view, point, from, tol }),
+  /** Snaps a point; a pending one-pick snap override (SE, SM…) applies unless given. */
+  snap: (view: ElementId, point: Pt, from: Pt | null, tol: number, only?: SnapKind | null) =>
+    invoke<SnapResult>("snap", {
+      view,
+      point,
+      from,
+      tol,
+      only: only === undefined ? useAppStore.getState().snapOverride : only,
+    }),
 
   createWall: (view: ElementId, typeId: ElementId, start: Pt, end: Pt): S =>
     invoke("create_wall", { view, typeId, start, end }),
@@ -245,6 +254,15 @@ export const ipc = {
     interior: boolean,
     typeId: ElementId | null,
   ): S => invoke("create_elevation_marker", { view, at, interior, typeId }),
+  // Everyday commands (ADR-024).
+  setPinned: (ids: ElementId[], pinned: boolean): S => invoke("set_pinned", { ids, pinned }),
+  selectAllInstances: (id: ElementId) => invoke<ElementId[]>("select_all_instances", { id }),
+  tagElement: (view: ElementId, target: ElementId): S => invoke("tag_element", { view, target }),
+  hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
+  setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>
+    invoke("set_category_visible", { view, categories, visible }),
+  unhideAll: (view: ElementId): S => invoke("unhide_all", { view }),
+  viewCategories: (view: ElementId) => invoke<[ElementId, Category][]>("view_categories", { view }),
   // Site (ADR-023).
   siteKeys: () => invoke<SiteKeys>("site_keys"),
   siteSetKeys: (google: string | null, regrid: string | null) =>

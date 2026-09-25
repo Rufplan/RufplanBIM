@@ -89,6 +89,10 @@ export interface Highlight {
   /** Sketch mode: the model draws faded (Revit's halftone), minus the element edited. */
   faded?: boolean;
   hidden?: string | null;
+  /** Temporary Hide/Isolate: which elements to draw (ADR-024). */
+  visible?: (el: string | null) => boolean;
+  /** Thin Lines (TL): every line one pixel. */
+  thin?: boolean;
 }
 
 export function draw(
@@ -110,6 +114,7 @@ export function draw(
   for (const item of dl.items) {
     const el = item.el;
     if (hl.hidden && el === hl.hidden) continue;
+    if (hl.visible && !hl.visible(el)) continue;
     const isSel = el !== null && hl.selected.has(el);
     const isHover = !isSel && el !== null && hl.hover === el;
     const p = item.prim;
@@ -150,7 +155,7 @@ export function draw(
         if (p.closed) ctx.closePath();
         ctx.setLineDash(DASH[p.dash]);
         ctx.strokeStyle = isSel ? THEME.cyan : isHover ? THEME.hover : THEME.ink;
-        ctx.lineWidth = (PEN[p.w] ?? 1) + (isSel ? 1.2 : 0);
+        ctx.lineWidth = (hl.thin ? 1 : (PEN[p.w] ?? 1)) + (isSel ? 1.2 : 0);
         ctx.stroke();
         break;
       }
@@ -460,5 +465,41 @@ export function drawSketch(
     ctx.fillRect(sx - 4, sy - 4, 8, 8);
     ctx.strokeRect(sx - 4, sy - 4, 8, 8);
   }
+  ctx.restore();
+}
+
+/** Revit's Temporary Hide/Isolate frame: a cyan border with its label. */
+export function drawTempFrame(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.save();
+  ctx.strokeStyle = THEME.cyan;
+  ctx.lineWidth = 4;
+  ctx.setLineDash([]);
+  ctx.strokeRect(2, 2, w - 4, h - 4);
+  ctx.font = "600 11px Barlow, sans-serif";
+  const label = "TEMPORARY HIDE/ISOLATE";
+  const tw = ctx.measureText(label).width + 12;
+  ctx.fillStyle = THEME.cyan;
+  ctx.fillRect(8, 8, tw, 18);
+  ctx.fillStyle = THEME.ink;
+  ctx.fillText(label, 14, 21);
+  ctx.restore();
+}
+
+/** Zoom region rubber band. */
+export function drawZoomBox(
+  ctx: CanvasRenderingContext2D,
+  a: [number, number],
+  b: [number, number],
+) {
+  ctx.save();
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = THEME.cyan;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(
+    Math.min(a[0], b[0]),
+    Math.min(a[1], b[1]),
+    Math.abs(b[0] - a[0]),
+    Math.abs(b[1] - a[1]),
+  );
   ctx.restore();
 }

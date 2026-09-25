@@ -23,6 +23,8 @@ import {
   drawRefLine,
   drawSketch,
   drawTempDims,
+  drawTempFrame,
+  drawZoomBox,
   fit,
   tempDimBox,
   toModel,
@@ -131,6 +133,24 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const sketchFirst = useRef<{ i: number; at: Pt } | null>(null);
   const vertexDrag = useRef<{ from: Pt; to: Pt | null } | null>(null);
   const sketchMode = useAppStore((s) => s.sketchUi.mode);
+  // Temporary Hide/Isolate for this view, and each drawn element's category for it.
+  const temp = useAppStore((s) => s.tempHide[view.id] ?? null);
+  const thinLines = useAppStore((s) => s.thinLines);
+  const [viewCats, setViewCats] = useState<Map<string, string>>(new Map());
+  // Pan/zoom history (ZP) and a Zoom Region (ZR) drag in progress.
+  const camHistory = useRef<Camera[]>([]);
+  const lastPush = useRef(0);
+  const zoomRegion = useRef<{
+    armed: boolean;
+    from: [number, number] | null;
+    to: [number, number] | null;
+  }>({
+    armed: false,
+    from: null,
+    to: null,
+  });
+  // Match Type's source type.
+  const matchSource = useRef<string | null>(null);
   const frame = useRef(0);
   const redrawRef = useRef<() => void>(() => {});
 
@@ -145,12 +165,25 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const s = useAppStore.getState();
       const sk = s.app?.sketch ?? null;
+      const th = s.tempHide[view.id];
+      const visible = th
+        ? (el: string | null) => {
+            if (el === null) return true;
+            const hit = th.ids.includes(el) || th.categories.includes(viewCats.get(el) ?? "");
+            return th.isolate ? hit : !hit;
+          }
+        : undefined;
       draw(ctx, dl, cam.current, w, h, {
         selected: new Set(s.selection),
         hover: hover.current,
         faded: sk !== null,
         hidden: sk?.target ?? null,
+        visible,
+        thin: s.thinLines,
       });
+      if (th) drawTempFrame(ctx, w, h);
+      const zr = zoomRegion.current;
+      if (zr.from && zr.to) drawZoomBox(ctx, zr.from, zr.to);
       if (sk && sk.view === view.id) {
         const sel = new Set(s.sketchUi.sel);
         const grips: Pt[] = [];
@@ -234,7 +267,21 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         );
       }
     });
-  }, [dl, size, view.viewType, view.id]);
+  }, [dl, size, view.viewType, view.id, viewCats]);
+
+  // Categories of drawn elements, when hiding or isolating by category.
+  useEffect(() => {
+    let live = true;
+    if (!temp || temp.categories.length === 0) return;
+    ipc.viewCategories(view.id).then(
+      (list) => live && setViewCats(new Map(list)),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [temp, view.id, revision]);
+  useEffect(() => redrawRef.current(), [temp, thinLines]);
   useLayoutEffect(() => {
     redrawRef.current = redraw;
   });
@@ -300,6 +347,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   useEffect(redraw, [selection, redraw]);
 
   const resetRefs = useCallback(() => {
+    matchSource.current = null;
     pts.current = [];
     snapRef.current = null;
     preview.current = null;
@@ -326,6 +374,15 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const sketchState = useAppStore((s) => s.app?.sketch);
   useEffect(() => redrawRef.current(), [sketchState]);
 
+  /** Remembers the view before a zoom, for Previous Pan/Zoom (ZP). */
+  const pushCam = (force = false) => {
+    const now = Date.now();
+    if (cam.current && (force || now - lastPush.current > 800)) {
+      camHistory.current.push({ ...cam.current });
+      if (camHistory.current.length > 30) camHistory.current.shift();
+    }
+    lastPush.current = now;
+  };
   const setCam = (c: Camera) => {
     cam.current = c;
     cameras.set(view.id, c);
@@ -576,7 +633,24 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       cancelSketch();
     };
     const onFinish = () => void finishSketch();
-    const onFit = () => dl && size.w && setCam(fit(dl.bounds, size.w, size.h));
+    const onFit = () => {
+      if (!dl || !size.w) return;
+      pushCam(true);
+      setCam(fit(dl.bounds, size.w, size.h));
+    };
+    const onZoomOut = () => {
+      if (!cam.current) return;
+      pushCam(true);
+      setCam({ ...cam.current, zoom: cam.current.zoom / 2 });
+    };
+    const onZoomPrev = () => {
+      const prev = camHistory.current.pop();
+      if (prev) setCam(prev);
+    };
+    const onZoomRegion = () => {
+      zoomRegion.current = { armed: true, from: null, to: null };
+      useAppStore.getState().setPrompt("Drag a rectangle to zoom into.");
+    };
     const onTyped = (e: Event) => {
       const key = (e as CustomEvent<string>).detail;
       const s = useAppStore.getState();
@@ -597,11 +671,17 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     window.addEventListener("tool-cancel", onCancel);
     window.addEventListener("tool-finish", onFinish);
     window.addEventListener("view-fit", onFit);
+    window.addEventListener("view-zoom-out", onZoomOut);
+    window.addEventListener("view-zoom-previous", onZoomPrev);
+    window.addEventListener("view-zoom-region", onZoomRegion);
     window.addEventListener("typed-value", onTyped);
     return () => {
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("tool-finish", onFinish);
       window.removeEventListener("view-fit", onFit);
+      window.removeEventListener("view-zoom-out", onZoomOut);
+      window.removeEventListener("view-zoom-previous", onZoomPrev);
+      window.removeEventListener("view-zoom-region", onZoomRegion);
       window.removeEventListener("typed-value", onTyped);
     };
   });
@@ -838,6 +918,43 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       await apply(() => ipc.createRoof(view.id, s.toolTypes.roof));
       return;
     }
+    if (s.tool === "tag") {
+      const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
+      if (!id) s.setError("Click a door, window, room, column or beam.");
+      else await apply(() => ipc.tagElement(view.id, id));
+      return;
+    }
+    if (s.tool === "matchType") {
+      const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
+      if (!id) return;
+      const sheet = await ipc.properties(id);
+      if (!matchSource.current) {
+        if (!sheet.typeId) {
+          s.setError("That element has no type to match.");
+          return;
+        }
+        matchSource.current = sheet.typeId;
+        s.setPrompt(promptFor("matchType", 1, view.viewType));
+      } else {
+        const src = matchSource.current;
+        await apply(() => ipc.setProperty(id, "type", src));
+      }
+      return;
+    }
+    if (s.tool === "mirrorPick") {
+      if (s.selection.length === 0) {
+        s.setError("Select what to mirror first, then Mirror - Pick Axis (MM).");
+        return;
+      }
+      const line = await ipc.refLine(view.id, raw, tol, null);
+      if (!line) {
+        s.setError("Pick a wall face, a wall centerline or a grid as the axis.");
+        return;
+      }
+      if (await apply(() => ipc.mirrorElements(s.selection, line.a, line.b, s.options.mirrorCopy)))
+        s.setTool("select");
+      return;
+    }
     if (s.tool === "align") {
       if (!refLine.current) {
         refLine.current = await ipc.refLine(view.id, raw, tol, null);
@@ -981,10 +1098,15 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         onWheel={(e) => {
           if (!cam.current) return;
           const [sx, sy] = local(e);
+          pushCam();
           setCam(zoomAt(cam.current, size.w, size.h, sx, sy, Math.exp(-e.deltaY * 0.0015)));
         }}
         onMouseDown={(e) => {
           const [x, y] = local(e);
+          if (zoomRegion.current.armed && e.button === 0) {
+            zoomRegion.current = { armed: true, from: [x, y], to: [x, y] };
+            return;
+          }
           drag.current = { x, y, moved: false, button: e.button };
           if (e.button === 0) {
             const g = gripAt(x, y);
@@ -995,6 +1117,12 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         }}
         onMouseMove={(e) => {
           const [sx, sy] = local(e);
+          const zr = zoomRegion.current;
+          if (zr.armed && zr.from) {
+            zr.to = [sx, sy];
+            redraw();
+            return;
+          }
           const d = drag.current;
           if (d && (d.button === 1 || d.button === 2) && cam.current) {
             const dx = sx - d.x;
@@ -1067,6 +1195,27 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
         }}
         onMouseUp={(e) => {
+          const zr = zoomRegion.current;
+          if (zr.armed && zr.from && cam.current) {
+            const [sx, sy] = local(e);
+            const a = modelAt(zr.from[0], zr.from[1]);
+            const b = modelAt(sx, sy);
+            zoomRegion.current = { armed: false, from: null, to: null };
+            if (Math.abs(a.x - b.x) > 1 && Math.abs(a.y - b.y) > 1) {
+              pushCam(true);
+              setCam(
+                fit(
+                  [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x, b.x), Math.max(a.y, b.y)],
+                  size.w,
+                  size.h,
+                ),
+              );
+            } else redraw();
+            useAppStore
+              .getState()
+              .setPrompt(promptFor(useAppStore.getState().tool, 0, view.viewType));
+            return;
+          }
           const d = drag.current;
           drag.current = null;
           const vd = vertexDrag.current;
@@ -1089,7 +1238,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
           }
           if (!d || d.moved) return;
           const [sx, sy] = local(e);
-          if (e.button === 0) void click(sx, sy, e.shiftKey);
+          // A snap override (SE, SM…) lasts for one pick.
+          if (e.button === 0)
+            void click(sx, sy, e.shiftKey).finally(() =>
+              useAppStore.getState().setSnapOverride(null),
+            );
           if (e.button === 2 && useAppStore.getState().tool === "sketch") {
             window.dispatchEvent(new Event("tool-cancel"));
             return;

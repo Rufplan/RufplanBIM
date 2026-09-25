@@ -1,6 +1,7 @@
 // Tool helpers that don't touch React or IPC, so they're easy to test.
 import type { Pt } from "./bindings/Pt";
 import type { ViewType } from "./bindings/ViewType";
+import { DEFAULT_SHORTCUTS, keyMap, type Action } from "./shortcuts";
 import { useAppStore, type SketchMode, type Tool } from "./store";
 
 /** Status-bar prompt in sketch mode, as Revit words it. */
@@ -44,39 +45,12 @@ export function sketchPrompt(mode: SketchMode, n: number): string {
   }
 }
 
-/** Revit-style two-letter keyboard shortcuts. */
-export const SHORTCUTS: Record<string, Tool> = {
-  MD: "select",
-  WA: "wall",
-  GR: "grid",
-  LL: "level",
-  SB: "floor",
-  CL: "ceilingAuto",
-  CS: "ceiling",
-  DR: "door",
-  WN: "window",
-  RM: "room",
-  MV: "move",
-  DI: "dimension",
-  TX: "text",
-  CO: "copy",
-  RO: "rotate",
-  MM: "mirror",
-  AR: "array",
-  AL: "align",
-  TR: "trim",
-  OF: "offset",
-  SL: "split",
-  RF: "roof",
-  ST: "stair",
-  // Revit uses CL for columns, which is Ceiling here; SC is "structural column".
-  SC: "column",
-  BM: "beam",
-  RA: "railing",
-  RS: "roomSeparator",
-  CA: "callout",
-  EL: "elevation",
-};
+/** Two-letter keys → tools (Revit's defaults; see shortcuts.ts for commands too). */
+export const SHORTCUTS: Record<string, Tool> = Object.fromEntries(
+  DEFAULT_SHORTCUTS.flatMap((d) =>
+    "tool" in d.command ? d.keys.map((k) => [k, (d.command as { tool: Tool }).tool]) : [],
+  ),
+);
 
 /** Tools that need a plan view (they place elements on the view's level). */
 export const PLAN_TOOLS: Tool[] = [
@@ -121,6 +95,9 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   )
     return view === "Plan";
   if (tool === "sketch" || tool === "elevation") return view === "Plan" || view === "CeilingPlan";
+  if (tool === "tag") return view === "Plan";
+  if (tool === "matchType" || tool === "mirrorPick")
+    return view === "Plan" || view === "CeilingPlan";
   if (tool === "callout")
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   // Move works in plan coordinates, and on sheets for viewports.
@@ -189,6 +166,14 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
         : "Click the beam's end, or type a length and press Enter.";
     case "sketch":
       return sketchPrompt(useAppStore.getState().sketchUi.mode, n);
+    case "tag":
+      return "Click a door, window, room, column or beam to tag it.";
+    case "matchType":
+      return n === 0
+        ? "Click the element whose type to copy."
+        : "Click elements to give them that type. Esc finishes.";
+    case "mirrorPick":
+      return "Pick a line (wall face, centerline or grid) to mirror the selection across.";
     case "elevation":
       return "Click to place an elevation marker; it looks at the nearest wall. Check more views on the marker in Properties.";
     case "roomSeparator":
@@ -256,12 +241,17 @@ export function closesSketch(
   return Math.hypot(firstScreen[0] - pScreen[0], firstScreen[1] - pScreen[1]) < 10;
 }
 
-/** Feeds a key into the shortcut buffer; returns the tool when a shortcut completes. */
-export function shortcut(buffer: string, key: string): { buffer: string; tool: Tool | null } {
-  if (!/^[a-z]$/i.test(key)) return { buffer: "", tool: null };
+/** Feeds a key into the shortcut buffer; returns the tool or command when a shortcut
+ * completes (with the owner's Keyboard Shortcuts overrides). */
+export function shortcut(
+  buffer: string,
+  key: string,
+): { buffer: string; tool: Tool | null; action: Action | null } {
+  if (!/^[a-z]$/i.test(key)) return { buffer: "", tool: null, action: null };
   const next = (buffer + key.toUpperCase()).slice(-2);
-  const tool = SHORTCUTS[next] ?? null;
-  return { buffer: tool ? "" : next, tool };
+  const c = keyMap().get(next);
+  if (!c) return { buffer: next, tool: null, action: null };
+  return { buffer: "", tool: "tool" in c ? c.tool : null, action: "action" in c ? c.action : null };
 }
 
 export function samePt(a: Pt, b: Pt): boolean {

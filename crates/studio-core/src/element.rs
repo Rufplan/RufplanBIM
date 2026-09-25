@@ -717,6 +717,11 @@ pub enum ElementData {
         /// A site plan: shows topography contours and property lines (ADR-023).
         #[serde(default)]
         site: bool,
+        /// Hide in View: elements and categories not shown in this view (ADR-024).
+        #[serde(default)]
+        hidden: Vec<ElementId>,
+        #[serde(default)]
+        hidden_categories: Vec<Category>,
     },
     ProjectInfo {
         name: String,
@@ -1198,6 +1203,8 @@ impl ElementData {
             callout_of: None,
             mark_type: None,
             site: false,
+            hidden: vec![],
+            hidden_categories: vec![],
         }
     }
 

@@ -15,6 +15,26 @@ import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
+import { runAction } from "../actions";
+
+const TEMP_LABELS = {
+  hideElement: "Hide Element",
+  isolateElement: "Isolate Element",
+  hideCategory: "Hide Category",
+  isolateCategory: "Isolate Category",
+} as const;
+const TEMP_KEYS = {
+  hideElement: "HH",
+  isolateElement: "HI",
+  hideCategory: "HC",
+  isolateCategory: "IC",
+} as const;
+const STYLE_LABELS = {
+  shaded: "Shaded",
+  hiddenLine: "Hidden Line",
+  wireframe: "Wireframe",
+} as const;
+const STYLE_KEYS = { shaded: "SD", hiddenLine: "HL", wireframe: "WF" } as const;
 import { editBoundary, startSketch } from "../sketch";
 
 function ToolButton({
@@ -111,6 +131,8 @@ export function Ribbon() {
   const activeIs3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
   const grid3d = useAppStore((s) => s.grid3d);
   const setGrid3d = useAppStore((s) => s.setGrid3d);
+  const thinLines = useAppStore((s) => s.thinLines);
+  const visualStyle = useAppStore((s) => s.visualStyle);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
   const sketchButton = (
@@ -286,6 +308,24 @@ export function Ribbon() {
               </button>
               <button
                 className="rb-btn"
+                onClick={() => void runAction("pin")}
+                disabled={selection.length === 0}
+                title="Pin (PN): keep the selection from moving"
+              >
+                {Icons.pin}
+                <span>Pin</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void runAction("unpin")}
+                disabled={selection.length === 0}
+                title="Unpin (UP)"
+              >
+                {Icons.unpin}
+                <span>Unpin</span>
+              </button>
+              <button
+                className="rb-btn"
                 onClick={() => selection[0] && void editBoundary(selection[0])}
                 disabled={selection.length !== 1}
                 title="Edit the selected floor's or ceiling's boundary sketch (or double-click it)"
@@ -330,6 +370,7 @@ export function Ribbon() {
           <Group title="Annotate">
             <ToolButton tool="dimension" label="Dimension" icon={Icons.dimension} keys="DI" />
             <ToolButton tool="text" label="Text" icon={Icons.text} keys="TX" />
+            <ToolButton tool="tag" label="Tag" icon={Icons.tag} keys="TG — by category" />
             <button
               className="rb-btn"
               onClick={() => void tagAll()}
@@ -389,6 +430,60 @@ export function Ribbon() {
                 {Icons.fit}
                 <span>Zoom Fit</span>
               </button>
+            </Group>
+            <Group title="Graphics">
+              <button
+                className="rb-btn"
+                onClick={() => void runAction("visibility")}
+                disabled={!app || activeIsSheet}
+                title="Visibility/Graphics (VV): categories shown in this view"
+              >
+                {Icons.eye}
+                <span>Visibility</span>
+              </button>
+              <button
+                className={`rb-btn${thinLines ? " active" : ""}`}
+                aria-pressed={thinLines}
+                onClick={() => void runAction("thinLines")}
+                title="Thin Lines (TL)"
+              >
+                {Icons.thin}
+                <span>Thin Lines</span>
+              </button>
+              {(["hideElement", "isolateElement", "hideCategory", "isolateCategory"] as const).map(
+                (a) => (
+                  <button
+                    key={a}
+                    className="rb-btn rb-small"
+                    onClick={() => void runAction(a)}
+                    disabled={selection.length === 0}
+                    title={`Temporary ${TEMP_LABELS[a]} (${TEMP_KEYS[a]})`}
+                  >
+                    {Icons.eye}
+                    <span>{TEMP_LABELS[a]}</span>
+                  </button>
+                ),
+              )}
+              <button
+                className="rb-btn rb-small"
+                onClick={() => void runAction("resetTemporary")}
+                title="Reset Temporary Hide/Isolate (HR)"
+              >
+                {Icons.eye}
+                <span>Reset Hide</span>
+              </button>
+              {activeIs3d &&
+                (["shaded", "hiddenLine", "wireframe"] as const).map((v) => (
+                  <button
+                    key={v}
+                    className={`rb-btn rb-small${visualStyle === v ? " active" : ""}`}
+                    onClick={() => void runAction(v)}
+                    title={`${STYLE_LABELS[v]} (${STYLE_KEYS[v]})`}
+                  >
+                    {Icons.view3d}
+                    <span>{STYLE_LABELS[v]}</span>
+                  </button>
+                ))}
             </Group>
             <Group title="Sheets">
               <button className="rb-btn" onClick={() => void newSheet()} title="New ARCH D sheet">
@@ -464,6 +559,14 @@ export function Ribbon() {
         )}
         {tab === "Manage" && (
           <Group title="Settings">
+            <button
+              className="rb-btn"
+              onClick={() => void runAction("keyboard")}
+              title="Keyboard Shortcuts (KS): Revit's two-letter keys, and your own"
+            >
+              {Icons.key}
+              <span>Shortcuts</span>
+            </button>
             <button
               className="rb-btn"
               onClick={() => setParamsOpen(true)}

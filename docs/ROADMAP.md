@@ -45,6 +45,11 @@ Built ahead of the milestone order at the owner's request. **Works now:**
 - Site (ADR-023): find a lot on Google Maps, Regrid parcel boundaries, preliminary USGS 3DEP
   topography, site plans with contours, bearings and north, and ground in sections and 3D.
 
+- Shortcuts (ADR-024): Revit's two-letter keyboard shortcuts for modify, draw, view and snap
+  commands, editable in Keyboard Shortcuts (KS); Pin/Unpin, Match Type, Create Similar,
+  Select All Instances, Repeat; Temporary Hide/Isolate, Hide in View, Visibility/Graphics;
+  Thin Lines, 3D visual styles, zoom commands and one-pick snap overrides.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

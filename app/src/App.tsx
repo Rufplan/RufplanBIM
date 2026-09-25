@@ -1,4 +1,6 @@
 import { SiteDialog } from "./components/SiteDialog";
+import { ViewDialogs } from "./components/ViewDialogs";
+import { runAction } from "./actions";
 import { deleteSketchSelection, flipSketchSelection, startSketch } from "./sketch";
 import { useEffect, useRef } from "react";
 import { errorMessage, ipc } from "./ipc";
@@ -94,6 +96,7 @@ export function App() {
   const setApp = useAppStore((s) => s.setApp);
   const setError = useAppStore((s) => s.setError);
   const keys = useRef("");
+  const propsHidden = useAppStore((s) => s.propsHidden);
 
   useEffect(() => {
     ipc.appState().then(
@@ -109,7 +112,15 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const ui = useAppStore.getState();
-      if (isTyping(e.target) || ui.confirm || ui.rufplan || ui.paramsOpen || ui.siteDialog) return;
+      if (
+        isTyping(e.target) ||
+        ui.confirm ||
+        ui.rufplan ||
+        ui.paramsOpen ||
+        ui.siteDialog ||
+        ui.viewDialog
+      )
+        return;
       const ctrl = e.ctrlKey || e.metaKey;
       if (ui.app?.sketch) {
         // Sketch mode keys (ADR-021): its own undo, Delete, Space (flip), Tab (chain).
@@ -160,7 +171,9 @@ export function App() {
       } else if (e.key === "Escape") {
         window.dispatchEvent(new Event("tool-cancel"));
       } else if (e.key === "Enter") {
-        window.dispatchEvent(new Event("tool-finish"));
+        // With nothing in progress, Enter repeats the last command, as in Revit.
+        if (ui.tool === "select") void runAction("repeat");
+        else window.dispatchEvent(new Event("tool-finish"));
       } else if (e.key === " " && ui.tool === "select" && ui.selection.length > 0) {
         // Spacebar flips the selected walls, doors and windows, as in Revit.
         e.preventDefault();
@@ -176,8 +189,8 @@ export function App() {
         }
         const r = shortcut(keys.current, e.key);
         keys.current = r.buffer;
-        // Floor (SB) and Sketch Ceiling (CS) enter sketch mode.
-        if (r.tool === "floor") void startSketch("Floor");
+        if (r.action) void runAction(r.action);
+        else if (r.tool === "floor") void startSketch("Floor");
         else if (r.tool === "ceiling") void startSketch("Ceiling");
         else if (r.tool) useAppStore.getState().setTool(r.tool);
       }
@@ -204,7 +217,7 @@ export function App() {
           <div className="main">
             <ProjectBrowser />
             <Workspace />
-            <PropertiesPanel />
+            {!propsHidden && <PropertiesPanel />}
           </div>
           <StatusBar />
         </>
@@ -215,6 +228,7 @@ export function App() {
       <RufplanDialog />
       <ParamsDialog />
       <SiteDialog />
+      <ViewDialogs />
     </div>
   );
 }

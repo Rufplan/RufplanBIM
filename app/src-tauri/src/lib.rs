@@ -6,6 +6,7 @@ mod detailing;
 mod editing;
 mod menu;
 mod session;
+mod shortcut_cmds;
 mod site_cmds;
 mod sketching;
 mod structure;
@@ -110,6 +111,13 @@ pub fn run() -> anyhow::Result<()> {
             detailing::opening_preview_3d,
             detailing::set_section_box,
             detailing::create_material,
+            shortcut_cmds::set_pinned,
+            shortcut_cmds::select_all_instances,
+            shortcut_cmds::tag_element,
+            shortcut_cmds::hide_elements,
+            shortcut_cmds::set_category_visible,
+            shortcut_cmds::unhide_all,
+            shortcut_cmds::view_categories,
             site_cmds::site_keys,
             site_cmds::site_set_keys,
             site_cmds::site_parcel,

@@ -5,15 +5,15 @@ import { fit, toModel, toScreen, zoomAt } from "./canvas/render";
 describe("tools", () => {
   it("two-letter shortcuts", () => {
     let r = shortcut("", "w");
-    expect(r).toEqual({ buffer: "W", tool: null });
+    expect(r).toEqual({ buffer: "W", tool: null, action: null });
     r = shortcut(r.buffer, "a");
-    expect(r).toEqual({ buffer: "", tool: "wall" });
+    expect(r).toEqual({ buffer: "", tool: "wall", action: null });
     expect(shortcut("G", "R").tool).toBe("grid");
     expect(shortcut("D", "R").tool).toBe("door");
     expect(shortcut("W", "N").tool).toBe("window");
     expect(shortcut("R", "M").tool).toBe("room");
     expect(shortcut("M", "V").tool).toBe("move");
-    expect(shortcut("X", "1")).toEqual({ buffer: "", tool: null });
+    expect(shortcut("X", "1")).toEqual({ buffer: "", tool: null, action: null });
   });
 
   it("tools are limited to views where they make sense", () => {

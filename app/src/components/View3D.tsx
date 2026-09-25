@@ -512,7 +512,7 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
       if (e.button !== 0) return;
       if (useAppStore.getState().tool !== "select") {
-        void click3d(e);
+        void click3d(e).finally(() => useAppStore.getState().setSnapOverride(null));
         return;
       }
       // Click (without dragging) selects the element under the cursor.
@@ -542,7 +542,7 @@ export function View3D({ view }: { view: ViewInfo }) {
   useEffect(() => {
     let live = true;
     boxRef.current = sectionBox;
-    ipc.meshes().then(
+    ipc.meshes(view.id).then(
       (meshes) => {
         const t = three.current;
         if (!live || !t) return;
@@ -601,7 +601,14 @@ export function View3D({ view }: { view: ViewInfo }) {
     return () => {
       live = false;
     };
-  }, [revision, sectionBox]);
+  }, [revision, sectionBox, view.id]);
+
+  // Temporary Hide/Isolate and the visual style (ADR-024), applied to the meshes shown.
+  const temp = useAppStore((s) => s.tempHide[view.id] ?? null);
+  const visualStyle = useAppStore((s) => s.visualStyle);
+  useEffect(() => {
+    if (three.current) applyDisplay(three.current.group, temp, visualStyle);
+  }, [temp, visualStyle, revision]);
 
   useEffect(() => {
     if (three.current) applySelection(three.current.group, selection);
@@ -615,7 +622,7 @@ export function View3D({ view }: { view: ViewInfo }) {
   }, [grid3d]);
 
   return (
-    <div ref={wrapRef} className="canvas-wrap view3d" data-tool={tool}>
+    <div ref={wrapRef} className={`canvas-wrap view3d${temp ? " temp-hide" : ""}`} data-tool={tool}>
       <button
         className={`view3d-chip${grid3d ? " on" : ""}`}
         aria-pressed={grid3d}
@@ -628,12 +635,37 @@ export function View3D({ view }: { view: ViewInfo }) {
   );
 }
 
+/** Temporary Hide/Isolate and the visual style on the shown meshes (ADR-024). */
+function applyDisplay(
+  group: THREE.Group,
+  temp: { isolate: boolean; ids: string[]; categories: string[] } | null,
+  visualStyle: string,
+) {
+  let lastMesh: THREE.Mesh | null = null;
+  for (const child of group.children) {
+    if (child instanceof THREE.Mesh) {
+      lastMesh = child;
+      const u = child.userData as { el: string; category: string; base: number };
+      const hit = temp ? temp.ids.includes(u.el) || temp.categories.includes(u.category) : false;
+      child.visible = !temp || (temp.isolate ? hit : !hit);
+      const mat = child.material as THREE.MeshLambertMaterial;
+      mat.wireframe = visualStyle === "wireframe";
+      mat.color.setHex(visualStyle === "hiddenLine" ? 0xffffff : u.base);
+    } else if (child instanceof THREE.LineSegments && lastMesh) {
+      // Each mesh's edges follow it.
+      child.visible = lastMesh.visible && visualStyle !== "wireframe";
+    }
+  }
+}
+
 function applySelection(group: THREE.Group, selection: string[]) {
   const sel = new Set(selection);
   for (const child of group.children) {
     if (child instanceof THREE.Mesh) {
       const mat = child.material as THREE.MeshLambertMaterial;
-      mat.color.setHex(sel.has(child.userData.el) ? COLORS.selected : child.userData.base);
+      const base =
+        useAppStore.getState().visualStyle === "hiddenLine" ? 0xffffff : child.userData.base;
+      mat.color.setHex(sel.has(child.userData.el) ? COLORS.selected : base);
     }
   }
 }

@@ -11,6 +11,8 @@ export interface FakeBackend {
   state: AppState | null;
   googleKey: string | null;
   regrid: boolean;
+  /** Ids last pinned through set_pinned. */
+  pinned: string[];
 }
 
 const ids = {
@@ -48,6 +50,8 @@ export function appState(path: string | null, dirty = false): AppState {
     stages: [],
     sectionBox: null,
     calloutOf: null,
+    hiddenCategories: [],
+    hiddenCount: 0,
   });
   return {
     project: { name, path, schemaVersion: 2, appVersion: "0.0.1", dirty },
@@ -104,6 +108,7 @@ export function installFakeBackend(): FakeBackend {
     state: null,
     googleKey: null,
     regrid: false,
+    pinned: [],
   };
 
   mockIPC(
@@ -263,6 +268,16 @@ export function installFakeBackend(): FakeBackend {
             published: ["New Project - SD Set.pdf"],
             skipped: ["New Project - SD Set.ifc: mime type application/x-step is not supported"],
           };
+        case "set_pinned":
+          fake.pinned = a.pinned ? [...(a.ids as string[])] : [];
+          return fake.state;
+        case "select_all_instances":
+          return ["w1", "w2", "w3"];
+        case "view_categories":
+          return [
+            ["w1", "Wall"],
+            ["d1", "Door"],
+          ];
         case "plugin:dialog|open":
           return fake.openPath;
         case "plugin:dialog|save":

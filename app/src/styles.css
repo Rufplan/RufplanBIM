@@ -1164,3 +1164,63 @@ button:disabled {
   margin: 8px 0 4px;
   font-size: 13px;
 }
+
+/* Temporary Hide/Isolate in 3D (ADR-024). */
+.view3d.temp-hide {
+  box-shadow: inset 0 0 0 4px var(--cyan);
+}
+
+/* Keyboard Shortcuts and Visibility/Graphics (ADR-024). */
+.modal.ks-dialog {
+  width: min(640px, 94vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+}
+.ks-filter {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  font: inherit;
+}
+.ks-table {
+  overflow-y: auto;
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+.ks-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 120px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.ks-group {
+  color: #6b6b6b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.ks-row input {
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  font: inherit;
+  text-transform: uppercase;
+}
+.ks-row input.clash {
+  border-color: #c0352b;
+  color: #c0352b;
+}
+.modal.vv-dialog {
+  width: min(420px, 94vw);
+}
+.vv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 55vh;
+  overflow-y: auto;
+  margin: 10px 0;
+}

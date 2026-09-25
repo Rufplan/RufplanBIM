@@ -1113,6 +1113,7 @@ pub(crate) fn ccw(mut ring: Vec<Pt>) -> Vec<Pt> {
 
 /// Deletes elements (and their dependents) in one transaction.
 pub fn delete(doc: &mut Document, ids: &[ElementId]) -> CoreResult<usize> {
+    crate::visibility::ensure_unpinned(doc, ids)?;
     for id in ids {
         if matches!(doc.data(*id)?, ElementData::ProjectInfo { .. }) {
             return Err(CoreError::Invalid(
@@ -2040,6 +2041,14 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         }
     }
     crate::params::param_properties(doc, id, &mut props);
+    if crate::visibility::is_pinned(doc, id) {
+        props.push(ro(
+            "pinned",
+            "Pinned",
+            "Identity Data",
+            "Yes (UP to unpin)".into(),
+        ));
+    }
     Ok(PropertySheet {
         id,
         category: el.category(),

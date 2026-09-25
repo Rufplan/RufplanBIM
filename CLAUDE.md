@@ -112,6 +112,9 @@ Read these before writing code:
   section box, column cleanup, materials library, structure/material schedules, column
   marks and structural tags, callouts. M3 is fully met. Next: sections hatching cut layers,
   beam/wall cleanup, section box caps, binary IPC.
+- Revit keyboard shortcuts (ADR-024): the two-letter defaults (AL, TR, MV, CO, PN, HH, VV,
+  ZF, SE…), a Keyboard Shortcuts dialog (KS) with overrides saved per computer, pinning,
+  Temporary Hide/Isolate, Hide in View, Visibility/Graphics, Thin Lines and 3D styles.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.

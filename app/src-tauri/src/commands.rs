@@ -202,9 +202,12 @@ pub fn view_display_list(
 }
 
 #[tauri::command]
-pub fn view_meshes(state: State<'_, SessionState>) -> CommandResult<Vec<Mesh>> {
+pub fn view_meshes(
+    view: Option<ElementId>,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<Mesh>> {
     let session = lock(&state)?;
-    Ok(studio_views::meshes(session.doc()?))
+    Ok(studio_views::meshes_in_view(session.doc()?, view))
 }
 
 /// Element under `point` (display-list mm) within `tol` mm.
@@ -226,10 +229,11 @@ pub fn snap(
     point: Pt,
     from: Option<Pt>,
     tol: f64,
+    only: Option<studio_views::SnapKind>,
     state: State<'_, SessionState>,
 ) -> CommandResult<SnapResult> {
     let session = lock(&state)?;
-    let mut r = studio_views::snap(session.doc()?, view, point, from, tol);
+    let mut r = studio_views::snap_only(session.doc()?, view, point, from, tol, only);
     // In sketch mode, the sketch's own ends and midpoints snap first.
     if let Some(q) = crate::sketching::sketch_snap(&session, point, tol) {
         if from.is_none_or(|f| f.dist(q) > 1.0) {

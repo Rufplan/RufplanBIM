@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { AppState, CloudStatus, ElementId } from "./ipc";
+import type { SnapKind } from "./bindings/SnapKind";
 
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
@@ -21,6 +22,9 @@ export type Tool =
   | "callout"
   | "elevation"
   | "sketch"
+  | "tag"
+  | "matchType"
+  | "mirrorPick"
   | "dimension"
   | "text"
   | "section"
@@ -55,6 +59,9 @@ export const TOOL_LABELS: Record<Tool, string> = {
   callout: "Callout",
   elevation: "Elevation",
   sketch: "Boundary Sketch",
+  tag: "Tag by Category",
+  matchType: "Match Type Properties",
+  mirrorPick: "Mirror - Pick Axis",
   select: "Select",
   room: "Room",
   move: "Move",
@@ -137,6 +144,13 @@ export interface SketchUi {
   tab: boolean;
 }
 
+/** Temporary Hide/Isolate: what's hidden (or, isolating, what alone is shown). */
+export interface TempHide {
+  isolate: boolean;
+  ids: ElementId[];
+  categories: string[];
+}
+
 /** Tools that act on the current selection. */
 export const SELECTION_TOOLS: Tool[] = ["move", "copy", "rotate", "mirror", "array"];
 
@@ -172,6 +186,22 @@ interface UiState {
   /** Elevation tool: the mark type to place (its family type decides interior/building). */
   elevationType: ElementId | null;
   setElevationType: (id: ElementId | null) => void;
+  /** The last tool used, for Repeat Last Command (RC / Enter). */
+  lastTool: Tool | null;
+  /** A one-pick snap override (SE, SM, SI, SP, SN; "None" = SO snaps off). */
+  snapOverride: SnapKind | null;
+  setSnapOverride: (k: SnapKind | null) => void;
+  /** Temporary Hide/Isolate by view (HH, HI, HC, IC; HR resets). */
+  tempHide: Record<ElementId, TempHide>;
+  setTempHide: (view: ElementId, t: TempHide | null) => void;
+  thinLines: boolean;
+  visualStyle: "shaded" | "hiddenLine" | "wireframe";
+  propsHidden: boolean;
+  /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
+  viewDialog: "keyboard" | "visibility" | null;
+  setUi: (
+    patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
+  ) => void;
   /** Site tab dialog: Find Lot or API Keys (ADR-023). */
   siteDialog: "find" | "keys" | null;
   setSiteDialog: (d: "find" | "keys" | null) => void;
@@ -250,6 +280,22 @@ export const useAppStore = create<UiState>((set, get) => ({
   setSketchUi: (patch) => set((s) => ({ sketchUi: { ...s.sketchUi, ...patch } })),
   elevationType: null,
   setElevationType: (elevationType) => set({ elevationType }),
+  lastTool: null,
+  snapOverride: null,
+  setSnapOverride: (snapOverride) => set({ snapOverride }),
+  tempHide: {},
+  setTempHide: (view, th) =>
+    set((s) => {
+      const next = { ...s.tempHide };
+      if (th) next[view] = th;
+      else delete next[view];
+      return { tempHide: next };
+    }),
+  thinLines: false,
+  visualStyle: "shaded",
+  propsHidden: false,
+  viewDialog: null,
+  setUi: (patch) => set(patch),
   siteDialog: null,
   setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,
@@ -335,6 +381,7 @@ export const useAppStore = create<UiState>((set, get) => ({
   setTool: (tool) =>
     set({
       tool,
+      lastTool: tool === "select" || tool === "sketch" ? get().lastTool : tool,
       selection: tool === "select" || SELECTION_TOOLS.includes(tool) ? get().selection : [],
     }),
   setToolType: (kind, id) => set((s) => ({ toolTypes: { ...s.toolTypes, [kind]: id } })),

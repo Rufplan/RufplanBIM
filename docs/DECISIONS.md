@@ -516,3 +516,33 @@ for parcel boundaries (owner's token), USGS 3DEP for elevations.
 - **Not yet:** tracing a lot by hand (no Regrid coverage), building pads/grading, easements
   and setbacks, and exporting the topo to IFC.
 
+
+## ADR-024 Revit keyboard shortcuts and view visibility commands — Accepted (2026-09-24)
+Owner request (2026-09-24): "add all the typical Revit shortcuts like align AL and trim TR".
+- **Registry:** `app/src/shortcuts.ts` lists every command with Revit's default keys (tools
+  Revit has no default for are marked "ours"). A key maps to a tool or to an action
+  (`app/src/actions.ts`). Typing two letters in a view runs it; Enter with no tool running
+  repeats the last command (RC), as in Revit.
+- **Defaults changed to match Revit:** CL is Structural Column (it was Ceiling); SB is Floor;
+  CS is Create Similar; MM is Mirror - Pick Axis and DM is Mirror - Draw Axis; SC is gone.
+- **Keyboard Shortcuts (KS):** search and change keys. Clashing keys show in red; Reset to
+  Revit Defaults clears changes. Overrides are a UI preference in this computer's local
+  storage, not in the project file.
+- **Modify:** Pin (PN) and Unpin (UP) set a hidden `__pinned` parameter; Move, Rotate,
+  Mirror, Align, Trim/Extend, grips and Delete refuse pinned elements with a message, and
+  Properties show "Pinned". Match Type Properties (MA) picks a source, then targets. Create
+  Similar (CS) starts the selected element's tool and type. Select All Instances (SA)
+  selects every instance of its type. Tag by Category (TG, RT) tags the clicked element.
+- **Visibility:** Temporary Hide/Isolate (HH, HI, HC, IC, HR) is session state with Revit's
+  cyan frame; nothing is saved. Hide in View (EH elements, VH category) and
+  Visibility/Graphics (VV/VG) are stored on the view (`hidden`, `hidden_categories`, both
+  `#[serde(default)]`, so older files open). Drawings, PDF and 3D omit what a view hides;
+  Unhide All restores it (undoable).
+- **Display:** Thin Lines (TL); 3D Wireframe (WF), Hidden Line (HL), Shaded (SD); Zoom to
+  Fit (ZF/ZE/ZX/ZA), Zoom Out 2x (ZO), Zoom in Region (ZR), Previous Pan/Zoom (ZP);
+  Properties (PP) toggles the panel.
+- **Snap overrides:** SE, SM, SI, SP, SN keep only that snap for the next pick, SO turns
+  snapping off for it, SS clears it. `snap` takes an `only` argument
+  (`studio_views::snap_only`).
+- **Not yet:** importing or exporting Revit's KeyboardShortcuts.xml, filters and graphic
+  overrides in V/G, and hiding annotation subcategories.

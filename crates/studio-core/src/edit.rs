@@ -335,6 +335,7 @@ pub fn transform_elements(
     x: Xform,
     name: &str,
 ) -> CoreResult<()> {
+    crate::visibility::ensure_unpinned(doc, ids)?;
     let order = with_hosted(doc, ids);
     doc.transact(name, |tx| {
         // In place, a host keeps its id, so the map is the identity.
@@ -410,6 +411,7 @@ pub fn trim_extend(
     b: ElementId,
     b_pick: Pt,
 ) -> CoreResult<()> {
+    crate::visibility::ensure_unpinned(doc, &[a, b])?;
     if a == b {
         return Err(CoreError::Invalid("pick two different walls".into()));
     }
@@ -750,6 +752,7 @@ pub fn set_wall_length(doc: &mut Document, wall: ElementId, length: f64) -> Core
 /// Drags a handle (see `studio_views::handles`): wall and grid ends, a dimension's line,
 /// and the edges of a view's crop region.
 pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> CoreResult<()> {
+    crate::visibility::ensure_unpinned(doc, &[id])?;
     let bad = || CoreError::Invalid(format!("unknown handle {key}"));
     match (doc.data(id)?.clone(), key) {
         (ElementData::Wall { .. }, "start" | "end") => move_wall_end(doc, id, key == "start", to),

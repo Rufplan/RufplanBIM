@@ -20,7 +20,7 @@ pub mod snap;
 pub use handles::{
     align_delta, handles, offset_preview, ref_line, Grip, Handles, OffsetPreview, RefLine, TempDim,
 };
-pub use snap::{snap, SnapResult};
+pub use snap::{snap, snap_only, SnapKind, SnapResult};
 
 /// Plan cut plane height above the level, mm (4'-0").
 pub const PLAN_CUT: f64 = 48.0 * MM_PER_IN;
@@ -331,6 +331,15 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     callout_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
     let crop = crop.or(auto_crop);
+    // Hide in View (ADR-024).
+    let vdata = doc.data(view).ok()?.clone();
+    if matches!(&vdata, ElementData::View { hidden, hidden_categories, .. } if !hidden.is_empty() || !hidden_categories.is_empty())
+    {
+        b.items.retain(|i| {
+            !i.el
+                .is_some_and(|e| studio_core::visibility::hidden_in(doc, &vdata, e))
+        });
+    }
     let (items, bounds) = match &crop {
         Some(c) => {
             let mut items = crop_items(b.items, c);
@@ -2611,6 +2620,36 @@ pub struct Mesh {
     pub positions: Vec<f32>,
 }
 
+/// Meshes for a 3D view, without what it hides (ADR-024).
+pub fn meshes_in_view(doc: &Document, view: Option<ElementId>) -> Vec<Mesh> {
+    let all = meshes(doc);
+    let Some(v) = view.and_then(|v| doc.data(v).ok()) else {
+        return all;
+    };
+    all.into_iter()
+        .filter(|m| !studio_core::visibility::hidden_in(doc, v, m.el))
+        .collect()
+}
+
+/// Each element drawn in `view` with its category (for hiding and isolating by category).
+pub fn view_categories(doc: &Document, view: ElementId) -> Vec<(ElementId, Category)> {
+    let mut ids: Vec<ElementId> = match doc.data(view) {
+        Ok(ElementData::View {
+            kind: ViewKind::ThreeD,
+            ..
+        }) => meshes(doc).into_iter().map(|m| m.el).collect(),
+        _ => display_list(doc, view)
+            .map(|dl| dl.items.into_iter().filter_map(|i| i.el).collect())
+            .unwrap_or_default(),
+    };
+    ids.sort();
+    ids.dedup();
+    ids.into_iter()
+        .filter(|id| *id != view)
+        .filter_map(|id| Some((id, doc.data(id).ok()?.category())))
+        .collect()
+}
+
 /// Meshes for the 3D view.
 pub fn meshes(doc: &Document) -> Vec<Mesh> {
     let m = regenerate(doc);
@@ -2801,6 +2840,60 @@ mod tests {
 
     fn count(dl: &DisplayList, f: impl Fn(&Prim) -> bool) -> usize {
         dl.items.iter().filter(|i| f(&i.prim)).count()
+    }
+
+    #[test]
+    fn hide_in_view_drops_elements_and_categories() {
+        let (mut doc, l1) = building();
+        let v = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1))
+            .unwrap()
+            .id;
+        let drawn = |doc: &Document, cat: Category| {
+            display_list(doc, v)
+                .unwrap()
+                .items
+                .iter()
+                .filter_map(|i| i.el)
+                .filter(|e| doc.data(*e).is_ok_and(|d| d.category() == cat))
+                .collect::<std::collections::BTreeSet<_>>()
+        };
+        let walls = drawn(&doc, Category::Wall);
+        assert_eq!(walls.len(), 4);
+        let first = *walls.iter().next().unwrap();
+        // EH on one wall.
+        studio_core::visibility::hide_elements(&mut doc, v, &[first]).unwrap();
+        let after = drawn(&doc, Category::Wall);
+        assert_eq!(after.len(), 3);
+        assert!(!after.contains(&first));
+        // VH on grids; the walls stay.
+        assert_eq!(drawn(&doc, Category::Grid).len(), 1);
+        studio_core::visibility::set_category_visible(&mut doc, v, &[Category::Grid], false)
+            .unwrap();
+        assert!(drawn(&doc, Category::Grid).is_empty());
+        assert_eq!(drawn(&doc, Category::Wall).len(), 3);
+        // Unhide All brings everything back, undoably.
+        studio_core::visibility::unhide_all(&mut doc, v).unwrap();
+        assert_eq!(drawn(&doc, Category::Wall).len(), 4);
+        assert_eq!(drawn(&doc, Category::Grid).len(), 1);
+        // The 3D meshes follow the view's hidden list.
+        let v3 = doc
+            .of(Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::ThreeD,
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        let n = meshes_in_view(&doc, Some(v3)).len();
+        studio_core::visibility::hide_elements(&mut doc, v3, &[first]).unwrap();
+        assert_eq!(meshes_in_view(&doc, Some(v3)).len(), n - 1);
     }
 
     #[test]

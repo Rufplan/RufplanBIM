@@ -31,11 +31,10 @@ async function openProject() {
 
 describe("structure and circulation (ADR-019)", () => {
   it("shortcuts and views for columns, beams and railings", () => {
-    expect(shortcut("S", "C").tool).toBe("column");
     expect(shortcut("B", "M").tool).toBe("beam");
     expect(shortcut("R", "A").tool).toBe("railing");
-    // CL stays Ceiling (Revit's column shortcut would clash).
-    expect(shortcut("C", "L").tool).toBe("ceilingAuto");
+    // Revit's CL is Structural Column (ADR-024).
+    expect(shortcut("C", "L").tool).toBe("column");
     for (const t of ["column", "beam", "railing"] as const) {
       expect(toolAllowed(t, "Plan")).toBe(true);
       expect(toolAllowed(t, "Elevation")).toBe(false);
