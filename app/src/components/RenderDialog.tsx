@@ -247,209 +247,218 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     <div className="modal-backdrop" role="dialog" aria-label="Render">
       <div className="modal render-dialog">
         <div className="render-side">
-          <h2>Render — {view.name}</h2>
-          <div className="row">
-            <label className="field">
-              Output size
-              <select
-                aria-label="Output size"
-                value={size}
-                onChange={(e) => setSize(Number(e.target.value))}
-                disabled={running}
-              >
-                {SIZES.map(([a, b], i) => (
-                  <option key={a} value={i}>
-                    {a} × {b}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              Quality
-              <select
-                aria-label="Quality"
-                value={quality}
-                onChange={(e) => setQuality(Number(e.target.value))}
-                disabled={running}
-              >
-                {QUALITY.map(([name, n], i) => (
-                  <option key={name} value={i}>
-                    {name} ({n})
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="render-title">
+            <h2>Render — {view.name}</h2>
+            <button className="btn-ghost" onClick={onClose} aria-label="Close">
+              ×
+            </button>
           </div>
-          <h3>Background</h3>
-          <label className="field">
-            Background
-            <select
-              aria-label="Background"
-              value={background}
-              onChange={(e) => setBackground(e.target.value as BackgroundId)}
-              disabled={running}
-            >
-              {BACKGROUNDS.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {bg.photo && (
-            <label className="field">
-              Rotate background: {rotation}°
-              <input
-                aria-label="Background rotation"
-                type="range"
-                min={0}
-                max={359}
-                step={1}
-                value={rotation}
-                onChange={(e) => setRotation(Number(e.target.value))}
-                disabled={running}
-              />
-            </label>
-          )}
-          <h3>Lighting</h3>
-          <label className="field">
-            Light by
-            <select
-              aria-label="Lighting"
-              value={lightingUsed}
-              onChange={(e) => setLighting(e.target.value as Lighting)}
-              disabled={running || !bg.photo}
-            >
-              <option value="sunsky">Sun &amp; Sky (site, date and time)</option>
-              <option value="dome">Background photo (dome light)</option>
-            </select>
-          </label>
-          {lightingUsed === "sunsky" && (
-            <>
-              <div className="row">
-                <label className="field">
-                  Month
-                  <select
-                    aria-label="Month"
-                    value={month}
-                    onChange={(e) => setMonth(Number(e.target.value))}
-                    disabled={running}
-                  >
-                    {MONTHS.map((m, i) => (
-                      <option key={m} value={i + 1}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  Day
-                  <input
-                    aria-label="Day"
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={day}
-                    onChange={(e) => setDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
-                    disabled={running}
-                  />
-                </label>
-              </div>
+          {/* Settings scroll; the footer (progress, save options, buttons) always shows. */}
+          <div className="render-settings">
+            <div className="row">
               <label className="field">
-                Time: {clock(hour)}
+                Output size
+                <select
+                  aria-label="Output size"
+                  value={size}
+                  onChange={(e) => setSize(Number(e.target.value))}
+                  disabled={running}
+                >
+                  {SIZES.map(([a, b], i) => (
+                    <option key={a} value={i}>
+                      {a} × {b}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                Quality
+                <select
+                  aria-label="Quality"
+                  value={quality}
+                  onChange={(e) => setQuality(Number(e.target.value))}
+                  disabled={running}
+                >
+                  {QUALITY.map(([name, n], i) => (
+                    <option key={name} value={i}>
+                      {name} ({n})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <h3>Background</h3>
+            <label className="field">
+              Background
+              <select
+                aria-label="Background"
+                value={background}
+                onChange={(e) => setBackground(e.target.value as BackgroundId)}
+                disabled={running}
+              >
+                {BACKGROUNDS.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {bg.photo && (
+              <label className="field">
+                Rotate background: {rotation}°
                 <input
-                  aria-label="Time of day"
+                  aria-label="Background rotation"
                   type="range"
-                  min={5}
-                  max={21}
-                  step={0.25}
-                  value={hour}
-                  onChange={(e) => setHour(Number(e.target.value))}
+                  min={0}
+                  max={359}
+                  step={1}
+                  value={rotation}
+                  onChange={(e) => setRotation(Number(e.target.value))}
                   disabled={running}
                 />
               </label>
-              <p className="muted">
-                {sun
-                  ? sun.altitude > 0
-                    ? `Sun ${sun.altitude.toFixed(0)}° up, ${sun.azimuth.toFixed(0)}° from north (at the site${useAppStore.getState().app?.site ? "" : ": none set, central USA"}).`
-                    : "The sun is down: sky light only."
-                  : ""}
-              </p>
-            </>
-          )}
-          {lightingUsed === "dome" && (
-            <p className="muted">
-              Lit by the photo&apos;s own sun and sky; rotate the background to move them.
-            </p>
-          )}
-          <label className="field">
-            Exposure: {exposure.toFixed(1)}
-            <input
-              aria-label="Exposure"
-              type="range"
-              min={0.3}
-              max={2.5}
-              step={0.1}
-              value={exposure}
-              onChange={(e) => setExposure(Number(e.target.value))}
-              disabled={running}
-            />
-          </label>
-          <label className="field">
-            Tone
-            <select
-              aria-label="Tone"
-              value={tone}
-              onChange={(e) => setTone(e.target.value as "contrast" | "filmic")}
-              disabled={running}
-            >
-              <option value="contrast">Contrast (punchy, V-Ray style)</option>
-              <option value="filmic">Filmic (soft highlights)</option>
-            </select>
-          </label>
-          <label className="ob-check">
-            <input
-              type="checkbox"
-              checked={denoise}
-              onChange={(e) => setDenoise(e.target.checked)}
-              disabled={running}
-            />
-            Denoise when finished
-          </label>
-          {satellite && <p className="muted">The satellite image drapes the ground.</p>}
-          <div className="render-bar" aria-hidden>
-            <div style={{ width: `${Math.round(progress * 100)}%` }} />
-          </div>
-          <div className="render-progress" role="status">
-            {status}
-          </div>
-          <label className="ob-check">
-            <input
-              type="checkbox"
-              aria-label="Include background"
-              checked={withBackground}
-              onChange={(e) => setWithBackground(e.target.checked)}
-            />
-            Save with the background (off: transparent PNG)
-          </label>
-          <div className="modal-actions">
-            {running ? (
-              <button className="btn-outline" onClick={stop}>
-                Stop
-              </button>
-            ) : (
-              <button className="btn-cyan" onClick={() => void render()}>
-                Render
-              </button>
             )}
-            <button className="btn-outline" onClick={() => void saveImage()} disabled={!done}>
-              Save Image…
-            </button>
-            <button className="btn-ghost" onClick={onClose}>
-              Close
-            </button>
+            <h3>Lighting</h3>
+            <label className="field">
+              Light by
+              <select
+                aria-label="Lighting"
+                value={lightingUsed}
+                onChange={(e) => setLighting(e.target.value as Lighting)}
+                disabled={running || !bg.photo}
+              >
+                <option value="sunsky">Sun &amp; Sky (site, date and time)</option>
+                <option value="dome">Background photo (dome light)</option>
+              </select>
+            </label>
+            {lightingUsed === "sunsky" && (
+              <>
+                <div className="row">
+                  <label className="field">
+                    Month
+                    <select
+                      aria-label="Month"
+                      value={month}
+                      onChange={(e) => setMonth(Number(e.target.value))}
+                      disabled={running}
+                    >
+                      {MONTHS.map((m, i) => (
+                        <option key={m} value={i + 1}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    Day
+                    <input
+                      aria-label="Day"
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={day}
+                      onChange={(e) =>
+                        setDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))
+                      }
+                      disabled={running}
+                    />
+                  </label>
+                </div>
+                <label className="field">
+                  Time: {clock(hour)}
+                  <input
+                    aria-label="Time of day"
+                    type="range"
+                    min={5}
+                    max={21}
+                    step={0.25}
+                    value={hour}
+                    onChange={(e) => setHour(Number(e.target.value))}
+                    disabled={running}
+                  />
+                </label>
+                <p className="muted">
+                  {sun
+                    ? sun.altitude > 0
+                      ? `Sun ${sun.altitude.toFixed(0)}° up, ${sun.azimuth.toFixed(0)}° from north (at the site${useAppStore.getState().app?.site ? "" : ": none set, central USA"}).`
+                      : "The sun is down: sky light only."
+                    : ""}
+                </p>
+              </>
+            )}
+            {lightingUsed === "dome" && (
+              <p className="muted">
+                Lit by the photo&apos;s own sun and sky; rotate the background to move them.
+              </p>
+            )}
+            <label className="field">
+              Exposure: {exposure.toFixed(1)}
+              <input
+                aria-label="Exposure"
+                type="range"
+                min={0.3}
+                max={2.5}
+                step={0.1}
+                value={exposure}
+                onChange={(e) => setExposure(Number(e.target.value))}
+                disabled={running}
+              />
+            </label>
+            <label className="field">
+              Tone
+              <select
+                aria-label="Tone"
+                value={tone}
+                onChange={(e) => setTone(e.target.value as "contrast" | "filmic")}
+                disabled={running}
+              >
+                <option value="contrast">Contrast (punchy, V-Ray style)</option>
+                <option value="filmic">Filmic (soft highlights)</option>
+              </select>
+            </label>
+            <label className="ob-check">
+              <input
+                type="checkbox"
+                checked={denoise}
+                onChange={(e) => setDenoise(e.target.checked)}
+                disabled={running}
+              />
+              Denoise when finished
+            </label>
+            {satellite && <p className="muted">The satellite image drapes the ground.</p>}
+            {bg.source && <p className="muted render-credit">Background: {bg.source}</p>}
           </div>
-          {bg.source && <p className="muted render-credit">Background: {bg.source}</p>}
+          <div className="render-footer">
+            <div className="render-bar" aria-hidden>
+              <div style={{ width: `${Math.round(progress * 100)}%` }} />
+            </div>
+            <div className="render-progress" role="status">
+              {status}
+            </div>
+            <label className="ob-check">
+              <input
+                type="checkbox"
+                aria-label="Include background"
+                checked={withBackground}
+                onChange={(e) => setWithBackground(e.target.checked)}
+              />
+              Save with the background (off: transparent PNG)
+            </label>
+            <div className="modal-actions">
+              {running ? (
+                <button className="btn-outline" onClick={stop}>
+                  Stop
+                </button>
+              ) : (
+                <button className="btn-cyan" onClick={() => void render()}>
+                  Render
+                </button>
+              )}
+              <button className="btn-outline" onClick={() => void saveImage()} disabled={!done}>
+                Save Image…
+              </button>
+            </div>
+          </div>
         </div>
         <div className="render-stage" ref={stage}>
           <div className="render-empty">

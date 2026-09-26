@@ -1256,17 +1256,64 @@ button:disabled {
   background: #fff;
 }
 .modal.render-dialog {
-  width: min(1180px, 96vw);
-  max-height: 92vh;
+  /* Fits the window: settings scroll, the footer and the preview stay in view. */
+  box-sizing: border-box;
+  width: min(1400px, calc(100vw - 32px));
+  height: calc(100vh - 32px);
+  padding: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 16px;
+  grid-template-columns: minmax(260px, 300px) 1fr;
+  overflow: hidden;
 }
 .render-side {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+}
+.render-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 4px 16px;
+}
+.render-title h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.render-settings {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  padding: 0 16px 8px;
+}
+.render-settings h3 {
+  margin: 12px 0 2px;
+  font-size: 13px;
+}
+.render-settings .field {
+  margin: 6px 0;
+  font-size: 12px;
+}
+.render-settings .field input,
+.render-settings .field select {
+  padding: 4px 6px;
+}
+.render-settings .muted {
+  margin: 4px 0;
+}
+.render-footer {
+  border-top: 1px solid var(--border);
+  padding: 8px 16px 10px;
+  background: var(--white);
+}
+.render-footer .modal-actions {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.render-footer .ob-check {
+  font-size: 12px;
 }
 .render-side .row {
   display: flex;
@@ -1274,19 +1321,22 @@ button:disabled {
 }
 .render-side .row > * {
   flex: 1;
+  min-width: 0;
 }
 .render-stage {
   position: relative;
   background: #1c1c1c;
-  min-height: 360px;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  padding: 12px;
 }
 .render-stage canvas {
   max-width: 100%;
-  max-height: 78vh;
+  max-height: 100%;
+  object-fit: contain;
   width: auto !important;
   height: auto !important;
 }
