@@ -3,6 +3,7 @@
 import type { Tool } from "./store";
 
 export type Action =
+  | "paint"
   | "repeat"
   | "createSimilar"
   | "selectAll"
@@ -113,6 +114,7 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   { id: "wall", label: "Wall", group: "Architecture", keys: ["WA"], command: t("wall") },
   { id: "door", label: "Door", group: "Architecture", keys: ["DR"], command: t("door") },
   { id: "window", label: "Window", group: "Architecture", keys: ["WN"], command: t("window") },
+  { id: "paint", label: "Paint", group: "Modify", keys: ["PT"], command: a("paint") },
   { id: "floor", label: "Floor", group: "Architecture", keys: ["SB"], command: a("floor") },
   { id: "roof", label: "Roof (ours)", group: "Architecture", keys: ["RF"], command: t("roof") },
   { id: "stair", label: "Stair (ours)", group: "Architecture", keys: ["ST"], command: t("stair") },

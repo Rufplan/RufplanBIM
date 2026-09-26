@@ -83,6 +83,7 @@ export const TOOLS_3D: Tool[] = [
   "sketch",
   "move",
   "copy",
+  "paint",
 ];
 
 /** Drawing tools whose clicks place points (ViewCanvas's placePoint). */
@@ -99,6 +100,7 @@ export const POINT_TOOLS: Tool[] = [
 
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
+  if (tool === "paint") return view !== "Sheet" && view !== "Schedule";
   if (view === "ThreeD") return TOOLS_3D.includes(tool);
   if (tool === "level") return view === "Elevation" || view === "Section";
   if (tool === "room" || tool === "section" || tool === "stair" || tool === "camera")
@@ -245,6 +247,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
           : "Move to place the dimension line, then click.";
     case "text":
       return "Click where the text note goes.";
+    case "paint":
+      return "Click walls, floors, ceilings, roofs, columns or beams to paint them. Shift-click paints every element of that type. Esc finishes.";
     case "section":
       return n === 0
         ? "Click the section line's start. The section looks to the left of the line."

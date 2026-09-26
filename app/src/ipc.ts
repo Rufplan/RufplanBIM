@@ -330,6 +330,9 @@ export const ipc = {
   applyMaterial: (ids: ElementId[], material: ElementId): S =>
     invoke("apply_material", { ids, material }),
   renderMaterials: () => invoke<RenderMaterial[]>("render_materials"),
+  /** Paints elements (ADR-034); a null material removes their paint. */
+  paintElements: (ids: ElementId[], material: ElementId | null): S =>
+    invoke("paint_elements", { ids, material }),
   /** A library texture map (JPEG), downloaded once and cached by Rust. */
   materialTexture: (set: string, map: TextureMap) =>
     invoke<ArrayBuffer>("material_texture", { set, map }),

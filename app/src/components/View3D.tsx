@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { paintElement } from "../actions";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { CameraPose } from "../bindings/CameraPose";
@@ -220,6 +221,8 @@ export function prompt3d(tool: string, n = 0): string {
     case "door":
     case "window":
       return `Hover over a wall and click to place the ${tool}; the face you point at sets which way it faces.`;
+    case "paint":
+      return "Click walls, floors, roofs, ceilings, columns or beams to paint them. Shift-click paints the whole type. Esc finishes.";
     case "wall":
       return "Click the wall's start on the level's work plane (Level in the options bar), then each next point. Esc finishes.";
     case "column":
@@ -903,6 +906,14 @@ export function View3D({ view }: { view: ViewInfo }) {
         return;
       }
       if (e.button !== 0) return;
+      if (useAppStore.getState().tool === "paint") {
+        const hit = rayAt(e).intersectObjects(
+          group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+          false,
+        )[0];
+        void paintElement((hit?.object.userData.el as string | undefined) ?? null, e.shiftKey);
+        return;
+      }
       if (useAppStore.getState().tool !== "select") {
         void click3d(e).finally(() => useAppStore.getState().setSnapOverride(null));
         return;

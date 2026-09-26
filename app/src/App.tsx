@@ -19,6 +19,7 @@ import { shortcut, startsTypedValue } from "./tools";
 import { TopBar } from "./components/TopBar";
 import { Ribbon } from "./components/Ribbon";
 import { OptionsBar } from "./components/OptionsBar";
+import { PaintChip } from "./components/PaintChip";
 import { ProjectBrowser } from "./components/ProjectBrowser";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { StatusBar, Workspace } from "./components/Workspace";
@@ -97,6 +98,7 @@ export function App() {
   const setError = useAppStore((s) => s.setError);
   const keys = useRef("");
   const propsHidden = useAppStore((s) => s.propsHidden);
+  const tool = useAppStore((s) => s.tool);
 
   useEffect(() => {
     ipc.appState().then(
@@ -214,9 +216,10 @@ export function App() {
         <>
           <Ribbon />
           <OptionsBar />
-          <div className="main">
+          <div className={`main${tool === "paint" ? " painting" : ""}`}>
             <ProjectBrowser />
             <Workspace />
+            <PaintChip />
             {!propsHidden && <PropertiesPanel />}
           </div>
           <StatusBar />

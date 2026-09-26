@@ -1009,3 +1009,34 @@ Owner approved the file-format change (2026-09-26).
   every starter type were checked by eye.
 - **Not yet:** Dutch and revolving doors, transoms over doors, hardware, fire ratings in the
   schedule, and choosing the hinge side from the picker.
+
+## ADR-034 Paint tool — Accepted (2026-09-26)
+Owner request (2026-09-26): "when applying a material could you have some sort of icon modern
+sleek paint once the material is selected from the grid to apply it to the component (wall
+most likely) right now it doesn't do anything after selecting a material." Owner chose
+per-element paint, with Shift-click for the whole type.
+
+- **What was wrong:** Apply to Selection only showed when something was selected before the
+  Material Browser opened, and 3D meshes never said which material they were made of, so
+  renderings ignored library materials. Meshes now carry their surface material: the
+  element's paint, else its type's outside finish.
+- **Paint** (`studio_core::paint`): a material on one wall, floor, ceiling, roof, column or
+  beam, without changing its type, as Revit's Paint tool does.
+  - Stored as the element's `rufplan.paint` parameter. Element data is unchanged, and older
+    builds simply ignore it.
+  - Paint wins over the type finish in 3D colour, renderings and the elevation surface
+    pattern.
+  - A deleted material leaves no paint behind.
+  - Properties show the paint with Remove Paint.
+  - Paint is one undo step.
+- **The tool:**
+  - **Start it:** in the Material Browser, pick a material and click Paint (a library
+    material is added first), or use Materials > Paint or PT, which repeats the last
+    material or opens the browser.
+  - **The cursor** becomes a paint roller, and a chip at the top of the view shows the
+    material's swatch and name, with Change and Done.
+  - **Clicking:** a click paints the element under the cursor, in plans, elevations,
+    sections and 3D. Shift-click puts the material on the element's type (every element of
+    that type, as Apply Material did). Esc or Done finishes.
+- **Not yet:** painting one face of a wall (paint covers the whole element), and paint in
+  plan poché.

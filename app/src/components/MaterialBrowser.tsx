@@ -3,6 +3,7 @@ import type { Appearance } from "../bindings/Appearance";
 import type { Preset } from "../bindings/Preset";
 import type { RenderMaterial } from "../bindings/RenderMaterial";
 import type { Tier } from "../bindings/Tier";
+import { startPaint } from "../actions";
 import { apply } from "../fileActions";
 import { errorMessage, ipc } from "../ipc";
 import { useAppStore } from "../store";
@@ -317,7 +318,17 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
                 <p>{pickedPreset.description}</p>
                 <Settings a={pickedPreset.appearance} />
                 <div className="mb-actions">
-                  <button className="btn-cyan" onClick={() => void addPreset(pickedPreset.id)}>
+                  <button
+                    className="btn-cyan btn-paint"
+                    onClick={async () => {
+                      const id = await addPreset(pickedPreset.id);
+                      if (id) startPaint(id);
+                    }}
+                    title="Add it and paint: click walls, floors, roofs… to apply it (Shift: the whole type)"
+                  >
+                    <PaintIcon /> Paint
+                  </button>
+                  <button className="btn-outline" onClick={() => void addPreset(pickedPreset.id)}>
                     Add to Project
                   </button>
                   {targets.length > 0 && (
@@ -354,8 +365,15 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
                 )}
                 <Settings a={pickedMaterial.appearance} />
                 <div className="mb-actions">
+                  <button
+                    className="btn-cyan btn-paint"
+                    onClick={() => startPaint(pickedMaterial.id)}
+                    title="Paint: click walls, floors, roofs… to apply it (Shift: the whole type)"
+                  >
+                    <PaintIcon /> Paint
+                  </button>
                   {targets.length > 0 && (
-                    <button className="btn-cyan" onClick={() => void applyTo(pickedMaterial.id)}>
+                    <button className="btn-outline" onClick={() => void applyTo(pickedMaterial.id)}>
                       Apply to Selection ({targets.length})
                     </button>
                   )}
@@ -380,7 +398,7 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
             {!pickedPreset && !pickedMaterial && (
               <p className="muted">
                 {scope === "library"
-                  ? "Pick a material to see it, then add it to the project. Double-click adds it."
+                  ? "Pick a material, then Paint to click it onto walls, floors and roofs. Double-click adds it."
                   : "Pick a project material to apply it to the selection or edit it."}
                 {targets.length > 0
                   ? ` ${targets.length} selected element${targets.length > 1 ? "s" : ""} will take the material on their outside finish (every element of their type).`
@@ -394,6 +412,17 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** A paint roller. */
+export function PaintIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="3" width="15" height="6" rx="1.5" fill="currentColor" />
+      <path d="M18 6h2.5v5.5H11v3" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect x="9" y="14.5" width="4" height="7" rx="1" fill="currentColor" />
+    </svg>
   );
 }
 

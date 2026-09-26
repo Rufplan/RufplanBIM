@@ -14,6 +14,7 @@ pub mod library;
 pub mod material;
 pub mod modify;
 pub mod ops;
+pub mod paint;
 pub mod params;
 pub mod site;
 pub mod sketch;

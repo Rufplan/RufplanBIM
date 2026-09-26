@@ -356,12 +356,12 @@ export function Ribbon() {
             <Group title="Apply">
               <button
                 className="rb-btn"
-                onClick={() => setUi({ viewDialog: "materials" })}
-                disabled={!app || selection.length === 0}
-                title="Apply a material to the selected walls, floors, ceilings, roofs, columns or beams (their type's outside finish)"
+                onClick={() => void runAction("paint")}
+                disabled={!app}
+                title="Paint (PT): pick a material, then click walls, floors, ceilings, roofs, columns or beams to paint them; Shift-click paints the whole type"
               >
                 {Icons.paint}
-                <span>Apply Material</span>
+                <span>Paint</span>
               </button>
             </Group>
           </>

@@ -42,7 +42,8 @@ export type Tool =
   | "floorAuto"
   | "ceiling"
   | "ceilingAuto"
-  | "level";
+  | "level"
+  | "paint";
 
 export const TOOL_LABELS: Record<Tool, string> = {
   copy: "Copy",
@@ -81,6 +82,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   ceiling: "Ceiling: Sketch",
   ceilingAuto: "Ceiling: Auto Room",
   level: "Level",
+  paint: "Paint",
 };
 
 /** Which element types the active tools place, by category. */
@@ -208,6 +210,9 @@ interface UiState {
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
   picker: { category: PickerCategory; tab: "project" | "library"; change: ElementId[] } | null;
+  /** The material the Paint tool applies (ADR-034). */
+  paintMaterial: ElementId | null;
+  setPaintMaterial: (id: ElementId | null) => void;
   setPicker: (p: UiState["picker"]) => void;
   setUi: (
     patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
@@ -312,6 +317,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setUi: (patch) => set(patch),
   picker: null,
   setPicker: (picker) => set({ picker }),
+  paintMaterial: null,
+  setPaintMaterial: (paintMaterial) => set({ paintMaterial }),
   siteDialog: null,
   setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,

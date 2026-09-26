@@ -294,7 +294,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         ),
         ViewKind::Elevation { facing } => (
             ViewType::Elevation,
-            elevation(&model, &mut b, facing.look().scale(-1.0)),
+            elevation(doc, &model, &mut b, facing.look().scale(-1.0)),
         ),
         ViewKind::Section { start, end, depth } => {
             let d = end.sub(*start).norm();
@@ -305,7 +305,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
             };
             (
                 ViewType::Section,
-                projected(&model, &mut b, d.perp(), Some(&cut)),
+                projected(doc, &model, &mut b, d.perp(), Some(&cut)),
             )
         }
         ViewKind::MarkerElevation { marker, facing } => {
@@ -321,10 +321,13 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
                     auto_crop = Some(c);
                     (
                         ViewType::Elevation,
-                        projected(&model, &mut b, look, Some(&cut)),
+                        projected(doc, &model, &mut b, look, Some(&cut)),
                     )
                 }
-                _ => (ViewType::Elevation, projected(&model, &mut b, look, None)),
+                _ => (
+                    ViewType::Elevation,
+                    projected(doc, &model, &mut b, look, None),
+                ),
             }
         }
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
@@ -1363,12 +1366,18 @@ enum Seen {
     Hidden,
 }
 
-fn elevation(model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
-    projected(model, b, look, None)
+fn elevation(doc: &Document, model: &Model, b: &mut Builder, look: Pt) -> [f64; 4] {
+    projected(doc, model, b, look, None)
 }
 
 /// Elevation (no cut) or section (cut plane with far clip), seen looking along `look`.
-fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f64; 4] {
+fn projected(
+    doc: &Document,
+    model: &Model,
+    b: &mut Builder,
+    look: Pt,
+    cut: Option<&Cut>,
+) -> [f64; 4] {
     let right = Pt::new(look.y, -look.x);
     let origin = cut.map_or(Pt::default(), |c| c.origin);
     let u_of = |p: Pt| p.sub(origin).dot(right);
@@ -1484,7 +1493,12 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
                 let mut f = face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper);
                 // The face toward the viewer carries its finish's surface pattern.
                 let toward = w.dir().perp().dot(look) < 0.0;
-                let surface = if toward { w.surfaces.0 } else { w.surfaces.1 };
+                let painted = studio_core::paint::paint_of(doc, w.id);
+                let surface = match painted.and_then(|p| doc.data(p).ok()) {
+                    Some(ElementData::Material { surface, .. }) => *surface,
+                    _ if toward => w.surfaces.0,
+                    _ => w.surfaces.1,
+                };
                 if let Some(prof) = &w.top_profile {
                     // Seen square on, the top follows the roof above it.
                     let d = w.dir();
@@ -2779,6 +2793,28 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             positions,
         });
     }
+    // What each surface is made of, for renderings (ADR-029), and paint (ADR-034).
+    for mesh in &mut out {
+        if !matches!(
+            mesh.category,
+            Category::Wall
+                | Category::Floor
+                | Category::Ceiling
+                | Category::Roof
+                | Category::Column
+                | Category::Beam
+        ) {
+            continue;
+        }
+        if let Some(p) = studio_core::paint::paint_of(doc, mesh.el) {
+            if let Ok(ElementData::Material { color, .. }) = doc.data(p) {
+                mesh.color = Some(*color);
+            }
+            mesh.material = Some(p);
+        } else {
+            mesh.material = studio_core::library::finish_of(doc, mesh.el);
+        }
+    }
     out
 }
 
@@ -3454,6 +3490,27 @@ mod tests {
         )
         .unwrap();
         assert!((pv.offset - 800.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn meshes_carry_their_surface_material_and_paint() {
+        let (mut doc, _) = building();
+        let walls: Vec<ElementId> = doc.of(Category::Wall).map(|e| e.id).collect();
+        let finish = studio_core::library::finish_of(&doc, walls[0]);
+        let ms = meshes(&doc);
+        let wall = ms.iter().find(|m| m.el == walls[0]).unwrap();
+        assert_eq!(wall.material, finish, "renders get the type's finish");
+        let brick = studio_core::library::add_preset(&mut doc, "masonry-red-brick").unwrap();
+        studio_core::paint::paint(&mut doc, &[walls[0]], Some(brick)).unwrap();
+        let ms = meshes(&doc);
+        let painted = ms.iter().find(|m| m.el == walls[0]).unwrap();
+        let other = ms.iter().find(|m| m.el == walls[1]).unwrap();
+        assert_eq!(painted.material, Some(brick));
+        let Ok(ElementData::Material { color, .. }) = doc.data(brick) else {
+            panic!()
+        };
+        assert_eq!(painted.color, Some(*color));
+        assert_eq!(other.material, finish, "only the painted wall changes");
     }
 
     #[test]

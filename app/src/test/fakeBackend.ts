@@ -591,6 +591,8 @@ export function installFakeBackend(): FakeBackend {
             };
           return fake.state;
         }
+        case "paint_elements":
+          return fake.state;
         case "apply_material":
           fake.applied.push([a.ids as string[], a.material as string]);
           return fake.state;

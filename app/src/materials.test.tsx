@@ -38,12 +38,12 @@ describe("Materials tab and Material Browser (ADR-029)", () => {
       .map((t) => t.textContent);
     expect(tabs.slice(0, 4)).toEqual(["Site", "Architecture", "Materials", "Rendering"]);
     await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
-    for (const name of ["Material Browser", "New Material", "Duplicate", "Apply Material"])
+    for (const name of ["Material Browser", "New Material", "Duplicate", "Paint"])
       expect(screen.getByRole("button", { name })).toBeTruthy();
-    // Nothing selected: nothing to apply to.
-    expect(
-      (screen.getByRole("button", { name: "Apply Material" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+    // Paint works without a selection (ADR-034).
+    expect((screen.getByRole("button", { name: "Paint" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
     // The Manage tab no longer has them.
     await userEvent.click(screen.getByRole("tab", { name: "Manage" }));
     expect(screen.queryByRole("button", { name: "New Material" })).toBeNull();
@@ -53,7 +53,8 @@ describe("Materials tab and Material Browser (ADR-029)", () => {
     await openProject();
     useAppStore.setState({ selection: ["wall-1"] });
     await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
-    await userEvent.click(screen.getByRole("button", { name: "Apply Material" }));
+    // Paint with no material yet opens the browser.
+    await userEvent.click(screen.getByRole("button", { name: "Paint" }));
     const dialog = await screen.findByRole("dialog", { name: "Material Browser" });
     const grid = within(dialog).getByRole("list");
     await within(grid).findByText("White Oak Plank Flooring, Matte");

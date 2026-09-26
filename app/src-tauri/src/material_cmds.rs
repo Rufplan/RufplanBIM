@@ -44,6 +44,19 @@ pub fn apply_material(
     finish(&window, &s)
 }
 
+/// Paints elements with a material (ADR-034), or removes their paint with none.
+#[tauri::command]
+pub fn paint_elements(
+    ids: Vec<ElementId>,
+    material: Option<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut s = lock(&state)?;
+    s.edit(|d| studio_core::paint::paint(d, &ids, material))?;
+    finish(&window, &s)
+}
+
 /// A project material as the renderer needs it.
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]

@@ -1,4 +1,5 @@
 import { siteImagery, type Imagery } from "../imagery";
+import { paintElement } from "../actions";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   errorMessage,
@@ -942,6 +943,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       return;
     }
     if (!toolAllowed(s.tool, view.viewType)) return;
+    if (s.tool === "paint") {
+      await paintElement(await ipc.pick(view.id, raw, 6 / cam.current.zoom), shift);
+      return;
+    }
     if (s.tool === "sketch") {
       await sketchClick(raw, shift);
       return;

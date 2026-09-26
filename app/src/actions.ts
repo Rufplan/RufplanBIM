@@ -5,6 +5,27 @@ import { startSketch } from "./sketch";
 import type { Action } from "./shortcuts";
 import { activeViewInfo, useAppStore, type Tool, type ToolTypes } from "./store";
 
+/** Paints the element under the cursor with the Paint tool's material (ADR-034); with
+ * Shift, the material goes on its type, so every element of that type changes. */
+export async function paintElement(id: string | null, wholeType: boolean) {
+  const s = useAppStore.getState();
+  const m = s.paintMaterial;
+  if (!m) {
+    s.setUi({ viewDialog: "materials" });
+    return;
+  }
+  if (!id) return;
+  await apply(() => (wholeType ? ipc.applyMaterial([id], m) : ipc.paintElements([id], m)));
+}
+
+/** Starts painting with `material` (from the Material Browser). */
+export function startPaint(material: string) {
+  const s = useAppStore.getState();
+  s.setPaintMaterial(material);
+  s.setUi({ viewDialog: null });
+  s.setTool("paint");
+}
+
 /** Opens the door or window type picker (ADR-033). Selected elements of that category
  * become the ones it changes. */
 export async function openPicker(
@@ -132,6 +153,11 @@ export async function runAction(action: Action) {
       return;
     case "keyboard":
       s.setUi({ viewDialog: "keyboard" });
+      return;
+    case "paint":
+      // PT: paint with the last material, or pick one in the Material Browser first.
+      if (s.paintMaterial) s.setTool("paint");
+      else s.setUi({ viewDialog: "materials" });
       return;
     case "render":
       if (view?.viewType !== "ThreeD") {

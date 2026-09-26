@@ -131,6 +131,8 @@ Read these before writing code:
   Windows opens the Window Library.
 - Door families (ADR-033): studio-core `doors`, studio-views `doors` and `thumbs`; the
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
+- Paint (ADR-034): studio-core `paint` (per-element material as the `rufplan.paint`
+  parameter); Materials > Paint or PT.
 - Sheet sets (ADR-032): studio-sheets `sets` (plan, create, deliverables, as_of_stage);
   View > Sheet Sets. Dev aid: `cargo test -p rufplan-studio write_sample_sets -- --ignored`.
 - V-Ray-style lighting and photo backgrounds (ADR-028): Preetham sun & sky, Poly Haven CC0

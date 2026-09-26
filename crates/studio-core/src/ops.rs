@@ -2128,6 +2128,17 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         }
     }
     crate::params::param_properties(doc, id, &mut props);
+    if let Some(m) = crate::paint::paint_of(doc, id) {
+        let name = doc.data(m).map(|d| d.name()).unwrap_or_default();
+        props.push(ro("paint", "Paint", "Materials and Finishes", name.clone()));
+        props.push(p(
+            "unpaint",
+            "",
+            "Materials and Finishes",
+            "Remove Paint".into(),
+            PropKind::Action,
+        ));
+    }
     if crate::visibility::is_pinned(doc, id) {
         props.push(ro(
             "pinned",
@@ -2169,6 +2180,9 @@ pub fn set_property(
     }
     if let Some(pkey) = key.strip_prefix("param:") {
         return crate::params::set_value(doc, id, pkey, value);
+    }
+    if key == "unpaint" {
+        return crate::paint::paint(doc, &[id], None).map(|_| ());
     }
     if matches!(
         data,
