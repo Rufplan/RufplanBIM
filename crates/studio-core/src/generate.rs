@@ -472,6 +472,53 @@ pub fn build(doc: &mut Document, spec: &BuildingSpec) -> CoreResult<BuildReport>
     }
 }
 
+/// Loads the street doors the building's rooms need (ADR-033): an entry with sidelites,
+/// a storefront pair, and 16' and 9' garage doors.
+fn door_types(doc: &mut Document, spec: &BuildingSpec) -> CoreResult<[Option<ElementId>; 4]> {
+    use crate::doors::{preset, DoorSpec, LeafStyle as L};
+    use crate::element::DoorFamily as F;
+    let has = |k: &[RoomKind]| {
+        spec.stories
+            .iter()
+            .flat_map(|s| &s.rooms)
+            .any(|r| k.contains(&r.kind))
+    };
+    let wanted = [
+        (
+            has(&[RoomKind::Entry]),
+            preset(F::Sidelites, L::Craftsman, 2, 64.0, 80.0),
+        ),
+        (
+            has(&[RoomKind::Lobby, RoomKind::Retail]),
+            preset(F::Storefront, L::FullLite, 2, 72.0, 84.0),
+        ),
+        (
+            has(&[RoomKind::Garage]),
+            preset(F::Garage, L::Flush, 1, 192.0, 84.0),
+        ),
+        (
+            has(&[RoomKind::Garage]),
+            preset(F::Garage, L::Flush, 1, 108.0, 84.0),
+        ),
+    ];
+    let specs: Vec<DoorSpec> = wanted
+        .iter()
+        .filter_map(|(on, p)| on.then_some(*p).flatten().map(Into::into))
+        .collect();
+    let mut ids = if specs.is_empty() {
+        vec![].into_iter()
+    } else {
+        crate::doors::load(doc, &specs)?.into_iter()
+    };
+    let mut out = [None; 4];
+    for (i, (on, p)) in wanted.iter().enumerate() {
+        if *on && p.is_some() {
+            out[i] = ids.next();
+        }
+    }
+    Ok(out)
+}
+
 /// Loads the building's window types from the library: its family at about 3'-0" x
 /// 5'-0" for punched openings, a twin (or about 6'-0" wide) for living spaces, and 6'-0"
 /// storefront, all in the chosen grille and finish.
@@ -616,9 +663,24 @@ fn build_steps(
     .ok_or_else(|| CoreError::Invalid("no wall types in this project".into()))?;
     let int_type = type_named(doc, Category::WallType, &["interior", "6"])
         .ok_or_else(|| CoreError::Invalid("no wall types in this project".into()))?;
-    let door_wide = type_named(doc, Category::DoorType, &["36"]);
-    let door_narrow = type_named(doc, Category::DoorType, &["30"]);
-    let door_double = type_named(doc, Category::DoorType, &["double"]);
+    let [entry_door, storefront_door, garage_wide, garage_single] = door_types(doc, spec)?;
+    use crate::doors::{nearest_type, LeafStyle};
+    use crate::element::DoorFamily as DF;
+    let door_wide = nearest_type(
+        doc,
+        DF::SingleFlush,
+        Some(LeafStyle::Flush),
+        36.0 * MM_PER_IN,
+    )
+    .or_else(|| type_named(doc, Category::DoorType, &["36"]));
+    let door_narrow = nearest_type(
+        doc,
+        DF::SingleFlush,
+        Some(LeafStyle::Shaker),
+        30.0 * MM_PER_IN,
+    )
+    .or_else(|| type_named(doc, Category::DoorType, &["30"]));
+    let door_double = nearest_type(doc, DF::DoubleFlush, None, 72.0 * MM_PER_IN);
     let [win_punched, win_large, win_store] = window_types(doc, spec.windows)?.map(Some);
     let slab = type_named(doc, Category::FloorType, &["slab"]);
     let joist = type_named(doc, Category::FloorType, &["joist"]);
@@ -757,11 +819,22 @@ fn build_steps(
                     })
                     .max_by(|a, b| (a.1.b - a.1.a).total_cmp(&(b.1.b - b.1.a)));
                 if let Some((ri, p)) = best {
-                    let ty = match rooms[r].0 {
-                        RoomKind::Lobby | RoomKind::Garage => door_double.or(door_wide),
-                        _ => door_wide,
+                    // The street door by room: an entry with sidelites, storefront, a
+                    // garage door, falling back to narrower doors where it doesn't fit.
+                    let choices = match rooms[r].0 {
+                        RoomKind::Entry => vec![entry_door, door_wide],
+                        RoomKind::Lobby | RoomKind::Retail => {
+                            vec![storefront_door, door_double, door_wide]
+                        }
+                        RoomKind::Garage => vec![garage_wide, garage_single, door_wide],
+                        _ => vec![door_wide],
                     };
-                    if place(doc, &mut runs, ri, (p.a + p.b) / 2.0, ty) {
+                    let t = (p.a + p.b) / 2.0;
+                    if choices
+                        .into_iter()
+                        .flatten()
+                        .any(|ty| place(doc, &mut runs, ri, t, Some(ty)))
+                    {
                         report.doors += 1;
                     }
                 }

@@ -79,6 +79,12 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   storefront) with mulled units, grilles and frame finishes, drawn by family in plan,
   elevation and 3D; a Window Library of 77 standard sizes (or a custom size) to load.
 
+- Door families and type pickers (ADR-033): 10 US door families (single and double swing
+  in 11 leaf styles incl. French and full-lite glass, entry with sidelites, sliding glass,
+  pocket, barn, bifold, folding glass wall, storefront, garage), 65 standard sizes, and a
+  rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
+  Properties > Browse Types.
+
 - Sheet sets (ADR-032): each design phase's deliverables (Program, 100% SD, 100% DD,
   100% CD, Permit, Bid, IFC) and their sheets per building type, numbered to the US
   National CAD Standard, with views placed and scaled to fit, consultant placeholders, and

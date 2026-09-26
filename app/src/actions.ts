@@ -5,6 +5,32 @@ import { startSketch } from "./sketch";
 import type { Action } from "./shortcuts";
 import { activeViewInfo, useAppStore, type Tool, type ToolTypes } from "./store";
 
+/** Opens the door or window type picker (ADR-033). Selected elements of that category
+ * become the ones it changes. */
+export async function openPicker(
+  category: "Door" | "Window",
+  tab: "project" | "library" = "project",
+) {
+  const s = useAppStore.getState();
+  const ids = s.selection.slice(0, 50);
+  const sheets = await Promise.all(ids.map((id) => ipc.properties(id).catch(() => null)));
+  const change = ids.filter((_, i) => sheets[i]?.category === category);
+  useAppStore.getState().setPicker({ category, tab, change });
+}
+
+/** Starts a tool the way the ribbon and shortcuts do: Door and Window open their type
+ * picker first, with any selected doors or windows to change. */
+export async function startTool(tool: Tool) {
+  if (tool === "door" || tool === "window") {
+    const category = tool === "door" ? "Door" : "Window";
+    const picking = openPicker(category);
+    useAppStore.getState().setTool(tool);
+    await picking;
+    return;
+  }
+  useAppStore.getState().setTool(tool);
+}
+
 /** Which tool (and type slot) creates more of a category, for Create Similar. */
 const SIMILAR: Record<string, [Tool, keyof ToolTypes | null]> = {
   Wall: ["wall", "wall"],

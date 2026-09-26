@@ -1,6 +1,6 @@
 import { SiteDialog } from "./components/SiteDialog";
 import { ViewDialogs } from "./components/ViewDialogs";
-import { runAction } from "./actions";
+import { runAction, startTool } from "./actions";
 import { deleteSketchSelection, flipSketchSelection, startSketch } from "./sketch";
 import { useEffect, useRef } from "react";
 import { errorMessage, ipc } from "./ipc";
@@ -192,7 +192,7 @@ export function App() {
         if (r.action) void runAction(r.action);
         else if (r.tool === "floor") void startSketch("Floor");
         else if (r.tool === "ceiling") void startSketch("Ceiling");
-        else if (r.tool) useAppStore.getState().setTool(r.tool);
+        else if (r.tool) void startTool(r.tool);
       }
     };
     window.addEventListener("keydown", onKey);

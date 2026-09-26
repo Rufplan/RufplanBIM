@@ -1643,6 +1643,33 @@ button:disabled {
   color: #0b7fa5;
 }
 
+/* Door and window type picker (ADR-033). */
+.tp-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.tp-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  background: #f1f0ec;
+  object-fit: cover;
+}
+.tp-thumb.big {
+  margin-bottom: 4px;
+}
+.tp-rendering {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 11px;
+}
+.tp-mode {
+  font-size: 12px;
+  background: var(--cyan-soft);
+  padding: 4px 8px;
+}
+
 /* Window Library (ADR-031). */
 .window-library .mb-head .muted {
   flex: 1;

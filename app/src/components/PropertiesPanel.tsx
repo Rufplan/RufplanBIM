@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { openPicker } from "../actions";
 
 // Inputs are keyed by their value, so a new value from Rust remounts them fresh.
 import type { NamedItem } from "../bindings/NamedItem";
@@ -159,6 +160,14 @@ export function PropertiesPanel() {
                 sketching ? void apply(() => ipc.sketchSetType(id)) : setToolType(toolKind, id)
               }
             />
+            {(toolKind === "door" || toolKind === "window") && (
+              <button
+                className="link-btn"
+                onClick={() => void openPicker(toolKind === "door" ? "Door" : "Window")}
+              >
+                Browse Types…
+              </button>
+            )}
           </div>
         ) : selection.length > 1 ? (
           <div className="prop-empty">{selection.length} elements selected</div>
@@ -175,6 +184,14 @@ export function PropertiesPanel() {
                     options={instanceTypes}
                     onChange={(id) => set("type", id)}
                   />
+                  {(sheet.category === "Door" || sheet.category === "Window") && (
+                    <button
+                      className="link-btn"
+                      onClick={() => void openPicker(sheet.category as "Door" | "Window")}
+                    >
+                      Browse Types…
+                    </button>
+                  )}
                   <button className="link-btn" onClick={() => select([sheet.typeId!])}>
                     Edit Type
                   </button>

@@ -63,6 +63,9 @@ export function surfaceFor(m: Pick<Mesh, "category" | "color" | "exterior">): Su
     case "Railing":
       return { ...s, roughness: 0.3, metalness: 0.85 };
     case "Door":
+      // Door glass is the mesh without a finish colour (ADR-033).
+      if (!m.color)
+        return { ...s, color: 0xf4faf8, roughness: 0, transmission: 1, specularIntensity: 1 };
       return { ...s, roughness: 0.45, clearcoat: 0.3 };
     case "Roof":
       return { ...s, roughness: 0.65 };

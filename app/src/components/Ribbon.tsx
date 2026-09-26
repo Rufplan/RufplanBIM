@@ -15,7 +15,7 @@ import { activeViewInfo, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
-import { runAction } from "../actions";
+import { runAction, openPicker, startTool } from "../actions";
 
 const TEMP_LABELS = {
   hideElement: "Hide Element",
@@ -50,12 +50,11 @@ function ToolButton({
 }) {
   const active = useAppStore((s) => s.tool === tool);
   const view = useAppStore((s) => activeViewInfo(s)?.viewType);
-  const setTool = useAppStore((s) => s.setTool);
   const allowed = toolAllowed(tool, view);
   return (
     <button
       className={`rb-btn${active ? " active" : ""}`}
-      onClick={() => setTool(tool)}
+      onClick={() => void startTool(tool)}
       aria-pressed={active}
       disabled={!allowed}
       title={`${label} (${keys})${allowed ? "" : " — not available in this view"}`}
@@ -207,9 +206,18 @@ export function Ribbon() {
               <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
               <button
                 className="rb-btn"
-                onClick={() => setUi({ viewDialog: "windows" })}
+                onClick={() => void openPicker("Door", "library")}
                 disabled={!app}
-                title="Window Library: load double-hung, casement, slider, bay, storefront and other US window types at standard or custom sizes"
+                title="Door Library: single and double swing, French, entry with sidelites, sliding glass, pocket, barn, bifold, folding glass wall, storefront and garage doors"
+              >
+                {Icons.door}
+                <span>Load Doors</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void openPicker("Window", "library")}
+                disabled={!app}
+                title="Window Library: double-hung, casement, slider, bay, storefront and other US window types at standard or custom sizes"
               >
                 {Icons.window}
                 <span>Load Windows</span>

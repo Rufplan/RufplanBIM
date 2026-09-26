@@ -19,6 +19,11 @@ import type { LoadedWindows } from "./bindings/LoadedWindows";
 import type { SpecPreview } from "./bindings/SpecPreview";
 import type { WindowLibrary } from "./bindings/WindowLibrary";
 import type { WindowSpec } from "./bindings/WindowSpec";
+import type { DoorLibrary } from "./bindings/DoorLibrary";
+import type { DoorSpec } from "./bindings/DoorSpec";
+import type { DoorSpecPreview } from "./bindings/DoorSpecPreview";
+import type { OpeningThumb } from "./bindings/OpeningThumb";
+import type { ThumbSource } from "./bindings/ThumbSource";
 import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { GenerateResult } from "./bindings/GenerateResult";
@@ -310,6 +315,11 @@ export const ipc = {
   createSheetSets: (options: SetOptions) => invoke<SetsCreated>("create_sheet_sets", { options }),
   exportSheetSets: (phases: string[], folder: string, record: boolean) =>
     invoke<SetsExported>("export_sheet_sets", { phases, folder, record }),
+  // Door Library and type thumbnails (ADR-033).
+  doorLibrary: () => invoke<DoorLibrary>("door_library"),
+  doorPreview: (spec: DoorSpec) => invoke<DoorSpecPreview>("door_preview", { spec }),
+  loadDoorTypes: (specs: DoorSpec[]) => invoke<LoadedWindows>("load_door_types", { specs }),
+  openingThumbnail: (source: ThumbSource) => invoke<OpeningThumb>("opening_thumbnail", { source }),
   // Window Library (ADR-031).
   windowLibrary: () => invoke<WindowLibrary>("window_library"),
   windowPreview: (spec: WindowSpec) => invoke<SpecPreview>("window_preview", { spec }),

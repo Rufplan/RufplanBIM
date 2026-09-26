@@ -14,19 +14,26 @@ import { GenerateDialog } from "./GenerateDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
 import { SheetSetsDialog } from "./SheetSetsDialog";
-import { WindowLibrary } from "./WindowLibrary";
+import { TypePicker } from "./TypePicker";
 
 // Keyboard Shortcuts (KS) and Visibility/Graphics (VV) dialogs (ADR-024).
 
 export function ViewDialogs() {
   const which = useAppStore((s) => s.viewDialog);
   const close = () => useAppStore.getState().setUi({ viewDialog: null });
+  const picker = useAppStore((s) => s.picker);
+  if (picker)
+    return (
+      <TypePicker
+        key={`${picker.category}:${picker.tab}`}
+        onClose={() => useAppStore.getState().setPicker(null)}
+      />
+    );
   if (which === "keyboard") return <KeyboardDialog onClose={close} />;
   if (which === "visibility") return <VisibilityDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "generate") return <GenerateDialog onClose={close} />;
-  if (which === "windows") return <WindowLibrary onClose={close} />;
   if (which === "sheetSets") return <SheetSetsDialog onClose={close} />;
   return null;
 }

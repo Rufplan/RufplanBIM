@@ -468,12 +468,22 @@ fn yes() -> bool {
     true
 }
 
-/// Built-in door families (code-defined for v0.1, see DATA_MODEL.md).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+/// Built-in door families (ADR-033, see `doors`). `SingleFlush` and `DoubleFlush` are the
+/// single and double swing families (their leaf style is a type option); the names stay
+/// for files saved before door families.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum DoorFamily {
     SingleFlush,
     DoubleFlush,
+    Sidelites,
+    SlidingGlass,
+    Pocket,
+    Barn,
+    Bifold,
+    FoldingWall,
+    Storefront,
+    Garage,
 }
 
 /// Built-in window families: the common US window types (ADR-031, see `windows`).
@@ -759,6 +769,14 @@ pub enum ElementData {
         /// Rough opening width and height, mm.
         width: f64,
         height: f64,
+        /// Leaf style, panel count (0: the family's default) and finish (None: the
+        /// family's default), ADR-033.
+        #[serde(default)]
+        leaf: crate::doors::LeafStyle,
+        #[serde(default)]
+        panels: u32,
+        #[serde(default)]
+        finish: Option<crate::doors::DoorFinish>,
     },
     /// A door hosted by a wall. `offset` is the distance from the wall's start point to the
     /// door's center, along the location line (mm).

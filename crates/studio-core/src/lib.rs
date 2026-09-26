@@ -5,6 +5,7 @@ pub mod camera;
 pub mod compound;
 pub mod detail;
 pub mod document;
+pub mod doors;
 pub mod edit;
 pub mod element;
 pub mod generate;

@@ -6,8 +6,8 @@ use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
-    Anchor, Category, Compass, CropBox, DoorFamily, ElementData, ElementId, LocationLine,
-    RufplanLink, ScheduleKind, SheetSize, SlabBound, StageChange, ViewKind, WallFunction, WallTop,
+    Anchor, Category, Compass, CropBox, ElementData, ElementId, LocationLine, RufplanLink,
+    ScheduleKind, SheetSize, SlabBound, StageChange, ViewKind, WallFunction, WallTop,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -138,32 +138,9 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
 
 /// Built-in door and window types (inches: width × height, sill).
 fn seed_opening_types(tx: &mut Tx<'_>) {
-    for (name, family, w, h) in [
-        (
-            "Single Flush 36\" x 84\"",
-            DoorFamily::SingleFlush,
-            36.0,
-            84.0,
-        ),
-        (
-            "Single Flush 30\" x 80\"",
-            DoorFamily::SingleFlush,
-            30.0,
-            80.0,
-        ),
-        (
-            "Double Flush 72\" x 84\"",
-            DoorFamily::DoubleFlush,
-            72.0,
-            84.0,
-        ),
-    ] {
-        tx.insert(ElementData::DoorType {
-            name: name.into(),
-            family,
-            width: w * MM_PER_IN,
-            height: h * MM_PER_IN,
-        });
+    // The common sizes of every door family (ADR-033); more load from the library.
+    for spec in crate::doors::starter() {
+        tx.insert(spec.data());
     }
     // The common size of every window family (ADR-031); more load from the library.
     for spec in crate::windows::starter() {
@@ -1863,19 +1840,57 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             family,
             width,
             height,
+            ..
         } => {
+            let fam = crate::doors::info(*family);
+            let s = crate::doors::DoorStyle::of(&el.data)
+                .unwrap_or(crate::doors::DoorStyle::new(*family));
             props.push(text("name", "Type Name", "Identity Data", name));
-            props.push(ro(
-                "family",
-                "Family",
-                "Identity Data",
-                match family {
-                    DoorFamily::SingleFlush => "Single Flush".into(),
-                    DoorFamily::DoubleFlush => "Double Flush".into(),
-                },
-            ));
+            props.push(ro("family", "Family", "Identity Data", fam.label.into()));
             props.push(len("width", "Width", "Dimensions", *width));
             props.push(len("height", "Height", "Dimensions", *height));
+            if !fam.leaves.is_empty() {
+                props.push(choice(
+                    "leaf",
+                    "Leaf Style",
+                    "Construction",
+                    format!("{:?}", s.leaf),
+                    fam.leaves
+                        .iter()
+                        .map(|l| PropOption {
+                            id: format!("{l:?}"),
+                            label: l.label().into(),
+                        })
+                        .collect(),
+                ));
+            }
+            if let Some((lo, hi, _)) = fam.panels {
+                props.push(choice(
+                    "panels",
+                    fam.panels_label,
+                    "Construction",
+                    s.panels.to_string(),
+                    (lo..=hi)
+                        .map(|n| PropOption {
+                            id: n.to_string(),
+                            label: n.to_string(),
+                        })
+                        .collect(),
+                ));
+            }
+            props.push(choice(
+                "finish",
+                "Finish",
+                "Materials and Finishes",
+                format!("{:?}", s.finish),
+                crate::doors::DoorFinish::ALL
+                    .iter()
+                    .map(|f| PropOption {
+                        id: format!("{f:?}"),
+                        label: f.label().into(),
+                    })
+                    .collect(),
+            ));
         }
         ElementData::WindowType {
             name,
@@ -2532,11 +2547,35 @@ pub fn set_property(
             name,
             width,
             height,
+            leaf,
+            panels,
+            finish,
             ..
         } => match key {
             "name" => *name = non_empty(value)?,
             "width" => *width = positive(parse_len(value)?)?,
             "height" => *height = positive(parse_len(value)?)?,
+            "leaf" => {
+                *leaf = crate::doors::LeafStyle::ALL
+                    .into_iter()
+                    .find(|l| format!("{l:?}") == value)
+                    .ok_or_else(unknown)?
+            }
+            "panels" => {
+                *panels = value
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|n| (1..=8).contains(n))
+                    .ok_or_else(|| CoreError::Invalid("choose 1 to 8".into()))?
+            }
+            "finish" => {
+                *finish = Some(
+                    crate::doors::DoorFinish::ALL
+                        .into_iter()
+                        .find(|f| format!("{f:?}") == value)
+                        .ok_or_else(unknown)?,
+                )
+            }
             _ => return Err(unknown()),
         },
         ElementData::WindowType {

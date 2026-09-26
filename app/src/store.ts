@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { AppState, CloudStatus, ElementId } from "./ipc";
 import type { SnapKind } from "./bindings/SnapKind";
 
+export type PickerCategory = "Door" | "Window";
+
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
@@ -202,15 +204,11 @@ interface UiState {
   visualStyle: "shaded" | "hiddenLine" | "wireframe";
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
-  viewDialog:
-    | "keyboard"
-    | "visibility"
-    | "render"
-    | "materials"
-    | "generate"
-    | "windows"
-    | "sheetSets"
-    | null;
+  viewDialog: "keyboard" | "visibility" | "render" | "materials" | "generate" | "sheetSets" | null;
+  /** The door or window type picker (ADR-033): which category, which tab, and the
+   * selected doors or windows it changes. */
+  picker: { category: PickerCategory; tab: "project" | "library"; change: ElementId[] } | null;
+  setPicker: (p: UiState["picker"]) => void;
   setUi: (
     patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
   ) => void;
@@ -312,6 +310,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   propsHidden: false,
   viewDialog: null,
   setUi: (patch) => set(patch),
+  picker: null,
+  setPicker: (picker) => set({ picker }),
   siteDialog: null,
   setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,

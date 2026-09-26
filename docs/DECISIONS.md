@@ -946,3 +946,66 @@ Standard numbering, and consultant placeholder sheets.
   - Consultant PDFs merged in place of placeholders.
   - Per-deliverable sheet differences (for example, Permit without the bid forms).
   - Commercial office and retail building types.
+
+## ADR-033 Door families and rendered type pickers — Accepted (2026-09-26)
+Owner request (2026-09-26): "do the same thing for doors that you did for windows… the most
+widely used door types in USA including glass doors", with a picker "like the materials has
+… a rendered thumbnail of the door in a 3D position … to place that door or edit the current
+door if a door is already selected", and the same grid for windows instead of a dropdown.
+Owner approved the file-format change (2026-09-26).
+
+- **Families** (`DoorFamily`): Single Swing, Double Swing, Entry with Sidelites, Sliding
+  Glass Patio (OX, OXO, OXXO), Pocket (single or double), Barn (surface sliding), Bifold,
+  Folding Glass Wall, Storefront (aluminum, single or pair), and Garage (sectional
+  overhead). The variants `SingleFlush` and `DoubleFlush` keep their names for the single
+  and double swing families, so older files open unchanged.
+- **File format:** `DoorType` gains the following fields, all with serde defaults:
+  - `leaf`: Flush, Six-Panel, Shaker, Five-Panel, Craftsman, Full Lite, Half Lite, 15-Lite
+    French, Vision Lite, Louvered or Barn X-Brace;
+  - `panels`: leaves, sidelites or sliding/folding panels, where 0 means the family's
+    default;
+  - `finish`: Painted White, Black or Gray, Stained Oak, Walnut, Clear Aluminum or Dark
+    Bronze; None means the family's default.
+
+  Type properties show Leaf Style, the panel count and Finish.
+- **Layouts** (`studio_core::doors::layout`) break each door into its parts:
+  - jambs (1.5"), casings (3.5" on both faces), and the aluminum or vinyl frames of glass
+    doors;
+  - leaves, with 4.5" stiles, a 9" bottom rail, recessed panels, lites, muntins, louvers
+    and braces;
+  - sliding panels in two tracks, and sidelites with mullions;
+  - the garage door's four sections of raised panels.
+- **Drawings** (`studio_views::doors`):
+  - **Plan:** swings and arcs (unchanged for flush doors), sidelite glass, staggered
+    sliding panels, the pocket dashed in the wall with the leaf half open, the barn leaf on
+    the face with a dashed track, bifold and folding-wall zigzags, and a garage door open
+    overhead, dashed.
+  - **Elevation:** frame, leaves, panels with a bevel line, glass filled, muntins, louvers,
+    X-braces and slide arrows; mirrored when seen from the other side.
+  - **3D:** frame, casing and leaves in the finish (panels recessed, garage panels raised),
+    plus separate glass. As with windows, the glass mesh is the one without a colour.
+  - **IFC:** OperationType follows the family (single or double swing, sliding, folding,
+    swing with fixed panel), USERDEFINED otherwise.
+- **Catalog:** 65 standard US sizes, at 6'-8" and 7'-0" heights (garages 7' and 8').
+  - New projects start with 17, including the original three by name.
+  - Generate with Claude puts an entry with sidelites at entries, a storefront pair at
+    lobbies and retail, and 16' or 9' garage doors at garages, falling back to narrower
+    doors where they don't fit.
+- **The type picker** replaces the Window Library.
+  - **Opens from:** Door and Window, their DR and WN shortcuts, Load Doors and Load Windows,
+    and Properties > Browse Types….
+  - **In This Project:** the project's types as rendered thumbnails.
+  - **Library:** families and sizes as rendered thumbnails, with leaf style, panels, grille
+    and finish options, and a custom size.
+  - **Actions:** Place, Load & Place, or Change Selected when doors or windows are
+    selected.
+  - **How thumbnails are made:** Rust sends the type's triangles in a short piece of wall
+    (`studio_views::thumbs`). three.js draws them with a studio environment and a raking
+    key light that casts soft shadows, one at a time, cached for the session.
+- **Verified:** tests cover layouts (panels inside rails, French muntins, the latch-side
+  vision lite, OXXO tracks, centred entry doors, bifold pairs, garage sections, barn
+  overlaps), names, the catalog, loading, plan symbols per family, elevation glass, 3D
+  casings and faces, thumbnails and the picker flows. Plans, elevations and thumbnails of
+  every starter type were checked by eye.
+- **Not yet:** Dutch and revolving doors, transoms over doors, hardware, fire ratings in the
+  schedule, and choosing the hinge side from the picker.

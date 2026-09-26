@@ -3,6 +3,7 @@
 mod cloud;
 mod commands;
 mod detailing;
+mod door_cmds;
 mod editing;
 mod generate_cmds;
 mod material_cmds;
@@ -128,6 +129,10 @@ pub fn run() -> anyhow::Result<()> {
             sheetset_cmds::sheet_set_plan,
             sheetset_cmds::create_sheet_sets,
             sheetset_cmds::export_sheet_sets,
+            door_cmds::door_library,
+            door_cmds::door_preview,
+            door_cmds::load_door_types,
+            door_cmds::opening_thumbnail,
             window_cmds::window_library,
             window_cmds::window_preview,
             window_cmds::load_window_types,

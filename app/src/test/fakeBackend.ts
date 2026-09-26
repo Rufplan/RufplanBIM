@@ -18,6 +18,8 @@ export interface FakeBackend {
   /** Whether a Claude key is saved, and the last generate inputs. */
   claudeKey: boolean;
   generated: unknown;
+  /** Categories to report for selected ids (anything else is a view). */
+  properties?: Record<string, { category: string }>;
 }
 
 const ids = {
@@ -197,6 +199,50 @@ const spec = (family: string, units: number, w: number, h: number) => ({
   grille: "None",
   finish: "White",
 });
+const door = (family: string, leaf: string, panels: number, w: number, h: number) => ({
+  family,
+  leaf,
+  panels,
+  width: w * 25.4,
+  height: h * 25.4,
+  finish: null,
+});
+/** A few families and sizes of the Door Library (ADR-033). */
+export const DOOR_LIBRARY = {
+  families: [
+    {
+      family: "SingleFlush",
+      label: "Single Swing",
+      description: "One hinged leaf.",
+      leaves: [
+        { id: "Flush", label: "Flush" },
+        { id: "SixPanel", label: "Six-Panel" },
+      ],
+      panels: null,
+      panelsLabel: "",
+      defaultFinish: "PaintedWhite",
+    },
+    {
+      family: "SlidingGlass",
+      label: "Sliding Glass Patio",
+      description: "Sliding glass panels.",
+      leaves: [],
+      panels: [2, 4],
+      panelsLabel: "Panels",
+      defaultFinish: "PaintedWhite",
+    },
+  ],
+  presets: [
+    { spec: door("SingleFlush", "Flush", 0, 36, 84), name: 'Single Flush 36" x 84"' },
+    { spec: door("SingleFlush", "SixPanel", 0, 32, 80), name: 'Single Six-Panel 32" x 80"' },
+    { spec: door("SlidingGlass", "FullLite", 2, 72, 80), name: 'Sliding Glass 72" x 80"' },
+  ],
+  finishes: [
+    { id: "PaintedWhite", label: "Painted White", color: [238, 238, 234] },
+    { id: "Walnut", label: "Walnut", color: [104, 70, 46] },
+  ],
+};
+
 /** A few families and sizes of the Window Library (ADR-031). */
 export const WINDOW_LIBRARY = {
   families: [
@@ -281,7 +327,13 @@ export function installFakeBackend(): FakeBackend {
         case "view_display_list":
           return { viewType: "Plan", scale: 48, bounds: [0, 0, 10000, 8000], items: [] };
         case "properties":
-          return { id: a.id, category: "View", title: "Level 1", typeId: null, properties: [] };
+          return {
+            id: a.id,
+            category: fake.properties?.[a.id as string]?.category ?? "View",
+            title: "Level 1",
+            typeId: null,
+            properties: [],
+          };
         case "handles":
           return { grips: [], dims: [] };
         case "create_camera":
@@ -477,6 +529,27 @@ export function installFakeBackend(): FakeBackend {
           };
         case "window_library":
           return WINDOW_LIBRARY;
+        case "door_library":
+          return DOOR_LIBRARY;
+        case "door_preview": {
+          const s = a.spec as { width: number; height: number; leaf: string };
+          return {
+            name: `Door ${s.leaf} ${Math.round(s.width / 25.4)}"`,
+            preview: thumb(s.width, s.height),
+          };
+        }
+        case "load_door_types": {
+          const specs = a.specs as unknown[];
+          const loaded = specs.map((_, i) => ({
+            id: `00000000-0000-7000-8000-0000000000d${i}`,
+            name: `Loaded door ${i + 1}`,
+          }));
+          if (fake.state)
+            fake.state = { ...fake.state, doorTypes: [...fake.state.doorTypes, ...loaded] };
+          return { state: fake.state, ids: loaded.map((t) => t.id) };
+        }
+        case "opening_thumbnail":
+          return { frame: [], glass: [], wall: [], color: [240, 240, 236] };
         case "window_preview": {
           const s = a.spec as { width: number; height: number; grille: string; finish: string };
           const extra = [s.grille !== "None" && s.grille, s.finish !== "White" && s.finish]

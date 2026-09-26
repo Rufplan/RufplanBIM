@@ -97,6 +97,28 @@ fn partitioning(style: studio_core::windows::WindowStyle) -> String {
     }
 }
 
+/// IfcDoor's OperationType and UserDefinedOperationType for a door family (ADR-033).
+fn door_operation(style: studio_core::doors::DoorStyle, flip_hand: bool) -> String {
+    use studio_core::DoorFamily as F;
+    let side = if flip_hand { "RIGHT" } else { "LEFT" };
+    let known = match (style.family, style.panels) {
+        (F::SingleFlush, _) | (F::Storefront, 1) => format!("SINGLE_SWING_{side}"),
+        (F::DoubleFlush, _) | (F::Storefront, _) => "DOUBLE_DOOR_SINGLE_SWING".into(),
+        (F::Sidelites, 1) => format!("SWING_FIXED_{side}"),
+        (F::SlidingGlass, 2) | (F::Pocket, 1) | (F::Barn, 1) => format!("SLIDING_TO_{side}"),
+        (F::Pocket, _) | (F::Barn, _) => "DOUBLE_DOOR_SLIDING".into(),
+        (F::Bifold, 2) => format!("FOLDING_TO_{side}"),
+        (F::Bifold, _) => "DOUBLE_DOOR_FOLDING".into(),
+        _ => String::new(),
+    };
+    if known.is_empty() {
+        let name = studio_core::doors::info(style.family).label;
+        format!(".USERDEFINED.,{}", s(name))
+    } else {
+        format!(".{known}.,$")
+    }
+}
+
 /// An IFC compound plane angle: (degrees, minutes, seconds, millionths of a second).
 fn compound_angle(deg: f64) -> String {
     let sign = if deg < 0.0 { -1 } else { 1 };
@@ -492,13 +514,11 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             let fill = if is_door {
                 summary.doors += 1;
                 let op = match o.kind {
-                    OpeningKind::Door(studio_core::DoorFamily::DoubleFlush) => {
-                        ".DOUBLE_DOOR_SINGLE_SWING."
-                    }
-                    _ => ".SINGLE_SWING_LEFT.",
+                    OpeningKind::Door(style) => door_operation(style, o.flip_hand),
+                    OpeningKind::Window(_) => ".NOTDEFINED.,$".into(),
                 };
                 w.add(format!(
-                    "IFCDOOR({},$,{},$,{},#{fplace},#{fshape},{},{},{},.DOOR.,{op},$)",
+                    "IFCDOOR({},$,{},$,{},#{fplace},#{fshape},{},{},{},.DOOR.,{op})",
                     s(&ifc_guid(o.id.0)),
                     s(&format!("Door {mark}")),
                     s(&ty),
