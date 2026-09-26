@@ -29,6 +29,7 @@ import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
+import type { ViewportInfo } from "./bindings/ViewportInfo";
 import type { PlansProgress } from "./bindings/PlansProgress";
 import type { PlansResult } from "./bindings/PlansResult";
 import type { RenderMaterial } from "./bindings/RenderMaterial";
@@ -189,6 +190,8 @@ export const ipc = {
   /** A typed length in mm, or null if the text isn't one. */
   parseLength: (text: string) => invoke<number | null>("parse_length", { text }),
   handles: (view: ElementId, ids: ElementId[]) => invoke<Handles>("handles", { view, ids }),
+  /** A viewport's sheet, view and center, to activate it (ADR-039). */
+  viewportInfo: (id: ElementId) => invoke<ViewportInfo | null>("viewport_info", { id }),
   dragHandle: (id: ElementId, key: string, to: Pt): S => invoke("drag_handle", { id, key, to }),
   setTempDimension: (id: ElementId, key: string, value: string): S =>
     invoke("set_temp_dimension", { id, key, value }),

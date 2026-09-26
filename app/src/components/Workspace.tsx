@@ -19,7 +19,12 @@ export function Workspace() {
   const activeView = useAppStore((s) => s.activeView);
   const openView = useAppStore((s) => s.openView);
   const closeView = useAppStore((s) => s.closeView);
-  const view = useAppStore(activeViewInfo);
+  const tabView = useAppStore((s) => s.app?.views.find((v) => v.id === s.activeView) ?? null);
+  const activated = useAppStore((s) =>
+    s.activeViewport && s.activeViewport.sheet === s.activeView ? s.activeViewport : null,
+  );
+  const inner = useAppStore(activeViewInfo);
+  const view = tabView;
   if (!app) return null;
   return (
     <section className="workspace">
@@ -55,6 +60,9 @@ export function Workspace() {
             <View3D key={view.id} view={view} />
           ) : view.viewType === "Schedule" ? (
             <ScheduleView key={view.id} view={view} />
+          ) : activated && inner && inner.id !== view.id ? (
+            // A viewport activated on the sheet: its view, in place (ADR-039).
+            <ViewCanvas key={`act:${activated.viewport}`} view={inner} onSheet={activated} />
           ) : (
             <ViewCanvas key={view.id} view={view} />
           )

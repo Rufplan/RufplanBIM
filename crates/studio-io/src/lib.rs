@@ -269,6 +269,46 @@ mod tests {
     }
 
     #[test]
+    fn viewports_saved_before_title_lengths_still_open() {
+        use studio_core::{ElementData, ElementId};
+        use studio_geom::Pt;
+        // A viewport as files stored it before ADR-039.
+        #[derive(serde::Serialize)]
+        enum Old {
+            Viewport {
+                sheet: ElementId,
+                view: ElementId,
+                center: Pt,
+            },
+        }
+        let (sheet, view) = (ElementId::new(), ElementId::new());
+        let bytes = rmp_serde::to_vec_named(&Old::Viewport {
+            sheet,
+            view,
+            center: Pt::new(1.0, 2.0),
+        })
+        .unwrap();
+        let back: ElementData = rmp_serde::from_slice(&bytes).unwrap();
+        assert!(matches!(
+            back,
+            ElementData::Viewport {
+                title_length: None,
+                ..
+            }
+        ));
+        // And a stretched one keeps its length.
+        let new = ElementData::Viewport {
+            sheet,
+            view,
+            center: Pt::new(1.0, 2.0),
+            title_length: Some(150.0),
+        };
+        let back: ElementData =
+            rmp_serde::from_slice(&rmp_serde::to_vec_named(&new).unwrap()).unwrap();
+        assert_eq!(back, new);
+    }
+
+    #[test]
     fn crate_version_is_set() {
         assert!(!crate_version().is_empty());
     }

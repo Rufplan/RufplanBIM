@@ -43,7 +43,42 @@ pub fn handles(
     state: State<'_, SessionState>,
 ) -> CommandResult<Handles> {
     let session = lock(&state)?;
-    Ok(studio_views::handles(session.doc()?, view, &ids))
+    let doc = session.doc()?;
+    // On a sheet: the ends of selected viewports' title rules (ADR-039).
+    if matches!(doc.data(view), Ok(studio_core::ElementData::Sheet { .. })) {
+        return Ok(studio_sheets::sheet_handles(doc, view, &ids));
+    }
+    Ok(studio_views::handles(doc, view, &ids))
+}
+
+/// A viewport's sheet, view and center (paper mm), for activating it (ADR-039).
+#[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]
+#[ts(export)]
+pub struct ViewportInfo {
+    pub sheet: ElementId,
+    pub view: ElementId,
+    pub center: Pt,
+}
+
+#[tauri::command]
+pub fn viewport_info(
+    id: ElementId,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<ViewportInfo>> {
+    let session = lock(&state)?;
+    Ok(match session.doc()?.data(id) {
+        Ok(studio_core::ElementData::Viewport {
+            sheet,
+            view,
+            center,
+            ..
+        }) => Some(ViewportInfo {
+            sheet: *sheet,
+            view: *view,
+            center: *center,
+        }),
+        _ => None,
+    })
 }
 
 /// Drags a grip (see `handles`) to `to`.
@@ -56,7 +91,13 @@ pub fn drag_handle(
     state: State<'_, SessionState>,
 ) -> StateResult {
     edit_state(&window, &state, |s| {
-        s.edit(|d| edit::drag_handle(d, id, &key, to))
+        s.edit(|d| {
+            if key == "title_end" {
+                studio_sheets::drag_title(d, id, to)
+            } else {
+                edit::drag_handle(d, id, &key, to)
+            }
+        })
     })
 }
 

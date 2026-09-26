@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AppState, CloudStatus, ElementId } from "./ipc";
+import type { AppState, CloudStatus, ElementId, Pt } from "./ipc";
 import type { SnapKind } from "./bindings/SnapKind";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { VisualStyle } from "./render/visualStyle";
@@ -178,6 +178,11 @@ interface UiState {
   error: string | null;
   openViews: ElementId[];
   activeView: ElementId | null;
+  /** A viewport activated on the active sheet (ADR-039): its view is edited in place, at
+   * the sheet's scale, the rest of the sheet shown faded. */
+  activeViewport: ActiveViewport | null;
+  activateViewport: (v: ActiveViewport) => void;
+  deactivateViewport: () => void;
   /** When nothing is selected, the properties panel shows the active view. */
   selection: ElementId[];
   tool: Tool;
@@ -261,6 +266,9 @@ export const useAppStore = create<UiState>((set, get) => ({
   error: null,
   openViews: [],
   activeView: null,
+  activeViewport: null,
+  activateViewport: (activeViewport) => set({ activeViewport, selection: [], tool: "select" }),
+  deactivateViewport: () => set({ activeViewport: null, selection: [], tool: "select" }),
   selection: [],
   tool: "select",
   toolTypes: {
@@ -341,7 +349,7 @@ export const useAppStore = create<UiState>((set, get) => ({
   setApp: (app, fresh = false) => {
     const s = get();
     if (!app) {
-      set({ app: null, openViews: [], activeView: null, selection: [] });
+      set({ app: null, openViews: [], activeView: null, activeViewport: null, selection: [] });
       return;
     }
     const exists = new Set(app.views.map((v) => v.id));
@@ -357,11 +365,14 @@ export const useAppStore = create<UiState>((set, get) => ({
     // Sketch mode follows the model's sketch session (ADR-021).
     const tool: Tool = app.sketch ? "sketch" : s.tool === "sketch" ? "select" : s.tool;
     const curves = app.sketch?.curves.length ?? 0;
+    const vp = s.activeViewport;
     set({
       app,
       error: null,
       openViews,
       activeView,
+      activeViewport:
+        vp && vp.sheet === activeView && exists.has(vp.view) && exists.has(vp.sheet) ? vp : null,
       tool,
       sketchUi: { ...s.sketchUi, sel: s.sketchUi.sel.filter((i) => i < curves) },
       selection: sameProject && !app.sketch ? s.selection : [],
@@ -408,6 +419,8 @@ export const useAppStore = create<UiState>((set, get) => ({
     set((s) => ({
       openViews: s.openViews.includes(id) ? s.openViews : [...s.openViews, id],
       activeView: id,
+      // Another view deactivates the sheet's activated viewport.
+      activeViewport: s.activeViewport?.sheet === id ? s.activeViewport : null,
       selection: [],
       tool: "select",
     })),
@@ -416,7 +429,8 @@ export const useAppStore = create<UiState>((set, get) => ({
       const openViews = s.openViews.filter((v) => v !== id);
       const activeView =
         s.activeView === id ? (openViews[openViews.length - 1] ?? null) : s.activeView;
-      return { openViews, activeView };
+      const activeViewport = s.activeViewport?.sheet === activeView ? s.activeViewport : null;
+      return { openViews, activeView, activeViewport };
     }),
   select: (selection) => set({ selection }),
   // Move, Copy, Rotate, Mirror and Array act on the current selection; other tools start
@@ -438,8 +452,19 @@ export const useAppStore = create<UiState>((set, get) => ({
 }));
 
 /** Info about the active view, if any. */
-export function activeViewInfo(s: UiState) {
-  return s.app?.views.find((v) => v.id === s.activeView) ?? null;
+/** The view being worked in: the active tab's, or the view activated on its sheet. */
+export function activeViewInfo(s: Pick<UiState, "app" | "activeView" | "activeViewport">) {
+  const a = s.activeViewport;
+  const id = a && a.sheet === s.activeView ? a.view : s.activeView;
+  return s.app?.views.find((v) => v.id === id) ?? null;
+}
+
+export interface ActiveViewport {
+  sheet: ElementId;
+  viewport: ElementId;
+  view: ElementId;
+  /** Center on the sheet, paper mm. */
+  center: Pt;
 }
 
 /** A 3D view's visual style (ADR-038). */

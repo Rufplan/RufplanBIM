@@ -15,7 +15,7 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
-import { SELECTION_TOOLS, useAppStore } from "../store";
+import { SELECTION_TOOLS, useAppStore, type ActiveViewport } from "../store";
 import {
   THEME,
   draw,
@@ -49,6 +49,41 @@ import {
 
 // Cameras survive tab switches.
 const cameras = new Map<string, Camera>();
+
+/** View types that can be activated on a sheet and drawn in (ADR-039). */
+const ACTIVATABLE = ["Plan", "CeilingPlan", "Elevation", "Section"];
+
+/** Paper to model for an activated viewport: the view's drawing is centred on the
+ * viewport's center at 1/scale (as `studio_sheets::viewport_items` places it). */
+export function sheetToModelCam(
+  sheet: Camera,
+  center: Pt,
+  bounds: [number, number, number, number],
+  scale: number,
+): Camera {
+  const cx = (bounds[0] + bounds[2]) / 2;
+  const cy = (bounds[1] + bounds[3]) / 2;
+  return {
+    cx: cx + (sheet.cx - center.x) * scale,
+    cy: cy + (sheet.cy - center.y) * scale,
+    zoom: sheet.zoom / scale,
+  };
+}
+
+export function modelToSheetCam(
+  cam: Camera,
+  center: Pt,
+  bounds: [number, number, number, number],
+  scale: number,
+): Camera {
+  const cx = (bounds[0] + bounds[2]) / 2;
+  const cy = (bounds[1] + bounds[3]) / 2;
+  return {
+    cx: center.x + (cam.cx - cx) / scale,
+    cy: center.y + (cam.cy - cy) / scale,
+    zoom: cam.zoom * scale,
+  };
+}
 
 /** Runs async work one at a time, keeping only the most recent pending request. */
 function useLatest<A extends unknown[]>(fn: (...args: A) => Promise<void>) {
@@ -105,7 +140,7 @@ interface Editor {
   key?: string;
 }
 
-export function ViewCanvas({ view }: { view: ViewInfo }) {
+export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: ActiveViewport }) {
   const revision = useAppStore((s) => s.app?.revision ?? 0);
   const tool = useAppStore((s) => s.tool);
   const selection = useAppStore((s) => s.selection);
@@ -114,7 +149,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   const [dl, setDl] = useState<DisplayList | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [editor, setEditor] = useState<Editor | null>(null);
-  const cam = useRef<Camera | null>(cameras.get(view.id) ?? null);
+  // Activated on a sheet, the camera follows the sheet's (below).
+  const cam = useRef<Camera | null>(onSheet ? null : (cameras.get(view.id) ?? null));
+  // The rest of the sheet, drawn faded around an activated view.
+  const [sheetDl, setSheetDl] = useState<DisplayList | null>(null);
   const pts = useRef<Pt[]>([]);
   const snapRef = useRef<SnapResult | null>(null);
   // Placement preview from Rust (door, window, room, offset), drawn at the cursor.
@@ -181,6 +219,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
             return th.isolate ? hit : !hit;
           }
         : undefined;
+      const around =
+        onSheet && sheetDl
+          ? modelToSheetCam(cam.current, onSheet.center, dl.bounds, view.scale)
+          : null;
       draw(ctx, dl, cam.current, w, h, {
         selected: new Set(s.selection),
         hover: hover.current,
@@ -188,17 +230,28 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         hidden: sk?.target ?? null,
         visible,
         thin: s.thinLines,
-        underlay: imagery.current
-          ? (c, S) =>
-              drawImageUnder(
-                c,
-                S,
-                imagery.current!.image,
-                imagery.current!.frame.corners,
-                0.7,
-                "Imagery ©Google",
-              )
-          : undefined,
+        underlay:
+          imagery.current || around
+            ? (c, S) => {
+                // The sheet around an activated view, halftone (ADR-039).
+                if (around && sheetDl)
+                  draw(c, sheetDl, around, w, h, {
+                    selected: new Set(),
+                    hover: null,
+                    faded: true,
+                    thin: s.thinLines,
+                  });
+                if (imagery.current)
+                  drawImageUnder(
+                    c,
+                    S,
+                    imagery.current.image,
+                    imagery.current.frame.corners,
+                    0.7,
+                    "Imagery ©Google",
+                  );
+              }
+            : undefined,
       });
       if (th) drawTempFrame(ctx, w, h);
       const zr = zoomRegion.current;
@@ -291,7 +344,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
         );
       }
     });
-  }, [dl, size, view.viewType, view.id, viewCats]);
+  }, [dl, size, view.viewType, view.id, viewCats, onSheet, sheetDl, view.scale]);
 
   // Categories of drawn elements, when hiding or isolating by category.
   useEffect(() => {
@@ -334,6 +387,22 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   useLayoutEffect(() => {
     redrawRef.current = redraw;
   });
+
+  // Activated on a sheet: the sheet without this viewport, to draw around it.
+  useEffect(() => {
+    if (!onSheet) return;
+    let live = true;
+    ipc.displayList(onSheet.sheet).then(
+      (d) => {
+        if (live && d)
+          setSheetDl({ ...d, items: d.items.filter((i) => i.el !== onSheet.viewport) });
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [onSheet, revision]);
 
   // Fetch the display list whenever the model or view changes.
   useEffect(() => {
@@ -387,11 +456,16 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
     canvas.width = size.w * dpr;
     canvas.height = size.h * dpr;
     if (dl && !cam.current) {
-      cam.current = fit(dl.bounds, size.w, size.h);
-      cameras.set(view.id, cam.current);
+      // Activated on a sheet: where the sheet's camera shows it, so nothing jumps.
+      const sheetCam = onSheet ? cameras.get(onSheet.sheet) : undefined;
+      cam.current =
+        onSheet && sheetCam
+          ? sheetToModelCam(sheetCam, onSheet.center, dl.bounds, view.scale)
+          : fit(dl.bounds, size.w, size.h);
+      if (!onSheet) cameras.set(view.id, cam.current);
     }
     redraw();
-  }, [size, dl, redraw, view.id]);
+  }, [size, dl, redraw, view.id, onSheet, view.scale]);
 
   useEffect(redraw, [selection, redraw]);
 
@@ -434,7 +508,10 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   };
   const setCam = (c: Camera) => {
     cam.current = c;
-    cameras.set(view.id, c);
+    // An activated view pans and zooms the sheet with it.
+    if (onSheet && dl)
+      cameras.set(onSheet.sheet, modelToSheetCam(c, onSheet.center, dl.bounds, view.scale));
+    else cameras.set(view.id, c);
     redraw();
   };
 
@@ -1138,8 +1215,28 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
   async function doubleClick(sx: number, sy: number) {
     const s = useAppStore.getState();
     if (s.tool !== "select" || !cam.current || !s.app) return;
-    const id = await ipc.pick(view.id, modelAt(sx, sy), 6 / cam.current.zoom);
+    const at = modelAt(sx, sy);
+    // Activated on a sheet: double-clicking outside the view finishes, as in Revit.
+    if (onSheet && dl) {
+      const [x0, y0, x1, y1] = dl.bounds;
+      if (at.x < x0 || at.x > x1 || at.y < y0 || at.y > y1) {
+        s.deactivateViewport();
+        return;
+      }
+    }
+    const id = await ipc.pick(view.id, at, 6 / cam.current.zoom);
     if (!id) return;
+    // On a sheet: double-clicking a viewport activates its view to work in (ADR-039).
+    if (view.viewType === "Sheet") {
+      const vp = await ipc.viewportInfo(id).catch(() => null);
+      if (vp) {
+        const inner = s.app.views.find((v) => v.id === vp.view);
+        if (inner && ACTIVATABLE.includes(inner.viewType))
+          s.activateViewport({ sheet: view.id, viewport: id, view: vp.view, center: vp.center });
+        else if (inner) s.openView(inner.id);
+        return;
+      }
+    }
     const asView = s.app.views.find((v) => v.id === id);
     const levelPlan = s.app.views.find((v) => v.level === id && v.viewType === "Plan");
     const target = asView ?? levelPlan;
@@ -1159,6 +1256,19 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       data-tool={tool}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {onSheet && (
+        <div className="activated-banner" role="status">
+          <span>
+            Working in <b>{view.name}</b> on the sheet. Double-click outside the view to finish.
+          </span>
+          <button
+            className="btn-outline"
+            onClick={() => useAppStore.getState().deactivateViewport()}
+          >
+            Deactivate View
+          </button>
+        </div>
+      )}
       <canvas
         ref={canvasRef}
         style={{ width: size.w, height: size.h }}

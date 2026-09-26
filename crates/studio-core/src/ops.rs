@@ -602,6 +602,7 @@ pub fn place_view(
             sheet,
             view,
             center,
+            title_length: None,
         }))
     })
 }

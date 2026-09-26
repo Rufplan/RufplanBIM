@@ -873,6 +873,10 @@ pub enum ElementData {
         sheet: ElementId,
         view: ElementId,
         center: Pt,
+        /// Length of the view title's rule, paper mm, when stretched on the sheet (ADR-039);
+        /// None fits it to the title.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        title_length: Option<f64>,
     },
     RoofType {
         name: String,

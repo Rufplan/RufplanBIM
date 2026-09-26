@@ -7,7 +7,9 @@ pub mod sheet;
 
 pub use pdf::export_pdf;
 pub use schedule::{schedule, Table};
-pub use sheet::{sheet_display_list, sheet_display_list_shared};
+pub use sheet::{
+    drag_title, sheet_display_list, sheet_display_list_shared, sheet_handles, title_line,
+};
 
 /// Version of this crate, from Cargo metadata.
 pub fn crate_version() -> &'static str {
@@ -47,6 +49,43 @@ mod tests {
             .unwrap()
             .id;
         (doc, wall, plan)
+    }
+
+    #[test]
+    fn a_view_title_rule_stretches_and_is_kept() {
+        let (mut doc, _, plan) = project();
+        let sheet = ops::create_sheet(&mut doc, "Floor Plan", SheetSize::ArchD).unwrap();
+        let vp = ops::place_view(&mut doc, sheet, plan, Pt::new(400.0, 300.0)).unwrap();
+        let (a, b) = title_line(&doc, vp).unwrap();
+        // Fitted to the title at first; its grip is at the rule's end.
+        let fitted = b.x - a.x;
+        assert!(
+            fitted > sheet::MIN_TITLE_LENGTH && fitted < 120.0,
+            "{fitted}"
+        );
+        let grips = sheet_handles(&doc, sheet, &[vp]).grips;
+        assert_eq!(grips.len(), 1);
+        assert_eq!(grips[0].key, "title_end");
+        assert!(grips[0].at.dist(b) < 1e-9);
+        // Dragged 150 mm out: the rule is that long on the sheet (and in the PDF).
+        drag_title(&mut doc, vp, Pt::new(a.x + 150.0, a.y + 20.0)).unwrap();
+        let (a2, b2) = title_line(&doc, vp).unwrap();
+        assert!(a2.dist(a) < 1e-9);
+        assert!((b2.x - a2.x - 150.0).abs() < 1e-9);
+        let dl = sheet_display_list(&doc, sheet, "2026-09-26").unwrap();
+        let rule = dl.items.iter().any(|it| {
+            it.el == Some(vp)
+                && matches!(&it.prim, Prim::Line { pts, w: 5, .. } if pts.len() == 2 && (pts[1][0] - pts[0][0] - 150.0).abs() < 1e-6)
+        });
+        assert!(rule, "the heavy rule is 150 mm long");
+        // Never shorter than the least length; undo puts it back.
+        drag_title(&mut doc, vp, Pt::new(a.x - 500.0, a.y)).unwrap();
+        let (a3, b3) = title_line(&doc, vp).unwrap();
+        assert!((b3.x - a3.x - sheet::MIN_TITLE_LENGTH).abs() < 1e-9);
+        doc.undo().unwrap();
+        doc.undo().unwrap();
+        let (a4, b4) = title_line(&doc, vp).unwrap();
+        assert!((b4.x - a4.x - fitted).abs() < 1e-9);
     }
 
     fn schedule_view(doc: &Document, name: &str) -> ElementId {

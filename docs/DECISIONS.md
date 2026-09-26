@@ -1238,3 +1238,41 @@ Owner requests (2026-09-26):
     Colors and Realistic are in the Keyboard Shortcuts dialog without keys, as in Revit.
   - The design's 1–5 keys were left out: digits already start a typed length.
 - **Also moved:** the satellite credit moved right of the pill.
+
+## ADR-039 Activate View on a sheet, stretchable view titles — Accepted (2026-09-26)
+Owner requests (2026-09-26):
+1. "double click within the view in the sheet and be able to access the view and draw in the
+   view similar to how Revit works".
+2. "have the view title line be stretchable … however long you want it on the sheet".
+
+The owner approved the file-format change for (2).
+
+- **Activate View:**
+  - Double-clicking a plan, ceiling plan, elevation or section viewport on a sheet activates
+    it. Double-clicking a schedule or 3D viewport opens its view.
+  - The view is then worked in right there: selection, every drawing and editing tool, its
+    properties and its ribbon.
+  - The view stays where the sheet showed it, at the sheet's scale. The paper-to-model mapping
+    is the one `studio_sheets::viewport_items` places views with.
+  - The rest of the sheet shows in halftone. Panning and zooming move the sheet with the view.
+  - It ends by double-clicking outside the view, with Deactivate View in the banner, or by
+    opening another view.
+  - The sheet's tab stays the active one. `activeViewInfo` gives the activated view, so the
+    ribbon, the tools and the properties follow it.
+  - A `viewport_info` command gives a viewport's sheet, view and center.
+- **Stretchable view titles:**
+  - A selected viewport shows a grip at the end of its title's heavy rule. Dragging it
+    sets the rule's length (`Viewport.title_length`, paper mm, at least 12 mm).
+  - The length applies on the sheet, in its PDF and in issued sets. Undo puts the length back.
+  - Viewports without a length, including every file saved before, keep the rule fitted to
+    the title.
+  - The field is optional in the file (`serde(default)`, skipped when unset).
+- **Verified:**
+  - A headless render of the sample house's A1.0: the activated Level 1 plan sits exactly where
+    the sheet drew it, and the Level 2 plan and title block are faded.
+  - Unit tests cover the camera mapping, the title's grip, stretch, least length and undo, and
+    old viewports reading without the field.
+- **Not yet** (Revit has these):
+  - The activated view's own title hides while it's active.
+  - Moving the title apart from the viewport.
+  - Activate View from the View tab or a right-click.

@@ -195,35 +195,14 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
         FillKind::Paper,
     );
 
-    let mut vps: Vec<(ElementId, ElementId, Pt)> = doc
-        .of(Category::Viewport)
-        .filter_map(|e| match &e.data {
-            ElementData::Viewport {
-                sheet: s,
-                view,
-                center,
-            } if *s == sheet => Some((e.id, *view, *center)),
-            _ => None,
-        })
-        .collect();
-    vps.sort_by_key(|v| v.0);
-    for (i, (vp, view, center)) in vps.iter().enumerate() {
-        let Some((items, _, _, title, scale)) = viewport_items(doc, *vp, *view, *center) else {
+    for (i, (vp, view, center, length)) in viewports_on(doc, sheet).into_iter().enumerate() {
+        let Some((items, _, _, title, scale)) = viewport_items(doc, vp, view, center) else {
             continue;
         };
-        // Titles sit under what is actually drawn (not the view's padded bounds), kept inside
-        // the border.
-        let (lo, _) = extents(&items).unwrap_or((*center, *center));
+        let at = title_at(&items, center, *size);
         b.items.extend(items);
         if !title.is_empty() {
-            view_title(
-                &mut b,
-                Some(*vp),
-                i + 1,
-                &title,
-                &scale,
-                Pt::new(lo.x.max(margins(*size).0 + 4.0), lo.y - 4.0),
-            );
+            view_title(&mut b, Some(vp), i + 1, &title, &scale, at, length);
         }
     }
     // Text notes placed on the sheet itself (e.g. a cover title), in paper mm.
@@ -304,14 +283,129 @@ fn north_arrow(b: &mut Builder, c: Pt, r: f64) {
     );
 }
 
-/// Revit-style view title: number bubble, name above a heavy rule, scale below it.
-fn view_title(b: &mut Builder, el: Option<ElementId>, n: usize, name: &str, scale: &str, at: Pt) {
-    let r = 4.0;
+/// A sheet's viewports in their numbering order: (viewport, view, center, title length).
+fn viewports_on(doc: &Document, sheet: ElementId) -> Vec<(ElementId, ElementId, Pt, Option<f64>)> {
+    let mut vps: Vec<_> = doc
+        .of(Category::Viewport)
+        .filter_map(|e| match &e.data {
+            ElementData::Viewport {
+                sheet: s,
+                view,
+                center,
+                title_length,
+            } if *s == sheet => Some((e.id, *view, *center, *title_length)),
+            _ => None,
+        })
+        .collect();
+    vps.sort_by_key(|v| v.0);
+    vps
+}
+
+/// Where a viewport's title goes: under what is actually drawn (not the view's padded
+/// bounds), kept inside the border.
+fn title_at(items: &[Item], center: Pt, size: SheetSize) -> Pt {
+    let (lo, _) = extents(items).unwrap_or((center, center));
+    Pt::new(lo.x.max(margins(size).0 + 4.0), lo.y - 4.0)
+}
+
+/// Radius of the view title's number bubble, paper mm.
+const TITLE_BUBBLE: f64 = 4.0;
+/// The shortest a title's rule can be stretched to, paper mm.
+pub const MIN_TITLE_LENGTH: f64 = 12.0;
+
+/// The ends of a title's rule for a title at `at`: fitted to the name and scale, or
+/// `length` long when stretched.
+fn title_rule(at: Pt, name: &str, scale: &str, length: Option<f64>) -> (Pt, Pt) {
+    let c = at.add(Pt::new(TITLE_BUBBLE, -TITLE_BUBBLE));
+    let x0 = c.x + TITLE_BUBBLE + 2.0;
+    let len = length
+        .unwrap_or_else(|| approx_width(name, 4.0).max(approx_width(scale, 2.6)) + 6.0)
+        .max(MIN_TITLE_LENGTH);
+    (Pt::new(x0, c.y), Pt::new(x0 + len, c.y))
+}
+
+/// A viewport's title rule on its sheet (paper mm), if it has a title.
+pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
+    let ElementData::Viewport {
+        sheet,
+        view,
+        center,
+        title_length,
+    } = doc.data(viewport).ok()?
+    else {
+        return None;
+    };
+    let ElementData::Sheet { size, .. } = doc.data(*sheet).ok()? else {
+        return None;
+    };
+    let (items, _, _, title, scale) = viewport_items(doc, viewport, *view, *center)?;
+    if title.is_empty() {
+        return None;
+    }
+    Some(title_rule(
+        title_at(&items, *center, *size),
+        &title,
+        &scale,
+        *title_length,
+    ))
+}
+
+/// Grips on a sheet for the selected viewports: the end of each title's rule, to stretch it
+/// (ADR-039).
+pub fn sheet_handles(
+    doc: &Document,
+    sheet: ElementId,
+    ids: &[ElementId],
+) -> studio_views::handles::Handles {
+    let mut out = studio_views::handles::Handles::default();
+    for id in ids {
+        let on_sheet =
+            matches!(doc.data(*id), Ok(ElementData::Viewport { sheet: s, .. }) if *s == sheet);
+        if let (true, Some((a, b))) = (on_sheet, title_line(doc, *id)) {
+            out.grips.push(studio_views::handles::Grip {
+                id: *id,
+                key: "title_end".into(),
+                at: b,
+                anchor: Some(a),
+            });
+        }
+    }
+    out
+}
+
+/// Stretches a viewport's title rule so it ends at `to` (paper mm), as far as
+/// [`MIN_TITLE_LENGTH`].
+pub fn drag_title(doc: &mut Document, viewport: ElementId, to: Pt) -> studio_core::CoreResult<()> {
+    let (a, _) = title_line(doc, viewport)
+        .ok_or_else(|| studio_core::CoreError::Invalid("that view has no title".into()))?;
+    let len = (to.x - a.x).max(MIN_TITLE_LENGTH);
+    doc.transact("Stretch view title", |tx| {
+        tx.modify(viewport, |d| {
+            if let ElementData::Viewport { title_length, .. } = d {
+                *title_length = Some(len);
+            }
+        })
+    })
+}
+
+/// Revit-style view title: number bubble, name above a heavy rule, scale below it. The rule
+/// is fitted to the text unless stretched to `length`.
+fn view_title(
+    b: &mut Builder,
+    el: Option<ElementId>,
+    n: usize,
+    name: &str,
+    scale: &str,
+    at: Pt,
+    length: Option<f64>,
+) {
+    let r = TITLE_BUBBLE;
     let c = at.add(Pt::new(r, -r));
     b.circle(el, c, r, 3, false);
     b.text(el, c, n.to_string(), 3.2, Anchor::Center);
-    let x0 = c.x + r + 2.0;
-    let len = approx_width(name, 4.0).max(approx_width(scale, 2.6)) + 6.0;
+    let (start, end) = title_rule(at, name, scale, length);
+    let x0 = start.x;
+    let len = end.x - start.x;
     b.line(
         el,
         &[Pt::new(x0, c.y), Pt::new(x0 + len, c.y)],

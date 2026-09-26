@@ -6,7 +6,7 @@ import type { NamedItem } from "../bindings/NamedItem";
 import type { Property } from "../bindings/Property";
 import { apply } from "../fileActions";
 import { errorMessage, ipc, type PropertySheet } from "../ipc";
-import { useAppStore, TOOL_LABELS } from "../store";
+import { activeViewInfo, useAppStore, TOOL_LABELS } from "../store";
 
 function TextInput({ prop, onCommit }: { prop: Property; onCommit: (v: string) => void }) {
   const [value, setValue] = useState(prop.value);
@@ -59,7 +59,8 @@ function TypeSelector({
 export function PropertiesPanel() {
   const app = useAppStore((s) => s.app);
   const selection = useAppStore((s) => s.selection);
-  const activeView = useAppStore((s) => s.activeView);
+  // The view worked in (an activated viewport's, on a sheet).
+  const activeView = useAppStore((s) => activeViewInfo(s)?.id ?? null);
   const tool = useAppStore((s) => s.tool);
   const toolTypes = useAppStore((s) => s.toolTypes);
   const setToolType = useAppStore((s) => s.setToolType);

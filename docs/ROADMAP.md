@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Activate View and stretchable view titles (ADR-039): double-click a viewport on a sheet
+  to work in its view in place; drag the end of a view title's line to stretch it.
+
 - Visual styles and clean walls (ADR-038): Wireframe, Hidden Line, Shaded, Consistent Colors
   and Realistic from a pill in the 3D view's lower-left corner; walls show no seams around
   their openings; floors pick the outside of exterior walls.

@@ -93,6 +93,7 @@ pub fn run() -> anyhow::Result<()> {
             editing::parse_length,
             editing::handles,
             editing::drag_handle,
+            editing::viewport_info,
             editing::set_temp_dimension,
             editing::copy_elements,
             editing::rotate_elements,
