@@ -18,6 +18,8 @@ export interface FakeBackend {
   /** Whether a Claude key is saved, and the last generate inputs. */
   claudeKey: boolean;
   generated: unknown;
+  /** The last Plans to 3D inputs. */
+  plans: unknown;
   /** Categories to report for selected ids (anything else is a view). */
   properties?: Record<string, { category: string }>;
 }
@@ -302,6 +304,7 @@ export function installFakeBackend(): FakeBackend {
     applied: [],
     claudeKey: false,
     generated: null,
+    plans: null,
   };
 
   mockIPC(
@@ -461,6 +464,23 @@ export function installFakeBackend(): FakeBackend {
         case "claude_set_key":
           fake.claudeKey = !!(a.key as string).trim();
           return fake.claudeKey;
+        case "plans_to_model":
+          fake.plans = a.inputs;
+          return {
+            state: fake.state,
+            summary: "A cantilevered house over a stream, on three floors.",
+            report: {
+              name: "Fallingwater",
+              levels: 4,
+              walls: 82,
+              doors: 8,
+              windows: 6,
+              rooms: 32,
+              floors: 8,
+              roofs: 1,
+              warnings: ["First Floor: a door at (490, 428) px has no wall near it"],
+            },
+          };
         case "generate_building":
           fake.generated = a.inputs;
           return {

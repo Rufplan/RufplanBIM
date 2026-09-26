@@ -1099,3 +1099,52 @@ Autodesk's cloud translation.
     share one area.
   - Materials and colours.
   - Merging an IFC into an open project.
+
+## ADR-036 Plans to 3D — Accepted (2026-09-26)
+Owner request (2026-09-26): "have a function to create a 3D Model from a set of floor plans you
+input. you can test this with fallingwater". The owner chose images and PDFs as input, which
+approves one new dependency: `pdfjs-dist` (Mozilla, Apache-2.0), loaded on first use.
+
+- **Input:** Architecture > Generate > Plans to 3D.
+  - Up to 12 sheets: JPG/PNG images, or PDF pages drawn with pdf.js.
+  - Each sheet's level name is guessed from the file name ("second floor") and can be edited,
+    with an optional floor elevation.
+  - Notes (scale, heights, materials) and the model (Opus 5.5 or Sonnet 5) are also given.
+- **Images** are sent with their long side at most 1568 px, the size Claude reads, so its pixel
+  coordinates are the image's.
+- **pdf.js worker:** the CSP allows workers from `blob:` only, so the worker's source is
+  bundled as text (`?raw`) and started from a Blob.
+- **The reading** (`plans_to_model`, tool `read_plans`, streamed like ADR-030 with
+  progress). For each sheet, Claude returns:
+  - the level, elevation and wall height;
+  - the scale as `pixelsPerFoot` (from the scale bar, a dimension, or a known size);
+  - an anchor point (pixel and feet) on a feature shared by every floor, so the floors stack;
+  - wall centerlines with thickness and exterior/interior;
+  - doors and windows (point, width, height, sill, kind);
+  - room names at points, and slab outlines.
+- **The build** (`studio_core::plans::build`) happens in one undo step:
+  - Pixels become feet by the sheet's scale and anchor.
+  - Walls are cleaned: squared within 3°, ends snapped within 9", and T joints closed.
+  - Levels are made per sheet, plus a Roof level, and the model is centred.
+  - Wall types are made by thickness and function.
+  - Each opening is hosted in the nearest wall, searched in this order:
+    1. a wall it lies along, within 3 ft;
+    2. a gap between two lined-up wall ends, closed with a wall like its neighbour's (Claude
+       often traces doorways as gaps);
+    3. a wall end nearby.
+  - Door and window types come from the ADR-031/033 catalogs, matched by kind and size.
+  - Slabs become floors, as read, else the walls' outline.
+  - Rooms are placed by point and named.
+  - A roof goes over the top floor.
+- **Verified** on the Historic American Buildings Survey drawings of Fallingwater (Library of
+  Congress, public domain), sent as four plan sheets:
+  - Opus read them in 77 s: 4 levels, 82 walls, 32 rooms, 8 floors and a roof.
+  - The first read placed 5 doors; with gap closing, 8 doors and 6 windows.
+  - The 4 doors not placed sit on terraces with no wall within 3 ft; each is reported.
+  - The plans and 3D were checked by eye: the living room, kitchen, terraces, loggia and bridge
+    are where they belong. The scale read (8.9 px/ft) matches a 34x44 sheet at 1/4".
+- **Not yet:**
+  - Curved walls, stairs, and sloped roofs read from the plans.
+  - Sections and elevations as input, for heights.
+  - Reading at more than 1568 px by tiling large sheets.
+  - A trace overlay to correct Claude's reading before building.

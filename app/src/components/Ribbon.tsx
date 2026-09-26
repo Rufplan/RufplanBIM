@@ -199,6 +199,15 @@ export function Ribbon() {
                 {Icons.sparkle}
                 <span>Generate</span>
               </button>
+              <button
+                className="rb-btn rb-claude"
+                onClick={() => setUi({ viewDialog: "plans" })}
+                disabled={!app}
+                title="Plans to 3D: give floor plans (images or a PDF) and Claude traces them into a model"
+              >
+                {Icons.plans}
+                <span>Plans to 3D</span>
+              </button>
             </Group>
             <Group title="Build">
               <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />

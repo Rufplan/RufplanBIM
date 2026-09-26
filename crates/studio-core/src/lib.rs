@@ -16,6 +16,7 @@ pub mod modify;
 pub mod ops;
 pub mod paint;
 pub mod params;
+pub mod plans;
 pub mod site;
 pub mod sketch;
 pub mod structure;

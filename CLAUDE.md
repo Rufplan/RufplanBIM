@@ -131,6 +131,9 @@ Read these before writing code:
   Windows opens the Window Library.
 - Door families (ADR-033): studio-core `doors`, studio-views `doors` and `thumbs`; the
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
+- Plans to 3D (ADR-036): studio-core `plans` (tracing to model) and app `plans_cmds`; pdf.js
+  (`pdfjs-dist`, blob worker) reads PDF pages. Live check: `PLANS_IN=inputs.json
+  PLANS_OUT=reading.json cargo test -p rufplan-studio live_plans -- --ignored` (uses API credit).
 - IFC import (ADR-035): studio-io `step` (STEP reader) and `ifc_import`; File > Open IFC.
   Dev aid: `IFC_IN=file.ifc cargo test -p studio-io import_file -- --ignored --nocapture`.
 - Paint (ADR-034): studio-core `paint` (per-element material as the `rufplan.paint`

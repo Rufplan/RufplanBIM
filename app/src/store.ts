@@ -207,7 +207,8 @@ interface UiState {
   visualStyle: "shaded" | "hiddenLine" | "wireframe";
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
-  viewDialog: "keyboard" | "visibility" | "render" | "materials" | "generate" | "sheetSets" | null;
+  viewDialog:
+    "keyboard" | "visibility" | "render" | "materials" | "generate" | "plans" | "sheetSets" | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
   picker: { category: PickerCategory; tab: "project" | "library"; change: ElementId[] } | null;

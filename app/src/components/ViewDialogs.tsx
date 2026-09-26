@@ -11,6 +11,7 @@ import {
 } from "../shortcuts";
 import { activeViewInfo, useAppStore } from "../store";
 import { GenerateDialog } from "./GenerateDialog";
+import { PlansDialog } from "./PlansDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
 import { SheetSetsDialog } from "./SheetSetsDialog";
@@ -34,6 +35,7 @@ export function ViewDialogs() {
   if (which === "render") return <RenderDialog onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "generate") return <GenerateDialog onClose={close} />;
+  if (which === "plans") return <PlansDialog onClose={close} />;
   if (which === "sheetSets") return <SheetSetsDialog onClose={close} />;
   return null;
 }

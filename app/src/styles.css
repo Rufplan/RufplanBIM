@@ -1962,3 +1962,43 @@ button:disabled {
   padding: 10px 20px 14px;
   border-top: 1px solid var(--border);
 }
+
+/* Plans to 3D (ADR-036). */
+.plans-sheets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0;
+}
+.plans-sheet {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line, #d8dde3);
+  border-radius: 6px;
+  padding: 6px;
+}
+.plans-sheet img {
+  width: 120px;
+  height: 84px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--line, #d8dde3);
+}
+.plans-sheet .grow {
+  flex: 1;
+}
+.plans-drop {
+  border: 1.5px dashed var(--line, #c4ccd4);
+  border-radius: 6px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+.plans-drop.over {
+  border-color: var(--cyan, #1fb6c9);
+  background: rgba(31, 182, 201, 0.06);
+}
+.plans-drop input {
+  display: none;
+}

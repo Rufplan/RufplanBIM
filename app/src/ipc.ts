@@ -28,6 +28,9 @@ import type { ThumbSource } from "./bindings/ThumbSource";
 import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { GenerateResult } from "./bindings/GenerateResult";
+import type { PlansInputs } from "./bindings/PlansInputs";
+import type { PlansProgress } from "./bindings/PlansProgress";
+import type { PlansResult } from "./bindings/PlansResult";
 import type { RenderMaterial } from "./bindings/RenderMaterial";
 import type { TextureMap } from "./bindings/TextureMap";
 import type { SunPosition } from "./bindings/SunPosition";
@@ -310,6 +313,8 @@ export const ipc = {
   claudeSetKey: (key: string) => invoke<boolean>("claude_set_key", { key }),
   generateBuilding: (inputs: GenerateInputs) =>
     invoke<GenerateResult>("generate_building", { inputs }),
+  /** Plans to 3D (ADR-036): Claude reads plan sheets; the model is built from them. */
+  plansToModel: (inputs: PlansInputs) => invoke<PlansResult>("plans_to_model", { inputs }),
   /** Opens an IFC file (from Revit…) as a new project (ADR-035). */
   projectImportIfc: (path: string) => invoke<IfcImported>("project_import_ifc", { path }),
   // Sheet sets (ADR-032).
@@ -371,6 +376,9 @@ export const ipc = {
   /** Generate with Claude: planning and building progress. */
   onGenerateProgress: (handler: (p: GenerateProgress) => void): Promise<UnlistenFn> =>
     listen<GenerateProgress>("generate-progress", (event) => handler(event.payload)),
+  /** Plans to 3D: reading and building progress. */
+  onPlansProgress: (handler: (p: PlansProgress) => void): Promise<UnlistenFn> =>
+    listen<PlansProgress>("plans-progress", (event) => handler(event.payload)),
   /** Get Topography's progress: USGS batches done, of how many. */
   onTopoProgress: (handler: (done: number, total: number) => void): Promise<UnlistenFn> =>
     listen<[number, number]>("topo-progress", (event) => handler(...event.payload)),

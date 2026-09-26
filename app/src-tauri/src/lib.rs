@@ -8,6 +8,7 @@ mod editing;
 mod generate_cmds;
 mod material_cmds;
 mod menu;
+mod plans_cmds;
 mod render_cmds;
 mod session;
 mod sheetset_cmds;
@@ -135,6 +136,7 @@ pub fn run() -> anyhow::Result<()> {
             door_cmds::door_preview,
             door_cmds::load_door_types,
             door_cmds::opening_thumbnail,
+            plans_cmds::plans_to_model,
             window_cmds::window_library,
             window_cmds::window_preview,
             window_cmds::load_window_types,

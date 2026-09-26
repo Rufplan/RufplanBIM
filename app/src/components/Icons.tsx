@@ -202,6 +202,13 @@ export const Icons = {
       <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
     </I>
   ),
+  plans: (
+    <I>
+      <path d="M3 17l9 4 9-4" />
+      <path d="M3 12l9 4 9-4" />
+      <path d="M3 7l9-4 9 4-9 4z" />
+    </I>
+  ),
   paint: (
     <I>
       <rect x="4" y="3" width="14" height="6" rx="1" />

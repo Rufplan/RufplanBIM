@@ -16,7 +16,7 @@ use crate::site_cmds::{get, put};
 
 type CommandResult<T> = Result<T, CommandError>;
 
-const CLAUDE_KEY: &str = "anthropic-api-key";
+pub(crate) const CLAUDE_KEY: &str = "anthropic-api-key";
 
 #[tauri::command]
 pub fn claude_key_set() -> bool {
