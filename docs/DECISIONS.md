@@ -1267,6 +1267,9 @@ The owner approved the file-format change for (2).
   - Viewports without a length, including every file saved before, keep the rule fitted to
     the title.
   - The field is optional in the file (`serde(default)`, skipped when unset).
+  - Dragging the grip stretches the rule left and right only. With Shift held, the drag moves
+    the whole title (bubble, name, rule) freely and keeps its length. That position is
+    `Viewport.title_offset`, paper mm from its place under the view, also optional.
 - **Verified:**
   - A headless render of the sample house's A1.0: the activated Level 1 plan sits exactly where
     the sheet drew it, and the Level 2 plan and title block are faded.
@@ -1274,5 +1277,4 @@ The owner approved the file-format change for (2).
     old viewports reading without the field.
 - **Not yet** (Revit has these):
   - The activated view's own title hides while it's active.
-  - Moving the title apart from the viewport.
   - Activate View from the View tab or a right-click.
