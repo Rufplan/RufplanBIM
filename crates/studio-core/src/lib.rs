@@ -19,6 +19,7 @@ pub mod sketch;
 pub mod structure;
 pub mod units;
 pub mod visibility;
+pub mod windows;
 
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};
 pub use element::{

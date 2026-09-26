@@ -3,6 +3,7 @@ import type { MaterialSpec } from "./MaterialSpec";
 import type { RoofKind } from "./RoofKind";
 import type { StorySpec } from "./StorySpec";
 import type { Structure } from "./Structure";
+import type { WindowChoice } from "./WindowChoice";
 
 /**
  * A building as Claude plans it.
@@ -15,4 +16,4 @@ summary: string, stories: Array<StorySpec>, roof: RoofKind,
 /**
  * Roof pitch, rise per 12 (hip and gable).
  */
-pitch: number, structure: Structure, materials: MaterialSpec, };
+pitch: number, structure: Structure, materials: MaterialSpec, windows: WindowChoice, };

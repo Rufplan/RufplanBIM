@@ -126,9 +126,12 @@ Read these before writing code:
 - Generate with Claude (ADR-030): Architecture > Generate; studio-core `generate` builds a
   model from a room plan; studio-sync `claude` streams the Messages API (key in the OS
   credential store).
+- Window families (ADR-031): studio-core `windows` (families, layouts, catalog, load),
+  studio-views `windows` (plan, elevation, 3D parts, thumbnails); Architecture > Load
+  Windows opens the Window Library.
 - V-Ray-style lighting and photo backgrounds (ADR-028): Preetham sun & sky, Poly Haven CC0
   panoramas in app/public/backgrounds, ground projection, transparent PNG export.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-25
+- Last updated: 2026-09-26

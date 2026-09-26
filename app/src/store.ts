@@ -202,7 +202,7 @@ interface UiState {
   visualStyle: "shaded" | "hiddenLine" | "wireframe";
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
-  viewDialog: "keyboard" | "visibility" | "render" | "materials" | "generate" | null;
+  viewDialog: "keyboard" | "visibility" | "render" | "materials" | "generate" | "windows" | null;
   setUi: (
     patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
   ) => void;
@@ -351,7 +351,15 @@ export const useAppStore = create<UiState>((set, get) => ({
           ),
           s.toolTypes.door,
         ),
-        window: firstId(app.windowTypes, s.toolTypes.window),
+        // A 3'-0" x 5'-0" double-hung is the everyday default (ADR-031).
+        window: firstId(
+          [...app.windowTypes].sort(
+            (a, b) =>
+              Number(!a.name.startsWith('Double Hung 36" x 60"')) -
+              Number(!b.name.startsWith('Double Hung 36" x 60"')),
+          ),
+          s.toolTypes.window,
+        ),
         roof: firstId(app.roofTypes, s.toolTypes.roof),
         // Structural columns and steel beams are the everyday defaults.
         column: firstId(

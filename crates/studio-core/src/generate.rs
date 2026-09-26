@@ -147,6 +147,20 @@ pub struct MaterialSpec {
     pub roof: Option<String>,
 }
 
+/// The building's windows (ADR-031): a family for bedrooms, kitchens and offices (living
+/// spaces and units take its twin), with a grille and frame finish.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct WindowChoice {
+    #[serde(default)]
+    pub family: Option<crate::element::WindowFamily>,
+    #[serde(default)]
+    pub grille: crate::windows::Grille,
+    #[serde(default)]
+    pub finish: crate::windows::FrameFinish,
+}
+
 /// A building as Claude plans it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -166,6 +180,8 @@ pub struct BuildingSpec {
     pub structure: Structure,
     #[serde(default)]
     pub materials: MaterialSpec,
+    #[serde(default)]
+    pub windows: WindowChoice,
 }
 
 fn default_pitch() -> f64 {
@@ -456,6 +472,49 @@ pub fn build(doc: &mut Document, spec: &BuildingSpec) -> CoreResult<BuildReport>
     }
 }
 
+/// Loads the building's window types from the library: its family at about 3'-0" x
+/// 5'-0" for punched openings, a twin (or about 6'-0" wide) for living spaces, and 6'-0"
+/// storefront, all in the chosen grille and finish.
+fn window_types(doc: &mut Document, choice: WindowChoice) -> CoreResult<[ElementId; 3]> {
+    use crate::element::WindowFamily as F;
+    use crate::windows::{info, WindowSpec, CATALOG};
+    let family = choice
+        .family
+        .filter(|f| !matches!(f, F::Bay | F::Storefront))
+        .unwrap_or(F::DoubleHung);
+    let near = |f: F, units: u32, w: f64, h: f64| {
+        CATALOG
+            .iter()
+            .filter(|p| p.family == f && p.units == units)
+            .min_by(|a, b| {
+                let d = |p: &crate::windows::Preset| (p.width - w).abs() + (p.height - h).abs();
+                d(a).total_cmp(&d(b))
+            })
+            .copied()
+    };
+    let punched = near(family, 1, 36.0, 60.0);
+    let large = info(family)
+        .mullable
+        .then(|| near(family, 2, 72.0, 60.0))
+        .flatten()
+        .or_else(|| near(family, 1, 72.0, 60.0));
+    let store = near(F::Storefront, 1, 72.0, 96.0);
+    let specs: Vec<WindowSpec> = [punched, large, store]
+        .into_iter()
+        .flatten()
+        .map(|p| {
+            let mut s: WindowSpec = p.into();
+            s.grille = choice.grille;
+            s.finish = choice.finish;
+            s
+        })
+        .collect();
+    match crate::windows::load(doc, &specs)?[..] {
+        [a, b, c] => Ok([a, b, c]),
+        _ => Err(CoreError::Invalid("no window sizes for that family".into())),
+    }
+}
+
 fn build_steps(
     doc: &mut Document,
     spec: &BuildingSpec,
@@ -560,9 +619,7 @@ fn build_steps(
     let door_wide = type_named(doc, Category::DoorType, &["36"]);
     let door_narrow = type_named(doc, Category::DoorType, &["30"]);
     let door_double = type_named(doc, Category::DoorType, &["double"]);
-    let win_punched = type_named(doc, Category::WindowType, &["casement"]);
-    let win_large = type_named(doc, Category::WindowType, &["48"]);
-    let win_store = type_named(doc, Category::WindowType, &["72"]);
+    let [win_punched, win_large, win_store] = window_types(doc, spec.windows)?.map(Some);
     let slab = type_named(doc, Category::FloorType, &["slab"]);
     let joist = type_named(doc, Category::FloorType, &["joist"]);
     let roof_type = crate::ops::first_of(doc, Category::RoofType);
@@ -1109,6 +1166,11 @@ mod tests {
                 floors: Some("wood-white-oak-floor".into()),
                 interior_walls: None,
             },
+            windows: WindowChoice {
+                family: Some(crate::element::WindowFamily::DoubleHung),
+                grille: crate::windows::Grille::Colonial,
+                finish: crate::windows::FrameFinish::White,
+            },
         }
     }
 
@@ -1265,6 +1327,7 @@ mod tests {
             pitch: 5.0,
             structure: Structure::Wood,
             materials: MaterialSpec::default(),
+            windows: WindowChoice::default(),
         }
     }
 

@@ -158,6 +158,90 @@ export const LIBRARY = [
   },
 ];
 
+const thumb = (w: number, h: number) => ({
+  width: w,
+  height: h,
+  lines: [
+    {
+      pts: [
+        [0, 0],
+        [w, 0],
+        [w, h],
+        [0, h],
+      ],
+      closed: true,
+      dashed: false,
+      w: 2,
+      glass: false,
+    },
+    {
+      pts: [
+        [50, 50],
+        [w - 50, 50],
+        [w - 50, h - 50],
+        [50, h - 50],
+      ],
+      closed: true,
+      dashed: false,
+      w: 1,
+      glass: true,
+    },
+  ],
+});
+const spec = (family: string, units: number, w: number, h: number) => ({
+  family,
+  units,
+  width: w * 25.4,
+  height: h * 25.4,
+  sill: (84 - h) * 25.4,
+  grille: "None",
+  finish: "White",
+});
+/** A few families and sizes of the Window Library (ADR-031). */
+export const WINDOW_LIBRARY = {
+  families: [
+    {
+      family: "DoubleHung",
+      label: "Double-Hung",
+      description: "Two sashes that both slide.",
+      mullable: true,
+      grilles: true,
+    },
+    {
+      family: "Casement",
+      label: "Casement",
+      description: "A side-hinged sash.",
+      mullable: true,
+      grilles: true,
+    },
+    {
+      family: "Storefront",
+      label: "Storefront",
+      description: "Aluminum-framed glazing.",
+      mullable: false,
+      grilles: false,
+    },
+  ],
+  presets: [
+    {
+      spec: spec("DoubleHung", 1, 30, 60),
+      name: 'Double Hung 30" x 60"',
+      preview: thumb(762, 1524),
+    },
+    {
+      spec: spec("DoubleHung", 1, 36, 60),
+      name: 'Double Hung 36" x 60"',
+      preview: thumb(914, 1524),
+    },
+    { spec: spec("Casement", 1, 24, 48), name: 'Casement 24" x 48"', preview: thumb(610, 1219) },
+  ],
+  grilles: ["None", "Colonial", "Prairie", "Craftsman"].map((id) => ({ id, label: id })),
+  finishes: [
+    { id: "White", label: "White", color: [240, 240, 236] },
+    { id: "Black", label: "Black", color: [34, 34, 34] },
+  ],
+};
+
 /** Installs an in-memory stand-in for the Rust commands and dialog plugin. */
 export function installFakeBackend(): FakeBackend {
   const fake: FakeBackend = {
@@ -323,6 +407,28 @@ export function installFakeBackend(): FakeBackend {
           };
         case "material_library":
           return LIBRARY;
+        case "window_library":
+          return WINDOW_LIBRARY;
+        case "window_preview": {
+          const s = a.spec as { width: number; height: number; grille: string; finish: string };
+          const extra = [s.grille !== "None" && s.grille, s.finish !== "White" && s.finish]
+            .filter(Boolean)
+            .join(", ");
+          return {
+            name: `Window ${Math.round(s.width / 25.4)}" x ${Math.round(s.height / 25.4)}"${extra ? ` - ${extra}` : ""}`,
+            preview: thumb(s.width, s.height),
+          };
+        }
+        case "load_window_types": {
+          const specs = a.specs as unknown[];
+          const loaded = specs.map((_, i) => ({
+            id: `00000000-0000-7000-8000-0000000000b${i}`,
+            name: `Loaded window ${i + 1}`,
+          }));
+          if (fake.state)
+            fake.state = { ...fake.state, windowTypes: [...fake.state.windowTypes, ...loaded] };
+          return { state: fake.state, ids: loaded.map((t) => t.id) };
+        }
         case "render_materials":
           return (fake.state?.materials ?? []).map((m) => ({
             id: m.id,

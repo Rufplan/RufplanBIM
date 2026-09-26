@@ -74,6 +74,11 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   it is built as a model (levels, walls, doors, windows, stairs, floors, roof, rooms,
   materials) in one undoable step.
 
+- Window families (ADR-031): 12 common US window families (double- and single-hung,
+  casement, awning, hopper, sliders, fixed and transom, picture combinations, bay,
+  storefront) with mulled units, grilles and frame finishes, drawn by family in plan,
+  elevation and 3D; a Window Library of 77 standard sizes (or a custom size) to load.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

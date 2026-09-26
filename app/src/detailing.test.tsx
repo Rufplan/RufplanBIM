@@ -81,7 +81,9 @@ describe("detailing, materials and the section box (ADR-020)", () => {
   it("3D colors come from materials, except glass and ceilings", () => {
     const m = { el: "x", category: "Wall", exterior: true, positions: [], color: [168, 82, 60] };
     expect(meshColor(m as never)).toBe(0xa8523c);
-    expect(meshColor({ ...m, category: "Window" } as never)).toBe(0x9fe3f7);
+    // Glass has no colour; a window's frame mesh takes its finish (ADR-031).
+    expect(meshColor({ ...m, category: "Window", color: null } as never)).toBe(0x9fe3f7);
+    expect(meshColor({ ...m, category: "Window" } as never)).toBe(0xa8523c);
     expect(meshColor({ ...m, color: null } as never)).toBe(0xe9e7e2);
   });
 });

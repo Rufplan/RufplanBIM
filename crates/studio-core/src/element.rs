@@ -476,12 +476,26 @@ pub enum DoorFamily {
     DoubleFlush,
 }
 
-/// Built-in window families.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+/// Built-in window families: the common US window types (ADR-031, see `windows`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum WindowFamily {
     Fixed,
     Casement,
+    DoubleHung,
+    SingleHung,
+    Awning,
+    Hopper,
+    Slider,
+    Slider3,
+    PictureCasement,
+    PictureAwning,
+    Bay,
+    Storefront,
+}
+
+fn one() -> u32 {
+    1
 }
 
 /// What sets the top of a wall.
@@ -765,6 +779,13 @@ pub enum ElementData {
         height: f64,
         /// Default sill height for new instances, mm above the host wall's base.
         sill: f64,
+        /// Units mulled side by side (ADR-031).
+        #[serde(default = "one")]
+        units: u32,
+        #[serde(default)]
+        grille: crate::windows::Grille,
+        #[serde(default)]
+        finish: crate::windows::FrameFinish,
     },
     Window {
         type_id: ElementId,

@@ -205,6 +205,15 @@ export function Ribbon() {
               <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
               <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
               <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "windows" })}
+                disabled={!app}
+                title="Window Library: load double-hung, casement, slider, bay, storefront and other US window types at standard or custom sizes"
+              >
+                {Icons.window}
+                <span>Load Windows</span>
+              </button>
               {sketchButton("Floor", "Floor", Icons.floorAuto, "SB")}
               <ToolButton
                 tool="ceilingAuto"

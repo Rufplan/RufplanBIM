@@ -54,7 +54,8 @@ function categoryColor(m: Mesh): number {
 
 /** Shaded color: the element's material (ADR-020) when it has one, else by category. */
 export function meshColor(m: Mesh): number {
-  if (m.color && m.category !== "Window" && m.category !== "Ceiling") {
+  // A window's frame mesh carries its finish colour; its glass has none (ADR-031).
+  if (m.color && m.category !== "Ceiling") {
     const [r, g, b] = m.color;
     return (r << 16) | (g << 8) | b;
   }
@@ -62,11 +63,12 @@ export function meshColor(m: Mesh): number {
 }
 
 function material(m: Mesh, planes: THREE.Plane[]) {
-  const seeThrough = m.category === "Ceiling" || m.category === "Window";
+  const glass = m.category === "Window" && !m.color;
+  const seeThrough = m.category === "Ceiling" || glass;
   return new THREE.MeshLambertMaterial({
     color: meshColor(m),
     transparent: seeThrough,
-    opacity: m.category === "Ceiling" ? 0.55 : m.category === "Window" ? 0.45 : 1,
+    opacity: m.category === "Ceiling" ? 0.55 : glass ? 0.45 : 1,
     polygonOffset: true,
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1,

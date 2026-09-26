@@ -16,9 +16,9 @@ pub mod takeoff;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+pub use studio_core::windows::WindowStyle;
 use studio_core::{
     Category, Document, DoorFamily, ElementData, ElementId, SlabBound, WallFunction, WallTop,
-    WindowFamily,
 };
 pub use studio_core::{CutPattern, SurfacePattern};
 use studio_geom::{clip_half_plane, line_intersection, union_all, Poly, Prism, Pt};
@@ -120,11 +120,11 @@ impl WallSolid {
     }
 }
 
-/// What kind of opening, with its family.
+/// What kind of opening, with its family (and a window's grille, units and finish).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpeningKind {
     Door(DoorFamily),
-    Window(WindowFamily),
+    Window(WindowStyle),
 }
 
 /// A door or window resolved against its host wall. Lengths in mm; `t0`/`t1` are distances
@@ -975,10 +975,12 @@ fn resolve_openings(doc: &Document, walls: &[WallSolid]) -> Vec<OpeningSolid> {
                 },
                 Some(ElementData::DoorType { family, .. }),
             ) => (OpeningKind::Door(*family), *flip_hand, *flip_facing),
-            (
-                ElementData::Window { flip_facing, .. },
-                Some(ElementData::WindowType { family, .. }),
-            ) => (OpeningKind::Window(*family), false, *flip_facing),
+            (ElementData::Window { flip_facing, .. }, Some(t @ ElementData::WindowType { .. })) => {
+                match WindowStyle::of(t) {
+                    Some(style) => (OpeningKind::Window(style), false, *flip_facing),
+                    None => continue,
+                }
+            }
             _ => continue,
         };
         out.push(OpeningSolid {

@@ -7,8 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use studio_core::units::{format_area_sf, format_ft_in, MM_PER_IN};
+use studio_core::DoorFamily;
 use studio_core::{Category, CropBox, Document, ElementData, ElementId, ViewKind};
-use studio_core::{DoorFamily, WindowFamily};
 use studio_geom::{point_in_ring, project_to_segment, Pt};
 use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
@@ -17,6 +17,7 @@ pub mod handles;
 mod plan_parts;
 pub mod site_plan;
 pub mod snap;
+pub mod windows;
 pub use handles::{
     align_delta, handles, offset_preview, ref_line, Grip, Handles, OffsetPreview, RefLine, TempDim,
 };
@@ -856,36 +857,7 @@ fn opening_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSolid) {
                 b.line(el, &arc(hf, r, a0, sweep), false, 1, Dash::Solid);
             }
         }
-        OpeningKind::Window(family) => {
-            for off in [h, -h] {
-                b.line(
-                    el,
-                    &[j0.add(n.scale(off)), j1.add(n.scale(off))],
-                    false,
-                    1,
-                    Dash::Solid,
-                );
-            }
-            let g = h * 0.22;
-            for off in [g, -g] {
-                b.line(
-                    el,
-                    &[j0.add(n.scale(off)), j1.add(n.scale(off))],
-                    false,
-                    2,
-                    Dash::Solid,
-                );
-            }
-            if family == WindowFamily::Casement {
-                // Sash swing indicator, outward.
-                let s = if o.flip_facing { -1.0 } else { 1.0 };
-                let out = n.scale(s);
-                let tip = j0
-                    .add(out.scale(h + o.width() * 0.35))
-                    .add(d.scale(o.width() * 0.2));
-                b.line(el, &[j0.add(out.scale(h)), tip], false, 1, Dash::Dashed);
-            }
-        }
+        OpeningKind::Window(style) => windows::plan_symbol(b, el, o, style),
     }
 }
 
@@ -1509,7 +1481,8 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         near: f64,
         mid: f64,
         fill: FillKind,
-        detail: Option<OpeningKind>,
+        /// An opening's family, and whether it's seen from inside (mirrored).
+        detail: Option<(OpeningKind, bool)>,
         /// A sloped face's outline in (u, z); rectangles leave this empty.
         poly: Option<Vec<Pt>>,
         /// Surface pattern lines in (u, z), drawn with the face (ADR-020).
@@ -1612,7 +1585,7 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
         // Drawn just after its host wall so the host's pieces frame it.
         f.near = host_near - 0.5;
         f.mid = f.near;
-        f.detail = Some(o.kind);
+        f.detail = Some((o.kind, windows::Axes::of(o).ax.dot(right) < 0.0));
         faces.push(f);
     }
     for (slabs, fill) in [
@@ -1857,8 +1830,8 @@ fn projected(model: &Model, b: &mut Builder, look: Pt, cut: Option<&Cut>) -> [f6
             b.line(Some(f.el), seg, false, 1, Dash::Solid);
         }
         b.line(Some(f.el), &r, true, 2, Dash::Solid);
-        if let Some(kind) = f.detail {
-            opening_elevation_detail(b, f.el, kind, f.u0, f.u1, f.z0, f.z1);
+        if let Some((kind, mirrored)) = f.detail {
+            opening_elevation_detail(b, f.el, kind, (f.u0, f.u1, f.z0, f.z1), mirrored);
         }
     }
     // The ground a section cuts, under the building's cut material.
@@ -2233,11 +2206,13 @@ fn opening_elevation_detail(
     b: &mut Builder,
     el: ElementId,
     kind: OpeningKind,
-    u0: f64,
-    u1: f64,
-    z0: f64,
-    z1: f64,
+    (u0, u1, z0, z1): (f64, f64, f64, f64),
+    mirrored: bool,
 ) {
+    if let OpeningKind::Window(style) = kind {
+        windows::elevation_detail(b, el, style, (u0, u1, z0, z1), mirrored);
+        return;
+    }
     let el = Some(el);
     let frame = 2.0 * MM_PER_IN;
     match kind {
@@ -2260,30 +2235,7 @@ fn opening_elevation_detail(
             ];
             b.line(el, &r, false, 1, Dash::Solid);
         }
-        OpeningKind::Window(family) => {
-            let r = [
-                Pt::new(u0 + frame, z0 + frame),
-                Pt::new(u1 - frame, z0 + frame),
-                Pt::new(u1 - frame, z1 - frame),
-                Pt::new(u0 + frame, z1 - frame),
-            ];
-            b.line(el, &r, true, 1, Dash::Solid);
-            if family == WindowFamily::Casement {
-                // Swing indicator: hinge on the left, point to the right side's midpoint.
-                let tip = Pt::new(u1 - frame, (z0 + z1) / 2.0);
-                b.line(
-                    el,
-                    &[
-                        Pt::new(u0 + frame, z0 + frame),
-                        tip,
-                        Pt::new(u0 + frame, z1 - frame),
-                    ],
-                    false,
-                    1,
-                    Dash::Dashed,
-                );
-            }
-        }
+        OpeningKind::Window(_) => {}
     }
 }
 
@@ -2463,7 +2415,9 @@ pub fn opening_preview(
             }
         } else {
             match doc.data(type_id).ok()? {
-                ElementData::WindowType { family, .. } => OpeningKind::Window(*family),
+                t @ ElementData::WindowType { .. } => {
+                    OpeningKind::Window(studio_core::windows::WindowStyle::of(t)?)
+                }
                 _ => return None,
             }
         },
@@ -2732,19 +2686,41 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         });
     }
     for o in &m.openings {
-        let (category, depth) = match o.kind {
-            OpeningKind::Door(_) => (Category::Door, 1.75 * MM_PER_IN),
-            OpeningKind::Window(_) => (Category::Window, 0.75 * MM_PER_IN),
-        };
-        out.push(Mesh {
-            el: o.id,
-            category,
-            exterior: false,
-            color: None,
-            material: None,
-            level: m.walls.iter().find(|w| w.id == o.host).map(|w| w.level),
-            positions: o.panel(depth, o.z0, o.z1).triangles(),
-        });
+        let level = m.walls.iter().find(|w| w.id == o.host).map(|w| w.level);
+        match o.kind {
+            OpeningKind::Door(_) => out.push(Mesh {
+                el: o.id,
+                category: Category::Door,
+                exterior: false,
+                color: None,
+                material: None,
+                level,
+                positions: o.panel(1.75 * MM_PER_IN, o.z0, o.z1).triangles(),
+            }),
+            OpeningKind::Window(style) => {
+                // Two meshes (ADR-031): the frame, sashes and muntins in the frame finish
+                // (with a color), and the glass (without).
+                let p = windows::parts(o, style);
+                out.push(Mesh {
+                    el: o.id,
+                    category: Category::Window,
+                    exterior: false,
+                    color: Some(style.finish.color()),
+                    material: None,
+                    level,
+                    positions: p.frame,
+                });
+                out.push(Mesh {
+                    el: o.id,
+                    category: Category::Window,
+                    exterior: false,
+                    color: None,
+                    material: None,
+                    level,
+                    positions: p.glass,
+                });
+            }
+        }
     }
     for s in m.floors.iter().chain(&m.ceilings) {
         out.push(Mesh {
@@ -3527,7 +3503,8 @@ mod tests {
         );
         assert_eq!(
             ms.iter().filter(|m| m.category == Category::Window).count(),
-            1
+            2,
+            "a window's frame and its glass"
         );
         assert!(ms
             .iter()

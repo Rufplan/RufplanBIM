@@ -13,6 +13,7 @@ mod shortcut_cmds;
 mod site_cmds;
 mod sketching;
 mod structure;
+mod window_cmds;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
@@ -122,6 +123,9 @@ pub fn run() -> anyhow::Result<()> {
             material_cmds::apply_material,
             material_cmds::render_materials,
             material_cmds::material_texture,
+            window_cmds::window_library,
+            window_cmds::window_preview,
+            window_cmds::load_window_types,
             shortcut_cmds::set_pinned,
             shortcut_cmds::select_all_instances,
             shortcut_cmds::tag_element,

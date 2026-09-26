@@ -1535,6 +1535,89 @@ button:disabled {
   font-size: 11px;
 }
 
+/* Window Library (ADR-031). */
+.window-library .mb-head .muted {
+  flex: 1;
+  font-size: 12px;
+}
+.wl-families {
+  width: 220px;
+}
+.wl-family {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wl-family .wl-thumb {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  background: none;
+}
+.wl-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  background: #f7f7f5;
+}
+.wl-card {
+  cursor: pointer;
+  position: relative;
+}
+.wl-check {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+}
+.wl-check input {
+  margin: 1px 0 0;
+}
+.wl-loaded {
+  color: #1a7f37;
+}
+.wl-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+.wl-options label,
+.wl-custom label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.wl-options select,
+.wl-custom input,
+.wl-custom select {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  width: 110px;
+}
+.wl-finishes {
+  display: flex;
+  gap: 6px;
+}
+.wl-swatch {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #9a9a9a;
+  cursor: pointer;
+  padding: 0;
+}
+.wl-swatch.active {
+  box-shadow: 0 0 0 2px var(--cyan);
+}
+.wl-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* Generate with Claude (ADR-030). */
 .modal.generate-dialog {
   box-sizing: border-box;

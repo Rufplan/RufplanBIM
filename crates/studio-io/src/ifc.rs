@@ -65,6 +65,38 @@ fn r(v: f64) -> String {
     t.to_owned()
 }
 
+/// IfcWindow's PartitioningType and UserDefinedPartitioningType for a window family
+/// (ADR-031): how its lites divide, or the family's name when IFC has no word for it.
+fn partitioning(style: studio_core::windows::WindowStyle) -> String {
+    use studio_core::WindowFamily as F;
+    let units = if studio_core::windows::info(style.family).mullable {
+        style.units
+    } else {
+        1
+    };
+    let known = match (style.family, units) {
+        (F::Fixed | F::Casement | F::Awning | F::Hopper, 1) => Some("SINGLE_PANEL"),
+        (F::DoubleHung | F::SingleHung | F::PictureAwning, 1) => Some("DOUBLE_PANEL_HORIZONTAL"),
+        (F::Slider, _) | (F::Fixed | F::Casement | F::Awning, 2) => Some("DOUBLE_PANEL_VERTICAL"),
+        (F::Slider3 | F::PictureCasement, _) | (F::Fixed | F::Casement | F::Awning, 3) => {
+            Some("TRIPLE_PANEL_VERTICAL")
+        }
+        _ => None,
+    };
+    match known {
+        Some(k) => format!(".{k}.,$"),
+        None => format!(
+            ".USERDEFINED.,{}",
+            s(&studio_core::windows::base_name(
+                style.family,
+                units,
+                0.0,
+                1.0
+            ))
+        ),
+    }
+}
+
 /// An IFC compound plane angle: (degrees, minutes, seconds, millionths of a second).
 fn compound_angle(deg: f64) -> String {
     let sign = if deg < 0.0 { -1 } else { 1 };
@@ -476,8 +508,12 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
                 ))
             } else {
                 summary.windows += 1;
+                let part = match o.kind {
+                    OpeningKind::Window(style) => partitioning(style),
+                    OpeningKind::Door(_) => ".SINGLE_PANEL.,$".into(),
+                };
                 w.add(format!(
-                    "IFCWINDOW({},$,{},$,{},#{fplace},#{fshape},{},{},{},.WINDOW.,.SINGLE_PANEL.,$)",
+                    "IFCWINDOW({},$,{},$,{},#{fplace},#{fshape},{},{},{},.WINDOW.,{part})",
                     s(&ifc_guid(o.id.0)),
                     s(&format!("Window {mark}")),
                     s(&ty),

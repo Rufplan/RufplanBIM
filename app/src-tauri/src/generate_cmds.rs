@@ -99,6 +99,9 @@ Pick library materials by id for exterior walls, interior walls, floors and roof
 {materials}
 Also choose roof (hip, gable or flat), pitch (rise per 12) and structure (wood, or masonry for concrete and CMU buildings).
 
+WINDOWS
+Choose the window family to suit the style: DoubleHung for colonial, Georgian, craftsman and other traditional houses; Casement for modern, farmhouse and contemporary; SingleHung for builder-grade houses and apartments; Slider for budget and mid-century; Awning or PictureAwning for modern multifamily and hotels. Bedrooms, kitchens and offices get that family; living spaces and units its twin; lobbies and retail get storefront. Grille: Colonial for colonial and Georgian, Craftsman for craftsman and bungalows, Prairie for prairie style, otherwise None. Finish: Black for modern farmhouse and modern, Bronze for contemporary and commercial, White for traditional, Wood for rustic and lodge, Almond for Mediterranean and Spanish.
+
 Give the building a name and a two- to four-sentence summary for the owner (gross area, unit or bedroom count, key design moves)."
     )
 }
@@ -191,7 +194,7 @@ pub fn spec_schema() -> Value {
     let ids: Vec<String> = library::library().into_iter().map(|p| p.id).collect();
     json!({
         "type": "object",
-        "required": ["name", "summary", "stories", "roof", "pitch", "structure", "materials"],
+        "required": ["name", "summary", "stories", "roof", "pitch", "structure", "materials", "windows"],
         "properties": {
             "name": { "type": "string" },
             "summary": { "type": "string" },
@@ -231,6 +234,17 @@ pub fn spec_schema() -> Value {
                     "interiorWalls": { "type": "string", "enum": ids },
                     "floors": { "type": "string", "enum": ids },
                     "roof": { "type": "string", "enum": ids }
+                }
+            },
+            "windows": {
+                "type": "object",
+                "properties": {
+                    "family": {
+                        "type": "string",
+                        "enum": ["DoubleHung", "SingleHung", "Casement", "Awning", "Slider", "Slider3", "PictureAwning", "PictureCasement", "Fixed"]
+                    },
+                    "grille": { "type": "string", "enum": ["None", "Colonial", "Prairie", "Craftsman"] },
+                    "finish": { "type": "string", "enum": ["White", "Almond", "Bronze", "Black", "Wood"] }
                 }
             }
         }

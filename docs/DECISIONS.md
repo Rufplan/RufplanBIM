@@ -817,3 +817,48 @@ Rufplan Studio per those inputs."
   parser is tested on recorded events.
 - **Not yet:** refining a generated building by chat, non-rectangular rooms, curtain walls
   and balconies, parking and site work, and cost estimates.
+
+## ADR-031 Window families — Accepted (2026-09-26)
+Owner request (2026-09-26): "create families for all most common window types used in
+America and make those as presets in Rufplan Studio." Owner approved the file-format
+change and "starter set + library" (2026-09-26).
+
+- **Families** (`WindowFamily`, code-defined as before, ADR-012): Fixed/Picture,
+  Casement, Double-Hung, Single-Hung, Awning, Hopper, Horizontal Slider (XO), 3-Lite
+  End-Vent Slider (XOX), Picture with Flanking Casements, Picture over Awning, Bay (45°,
+  picture flanked by double-hungs) and Storefront. Transoms are small fixed types.
+- **File format:** `WindowType` gains `units` (mulled side by side, 1–4; default 1),
+  `grille` (None, Colonial, Prairie, Craftsman) and `finish` (White, Almond, Dark
+  Bronze, Black, Natural Wood), all with serde defaults, so older files open unchanged.
+  Files that use the new families don't open in older builds.
+- **Layouts** (`studio_core::windows::layout`) divide a type into frame (2"), sashes
+  (1.75" stiles and rails) in one or two tracks, mullions and mulls, and grille bars, seen
+  from outside. Colonial is about 9" x 12" lites (6-over-6 on a 3' double-hung),
+  craftsman is 3-over-1, prairie is bars 3.5" in from the edges. A bay projects
+  min(18", width/4). Storefront is 1.75" x 4.5" aluminum in lites of 5' or less, with a
+  transom bar at 7'-0" when taller than 8'-6".
+- **Drawings** (`studio_views::windows`):
+  - Plan: wall faces, glass per sash track (hung and sliding sashes stagger), mullions,
+    casement swings at 30°, and a bay's projecting outline.
+  - Elevation: sash and glass outlines, grilles, and operation marks (casement and awning
+    marks point to the hinge, sliders get an arrow). Mirrored when seen from inside.
+  - 3D: two meshes a window, the frame, sashes and muntins in the finish colour, and the
+    glass. The 3D view and renderer tell them apart by colour (glass has none). A bay adds
+    seat and head boards.
+  - IFC: IfcWindow's PartitioningType follows the family (single, double or triple panel,
+    else USERDEFINED with the family name).
+- **Presets:** a catalog of 77 standard US sizes (nominal rough openings, heads at 7'-0"
+  to line up with doors, transoms at 86", storefront on a 6" curb).
+  - New projects get a starter set of 17, one or two per family. The original three keep
+    their names.
+  - Architecture > Load Windows opens the Window Library: families, size thumbnails
+    (drawn from Rust's elevation lines), grille and finish, a custom size, and Load,
+    Load Checked, or Load & Place (which arms the Window tool with the new type). Types
+    already in the project are reused by name.
+  - Type properties gain Units Mulled, Grille Pattern and Frame Finish.
+- **Generate with Claude (ADR-030)** now also picks a window family, grille and finish to
+  suit the style (`BuildingSpec.windows`). Its punched, living-space and storefront
+  types are loaded from the catalog.
+- **Not yet:** arched and round tops, garden windows, glass block, skylights, casement
+  hand flip per instance, windows above or below the plan cut shown dashed, and per-type
+  frame materials in renderings (the finish is a colour).

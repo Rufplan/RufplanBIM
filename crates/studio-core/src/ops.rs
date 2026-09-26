@@ -8,7 +8,6 @@ use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{
     Anchor, Category, Compass, CropBox, DoorFamily, ElementData, ElementId, LocationLine,
     RufplanLink, ScheduleKind, SheetSize, SlabBound, StageChange, ViewKind, WallFunction, WallTop,
-    WindowFamily,
 };
 use crate::units::{format_area_sf, format_ft_in, parse_length, MM_PER_FT, MM_PER_IN};
 
@@ -166,24 +165,9 @@ fn seed_opening_types(tx: &mut Tx<'_>) {
             height: h * MM_PER_IN,
         });
     }
-    for (name, family, w, h, sill) in [
-        ("Fixed 48\" x 48\"", WindowFamily::Fixed, 48.0, 48.0, 36.0),
-        (
-            "Casement 36\" x 48\"",
-            WindowFamily::Casement,
-            36.0,
-            48.0,
-            36.0,
-        ),
-        ("Fixed 72\" x 60\"", WindowFamily::Fixed, 72.0, 60.0, 30.0),
-    ] {
-        tx.insert(ElementData::WindowType {
-            name: name.into(),
-            family,
-            width: w * MM_PER_IN,
-            height: h * MM_PER_IN,
-            sill: sill * MM_PER_IN,
-        });
+    // The common size of every window family (ADR-031); more load from the library.
+    for spec in crate::windows::starter() {
+        tx.insert(spec.data());
     }
 }
 
@@ -1885,17 +1869,63 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             width,
             height,
             sill,
+            units,
+            grille,
+            finish,
         } => {
+            let fam = crate::windows::info(*family);
             props.push(text("name", "Type Name", "Identity Data", name));
-            props.push(ro(
-                "family",
-                "Family",
-                "Identity Data",
-                format!("{family:?}"),
-            ));
+            props.push(ro("family", "Family", "Identity Data", fam.label.into()));
             props.push(len("width", "Width", "Dimensions", *width));
             props.push(len("height", "Height", "Dimensions", *height));
             props.push(len("sill", "Default Sill Height", "Dimensions", *sill));
+            if fam.mullable {
+                props.push(choice(
+                    "units",
+                    "Units Mulled",
+                    "Construction",
+                    units.to_string(),
+                    (1..=4)
+                        .map(|n| PropOption {
+                            id: n.to_string(),
+                            label: match n {
+                                1 => "1 (single)".into(),
+                                2 => "2 (twin)".into(),
+                                3 => "3 (triple)".into(),
+                                n => n.to_string(),
+                            },
+                        })
+                        .collect(),
+                ));
+            }
+            if fam.grilles {
+                props.push(choice(
+                    "grille",
+                    "Grille Pattern",
+                    "Construction",
+                    format!("{grille:?}"),
+                    crate::windows::Grille::ALL
+                        .iter()
+                        .map(|g| PropOption {
+                            id: format!("{g:?}"),
+                            label: g.label().into(),
+                        })
+                        .collect(),
+                ));
+            }
+            props.push(choice(
+                "finish",
+                "Frame Finish",
+                "Materials and Finishes",
+                format!("{finish:?}"),
+                crate::windows::FrameFinish::ALL
+                    .iter()
+                    .map(|f| PropOption {
+                        id: format!("{f:?}"),
+                        label: f.label().into(),
+                    })
+                    .collect(),
+            ));
         }
         ElementData::Door {
             host,
@@ -2500,12 +2530,34 @@ pub fn set_property(
             width,
             height,
             sill,
+            units,
+            grille,
+            finish,
             ..
         } => match key {
             "name" => *name = non_empty(value)?,
             "width" => *width = positive(parse_len(value)?)?,
             "height" => *height = positive(parse_len(value)?)?,
             "sill" => *sill = parse_len(value)?,
+            "units" => {
+                *units = value
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|n| (1..=4).contains(n))
+                    .ok_or_else(|| CoreError::Invalid("mull 1 to 4 units".into()))?
+            }
+            "grille" => {
+                *grille = crate::windows::Grille::ALL
+                    .into_iter()
+                    .find(|g| format!("{g:?}") == value)
+                    .ok_or_else(unknown)?
+            }
+            "finish" => {
+                *finish = crate::windows::FrameFinish::ALL
+                    .into_iter()
+                    .find(|f| format!("{f:?}") == value)
+                    .ok_or_else(unknown)?
+            }
             _ => return Err(unknown()),
         },
         ElementData::Door {

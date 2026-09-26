@@ -10,6 +10,10 @@ import type { Handles } from "./bindings/Handles";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
 import type { CameraPose } from "./bindings/CameraPose";
 import type { Preset } from "./bindings/Preset";
+import type { LoadedWindows } from "./bindings/LoadedWindows";
+import type { SpecPreview } from "./bindings/SpecPreview";
+import type { WindowLibrary } from "./bindings/WindowLibrary";
+import type { WindowSpec } from "./bindings/WindowSpec";
 import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { GenerateResult } from "./bindings/GenerateResult";
@@ -295,6 +299,10 @@ export const ipc = {
   claudeSetKey: (key: string) => invoke<boolean>("claude_set_key", { key }),
   generateBuilding: (inputs: GenerateInputs) =>
     invoke<GenerateResult>("generate_building", { inputs }),
+  // Window Library (ADR-031).
+  windowLibrary: () => invoke<WindowLibrary>("window_library"),
+  windowPreview: (spec: WindowSpec) => invoke<SpecPreview>("window_preview", { spec }),
+  loadWindowTypes: (specs: WindowSpec[]) => invoke<LoadedWindows>("load_window_types", { specs }),
   // Material library (ADR-029).
   materialLibrary: () => invoke<Preset[]>("material_library"),
   addLibraryMaterial: (id: string): S => invoke("add_library_material", { id }),

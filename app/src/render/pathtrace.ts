@@ -52,6 +52,9 @@ export function surfaceFor(m: Pick<Mesh, "category" | "color" | "exterior">): Su
   };
   switch (m.category) {
     case "Window":
+      // The frame mesh (with a finish colour) is satin vinyl or painted metal; the glass
+      // mesh has no colour (ADR-031).
+      if (m.color) return { ...s, roughness: 0.4, clearcoat: 0.2, specularIntensity: 0.6 };
       return { ...s, color: 0xf4faf8, roughness: 0, transmission: 1, specularIntensity: 1 };
     case "Ceiling":
       return { ...s, color: 0xf2f2ef, roughness: 0.9, specularIntensity: 0.3 };
