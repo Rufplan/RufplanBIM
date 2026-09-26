@@ -877,6 +877,10 @@ pub enum ElementData {
         /// None fits it to the title.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title_length: Option<f64>,
+        /// Where the title was moved to (Shift + drag), paper mm from its place under the
+        /// view (ADR-039); None keeps it there.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        title_offset: Option<Pt>,
     },
     RoofType {
         name: String,

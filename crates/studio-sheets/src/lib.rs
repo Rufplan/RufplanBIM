@@ -8,7 +8,8 @@ pub mod sheet;
 pub use pdf::export_pdf;
 pub use schedule::{schedule, Table};
 pub use sheet::{
-    drag_title, sheet_display_list, sheet_display_list_shared, sheet_handles, title_line,
+    drag_title, move_title, sheet_display_list, sheet_display_list_shared, sheet_handles,
+    title_line,
 };
 
 /// Version of this crate, from Cargo metadata.
@@ -86,6 +87,17 @@ mod tests {
         doc.undo().unwrap();
         let (a4, b4) = title_line(&doc, vp).unwrap();
         assert!((b4.x - a4.x - fitted).abs() < 1e-9);
+        // Shift + drag moves the whole title; its length stays, and stretching still works.
+        drag_title(&mut doc, vp, Pt::new(a.x + 80.0, a.y)).unwrap();
+        move_title(&mut doc, vp, Pt::new(a.x + 80.0 + 30.0, a.y + 40.0)).unwrap();
+        let (a5, b5) = title_line(&doc, vp).unwrap();
+        assert!(a5.dist(Pt::new(a.x + 30.0, a.y + 40.0)) < 1e-9, "{a5:?}");
+        assert!((b5.x - a5.x - 80.0).abs() < 1e-9);
+        drag_title(&mut doc, vp, Pt::new(a5.x + 100.0, a5.y - 300.0)).unwrap();
+        let (a6, b6) = title_line(&doc, vp).unwrap();
+        assert!(
+            a6.dist(a5) < 1e-9 && (b6.x - a6.x - 100.0).abs() < 1e-9 && (b6.y - a5.y).abs() < 1e-9
+        );
     }
 
     fn schedule_view(doc: &Document, name: &str) -> ElementId {

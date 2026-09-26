@@ -167,7 +167,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   // Grips and temporary dimensions of the selection, and a grip being dragged.
   const handles = useRef<Handles | null>(null);
   const hoverGrip = useRef<number | null>(null);
-  const gripDrag = useRef<{ index: number; to: Pt | null } | null>(null);
+  // A view title's grip stretches left and right, or moves the title with Shift (ADR-039).
+  const gripDrag = useRef<{ index: number; to: Pt | null; shift?: boolean } | null>(null);
   // Align's reference line and Trim's first wall.
   const refLine = useRef<RefLine | null>(null);
   const firstPick = useRef<{ id: ElementId; at: Pt } | null>(null);
@@ -295,7 +296,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             cam.current,
             w,
             h,
-            grip.anchor ? [grip.anchor] : [],
+            grip.anchor && !(grip.key === "title_end" && g.shift) ? [grip.anchor] : [],
             g.to,
             snapRef.current?.kind ?? null,
             snapRef.current?.label ?? null,
@@ -556,9 +557,17 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const snapAt = useLatest(async (p: Pt, tol: number) => {
     const g = gripDrag.current;
     const grip = g ? handles.current?.grips[g.index] : undefined;
-    const from = grip ? (grip.anchor ?? null) : (pts.current[pts.current.length - 1] ?? null);
+    const title = grip?.key === "title_end";
+    const from = grip
+      ? title && g?.shift
+        ? null
+        : (grip.anchor ?? null)
+      : (pts.current[pts.current.length - 1] ?? null);
     snapRef.current = await ipc.snap(view.id, p, from, tol);
-    if (g) g.to = snapRef.current.pt;
+    if (g && grip) {
+      const q = snapRef.current.pt;
+      g.to = title && !g.shift ? { x: q.x, y: grip.at.y } : q;
+    }
     redraw();
   });
 
@@ -1350,6 +1359,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             return;
           }
           if (gripDrag.current) {
+            gripDrag.current.shift = e.shiftKey;
             if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
             snapAt(p, 12 / cam.current.zoom);
             return;
@@ -1408,7 +1418,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             const grip = handles.current?.grips[g.index];
             snapRef.current = null;
             if (grip && g.to && d?.moved) {
-              void apply(() => ipc.dragHandle(grip.id, grip.key, g.to!));
+              const key = grip.key === "title_end" && e.shiftKey ? "title_move" : grip.key;
+              void apply(() => ipc.dragHandle(grip.id, key, g.to!));
             }
             redraw();
             return;

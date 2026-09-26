@@ -1274,6 +1274,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                             view: *index,
                             center: a.center(),
                             title_length: None,
+                            title_offset: None,
                         }));
                     }
                 }
@@ -1313,6 +1314,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                                     view: *view,
                                     center: *center,
                                     title_length: None,
+                                    title_offset: None,
                                 });
                                 report.views += 1;
                             }
@@ -1326,6 +1328,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                             view: *view,
                             center: *center,
                             title_length: None,
+                            title_offset: None,
                         });
                         report.views += 1;
                     }

@@ -94,6 +94,8 @@ pub fn drag_handle(
         s.edit(|d| {
             if key == "title_end" {
                 studio_sheets::drag_title(d, id, to)
+            } else if key == "title_move" {
+                studio_sheets::move_title(d, id, to)
             } else {
                 edit::drag_handle(d, id, &key, to)
             }

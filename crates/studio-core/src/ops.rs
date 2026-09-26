@@ -603,6 +603,7 @@ pub fn place_view(
             view,
             center,
             title_length: None,
+            title_offset: None,
         }))
     })
 }

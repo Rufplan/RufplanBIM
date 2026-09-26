@@ -302,6 +302,7 @@ mod tests {
             view,
             center: Pt::new(1.0, 2.0),
             title_length: Some(150.0),
+            title_offset: Some(Pt::new(0.0, 25.0)),
         };
         let back: ElementData =
             rmp_serde::from_slice(&rmp_serde::to_vec_named(&new).unwrap()).unwrap();

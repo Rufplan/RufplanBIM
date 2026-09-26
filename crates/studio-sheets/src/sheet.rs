@@ -195,11 +195,12 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
         FillKind::Paper,
     );
 
-    for (i, (vp, view, center, length)) in viewports_on(doc, sheet).into_iter().enumerate() {
+    for (i, (vp, view, center, length, offset)) in viewports_on(doc, sheet).into_iter().enumerate()
+    {
         let Some((items, _, _, title, scale)) = viewport_items(doc, vp, view, center) else {
             continue;
         };
-        let at = title_at(&items, center, *size);
+        let at = title_at(&items, center, *size, offset);
         b.items.extend(items);
         if !title.is_empty() {
             view_title(&mut b, Some(vp), i + 1, &title, &scale, at, length);
@@ -283,8 +284,11 @@ fn north_arrow(b: &mut Builder, c: Pt, r: f64) {
     );
 }
 
-/// A sheet's viewports in their numbering order: (viewport, view, center, title length).
-fn viewports_on(doc: &Document, sheet: ElementId) -> Vec<(ElementId, ElementId, Pt, Option<f64>)> {
+/// One viewport on a sheet: (viewport, view, center, title length, title offset).
+type Placed = (ElementId, ElementId, Pt, Option<f64>, Option<Pt>);
+
+/// A sheet's viewports in their numbering order.
+fn viewports_on(doc: &Document, sheet: ElementId) -> Vec<Placed> {
     let mut vps: Vec<_> = doc
         .of(Category::Viewport)
         .filter_map(|e| match &e.data {
@@ -293,7 +297,8 @@ fn viewports_on(doc: &Document, sheet: ElementId) -> Vec<(ElementId, ElementId, 
                 view,
                 center,
                 title_length,
-            } if *s == sheet => Some((e.id, *view, *center, *title_length)),
+                title_offset,
+            } if *s == sheet => Some((e.id, *view, *center, *title_length, *title_offset)),
             _ => None,
         })
         .collect();
@@ -302,10 +307,11 @@ fn viewports_on(doc: &Document, sheet: ElementId) -> Vec<(ElementId, ElementId, 
 }
 
 /// Where a viewport's title goes: under what is actually drawn (not the view's padded
-/// bounds), kept inside the border.
-fn title_at(items: &[Item], center: Pt, size: SheetSize) -> Pt {
+/// bounds), kept inside the border, then wherever it was moved to (`offset`).
+fn title_at(items: &[Item], center: Pt, size: SheetSize, offset: Option<Pt>) -> Pt {
     let (lo, _) = extents(items).unwrap_or((center, center));
-    Pt::new(lo.x.max(margins(size).0 + 4.0), lo.y - 4.0)
+    let at = Pt::new(lo.x.max(margins(size).0 + 4.0), lo.y - 4.0);
+    offset.map_or(at, |o| at.add(o))
 }
 
 /// Radius of the view title's number bubble, paper mm.
@@ -331,6 +337,7 @@ pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
         view,
         center,
         title_length,
+        title_offset,
     } = doc.data(viewport).ok()?
     else {
         return None;
@@ -343,7 +350,7 @@ pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
         return None;
     }
     Some(title_rule(
-        title_at(&items, *center, *size),
+        title_at(&items, *center, *size, *title_offset),
         &title,
         &scale,
         *title_length,
@@ -351,7 +358,7 @@ pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
 }
 
 /// Grips on a sheet for the selected viewports: the end of each title's rule, to stretch it
-/// (ADR-039).
+/// left and right, or with Shift to move the title (ADR-039).
 pub fn sheet_handles(
     doc: &Document,
     sheet: ElementId,
@@ -383,6 +390,21 @@ pub fn drag_title(doc: &mut Document, viewport: ElementId, to: Pt) -> studio_cor
         tx.modify(viewport, |d| {
             if let ElementData::Viewport { title_length, .. } = d {
                 *title_length = Some(len);
+            }
+        })
+    })
+}
+
+/// Moves a viewport's title (Shift + drag of its grip) so its rule ends at `to`, keeping its
+/// length.
+pub fn move_title(doc: &mut Document, viewport: ElementId, to: Pt) -> studio_core::CoreResult<()> {
+    let (_, end) = title_line(doc, viewport)
+        .ok_or_else(|| studio_core::CoreError::Invalid("that view has no title".into()))?;
+    let by = to.sub(end);
+    doc.transact("Move view title", |tx| {
+        tx.modify(viewport, |d| {
+            if let ElementData::Viewport { title_offset, .. } = d {
+                *title_offset = Some(title_offset.unwrap_or_default().add(by));
             }
         })
     })
