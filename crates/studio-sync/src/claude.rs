@@ -35,7 +35,9 @@ pub struct Request {
     pub max_tokens: u32,
 }
 
-/// The request body: streaming, with the tool forced so the answer is structured.
+/// The request body: streaming, with the tool offered. Current models refuse a forced
+/// tool choice ("tool"/"any"), so the choice is "auto" and the system prompt tells Claude
+/// to answer only by calling it.
 pub fn body(r: &Request) -> Value {
     let mut content: Vec<Value> = r
         .images
@@ -59,7 +61,7 @@ pub fn body(r: &Request) -> Value {
             "description": r.tool_description,
             "input_schema": r.tool_schema,
         }],
-        "tool_choice": { "type": "tool", "name": r.tool_name },
+        "tool_choice": { "type": "auto" },
     })
 }
 
@@ -67,6 +69,8 @@ pub fn body(r: &Request) -> Value {
 /// returns the tool input once the message ends.
 pub fn read_stream(reader: impl BufRead, progress: &mut dyn FnMut(&str)) -> SyncResult<Value> {
     let mut json_text = String::new();
+    // Anything Claude wrote instead of (or before) calling the tool.
+    let mut text = String::new();
     let mut stop: Option<String> = None;
     for line in reader.lines() {
         let line = line.map_err(|e| SyncError::Network(format!("Claude: {e}")))?;
@@ -81,6 +85,8 @@ pub fn read_stream(reader: impl BufRead, progress: &mut dyn FnMut(&str)) -> Sync
                 if let Some(part) = ev.pointer("/delta/partial_json").and_then(Value::as_str) {
                     json_text.push_str(part);
                     progress(&json_text);
+                } else if let Some(part) = ev.pointer("/delta/text").and_then(Value::as_str) {
+                    text.push_str(part);
                 }
             }
             Some("message_delta") => {
@@ -106,7 +112,12 @@ pub fn read_stream(reader: impl BufRead, progress: &mut dyn FnMut(&str)) -> Sync
         ));
     }
     if json_text.trim().is_empty() {
-        return Err(SyncError::Decode("Claude returned no plan".into()));
+        let said: String = text.trim().chars().take(400).collect();
+        return Err(SyncError::Api(if said.is_empty() {
+            "Claude returned no plan; try again".into()
+        } else {
+            format!("Claude answered without a plan: \"{said}\"")
+        }));
     }
     serde_json::from_str(&json_text)
         .map_err(|e| SyncError::Decode(format!("Claude's plan isn't valid JSON: {e}")))
@@ -190,13 +201,10 @@ mod tests {
     }
 
     #[test]
-    fn the_request_streams_and_forces_the_tool() {
+    fn the_request_streams_and_offers_the_tool() {
         let b = body(&req());
         assert_eq!(b["stream"], true);
-        assert_eq!(
-            b["tool_choice"],
-            json!({"type": "tool", "name": "build_model"})
-        );
+        assert_eq!(b["tool_choice"], json!({"type": "auto"}));
         assert_eq!(b["tools"][0]["input_schema"], json!({"type": "object"}));
         let content = b["messages"][0]["content"].as_array().unwrap();
         assert_eq!(content[0]["type"], "image");
@@ -235,6 +243,18 @@ data: {"type":"message_stop"}
         assert_eq!(v, json!({"name": "House", "stories": []}));
         assert_eq!(seen.len(), 2);
         assert!(seen[1] > seen[0]);
+    }
+
+    #[test]
+    fn a_reply_without_the_tool_is_reported() {
+        let sse = "data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"How many bedrooms?\"}}\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"}}\ndata: {\"type\":\"message_stop\"}\n";
+        let e = read_stream(sse.as_bytes(), &mut |_| {})
+            .unwrap_err()
+            .to_string();
+        assert!(
+            e.contains("without a plan") && e.contains("How many bedrooms?"),
+            "{e}"
+        );
     }
 
     #[test]

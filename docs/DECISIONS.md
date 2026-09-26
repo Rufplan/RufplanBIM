@@ -772,7 +772,8 @@ Rufplan Studio per those inputs."
   4. The model is built, and the dialog reports what was built plus any warnings, with
      Open 3D View and Revise & Generate Again.
 - **Claude** (`studio_sync::claude`): one Messages API call that streams, with the
-  `build_model` tool forced so the answer is always a structured plan.
+  `build_model` tool offered with `tool_choice: auto` (current models refuse a forced tool
+  choice) and the system prompt requiring it; a reply in prose is shown as an error.
   - The API key is stored in the OS credential store (`anthropic-api-key`) and sent only
     to api.anthropic.com, from Rust.
   - Errors are explained: a refused key, a busy service or rate limit, a plan cut off at the

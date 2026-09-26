@@ -76,7 +76,7 @@ pub fn system_prompt() -> String {
         ));
     }
     format!(
-        "You are an experienced US architect producing a schematic design that Rufplan Studio will build as a BIM model. Answer only by calling build_model.
+        "You are an experienced US architect producing a schematic design that Rufplan Studio will build as a BIM model. Always respond by calling the build_model tool exactly once, with no text before or after it; never reply in prose or ask questions. If the brief is unclear, make sensible assumptions and note them in the summary.
 
 HOW THE MODEL IS BUILT FROM YOUR PLAN
 - Each story is a set of axis-aligned rectangular rooms in feet: x runs east, y runs north, origin at the building's south-west corner. y = 0 is the front (street) unless the brief says otherwise.
@@ -456,5 +456,37 @@ mod tests {
         );
         assert_eq!(p.name.as_deref(), Some("Maple Court"));
         assert_eq!((p.stories, p.rooms), (1, 2));
+    }
+
+    /// Live: one Sonnet call with the saved key, built into a fresh document.
+    /// `cargo test -p rufplan-studio live_generate -- --ignored --nocapture` (uses API credit).
+    #[test]
+    #[ignore]
+    fn live_generate() {
+        let key = get(CLAUDE_KEY).expect("no Claude key saved");
+        let mut i = inputs();
+        i.building_type = "Single-family house".into();
+        i.stories = 1;
+        i.area = Some(1400.0);
+        i.count = Some(3);
+        i.bathrooms = Some(2.0);
+        i.fit_lot = false;
+        i.prompt = String::new();
+        let request = studio_sync::claude::Request {
+            model: "claude-sonnet-5".into(),
+            system: system_prompt(),
+            text: user_prompt(&i, None),
+            images: vec![],
+            tool_name: "build_model".into(),
+            tool_description: "Build the building in Rufplan Studio from this room plan.".into(),
+            tool_schema: spec_schema(),
+            max_tokens: 32_000,
+        };
+        let plan = studio_sync::claude::call(&key, &request, &mut |_| {}).unwrap();
+        let spec: BuildingSpec = serde_json::from_value(plan).unwrap();
+        let mut doc = studio_core::Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let r = generate::build(&mut doc, &spec).unwrap();
+        println!("{}: {:?}", spec.name, r);
     }
 }
