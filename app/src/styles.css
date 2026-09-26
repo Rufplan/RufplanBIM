@@ -1309,3 +1309,8 @@ button:disabled {
   height: 100%;
   background: var(--cyan);
 }
+
+.render-credit {
+  font-size: 11px;
+  margin-top: 6px;
+}

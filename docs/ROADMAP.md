@@ -61,6 +61,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   making perspective camera views, cameras shown and gripped in plans, and Render (RR): a
   path-traced image with the sun at the site's date and time, saved as PNG.
 
+- V-Ray-style rendering (ADR-028): physical sun & sky or photo dome light, photo backgrounds
+  (Sky, Mountains, Grass Plain, City) with ground projection, filmic tone, denoise, and
+  saving with the background or as a transparent PNG; the Camera tool places cameras.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

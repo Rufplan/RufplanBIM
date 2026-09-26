@@ -120,6 +120,8 @@ Read these before writing code:
   (never saved), topography over 2x-4x the lot.
 - Rendering tab (ADR-027): Camera tool and camera views, path-traced Render (RR) with the
   site's sun (three-gpu-pathtracer, loaded on first use).
+- V-Ray-style lighting and photo backgrounds (ADR-028): Preetham sun & sky, Poly Haven CC0
+  panoramas in app/public/backgrounds, ground projection, transparent PNG export.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.

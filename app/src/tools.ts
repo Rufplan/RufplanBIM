@@ -85,6 +85,18 @@ export const TOOLS_3D: Tool[] = [
   "copy",
 ];
 
+/** Drawing tools whose clicks place points (ViewCanvas's placePoint). */
+export const POINT_TOOLS: Tool[] = [
+  "wall",
+  "grid",
+  "stair",
+  "beam",
+  "railing",
+  "roomSeparator",
+  "callout",
+  "camera",
+];
+
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (view === "ThreeD") return TOOLS_3D.includes(tool);

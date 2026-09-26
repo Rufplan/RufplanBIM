@@ -543,3 +543,70 @@ export function drawImageUnder(
   ctx.fillText(credit, 8, ctx.canvas.height / (window.devicePixelRatio || 1) - 8);
   ctx.restore();
 }
+
+/** Placing a camera: before the first click the camera sits at the cursor facing up the
+ * screen; after it, the camera is at the eye with its view cone reaching the cursor (the
+ * target). 50° vertical field of view on a 16:9 view, as a new camera gets. */
+export function drawCameraGhost(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  eye: { x: number; y: number } | null,
+  cursor: { x: number; y: number },
+) {
+  const [cx, cy] = toScreen(cam, w, h, cursor.x, cursor.y);
+  const [ex, ey] = eye ? toScreen(cam, w, h, eye.x, eye.y) : [cx, cy];
+  const d = eye ? Math.hypot(cx - ex, cy - ey) : 0;
+  // Screen direction the camera looks (up the screen until the target is picked).
+  const ux = d > 1 ? (cx - ex) / d : 0;
+  const uy = d > 1 ? (cy - ey) / d : -1;
+  const nx = -uy;
+  const ny = ux;
+  ctx.save();
+  ctx.strokeStyle = THEME.cyan;
+  ctx.fillStyle = THEME.cyan;
+  ctx.lineWidth = 1.5;
+  if (d > 1) {
+    const half = Math.atan(Math.tan((25 * Math.PI) / 180) * (16 / 9));
+    const reach = d / Math.cos(half);
+    const edge = (s: number) => {
+      const c = Math.cos(half);
+      const sn = Math.sin(half) * s;
+      return [ex + (ux * c - nx * sn) * reach, ey + (uy * c - ny * sn) * reach] as const;
+    };
+    const [lx, ly] = edge(1);
+    const [rx, ry] = edge(-1);
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(ex, ey);
+    ctx.lineTo(rx, ry);
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // The camera body behind the eye, and the lens toward the target.
+  const back = [ex - ux * 7, ey - uy * 7];
+  const body = [
+    [back[0]! + nx * 7, back[1]! + ny * 7],
+    [back[0]! - nx * 7, back[1]! - ny * 7],
+    [back[0]! - nx * 7 - ux * 16, back[1]! - ny * 7 - uy * 16],
+    [back[0]! + nx * 7 - ux * 16, back[1]! + ny * 7 - uy * 16],
+  ];
+  ctx.beginPath();
+  body.forEach(([x, y], i) => (i ? ctx.lineTo(x!, y!) : ctx.moveTo(x!, y!)));
+  ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(back[0]! + nx * 5, back[1]! + ny * 5);
+  ctx.lineTo(back[0]! - nx * 5, back[1]! - ny * 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}

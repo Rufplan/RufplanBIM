@@ -25,6 +25,7 @@ import {
   drawSketch,
   drawTempDims,
   drawTempFrame,
+  drawCameraGhost,
   drawImageUnder,
   drawZoomBox,
   fit,
@@ -42,6 +43,7 @@ import {
   startsTypedValue,
   sweep,
   toolAllowed,
+  POINT_TOOLS,
 } from "../tools";
 
 // Cameras survive tab switches.
@@ -260,6 +262,11 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       if (placing && preview.current) {
         const { items, valid, label, at } = preview.current;
         drawPreview(ctx, cam.current, w, h, items, valid ? THEME.cyan : "#c0352b", label, at);
+      }
+      // Camera: the camera and its view cone follow the cursor, as in Revit (ADR-028).
+      if (s.tool === "camera" && toolAllowed("camera", view.viewType)) {
+        const cursor = snapRef.current?.pt ?? null;
+        if (cursor) drawCameraGhost(ctx, cam.current, w, h, pts.current[0] ?? null, cursor);
       }
       const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
@@ -1086,10 +1093,7 @@ export function ViewCanvas({ view }: { view: ViewInfo }) {
       await apply(() => ipc.createColumn(view.id, s.toolTypes.column, p));
       return;
     }
-    if (
-      SELECTION_TOOLS.includes(s.tool) ||
-      ["wall", "grid", "stair", "beam", "railing", "roomSeparator", "callout"].includes(s.tool)
-    ) {
+    if (SELECTION_TOOLS.includes(s.tool) || POINT_TOOLS.includes(s.tool)) {
       await placePoint(p, raw);
       return;
     }

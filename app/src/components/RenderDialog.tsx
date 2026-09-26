@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { SunPosition } from "../bindings/SunPosition";
 import { siteImagery } from "../imagery";
 import { errorMessage, ipc } from "../ipc";
+import { BACKGROUNDS, type BackgroundId } from "../render/backgrounds";
 import type { RenderJob } from "../render/pathtrace";
 import { activeViewInfo, useAppStore } from "../store";
 import { liveCameras } from "./View3D";
 
-// Render (RR): a path-traced image of the active 3D or camera view (ADR-027).
+// Render (RR): a path-traced image of the active 3D or camera view (ADR-027, ADR-028).
 
 const SIZES: [number, number][] = [
   [1280, 720],
@@ -30,6 +31,8 @@ export function clock(hour: number): string {
   return `${h12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
+export type Lighting = "sunsky" | "dome";
+
 export function RenderDialog({ onClose }: { onClose: () => void }) {
   const view = useAppStore((s) => activeViewInfo(s));
   const satellite = useAppStore((s) => s.satellite && !!s.app?.site);
@@ -38,8 +41,13 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const [month, setMonth] = useState(6);
   const [day, setDay] = useState(21);
   const [hour, setHour] = useState(15);
-  const [background, setBackground] = useState<"sky" | "white">("sky");
+  const [background, setBackground] = useState<BackgroundId>("sky");
+  const [lighting, setLighting] = useState<Lighting>("sunsky");
+  const [rotation, setRotation] = useState(0);
   const [exposure, setExposure] = useState(1);
+  const [tone, setTone] = useState<"contrast" | "filmic">("contrast");
+  const [denoise, setDenoise] = useState(true);
+  const [withBackground, setWithBackground] = useState(true);
   const [sun, setSun] = useState<SunPosition | null>(null);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
@@ -47,6 +55,15 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const [done, setDone] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const job = useRef<RenderJob | null>(null);
+  const display = useRef<HTMLCanvasElement | null>(null);
+  const backdrop = useRef<HTMLCanvasElement | null>(null);
+  const finish = useRef<() => void>(() => {});
+  // The building alone, for a transparent PNG.
+  const cut = useRef<() => HTMLCanvasElement | null>(() => null);
+
+  const bg = BACKGROUNDS.find((b) => b.id === background)!;
+  // A dome light needs a photo to light by.
+  const lightingUsed: Lighting = bg.photo ? lighting : "sunsky";
 
   // The sun at the site for the chosen date and time.
   useEffect(() => {
@@ -77,31 +94,113 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     stage.current?.replaceChildren();
     setDone(false);
     setRunning(true);
+    setProgress(0);
     setStatus("Preparing the model…");
     try {
       // The path tracer loads on first use.
-      const { buildScene, cameraFor, RenderJob } = await import("../render/pathtrace");
+      const [pt, sky, bgs] = await Promise.all([
+        import("../render/pathtrace"),
+        import("../render/sky"),
+        import("../render/backgrounds"),
+      ]);
+      const {
+        buildScene,
+        cameraFor,
+        composite,
+        horizontalIrradiance,
+        renderBackdrop,
+        RenderJob,
+        toYUp,
+      } = pt;
       const meshes = await ipc.meshes(view.id);
       const imagery = satellite ? await siteImagery().catch(() => null) : null;
       const levels = useAppStore.getState().app?.levelElevations ?? [0];
-      const scene = buildScene(
-        meshes,
-        { sun: sun && sun.altitude > 0 ? sun : null, background },
+      const rot = (rotation * Math.PI) / 180;
+      setStatus("Preparing the sky…");
+      const sunUp = sun && sun.altitude > 0 ? sun : null;
+      const physical = () =>
+        sky.physicalSky({
+          sunDir: sunUp ? toYUp(sunUp.dir) : toYUp([0, -1, -0.2]),
+          altitude: sunUp ? sunUp.altitude : -6,
+        });
+      let env: import("three").DataTexture;
+      let intensity = 1;
+      if (lightingUsed === "dome") {
+        env = await bgs.backgroundHdr(bg.id);
+        // A photo HDR is brought to the brightness of a clear afternoon sun & sky, so the
+        // exposure means the same in both modes.
+        const reference = sky.physicalSky({
+          sunDir: toYUp([0.5, -0.5, 0.7]),
+          altitude: 45,
+          width: 256,
+          height: 128,
+        });
+        intensity = horizontalIrradiance(reference) / Math.max(horizontalIrradiance(env), 1e-6);
+      } else {
+        env = physical();
+      }
+      const camera = cameraFor(pose, w / h);
+      const photo = bg.photo ? await bgs.backgroundPhoto(bg.id) : null;
+      const light = horizontalIrradiance(env) * intensity;
+      const scene = buildScene(meshes, {
+        environment: env,
+        environmentIntensity: intensity,
+        rotation: lightingUsed === "dome" ? rot : 0,
+        ground: bg.ground,
+        projection:
+          photo && bg.project
+            ? {
+                photo,
+                rotation: rot,
+                center: camera.position.clone(),
+                height: 1700,
+                albedoScale: Math.PI / Math.max(light, 1e-6),
+              }
+            : null,
         imagery,
-        Math.min(0, ...levels),
-      );
-      const j = new RenderJob({ width: w, height: h, samples, sun, background, exposure });
+        groundZ: Math.min(0, ...levels),
+      });
+      backdrop.current = photo
+        ? renderBackdrop(w, h, camera, { texture: photo, rotation: rot, exposure, tone })
+        : bg.id === "physical"
+          ? renderBackdrop(w, h, camera, {
+              texture: lightingUsed === "sunsky" ? env : physical(),
+              rotation: 0,
+              exposure,
+              tone,
+            })
+          : renderBackdrop(w, h, camera, null);
+      const j = new RenderJob({ width: w, height: h, samples, exposure, tone });
       job.current = j;
-      stage.current?.replaceChildren(j.canvas);
-      await j.start(scene, cameraFor(pose, w / h), samples, (n, secs, phase) => {
+      const shown = document.createElement("canvas");
+      shown.width = w;
+      shown.height = h;
+      display.current = shown;
+      stage.current?.replaceChildren(shown);
+      let last = 0;
+      const show = () => composite(shown, backdrop.current, j.canvas);
+      cut.current = () => pt.cutout(j.canvas, scene, camera);
+      finish.current = () => {
+        if (denoise) j.denoise();
+        show();
+      };
+      await j.start(scene, camera, samples, (n, secs, phase) => {
         setProgress(n / samples);
         const t = `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, "0")}`;
         if (phase === "preparing") setStatus("Building the scene…");
         else if (phase === "done") {
-          setStatus(`Done: ${n} samples in ${t}.`);
+          finish.current();
+          setStatus(`Done: ${n} samples in ${t}${denoise ? ", denoised" : ""}.`);
           setRunning(false);
           setDone(true);
-        } else setStatus(`Rendering: ${n} / ${samples} samples · ${t}`);
+        } else {
+          const now = performance.now();
+          if (now - last > 250) {
+            last = now;
+            show();
+          }
+          setStatus(`Rendering: ${n} / ${samples} samples · ${t}`);
+        }
       });
     } catch (e) {
       setRunning(false);
@@ -112,6 +211,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
 
   const stop = () => {
     job.current?.stop();
+    finish.current();
     setRunning(false);
     setDone(true);
     setStatus((s) => s.replace("Rendering", "Stopped at"));
@@ -123,8 +223,12 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     const path = await ipc.saveImageDialog(`${view.name}.png`);
     if (!path) return;
     try {
-      await ipc.saveRender(path, await j.png());
-      setStatus(`Saved ${path}`);
+      const { pngOf } = await import("../render/pathtrace");
+      // Without the background: the building alone, on transparency.
+      const canvas = withBackground && display.current ? display.current : cut.current();
+      if (!canvas) return;
+      await ipc.saveRender(path, await pngOf(canvas));
+      setStatus(`Saved ${path}${withBackground ? "" : " (transparent background)"}`);
     } catch (e) {
       useAppStore.getState().setError(errorMessage(e));
     }
@@ -136,98 +240,140 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       <div className="modal render-dialog">
         <div className="render-side">
           <h2>Render — {view.name}</h2>
-          <label className="field">
-            Output size
-            <select
-              aria-label="Output size"
-              value={size}
-              onChange={(e) => setSize(Number(e.target.value))}
-              disabled={running}
-            >
-              {SIZES.map(([a, b], i) => (
-                <option key={a} value={i}>
-                  {a} × {b}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            Quality
-            <select
-              aria-label="Quality"
-              value={quality}
-              onChange={(e) => setQuality(Number(e.target.value))}
-              disabled={running}
-            >
-              {QUALITY.map(([name, n], i) => (
-                <option key={name} value={i}>
-                  {name} ({n} samples)
-                </option>
-              ))}
-            </select>
-          </label>
-          <h3>Sun</h3>
           <div className="row">
             <label className="field">
-              Month
+              Output size
               <select
-                aria-label="Month"
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
+                aria-label="Output size"
+                value={size}
+                onChange={(e) => setSize(Number(e.target.value))}
                 disabled={running}
               >
-                {MONTHS.map((m, i) => (
-                  <option key={m} value={i + 1}>
-                    {m}
+                {SIZES.map(([a, b], i) => (
+                  <option key={a} value={i}>
+                    {a} × {b}
                   </option>
                 ))}
               </select>
             </label>
             <label className="field">
-              Day
-              <input
-                aria-label="Day"
-                type="number"
-                min={1}
-                max={31}
-                value={day}
-                onChange={(e) => setDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
+              Quality
+              <select
+                aria-label="Quality"
+                value={quality}
+                onChange={(e) => setQuality(Number(e.target.value))}
                 disabled={running}
-              />
+              >
+                {QUALITY.map(([name, n], i) => (
+                  <option key={name} value={i}>
+                    {name} ({n})
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
-          <label className="field">
-            Time: {clock(hour)}
-            <input
-              aria-label="Time of day"
-              type="range"
-              min={5}
-              max={21}
-              step={0.25}
-              value={hour}
-              onChange={(e) => setHour(Number(e.target.value))}
-              disabled={running}
-            />
-          </label>
-          <p className="muted">
-            {sun
-              ? sun.altitude > 0
-                ? `Sun ${sun.altitude.toFixed(0)}° up, ${sun.azimuth.toFixed(0)}° from north (at the site${useAppStore.getState().app?.site ? "" : ": none set, central USA"}).`
-                : "The sun is down: sky light only."
-              : ""}
-          </p>
+          <h3>Background</h3>
           <label className="field">
             Background
             <select
               aria-label="Background"
               value={background}
-              onChange={(e) => setBackground(e.target.value as "sky" | "white")}
+              onChange={(e) => setBackground(e.target.value as BackgroundId)}
               disabled={running}
             >
-              <option value="sky">Sky</option>
-              <option value="white">White</option>
+              {BACKGROUNDS.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.label}
+                </option>
+              ))}
             </select>
           </label>
+          {bg.photo && (
+            <label className="field">
+              Rotate background: {rotation}°
+              <input
+                aria-label="Background rotation"
+                type="range"
+                min={0}
+                max={359}
+                step={1}
+                value={rotation}
+                onChange={(e) => setRotation(Number(e.target.value))}
+                disabled={running}
+              />
+            </label>
+          )}
+          <h3>Lighting</h3>
+          <label className="field">
+            Light by
+            <select
+              aria-label="Lighting"
+              value={lightingUsed}
+              onChange={(e) => setLighting(e.target.value as Lighting)}
+              disabled={running || !bg.photo}
+            >
+              <option value="sunsky">Sun &amp; Sky (site, date and time)</option>
+              <option value="dome">Background photo (dome light)</option>
+            </select>
+          </label>
+          {lightingUsed === "sunsky" && (
+            <>
+              <div className="row">
+                <label className="field">
+                  Month
+                  <select
+                    aria-label="Month"
+                    value={month}
+                    onChange={(e) => setMonth(Number(e.target.value))}
+                    disabled={running}
+                  >
+                    {MONTHS.map((m, i) => (
+                      <option key={m} value={i + 1}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Day
+                  <input
+                    aria-label="Day"
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={day}
+                    onChange={(e) => setDay(Math.max(1, Math.min(31, Number(e.target.value) || 1)))}
+                    disabled={running}
+                  />
+                </label>
+              </div>
+              <label className="field">
+                Time: {clock(hour)}
+                <input
+                  aria-label="Time of day"
+                  type="range"
+                  min={5}
+                  max={21}
+                  step={0.25}
+                  value={hour}
+                  onChange={(e) => setHour(Number(e.target.value))}
+                  disabled={running}
+                />
+              </label>
+              <p className="muted">
+                {sun
+                  ? sun.altitude > 0
+                    ? `Sun ${sun.altitude.toFixed(0)}° up, ${sun.azimuth.toFixed(0)}° from north (at the site${useAppStore.getState().app?.site ? "" : ": none set, central USA"}).`
+                    : "The sun is down: sky light only."
+                  : ""}
+              </p>
+            </>
+          )}
+          {lightingUsed === "dome" && (
+            <p className="muted">
+              Lit by the photo&apos;s own sun and sky; rotate the background to move them.
+            </p>
+          )}
           <label className="field">
             Exposure: {exposure.toFixed(1)}
             <input
@@ -241,6 +387,27 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               disabled={running}
             />
           </label>
+          <label className="field">
+            Tone
+            <select
+              aria-label="Tone"
+              value={tone}
+              onChange={(e) => setTone(e.target.value as "contrast" | "filmic")}
+              disabled={running}
+            >
+              <option value="contrast">Contrast (punchy, V-Ray style)</option>
+              <option value="filmic">Filmic (soft highlights)</option>
+            </select>
+          </label>
+          <label className="ob-check">
+            <input
+              type="checkbox"
+              checked={denoise}
+              onChange={(e) => setDenoise(e.target.checked)}
+              disabled={running}
+            />
+            Denoise when finished
+          </label>
           {satellite && <p className="muted">The satellite image drapes the ground.</p>}
           <div className="render-bar" aria-hidden>
             <div style={{ width: `${Math.round(progress * 100)}%` }} />
@@ -248,6 +415,15 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
           <div className="render-progress" role="status">
             {status}
           </div>
+          <label className="ob-check">
+            <input
+              type="checkbox"
+              aria-label="Include background"
+              checked={withBackground}
+              onChange={(e) => setWithBackground(e.target.checked)}
+            />
+            Save with the background (off: transparent PNG)
+          </label>
           <div className="modal-actions">
             {running ? (
               <button className="btn-outline" onClick={stop}>
@@ -265,6 +441,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               Close
             </button>
           </div>
+          {bg.source && <p className="muted render-credit">Background: {bg.source}</p>}
         </div>
         <div className="render-stage" ref={stage}>
           <div className="render-empty">

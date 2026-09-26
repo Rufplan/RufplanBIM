@@ -626,3 +626,52 @@ dependency.
   and glass. Final quality depends on the GPU.
 - **Not yet:** saving renders into the project (for sheets), artificial lights, material
   textures and bump maps, entourage (people, trees), depth of field, and camera crop regions.
+
+## ADR-028 V-Ray-style lighting, photo backgrounds, transparent renders — Accepted (2026-09-25)
+Owner requests (2026-09-25):
+1. Placing a camera in a floor plan showed nothing.
+2. "Make the lighting and rendering look like the V-Ray engine."
+3. "Have the sky actually show a sky, add mountains, grass plain and city, and a checkbox
+   to save with the background or as a transparent PNG."
+
+Owner decision (2026-09-25): real photo backgrounds, not procedural ones.
+- **Camera fix:** the Camera tool's clicks were never routed to point placement, so nothing
+  happened. The point-placing tools are now one shared list (`POINT_TOOLS`), tested. While
+  placing, the camera and its view cone follow the cursor, as in Revit.
+- **Lighting like V-Ray's Sun & Sky:**
+  - The sky is a Preetham physical sky (turbidity 3), computed for the site's sun.
+  - The sun is part of the sky map: a disk of 1° radius (like raising V-Ray's sun size),
+    balanced to about 6:1 sunlit to sky-lit. Importance-sampled, it gives soft, clean shadow
+    edges; the library's directional light only gives hard shadows.
+  - Or **Dome light:** the background photo's HDR lights the scene. It is normalised to a
+    clear afternoon sun & sky, so exposure means the same in both modes, and it turns with
+    the background.
+- **Rendering:**
+  - 8 diffuse bounces and 12 through glass.
+  - Thin architectural glass (no refraction, no rays trapped in the window box). Glass
+    doesn't block the sun's direct light.
+  - V-Ray-like material settings per category.
+  - Tone: Contrast (ACES, the default, punchy) or Filmic (AgX, soft highlights).
+  - An edge-aware denoise at the end, stronger than the library's default.
+- **Backgrounds:** Sky, Mountains, Grass Plain and City are Poly Haven CC0 panoramas
+  (app/public/backgrounds, about 9.7 MB): a 3072 px JPEG as the backdrop, plus a 1k HDR for
+  the dome light. The other options are Physical Sky (matching the sun) and White.
+  - The backdrop is rendered from the camera with the same tone curve and composited behind
+    the path-traced model, which renders on transparency.
+- **Ground projection (V-Ray's dome ground projection):** for Mountains, Grass Plain and
+  City, the photo's own ground is mapped onto a 50 m ground disc around the camera, as seen
+  from where the photo was taken (1.7 m up). Its albedo is scaled so that it renders like the
+  photo under our light. The building then casts shadows on the photo's grass or paving,
+  which meets the backdrop at the horizon.
+  - Past 50 m the backdrop shows its own view, so trees and buildings aren't smeared across
+    the ground.
+  - Sky, Physical Sky and White use a plain lawn, paving or grey ground in linear colour.
+    A tiled texture banded toward the horizon.
+- **Saving:** "Save with the background" (on by default) saves the composite. Off, it saves
+  a transparent PNG of the building alone: the render is cut out by an antialiased raster
+  mask of the model (ground and topography excluded).
+- **Verified:** the smoke tests ran headless Chrome on the owner's GPU through the DevTools
+  protocol. 256 samples at 480 × 270 take about 45 s; 1024 samples clear the noise in glass
+  seen from afar.
+- **Not yet:** a firefly clamp (the library has none), clouds in the physical sky,
+  interior lights, textures and bump maps, and entourage.
