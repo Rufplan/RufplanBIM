@@ -13,6 +13,7 @@ import { activeViewInfo, useAppStore } from "../store";
 import { GenerateDialog } from "./GenerateDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
+import { SheetSetsDialog } from "./SheetSetsDialog";
 import { WindowLibrary } from "./WindowLibrary";
 
 // Keyboard Shortcuts (KS) and Visibility/Graphics (VV) dialogs (ADR-024).
@@ -26,6 +27,7 @@ export function ViewDialogs() {
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "generate") return <GenerateDialog onClose={close} />;
   if (which === "windows") return <WindowLibrary onClose={close} />;
+  if (which === "sheetSets") return <SheetSetsDialog onClose={close} />;
   return null;
 }
 

@@ -407,6 +407,74 @@ export function installFakeBackend(): FakeBackend {
           };
         case "material_library":
           return LIBRARY;
+        case "building_types":
+          return [
+            { id: "SingleFamily", label: "Single-family house" },
+            { id: "Hotel", label: "Hotel" },
+          ];
+        case "sheet_set_plan": {
+          const o = a.options as { buildingType: string; phases: string[] };
+          const sheet = (number: string, name: string, phases: string[], placeholder = false) => ({
+            number,
+            name,
+            discipline: "Architectural",
+            contents: placeholder
+              ? "Placeholder by the structural engineer: footings"
+              : 'Level 1 at 1/4" = 1\'-0"',
+            placeholder,
+            phases: phases.filter((p) => o.phases.includes(p)),
+            exists: false,
+          });
+          const sheets = [
+            sheet("G-001", "Cover Sheet & Sheet Index", ["PD", "SD", "DD", "CD", "BN", "CA"]),
+            sheet("A-101", "Level 1 Floor Plan", ["SD", "DD", "CD", "BN", "CA"]),
+            sheet(
+              "S-101",
+              o.buildingType === "Hotel" ? "Hotel Foundation Plan" : "Foundation Plan",
+              ["DD", "CD", "BN", "CA"],
+              true,
+            ),
+          ].filter((s) => s.phases.length);
+          const names: Record<string, [string, string][]> = {
+            SD: [["sd100", "100% Schematic Design"]],
+            CD: [
+              ["cd100", "100% Construction Documents"],
+              ["permit", "Permit Set"],
+            ],
+          };
+          return {
+            deliverables: o.phases.flatMap((p) =>
+              (names[p] ?? []).map(([id, name]) => ({
+                phase: p,
+                stage: p,
+                id,
+                name,
+                sheets: sheets.filter((s) => s.phases.includes(p)).map((s) => s.number),
+              })),
+            ),
+            sheets,
+            warnings: [],
+          };
+        }
+        case "create_sheet_sets":
+          return {
+            state: fake.state,
+            report: {
+              created: 3,
+              updated: 0,
+              views: 1,
+              sections: 2,
+              placeholders: 1,
+              warnings: [],
+            },
+          };
+        case "export_sheet_sets":
+          return {
+            state: fake.state,
+            files: [
+              { name: "Permit Set", path: `${a.folder as string}/Permit Set.pdf`, sheets: 3 },
+            ],
+          };
         case "window_library":
           return WINDOW_LIBRARY;
         case "window_preview": {

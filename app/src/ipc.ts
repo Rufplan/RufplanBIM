@@ -10,6 +10,11 @@ import type { Handles } from "./bindings/Handles";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
 import type { CameraPose } from "./bindings/CameraPose";
 import type { Preset } from "./bindings/Preset";
+import type { BuildingTypeOption } from "./bindings/BuildingTypeOption";
+import type { SetOptions } from "./bindings/SetOptions";
+import type { SetPlan } from "./bindings/SetPlan";
+import type { SetsCreated } from "./bindings/SetsCreated";
+import type { SetsExported } from "./bindings/SetsExported";
 import type { LoadedWindows } from "./bindings/LoadedWindows";
 import type { SpecPreview } from "./bindings/SpecPreview";
 import type { WindowLibrary } from "./bindings/WindowLibrary";
@@ -299,6 +304,12 @@ export const ipc = {
   claudeSetKey: (key: string) => invoke<boolean>("claude_set_key", { key }),
   generateBuilding: (inputs: GenerateInputs) =>
     invoke<GenerateResult>("generate_building", { inputs }),
+  // Sheet sets (ADR-032).
+  buildingTypes: () => invoke<BuildingTypeOption[]>("building_types"),
+  sheetSetPlan: (options: SetOptions) => invoke<SetPlan>("sheet_set_plan", { options }),
+  createSheetSets: (options: SetOptions) => invoke<SetsCreated>("create_sheet_sets", { options }),
+  exportSheetSets: (phases: string[], folder: string, record: boolean) =>
+    invoke<SetsExported>("export_sheet_sets", { phases, folder, record }),
   // Window Library (ADR-031).
   windowLibrary: () => invoke<WindowLibrary>("window_library"),
   windowPreview: (spec: WindowSpec) => invoke<SpecPreview>("window_preview", { spec }),
@@ -359,6 +370,11 @@ export const dialogs = {
     save({ defaultPath: `${defaultName}.rfproj`, filters: PROJECT_FILTER }),
   pickPdfLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] }),
+  /** A folder, for exporting several files. */
+  pickFolder: async (): Promise<string | null> => {
+    const picked = await open({ multiple: false, directory: true });
+    return typeof picked === "string" ? picked : null;
+  },
   pickIfcLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.ifc`, filters: [{ name: "IFC", extensions: ["ifc"] }] }),
 };

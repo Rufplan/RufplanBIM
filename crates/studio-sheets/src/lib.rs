@@ -2,6 +2,7 @@
 
 pub mod pdf;
 pub mod schedule;
+pub mod sets;
 pub mod sheet;
 
 pub use pdf::export_pdf;

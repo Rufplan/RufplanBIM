@@ -912,6 +912,46 @@ mod tests {
         std::fs::write(out, pdf).unwrap();
     }
 
+    /// Dev aid: `cargo test -p rufplan-studio write_sample_sets -- --ignored` creates the
+    /// sample house's sheet sets (ADR-032) and writes its 100% SD and Permit sets to
+    /// target/sample-sd-set.pdf and target/sample-permit-set.pdf.
+    #[test]
+    #[ignore]
+    fn write_sample_sets() {
+        use studio_sheets::sets;
+        let mut s = Session::default();
+        s.new_sample("0.0.1").unwrap();
+        let phases: Vec<String> = sets::PHASES.iter().map(|p| (*p).to_owned()).collect();
+        let report = s
+            .edit(|d| {
+                sets::create(
+                    d,
+                    &sets::SetOptions {
+                        building_type: sets::BuildingType::SingleFamily,
+                        phases: phases.clone(),
+                        size: studio_core::SheetSize::ArchD,
+                    },
+                )
+            })
+            .unwrap();
+        println!("{report:?}");
+        let doc = s.doc().unwrap();
+        for (phase, stage, id, _, sheets) in sets::deliverables(doc, &phases) {
+            if id != "sd100" && id != "permit" {
+                continue;
+            }
+            let copy = sets::as_of_stage(doc, stage).unwrap();
+            let pdf = studio_sheets::export_pdf(&copy, &sheets, "2026-09-26").unwrap();
+            let name = if phase == "SD" { "sd" } else { "permit" };
+            let out = format!(
+                "{}/../../target/sample-{name}-set.pdf",
+                env!("CARGO_MANIFEST_DIR")
+            );
+            std::fs::write(out, pdf).unwrap();
+            println!("{id}: {} sheets", sheets.len());
+        }
+    }
+
     /// Dev aid: `cargo test -p rufplan-studio write_sample_ifc -- --ignored` writes the
     /// sample model to target/sample-model.ifc (CI validates it with IfcOpenShell).
     #[test]

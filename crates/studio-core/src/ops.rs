@@ -424,8 +424,22 @@ pub fn sheets(doc: &Document) -> Vec<(ElementId, String, String)> {
             _ => None,
         })
         .collect();
-    v.sort_by(|a, b| natural_cmp(&a.1, &b.1));
+    v.sort_by(|a, b| sheet_cmp(&a.1, &b.1));
     v
+}
+
+/// Sheet-index order: US National CAD Standard numbers (G-001, A-101) by discipline —
+/// general, civil, landscape, structural, architectural, interiors, fire protection,
+/// plumbing, mechanical, electrical — then naturally within one; other numbers (A1.0)
+/// naturally, after them (ADR-032).
+pub fn sheet_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    const ORDER: &[&str] = &["G", "C", "L", "S", "A", "I", "F", "P", "M", "E"];
+    let rank = |n: &str| {
+        n.split_once('-')
+            .and_then(|(d, _)| ORDER.iter().position(|x| *x == d))
+            .unwrap_or(ORDER.len())
+    };
+    rank(a).cmp(&rank(b)).then_with(|| natural_cmp(a, b))
 }
 
 /// Next sheet number after the last one: A1.0 → A2.0, A101 → A102.

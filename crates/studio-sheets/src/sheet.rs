@@ -8,7 +8,7 @@ use studio_views::{Anchor, Builder, Dash, DisplayList, FillKind, Item, Prim, Vie
 use crate::schedule::{approx_width, schedule, table_items};
 
 /// Border margins in paper mm: (left binding edge, other edges).
-fn margins(size: SheetSize) -> (f64, f64) {
+pub(crate) fn margins(size: SheetSize) -> (f64, f64) {
     match size {
         SheetSize::ArchD => (25.4, 12.7),
         SheetSize::Tabloid => (19.0, 9.5),

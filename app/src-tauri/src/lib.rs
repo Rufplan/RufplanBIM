@@ -9,6 +9,7 @@ mod material_cmds;
 mod menu;
 mod render_cmds;
 mod session;
+mod sheetset_cmds;
 mod shortcut_cmds;
 mod site_cmds;
 mod sketching;
@@ -123,6 +124,10 @@ pub fn run() -> anyhow::Result<()> {
             material_cmds::apply_material,
             material_cmds::render_materials,
             material_cmds::material_texture,
+            sheetset_cmds::building_types,
+            sheetset_cmds::sheet_set_plan,
+            sheetset_cmds::create_sheet_sets,
+            sheetset_cmds::export_sheet_sets,
             window_cmds::window_library,
             window_cmds::window_preview,
             window_cmds::load_window_types,

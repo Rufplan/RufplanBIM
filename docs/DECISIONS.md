@@ -862,3 +862,87 @@ change and "starter set + library" (2026-09-26).
 - **Not yet:** arched and round tops, garden windows, glass block, skylights, casement
   hand flip per instance, windows above or below the plan cut shown dashed, and per-type
   frame materials in renderings (the finish is a colour).
+
+## ADR-032 Deliverable sheet sets per phase and building type — Accepted (2026-09-26)
+Owner request (2026-09-26): "generate a set of deliverable documents and their relevant
+sheets per phase and building type." Owner chose: a feature in Studio, US National CAD
+Standard numbering, and consultant placeholder sheets.
+
+- **Where:** `studio_sheets::sets`; View > Sheets > Sheet Sets opens the dialog.
+  - Pick a building type: single-family, duplex, townhouses, garden or mid-rise
+    apartments, mixed-use, hotel.
+  - Pick the phases (the project's design stages, ADR-010) and the sheet size.
+  - The dialog previews every deliverable and the sheet index with each sheet's contents
+    and phases, then offers Create / Update Sheets and Export PDFs.
+- **Deliverables per phase** use Rufplan's catalog ids (ADR-016):
+  - PD: Program & Site Analysis (`pd-program`).
+  - SD: 100% Schematic Design (`sd100`).
+  - DD: 100% Design Development (`dd100`).
+  - CD: 100% Construction Documents (`cd100`) and Permit Set (`permit`).
+  - BN: Bid Set (`bid`).
+  - CA: IFC — Issued for Construction (`ifc`).
+- **Sheets** are numbered to the NCS (`G-001`, `A-101`) and listed in discipline order:
+  G, C, L, S, A, I, F, P, M, E. `ops::sheet_cmp` now orders every sheet list and the sheet
+  index; other numbers such as A1.0 follow them. A sheet belongs to several phases through
+  `Sheet.stages` (ADR-015), so one A-101 serves SD through CA.
+  - **Every type:**
+    - G-001 cover and sheet index; G-002 code summary (IRC) or analysis (IBC); G-005 energy
+      compliance.
+    - Structural: notes, foundation, framing per floor group, roof framing, details.
+    - A-001 program (PD, SD); A-100 site plan; A-101… floor plans, then the roof plan;
+      A-151… reflected ceiling plans (DD on); A-201… elevations; A-301… sections.
+    - A-311 wall sections; A-401 enlarged plans (named per type); A-451 interior
+      elevations; A-501 details; A-601… door and window schedules and the room finish
+      schedule; A-901 3D views (SD only).
+    - Plumbing, mechanical and electrical.
+  - **IBC types add:** G-003 life safety; G-004 accessibility (FHA and A117.1 for
+    multifamily, ADA for hotels); civil (notes, site and grading, utilities, erosion
+    control); landscape; A-421 stairs; fire protection (NFPA 13R for garden apartments,
+    NFPA 13 otherwise); MEP notes and per-floor plans; a roof mechanical plan.
+  - **Hotels add** interior finish plans and schedule. **Townhouses** get civil and
+    landscape too.
+  - **Consultant floors:** a building over four floors groups the middle ones as "Typical
+    Levels 2–N".
+  - **Phase membership** follows US practice: plans, elevations and sections from SD;
+    RCPs, wall sections, enlarged plans, schedules, code and consultant plans from DD;
+    details, life safety, accessibility, energy, interiors, fire protection and consultant
+    notes from CD. Bid and CA sets equal the CD set.
+- **Filled from the model:**
+  - **Views:** plans (levels with walls; the level above takes the roof plan), RCPs,
+    exterior elevations (south, north, east, west), sections, plan callouts and interior
+    elevation marks.
+  - **Scale:** views are packed in rows on the drawing area, left of the title block, at
+    1/4" for IRC types and 1/8" otherwise. Elevations and sections go one scale smaller
+    when that puts two or more on a sheet. A view too big for a sheet steps down to 1/16"
+    and is centred, with a warning. Site plans use 1/8" or engineering scales.
+  - **Sections:** two building sections are made through the middle when the project has
+    none.
+  - **Placeholders:** drawings the model doesn't make yet (details, wall sections, code
+    sheets) and consultants' sheets get titled placeholder notes saying who provides them.
+  - **Cover:** the project name, building type and address, plus the sheet index,
+    top-aligned for the largest set.
+- **The sheet index** now lists the current design stage's set, so each deliverable's
+  cover indexes its own sheets.
+- **Re-running** updates by sheet number:
+  - The chosen phases' flags are set on each sheet, and other phases are left alone.
+  - Empty sheets are filled; sheets with content are left as the user arranged them.
+  - A view already on a sheet outside the sets moves in (reported). Older sheets it leaves
+    empty drop out of the chosen phases' sets (reported).
+  - One undo step.
+- **Export PDFs** writes one PDF per deliverable into a folder, named "{number} - {project}
+  - {deliverable}.pdf".
+  - Each prints from a copy of the project set to that stage, so the title block shows the
+    deliverable's stage and the index its sheets.
+  - "Record as issued" also records an Issuance per deliverable in its stage (ADR-015).
+- **No file-format change:** placeholders are sheets with text notes.
+- **Verified:** tests cover packing and scale fitting, a house permit set (numbers, order,
+  phases, deliverables), a six-story mid-rise (typical floors, life safety, 1/8" plans),
+  creation (views placed, stage sets, one undo, re-run without duplicates), moving views
+  from older sheets, and missing stages. The sample house's SD and Permit PDFs were
+  rendered and checked by eye.
+- **Not yet:**
+  - Typical-floor architectural plans (one plan for identical floors).
+  - Enlarged plans made automatically from rooms.
+  - Consultant PDFs merged in place of placeholders.
+  - Per-deliverable sheet differences (for example, Permit without the bid forms).
+  - Commercial office and retail building types.

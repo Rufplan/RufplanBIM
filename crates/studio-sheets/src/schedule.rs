@@ -137,8 +137,15 @@ pub fn schedule(doc: &Document, view: ElementId) -> Option<Table> {
             vec!["Number", "Name", "Level", "Area"]
         }
         ScheduleKind::Sheets => {
-            for (id, number, name) in ops::sheets(doc) {
-                rows.push((number.clone(), id, vec![number, name]));
+            // The current design stage's set (every sheet when none are assigned), ADR-032.
+            let stage = ops::project_info(doc).and_then(|i| match doc.data(i) {
+                Ok(ElementData::ProjectInfo { current_stage, .. }) => *current_stage,
+                _ => None,
+            });
+            for id in ops::stage_sheets(doc, stage) {
+                if let Ok(ElementData::Sheet { number, name, .. }) = doc.data(id) {
+                    rows.push((number.clone(), id, vec![number.clone(), name.clone()]));
+                }
             }
             vec!["Sheet Number", "Sheet Name"]
         }
@@ -209,7 +216,12 @@ pub fn schedule(doc: &Document, view: ElementId) -> Option<Table> {
             vec!["Material", "Area", "Volume"]
         }
     };
-    rows.sort_by(|a, b| ops::natural_cmp(&a.0, &b.0));
+    // Sheets read in sheet-index (discipline) order; everything else naturally by key.
+    if *kind == ScheduleKind::Sheets {
+        rows.sort_by(|a, b| ops::sheet_cmp(&a.0, &b.0));
+    } else {
+        rows.sort_by(|a, b| ops::natural_cmp(&a.0, &b.0));
+    }
     Some(Table {
         title: name.to_uppercase(),
         columns: columns.into_iter().map(str::to_owned).collect(),

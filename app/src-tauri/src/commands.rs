@@ -555,7 +555,7 @@ pub fn tag_all(
     edit(&window, &state, |s| s.edit(|d| ops::tag_all(d, view)))
 }
 
-fn write_pdf(
+pub(crate) fn write_pdf(
     doc: &studio_core::Document,
     sheets: &[ElementId],
     path: &str,

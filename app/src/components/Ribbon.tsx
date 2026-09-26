@@ -626,6 +626,15 @@ export function Ribbon() {
                 ))}
             </Group>
             <Group title="Sheets">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "sheetSets" })}
+                disabled={!app}
+                title="Sheet Sets: each phase's deliverables (SD, DD, Permit, Bid…) and their sheets for the building type, created and exported"
+              >
+                {Icons.issue}
+                <span>Sheet Sets</span>
+              </button>
               <button className="rb-btn" onClick={() => void newSheet()} title="New ARCH D sheet">
                 {Icons.sheet}
                 <span>New Sheet</span>
