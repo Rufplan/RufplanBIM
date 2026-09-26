@@ -1028,12 +1028,35 @@ fn wall_pieces(w: &WallSolid, openings: &[&OpeningSolid]) -> Vec<Prism> {
             pieces.push(Prism { base, z0, z1 });
         }
     };
-    for o in &ops {
-        push(slice(cursor, Some(o.t0)), w.z0, w.z1);
-        let gap = slice(Some(o.t0), Some(o.t1));
-        push(gap.clone(), w.z0, o.z0);
-        push(gap, o.z1, w.z1);
-        cursor = Some(o.t1);
+    // Stretches between the openings' edges; each is solid except where openings cross it
+    // (several can, one above another: ADR-035).
+    let mut cuts: Vec<f64> = ops.iter().flat_map(|o| [o.t0, o.t1]).collect();
+    cuts.sort_by(f64::total_cmp);
+    cuts.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+    for pair in cuts.windows(2) {
+        let (a, b) = (pair[0], pair[1]);
+        let mid = (a + b) / 2.0;
+        let mut spans: Vec<(f64, f64)> = ops
+            .iter()
+            .filter(|o| o.t0 < mid && o.t1 > mid)
+            .map(|o| (o.z0, o.z1))
+            .collect();
+        if spans.is_empty() {
+            push(slice(cursor, Some(b)), w.z0, w.z1);
+            cursor = Some(b);
+            continue;
+        }
+        // Solid up to this stretch.
+        push(slice(cursor, Some(a)), w.z0, w.z1);
+        spans.sort_by(|x, y| x.0.total_cmp(&y.0));
+        let gap = slice(Some(a), Some(b));
+        let mut z = w.z0;
+        for (z0, z1) in spans {
+            push(gap.clone(), z, z0);
+            z = z.max(z1);
+        }
+        push(gap, z, w.z1);
+        cursor = Some(b);
     }
     push(slice(cursor, None), w.z0, w.z1);
     pieces
@@ -1275,6 +1298,56 @@ mod tests {
         assert!((area(&doc) - 5000.0 * 12.0 * MM_PER_IN).abs() < 1e-3);
         doc.undo().unwrap();
         assert!((area(&doc) - 5000.0 * 8.0 * MM_PER_IN).abs() < 1e-3);
+    }
+
+    #[test]
+    fn stacked_windows_share_a_stretch_of_wall() {
+        let (mut doc, l1, wt) = project();
+        let w =
+            ops::create_wall(&mut doc, wt, l1, Pt::new(0.0, 0.0), Pt::new(5000.0, 0.0)).unwrap();
+        // A tall wall: 20'.
+        doc.transact("tall", |tx| {
+            tx.modify(w, |d| {
+                if let ElementData::Wall { top, .. } = d {
+                    *top = WallTop::Unconnected { height: 6096.0 };
+                }
+            })
+        })
+        .unwrap();
+        let wn = doc
+            .of(Category::WindowType)
+            .find(|e| e.data.name().starts_with("Fixed 48"))
+            .unwrap()
+            .id;
+        let lower = ops::create_window(&mut doc, wn, w, 2500.0, false).unwrap();
+        assert!(
+            ops::create_window(&mut doc, wn, w, 2500.0, false).is_err(),
+            "the same height overlaps"
+        );
+        // Above it, at 3500 mm: allowed.
+        let upper = doc
+            .transact("upper", |tx| {
+                Ok(tx.insert(ElementData::Window {
+                    type_id: wn,
+                    host: w,
+                    offset: 2500.0,
+                    sill: 3500.0,
+                    flip_facing: false,
+                    mark: "2".into(),
+                }))
+            })
+            .unwrap();
+        assert_ne!(lower, upper);
+        let m = regenerate(&doc);
+        let wall = m.walls.iter().find(|s| s.id == w).unwrap();
+        // Solid | sill, between, head | solid.
+        assert_eq!(wall.pieces.len(), 5, "{:#?}", wall.pieces);
+        let between = wall
+            .pieces
+            .iter()
+            .find(|p| (p.z0 - (36.0 * MM_PER_IN + 48.0 * MM_PER_IN)).abs() < 1.0)
+            .unwrap();
+        assert!((between.z1 - 3500.0).abs() < 1.0);
     }
 
     #[test]

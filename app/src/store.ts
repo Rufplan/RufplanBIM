@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { AppState, CloudStatus, ElementId } from "./ipc";
 import type { SnapKind } from "./bindings/SnapKind";
+import type { ImportReport } from "./bindings/ImportReport";
 
 export type PickerCategory = "Door" | "Window";
 
@@ -210,6 +211,9 @@ interface UiState {
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
   picker: { category: PickerCategory; tab: "project" | "library"; change: ElementId[] } | null;
+  /** What the last IFC import brought in (ADR-035). */
+  ifcReport: ImportReport | null;
+  setIfcReport: (r: ImportReport | null) => void;
   /** The material the Paint tool applies (ADR-034). */
   paintMaterial: ElementId | null;
   setPaintMaterial: (id: ElementId | null) => void;
@@ -318,6 +322,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   picker: null,
   setPicker: (picker) => set({ picker }),
   paintMaterial: null,
+  ifcReport: null,
+  setIfcReport: (ifcReport) => set({ ifcReport }),
   setPaintMaterial: (paintMaterial) => set({ paintMaterial }),
   siteDialog: null,
   setSiteDialog: (siteDialog) => set({ siteDialog }),

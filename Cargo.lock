@@ -4361,11 +4361,13 @@ version = "0.0.1"
 dependencies = [
  "rmp-serde",
  "rusqlite",
+ "serde",
  "studio-core",
  "studio-geom",
  "studio-regen",
  "tempfile",
  "thiserror 2.0.21",
+ "ts-rs",
  "uuid",
 ]
 

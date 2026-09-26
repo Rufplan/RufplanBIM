@@ -180,6 +180,27 @@ pub fn project_open(
     edit(&window, &state, |s| s.open(&PathBuf::from(path)))
 }
 
+/// An IFC import's new project and what came in (ADR-035).
+#[derive(Debug, Clone, serde::Serialize, ts_rs::TS)]
+#[ts(export)]
+pub struct IfcImported {
+    pub state: Option<AppState>,
+    pub report: studio_io::ifc_import::ImportReport,
+}
+
+/// Opens an IFC file (exported from Revit, ArchiCAD…) as a new project.
+#[tauri::command]
+pub fn project_import_ifc(
+    path: String,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> CommandResult<IfcImported> {
+    let mut s = lock(&state)?;
+    let report = s.import_ifc(&PathBuf::from(path), APP_VERSION)?;
+    let state = finish(&window, &s)?;
+    Ok(IfcImported { state, report })
+}
+
 /// Saves to `path` when given (Save As), otherwise to the project's current path.
 #[tauri::command]
 pub fn project_save(

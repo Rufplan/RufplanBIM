@@ -407,6 +407,34 @@ impl Session {
         Ok(())
     }
 
+    /// Opens an IFC file (from Revit or any BIM tool) as a new, unsaved project (ADR-035).
+    /// On failure the currently open project is left untouched.
+    pub fn import_ifc(
+        &mut self,
+        path: &Path,
+        app_version: &str,
+    ) -> anyhow::Result<studio_io::ifc_import::ImportReport> {
+        let text =
+            std::fs::read(path).with_context(|| format!("could not read {}", path.display()))?;
+        let text = String::from_utf8_lossy(&text);
+        let (mut doc, report) = studio_io::ifc_import::import(&text)
+            .map_err(|e| anyhow::anyhow!("could not import {}: {e}", path.display()))?;
+        let name = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Imported Model".into());
+        if let Some(info) = ops::project_info(&doc) {
+            ops::set_property(&mut doc, info, "name", &name, 0)?;
+        }
+        doc.clear_history();
+        doc.mark_saved();
+        self.project = Some(Project::new(app_version, doc));
+        self.sketch = None;
+        self.path = None;
+        self.revision += 1;
+        Ok(report)
+    }
+
     /// Opens `path`. On failure the currently open project is left untouched.
     pub fn open(&mut self, path: &Path) -> anyhow::Result<()> {
         let mut project =

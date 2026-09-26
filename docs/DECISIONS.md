@@ -1040,3 +1040,62 @@ per-element paint, with Shift-click for the whole type.
     that type, as Apply Material did). Esc or Done finishes.
 - **Not yet:** painting one face of a wall (paint covers the whole element), and paint in
   plan poché.
+
+## ADR-035 Revit round-trip through IFC — Accepted (2026-09-26)
+Owner request (2026-09-26): "create a feature to export or import a revit model to work on."
+Revit's .rvt format is closed. The owner chose an IFC round-trip over a Revit add-in or
+Autodesk's cloud translation.
+
+- **Import** (`studio_io::ifc_import`, File > Open IFC, and Open IFC (Revit) on the welcome
+  screen) opens an IFC2x3 or IFC4 file as a new, unsaved project.
+- **The reader:** a small STEP reader (`studio_io::step`) handles the DATA section, typed
+  values and string escapes. There is no new dependency.
+- **Model setup:**
+  - Units (metres, millimetres, feet) and plane angles are read.
+  - Placements are composed.
+  - Models far from the origin (site coordinates) are recentred.
+- **Storeys** become levels, with their names and elevations, and their plans are renamed.
+- **Walls:**
+  - The line comes from the Axis representation (else the footprint's long direction).
+  - Thickness and height come from the body extrusion, followed through boolean clippings
+    and mapped items.
+  - The base offset comes from the storey.
+  - Wall types are made per Revit type name and thickness, and IsExternal sets the wall
+    function.
+  - Curved walls come in straight (reported).
+- **Doors and windows** go in their host walls through IfcRelFillsElement and
+  IfcRelVoidsElement.
+  - They are placed where their opening's body sits along the wall, at OverallWidth and
+    OverallHeight, with the window sill from the opening.
+  - Their facing comes from their placement, and the door hand from the operation type.
+  - Types are named from Revit's family and type ("M_Single-Flush: 0915 x 2134mm"). The
+    family comes from the operation type or name (double, sliding, folding, garage;
+    casement, double-hung, slider…).
+- **Slabs** become floors (thickness from the body), and roof slabs become flat roofs over
+  their outline.
+- **The rest:**
+  - Spaces become rooms, with Revit's number and name.
+  - Grids come in with their tags.
+  - Columns come in at their centroid.
+- **Reported, not brought in:** stairs, railings, curtain walls, furniture, MEP and the
+  like.
+- **Door and window stacking:** openings may now share a stretch of wall one above another
+  (a clerestory over a window, windows on two floors of a tall wall).
+  - The overlap check compares heights too.
+  - The wall is cut in stretches between the openings' edges, so each stretch is solid
+    except where openings cross it.
+- **Export back to Revit** is the IFC4 export Studio already has (ADR-016). In Revit, File >
+  Open > IFC, or Insert > Link IFC. The import report explains both directions.
+- **Verified:**
+  - Studio's own export round-trips: walls, a door at its place, a window, a floor, a room.
+  - buildingSMART's Revit 2011 Duplex (IFC2x3) came in with 4 levels, 57 walls, 14 of 14
+    doors, 22 of 24 windows (the other two are roof skylights), 20 floors, a roof and 21
+    named rooms, in 0.13 s. Its plan and 3D were checked by eye.
+  - The Revit Clinic came in with 1,080 walls, 244 doors (the other 10 are curtain-wall
+    doors), 58 windows and 269 rooms, in under 1 s.
+- **Not yet:**
+  - Sloped roofs and stairs.
+  - Curtain walls, and room separators from spaces. Rooms Revit separates without walls
+    share one area.
+  - Materials and colours.
+  - Merging an IFC into an open project.

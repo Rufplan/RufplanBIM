@@ -9,6 +9,8 @@
 //! half-written project in place of the last good one.
 
 pub mod ifc;
+pub mod ifc_import;
+pub mod step;
 
 use std::path::{Path, PathBuf};
 

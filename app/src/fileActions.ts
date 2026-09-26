@@ -70,6 +70,25 @@ export const openProject = async () => {
   return apply(() => ipc.projectOpen(path), true);
 };
 
+/** Opens an IFC model (from Revit, ArchiCAD…) as a new project, and reports what came in. */
+export const importIfc = async () => {
+  if (!(await confirmDiscard())) return false;
+  const path = await dialogs.pickIfcToOpen();
+  if (!path) return false;
+  const s = useAppStore.getState();
+  s.setPrompt("Importing the IFC model…");
+  try {
+    const r = await ipc.projectImportIfc(path);
+    s.setApp(r.state, true);
+    s.setIfcReport(r.report);
+    s.setPrompt("");
+    return true;
+  } catch (err) {
+    s.setError(errorMessage(err));
+    return false;
+  }
+};
+
 export const saveProjectAs = async () => {
   const current = useAppStore.getState().app?.project;
   if (!current) return false;

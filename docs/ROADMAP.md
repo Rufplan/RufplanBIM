@@ -85,6 +85,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Revit round-trip by IFC (ADR-035): Open IFC imports IFC2x3/IFC4 (Revit, ArchiCAD…) as
+  editable levels, walls, doors, windows, floors, roofs, rooms, grids and columns; Export
+  IFC goes back. Checked on buildingSMART's Revit Duplex and Clinic models.
+
 - Paint (ADR-034): Revit's Paint tool (PT) with a roller cursor and a chip showing the
   material; click paints one element, Shift-click its type; renderings now use each
   surface's material.

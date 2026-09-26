@@ -11,6 +11,7 @@ import {
   newProject,
   openProject,
   redo,
+  importIfc,
   sampleProject,
   undo,
 } from "./fileActions";
@@ -20,6 +21,7 @@ import { TopBar } from "./components/TopBar";
 import { Ribbon } from "./components/Ribbon";
 import { OptionsBar } from "./components/OptionsBar";
 import { PaintChip } from "./components/PaintChip";
+import { IfcReport } from "./components/IfcReport";
 import { ProjectBrowser } from "./components/ProjectBrowser";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { StatusBar, Workspace } from "./components/Workspace";
@@ -81,6 +83,9 @@ function Welcome() {
           </button>
           <button className="btn-outline light" onClick={() => void openProject()}>
             Open Project
+          </button>
+          <button className="btn-outline light" onClick={() => void importIfc()}>
+            Open IFC (Revit)
           </button>
           <button className="btn-ghost light" onClick={() => void sampleProject()}>
             Sample Project
@@ -232,6 +237,7 @@ export function App() {
       <ParamsDialog />
       <SiteDialog />
       <ViewDialogs />
+      <IfcReport />
     </div>
   );
 }

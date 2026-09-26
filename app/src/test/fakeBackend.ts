@@ -314,6 +314,29 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "project_new":
           return (fake.state = appState(null));
+        case "project_import_ifc":
+          fake.state = appState(null);
+          return {
+            state: fake.state,
+            report: {
+              schema: "IFC2X3",
+              application: "Autodesk Revit Architecture 2011 - 1.0",
+              project: "0001",
+              levels: 4,
+              walls: 57,
+              doors: 14,
+              windows: 22,
+              floors: 20,
+              roofs: 1,
+              rooms: 21,
+              grids: 0,
+              columns: 0,
+              skipped: [["stair", 2]],
+              warnings: [
+                "2 doors and windows have no wall to go in (skylights, curtain wall doors) and were left out",
+              ],
+            },
+          };
         case "project_open":
           return (fake.state = appState(a.path as string));
         case "project_save":

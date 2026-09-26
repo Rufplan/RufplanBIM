@@ -1643,6 +1643,16 @@ button:disabled {
   color: #0b7fa5;
 }
 
+/* IFC import (ADR-035). */
+.modal.ifc-report {
+  width: min(520px, 94vw);
+}
+.ifc-steps {
+  font-size: 12px;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+
 /* Paint tool (ADR-034). */
 .main {
   position: relative;

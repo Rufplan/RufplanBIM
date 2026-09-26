@@ -56,6 +56,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::project_new,
             commands::project_sample,
             commands::project_open,
+            commands::project_import_ifc,
             commands::project_save,
             commands::view_display_list,
             commands::view_meshes,

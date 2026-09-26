@@ -1,5 +1,5 @@
 import logo from "../assets/rufplan-logo-white.svg";
-import { apply, newProject, openProject, redo, saveProject, undo } from "../fileActions";
+import { apply, importIfc, newProject, openProject, redo, saveProject, undo } from "../fileActions";
 import { ipc } from "../ipc";
 import { useAppStore } from "../store";
 import { Icons } from "./Icons";
@@ -16,6 +16,12 @@ export function TopBar() {
       <nav className="topbar-file">
         <button onClick={() => void newProject()}>New</button>
         <button onClick={() => void openProject()}>Open</button>
+        <button
+          onClick={() => void importIfc()}
+          title="Open an IFC model exported from Revit, ArchiCAD or another BIM tool as a new project"
+        >
+          Open IFC
+        </button>
         <button onClick={() => void saveProject()} disabled={!app}>
           Save
         </button>

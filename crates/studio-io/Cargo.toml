@@ -12,10 +12,12 @@ workspace = true
 [dependencies]
 rmp-serde = "1.3.1"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
 studio-core.workspace = true
 studio-geom.workspace = true
 studio-regen.workspace = true
 thiserror = "2.0.21"
+ts-rs = "12.0.1"
 uuid = { version = "1.26.1", features = ["v5"] }
 
 [dev-dependencies]

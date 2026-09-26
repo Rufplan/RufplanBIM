@@ -16,6 +16,7 @@ import type { SetPlan } from "./bindings/SetPlan";
 import type { SetsCreated } from "./bindings/SetsCreated";
 import type { SetsExported } from "./bindings/SetsExported";
 import type { LoadedWindows } from "./bindings/LoadedWindows";
+import type { IfcImported } from "./bindings/IfcImported";
 import type { SpecPreview } from "./bindings/SpecPreview";
 import type { WindowLibrary } from "./bindings/WindowLibrary";
 import type { WindowSpec } from "./bindings/WindowSpec";
@@ -309,6 +310,8 @@ export const ipc = {
   claudeSetKey: (key: string) => invoke<boolean>("claude_set_key", { key }),
   generateBuilding: (inputs: GenerateInputs) =>
     invoke<GenerateResult>("generate_building", { inputs }),
+  /** Opens an IFC file (from Revit…) as a new project (ADR-035). */
+  projectImportIfc: (path: string) => invoke<IfcImported>("project_import_ifc", { path }),
   // Sheet sets (ADR-032).
   buildingTypes: () => invoke<BuildingTypeOption[]>("building_types"),
   sheetSetPlan: (options: SetOptions) => invoke<SetPlan>("sheet_set_plan", { options }),
@@ -386,6 +389,14 @@ export const dialogs = {
   /** A folder, for exporting several files. */
   pickFolder: async (): Promise<string | null> => {
     const picked = await open({ multiple: false, directory: true });
+    return typeof picked === "string" ? picked : null;
+  },
+  pickIfcToOpen: async (): Promise<string | null> => {
+    const picked = await open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "IFC model", extensions: ["ifc"] }],
+    });
     return typeof picked === "string" ? picked : null;
   },
   pickIfcLocation: (defaultName: string): Promise<string | null> =>

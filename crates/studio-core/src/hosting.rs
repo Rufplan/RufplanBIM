@@ -125,10 +125,16 @@ pub fn validate_openings<'a>(
             .partial_cmp(&(b.1.host, b.1.t0))
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-    for pair in fits.windows(2) {
-        let (a, b) = (&pair[0], &pair[1]);
-        if a.1.host == b.1.host && b.1.t0 < a.1.t1 - SLOP {
-            return Err(CoreError::Invalid(format!("{} overlaps {}", b.0, a.0)));
+    // Openings may share a stretch of wall one above the other (a clerestory over a
+    // window, windows on two floors of a tall wall), but not overlap (ADR-035).
+    for (i, a) in fits.iter().enumerate() {
+        for b in fits[i + 1..].iter() {
+            if b.1.host != a.1.host || b.1.t0 >= a.1.t1 - SLOP {
+                break;
+            }
+            if b.1.z0 < a.1.z1 - SLOP && a.1.z0 < b.1.z1 - SLOP {
+                return Err(CoreError::Invalid(format!("{} overlaps {}", b.0, a.0)));
+            }
         }
     }
     Ok(())
