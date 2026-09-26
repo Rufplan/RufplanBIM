@@ -1187,3 +1187,54 @@ Revit's".
 - **Not yet** (Revit has these):
   - The roll arrows: the orbit keeps the scene upright.
   - Lock to Selection, Set Current View as Front, and perspective/orthographic switching.
+
+## ADR-038 Visual styles, seamless walls, floors to the outside of walls — Accepted (2026-09-26)
+Owner requests (2026-09-26):
+1. "default the floor to extend to outside edge of wall instead of inside".
+2. "when in 3D view you can see the joint lines after a window or door are placed … join the
+   form so that these seams don't show".
+3. "a toggle button between materials for 3D view (wireframe, hidden line, shaded,
+   consistent colors, realistic) … in lower left corner". The owner handed off design 1F
+   ("expands on hover") with its icons and specs.
+
+- **Floors reach the outside of exterior walls.** In a floor sketch, Pick Walls on an
+  exterior wall picks its outer face, whichever side the cursor is on
+  (`sketch::pick_floor_walls`).
+  - The outer face is the one outside the closed chain the wall belongs to, else its
+    exterior face.
+  - Interior walls still take the face on the cursor's side.
+  - Ceilings are unchanged.
+  - Floor by walls (click a wall) already followed the outer faces.
+- **Walls without seams.** A wall's solid is split in pieces around its openings. Drawn as
+  they were, the pieces showed seams in two ways: lines found from their triangles, and the
+  faces between them flickering through the surface. Now:
+  - `studio_views::edges::wall_triangles` leaves out every face where one piece meets
+    another. Only the uncovered parts remain, so an opening's jambs stay.
+  - `wall_edges` gives the wall's own lines: its outline, with no corner line where the
+    outline runs straight on (a T join), and each opening's outline on both faces and through
+    the wall.
+  - `Mesh.edges` carries these lines (6 floats per segment). It is empty for other elements,
+    whose lines still come from their triangles.
+  - Stacked walls on two levels still show the line between them, as in Revit.
+- **Visual styles**, per 3D view (Shaded until chosen; kept for the session, the file is
+  unchanged):
+  - **Wireframe:** lines only, hidden ones too. The faces aren't drawn but can still be
+    picked, and selected lines turn blue.
+  - **Hidden Line:** white faces with black lines.
+  - **Shaded:** material colours, lit, with lines, as before.
+  - **Consistent Colors:** the same colours unlit, with lines.
+  - **Realistic:** the project's physical materials (ADR-029) with their textures, by
+    real-world box mapping.
+    - Lighting: ACES tone mapping, an image-based room environment, and a sun from the
+      southeast casting soft shadows.
+    - Setting: a sky, a matte ground where there's no topography, and the grid at a quarter.
+    - No lines.
+- **The toggle** (design 1F) sits in the 3D view's lower-left corner.
+  - At rest it shows the current style's icon. Hovering or focusing it opens all five, from
+    Wireframe to Realistic.
+  - The chosen one is filled light grey, with no accent colour.
+  - It is a radio group (arrow keys move between styles); on touch, a tap opens it.
+  - The View tab's buttons and the WF, HL and SD shortcuts set the same style. Consistent
+    Colors and Realistic are in the Keyboard Shortcuts dialog without keys, as in Revit.
+  - The design's 1–5 keys were left out: digits already start a typed length.
+- **Also moved:** the satellite credit moved right of the pill.

@@ -34,6 +34,8 @@ export type Action =
   | "wireframe"
   | "hiddenLine"
   | "shaded"
+  | "consistent"
+  | "realistic"
   | "properties"
   | "viewProperties"
   | "keyboard"
@@ -235,6 +237,14 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     command: a("hiddenLine"),
   },
   { id: "shaded", label: "Shaded (3D)", group: "View", keys: ["SD"], command: a("shaded") },
+  {
+    id: "consistent",
+    label: "Consistent Colors (3D)",
+    group: "View",
+    keys: [],
+    command: a("consistent"),
+  },
+  { id: "realistic", label: "Realistic (3D)", group: "View", keys: [], command: a("realistic") },
   {
     id: "zoomFit",
     label: "Zoom to Fit",

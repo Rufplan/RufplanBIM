@@ -8,10 +8,24 @@ import { apply } from "../fileActions";
 import { errorMessage, ipc, type Mesh, type Pt, type ViewInfo } from "../ipc";
 import { siteImagery, uvAt, type Imagery } from "../imagery";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
-import { useAppStore } from "../store";
+import { styleOf, useAppStore } from "../store";
 import { samePt, sketchPrompt } from "../tools";
 import { savedHome, ViewCube } from "../render/viewCube";
 import { ViewCubeOverlay } from "./ViewCubeOverlay";
+import { VisualStyleToggle } from "./VisualStyleToggle";
+import {
+  EDGE_COLOR,
+  isGlass,
+  realMaterials,
+  realUv,
+  SELECTED,
+  skyTexture,
+  styleMaterial,
+  type MeshInfo,
+  type RealMaterial,
+  type VisualStyle,
+} from "../render/visualStyle";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 const COLORS = {
   exteriorWall: 0xe9e7e2,
@@ -66,20 +80,6 @@ export function meshColor(m: Mesh): number {
   return categoryColor(m);
 }
 
-function material(m: Mesh, planes: THREE.Plane[]) {
-  const glass = (m.category === "Window" || m.category === "Door") && !m.color;
-  const seeThrough = m.category === "Ceiling" || glass;
-  return new THREE.MeshLambertMaterial({
-    color: meshColor(m),
-    transparent: seeThrough,
-    opacity: m.category === "Ceiling" ? 0.55 : glass ? 0.45 : 1,
-    polygonOffset: true,
-    polygonOffsetFactor: 1,
-    polygonOffsetUnits: 1,
-    clippingPlanes: planes,
-  });
-}
-
 /** The six planes keeping what's inside a section box (three.js clips negative distances). */
 export function boxPlanes(b: SectionBox | null): THREE.Plane[] {
   if (!b) return [];
@@ -121,6 +121,12 @@ interface Three {
   boxGroup: THREE.Group;
   gridGroup: THREE.Group;
   fitted: boolean;
+  hemi: THREE.HemisphereLight;
+  sun: THREE.DirectionalLight;
+  /** Realistic's ground and sky, and its image-based light (made on first use). */
+  ground: THREE.Mesh;
+  sky: THREE.Texture | null;
+  env: THREE.Texture | null;
 }
 
 /** Wireframe and six face handles of the section box. */
@@ -255,6 +261,9 @@ export function View3D({ view }: { view: ViewInfo }) {
   const imagery = useRef<Imagery | null>(null);
   // The ViewCube (ADR-037), made with the renderer.
   const [cube, setCube] = useState<ViewCube | null>(null);
+  // Bumped when the meshes are rebuilt; Realistic's materials are loaded for them.
+  const [meshRev, setMeshRev] = useState(0);
+  const real = useRef<{ rev: number; map: Map<string, RealMaterial> } | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -265,10 +274,23 @@ export function View3D({ view }: { view: ViewInfo }) {
     renderer.localClippingEnabled = true;
     wrap.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b8b0, 2.2));
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb8b8b0, 2.2);
+    scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 1.4);
     sun.position.set(-0.6, -1, 1.4);
-    scene.add(sun);
+    scene.add(sun, sun.target);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    Object.assign(sun.shadow, { bias: -0.0005, normalBias: 20 });
+    sun.shadow.mapSize.set(2048, 2048);
+    // Realistic's ground: a matte lawn under the model when there's no topography.
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 64),
+      new THREE.MeshStandardMaterial({ color: 0x6f7d5c, roughness: 1 }),
+    );
+    ground.receiveShadow = true;
+    ground.visible = false;
+    scene.add(ground);
     const camera = new THREE.PerspectiveCamera(40, 1, 50, 1e7);
     camera.up.set(0, 0, 1);
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -292,6 +314,11 @@ export function View3D({ view }: { view: ViewInfo }) {
       boxGroup,
       gridGroup,
       fitted: false,
+      hemi,
+      sun,
+      ground,
+      sky: null,
+      env: null,
     };
 
     // A camera view saves its pose when navigation settles (ADR-027).
@@ -983,6 +1010,8 @@ export function View3D({ view }: { view: ViewInfo }) {
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
+      three.current?.env?.dispose();
+      three.current?.sky?.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       three.current = null;
@@ -1008,17 +1037,30 @@ export function View3D({ view }: { view: ViewInfo }) {
           const geo = new THREE.BufferGeometry();
           geo.setAttribute("position", new THREE.Float32BufferAttribute(m.positions, 3));
           geo.computeVertexNormals();
-          const mesh = new THREE.Mesh(geo, material(m, planes));
+          // Its material comes from the visual style (applyDisplay).
+          const info: MeshInfo = { mesh: m, base: meshColor(m), map: null };
+          const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ visible: false }));
           mesh.userData = {
             el: m.el,
             category: m.category,
             level: m.level,
-            base: (mesh.material as THREE.MeshLambertMaterial).color.getHex(),
+            info,
+            planes,
+            style: null,
           };
           t.group.add(mesh);
+          // Walls bring their own lines, without the seams where they're split around
+          // openings (ADR-038); the rest take theirs from the triangles.
+          let lines: THREE.BufferGeometry;
+          if (m.edges.length > 0) {
+            lines = new THREE.BufferGeometry();
+            lines.setAttribute("position", new THREE.Float32BufferAttribute(m.edges, 3));
+          } else {
+            lines = new THREE.EdgesGeometry(geo, 25);
+          }
           const edges = new THREE.LineSegments(
-            new THREE.EdgesGeometry(geo, 25),
-            new THREE.LineBasicMaterial({ color: COLORS.edge, clippingPlanes: planes }),
+            lines,
+            new THREE.LineBasicMaterial({ color: EDGE_COLOR, clippingPlanes: planes }),
           );
           t.group.add(edges);
         }
@@ -1045,9 +1087,12 @@ export function View3D({ view }: { view: ViewInfo }) {
         }
         t.gridGroup.visible = useAppStore.getState().grid3d;
         const st = useAppStore.getState();
+        const style = styleOf(st, view.id);
         applyImagery(t.group, imagery.current);
-        applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
-        applySelection(t.group, st.selection);
+        applyDisplay(t.group, st.tempHide[view.id] ?? null, style, real.current?.map ?? null);
+        applySelection(t.group, st.selection, style);
+        applyScene(t, style);
+        setMeshRev((n) => n + 1);
       },
       (e) => useAppStore.getState().setError(errorMessage(e)),
     );
@@ -1079,15 +1124,51 @@ export function View3D({ view }: { view: ViewInfo }) {
 
   // Temporary Hide/Isolate and the visual style (ADR-024), applied to the meshes shown.
   const temp = useAppStore((s) => s.tempHide[view.id] ?? null);
-  const visualStyle = useAppStore((s) => s.visualStyle);
+  const visualStyle = useAppStore((s) => styleOf(s, view.id));
+  const setVisualStyle = useAppStore((s) => s.setVisualStyle);
   const sketchTarget = useAppStore((s) => s.app?.sketch?.target ?? null);
   useEffect(() => {
-    if (three.current) applyDisplay(three.current.group, temp, visualStyle);
-  }, [temp, visualStyle, revision, sketchTarget]);
+    const t = three.current;
+    if (!t) return;
+    applyDisplay(t.group, temp, visualStyle, real.current?.map ?? null);
+    applySelection(t.group, useAppStore.getState().selection, visualStyle);
+    applyScene(t, visualStyle);
+  }, [temp, visualStyle, revision, sketchTarget, meshRev]);
+
+  // Realistic: the project's materials with their textures, loaded when first shown.
+  useEffect(() => {
+    if (visualStyle !== "realistic") return;
+    const t = three.current;
+    if (!t || real.current?.rev === meshRev) return;
+    let live = true;
+    const meshes = t.group.children
+      .filter((c): c is THREE.Mesh => c instanceof THREE.Mesh)
+      .map((c) => (c.userData.info as MeshInfo).mesh);
+    ipc
+      .renderMaterials()
+      .then((list) => realMaterials(meshes, list, (set, map) => ipc.materialTexture(set, map)))
+      .then(
+        (map) => {
+          const t = three.current;
+          if (!live || !t) return;
+          real.current = { rev: meshRev, map };
+          for (const c of t.group.children) if (c instanceof THREE.Mesh) c.userData.style = null;
+          const st = useAppStore.getState();
+          const style = styleOf(st, view.id);
+          applyDisplay(t.group, st.tempHide[view.id] ?? null, style, map);
+          applySelection(t.group, st.selection, style);
+        },
+        () => {},
+      );
+    return () => {
+      live = false;
+    };
+  }, [visualStyle, meshRev, view.id]);
 
   useEffect(() => {
-    if (three.current) applySelection(three.current.group, selection);
-  }, [selection]);
+    if (three.current)
+      applySelection(three.current.group, selection, styleOf(useAppStore.getState(), view.id));
+  }, [selection, view.id]);
 
   const satellite = useAppStore((s) => s.satellite);
   const hasSite = useAppStore((s) => !!s.app?.site);
@@ -1099,8 +1180,13 @@ export function View3D({ view }: { view: ViewInfo }) {
       if (!t) return;
       applyImagery(t.group, null);
       const st = useAppStore.getState();
-      applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
-      applySelection(t.group, st.selection);
+      applyDisplay(
+        t.group,
+        st.tempHide[view.id] ?? null,
+        styleOf(st, view.id),
+        real.current?.map ?? null,
+      );
+      applySelection(t.group, st.selection, styleOf(st, view.id));
     };
     if (!satellite || !hasSite) {
       off();
@@ -1113,8 +1199,13 @@ export function View3D({ view }: { view: ViewInfo }) {
         imagery.current = im;
         applyImagery(t.group, im);
         const st = useAppStore.getState();
-        applyDisplay(t.group, st.tempHide[view.id] ?? null, st.visualStyle);
-        applySelection(t.group, st.selection);
+        applyDisplay(
+          t.group,
+          st.tempHide[view.id] ?? null,
+          styleOf(st, view.id),
+          real.current?.map ?? null,
+        );
+        applySelection(t.group, st.selection, styleOf(st, view.id));
       },
       (e) => {
         if (!live) return;
@@ -1138,6 +1229,7 @@ export function View3D({ view }: { view: ViewInfo }) {
   return (
     <div ref={wrapRef} className={`canvas-wrap view3d${temp ? " temp-hide" : ""}`} data-tool={tool}>
       <ViewCubeOverlay cube={cube} viewId={view.id} />
+      <VisualStyleToggle value={visualStyle} onChange={(s) => setVisualStyle(view.id, s)} />
       <button
         className={`view3d-chip${grid3d ? " on" : ""}`}
         aria-pressed={grid3d}
@@ -1165,9 +1257,10 @@ export function View3D({ view }: { view: ViewInfo }) {
 function applyImagery(group: THREE.Group, im: Imagery | null) {
   for (const child of group.children) {
     if (!(child instanceof THREE.Mesh) || child.userData.category !== "Site") continue;
-    const mat = child.material as THREE.MeshLambertMaterial;
-    const u = child.userData as { base: number; ground?: number };
-    mat.map?.dispose();
+    const info = child.userData.info as MeshInfo;
+    info.map?.dispose();
+    info.map = null;
+    info.base = meshColor(info.mesh);
     if (im) {
       const pos = child.geometry.getAttribute("position");
       const uv = new Float32Array(pos.count * 2);
@@ -1181,51 +1274,136 @@ function applyImagery(group: THREE.Group, im: Imagery | null) {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = 4;
       tex.needsUpdate = true;
-      mat.map = tex;
-      u.ground ??= u.base;
-      u.base = 0xffffff;
-    } else {
-      mat.map = null;
-      if (u.ground !== undefined) u.base = u.ground;
+      info.map = tex;
+      info.base = 0xffffff;
     }
-    mat.color.setHex(u.base);
-    mat.needsUpdate = true;
+    // Restyled with (or without) the image.
+    child.userData.style = null;
   }
 }
 
-/** Temporary Hide/Isolate and the visual style on the shown meshes (ADR-024). */
+/** Temporary Hide/Isolate and the visual style (ADR-024, ADR-038) on the shown meshes. */
 function applyDisplay(
   group: THREE.Group,
   temp: { isolate: boolean; ids: string[]; categories: string[] } | null,
-  visualStyle: string,
+  style: VisualStyle,
+  real: Map<string, RealMaterial> | null,
 ) {
   // The floor or ceiling whose boundary is being edited is hidden meanwhile.
   const editing = useAppStore.getState().app?.sketch?.target ?? null;
+  const realistic = style === "realistic";
   let lastMesh: THREE.Mesh | null = null;
   for (const child of group.children) {
     if (child instanceof THREE.Mesh) {
       lastMesh = child;
-      const u = child.userData as { el: string; category: string; base: number };
+      const u = child.userData as {
+        el: string;
+        category: string;
+        info: MeshInfo;
+        planes: THREE.Plane[];
+        style: VisualStyle | null;
+      };
       const hit = temp ? temp.ids.includes(u.el) || temp.categories.includes(u.category) : false;
       child.visible = (!temp || (temp.isolate ? hit : !hit)) && u.el !== editing;
-      const mat = child.material as THREE.MeshLambertMaterial;
-      mat.wireframe = visualStyle === "wireframe";
-      mat.color.setHex(visualStyle === "hiddenLine" ? 0xffffff : u.base);
+      if (u.style !== style) {
+        const r =
+          realistic && u.info.mesh.material ? (real?.get(u.info.mesh.material) ?? null) : null;
+        if (r?.textured && child.userData.uvScale !== r.scale) {
+          realUv(child.geometry, r.scale, r.aspect);
+          child.userData.uvScale = r.scale;
+        }
+        (child.material as THREE.Material).dispose();
+        child.material = styleMaterial(style, u.info, u.planes, r);
+        u.style = style;
+      }
+      const shadows = realistic && !isGlass(u.info.mesh) && u.category !== "Ceiling";
+      child.castShadow = shadows;
+      child.receiveShadow = realistic;
     } else if (child instanceof THREE.LineSegments && lastMesh) {
-      // Each mesh's edges follow it.
-      child.visible = lastMesh.visible && visualStyle !== "wireframe";
+      // Each mesh's lines follow it; Realistic shows none.
+      child.visible = lastMesh.visible && !realistic;
     }
   }
 }
 
-function applySelection(group: THREE.Group, selection: string[]) {
+function applySelection(group: THREE.Group, selection: string[], style: VisualStyle) {
   const sel = new Set(selection);
+  let lastMesh: THREE.Mesh | null = null;
   for (const child of group.children) {
     if (child instanceof THREE.Mesh) {
-      const mat = child.material as THREE.MeshLambertMaterial;
-      const base =
-        useAppStore.getState().visualStyle === "hiddenLine" ? 0xffffff : child.userData.base;
-      mat.color.setHex(sel.has(child.userData.el) ? COLORS.selected : base);
+      lastMesh = child;
+      const on = sel.has(child.userData.el);
+      const info = child.userData.info as MeshInfo;
+      const mat = child.material as THREE.Material & {
+        color?: THREE.Color;
+        emissive?: THREE.Color;
+      };
+      if (style === "realistic") {
+        mat.emissive?.setHex(on ? 0x146e87 : 0x000000);
+      } else if (mat.color) {
+        mat.color.setHex(on ? SELECTED : style === "hiddenLine" ? 0xffffff : info.base);
+      }
+    } else if (child instanceof THREE.LineSegments && lastMesh) {
+      // Selected lines turn blue too (all that shows of an element in Wireframe).
+      const on = sel.has(lastMesh.userData.el);
+      (child.material as THREE.LineBasicMaterial).color.setHex(
+        on ? SELECTED : style === "wireframe" ? 0x2b2e31 : EDGE_COLOR,
+      );
+    }
+  }
+}
+
+/** The scene around the model in a visual style: Realistic tone-maps, lights with an
+ * environment and a shadow-casting sun, shows a sky and a ground, and dims the grid. */
+function applyScene(t: Three, style: VisualStyle) {
+  const realistic = style === "realistic";
+  t.renderer.toneMapping = realistic ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+  if (realistic && !t.env) {
+    const pmrem = new THREE.PMREMGenerator(t.renderer);
+    t.env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  }
+  if (realistic && !t.sky) t.sky = skyTexture();
+  t.scene.environment = realistic ? t.env : null;
+  t.scene.background = realistic ? t.sky : null;
+  t.scene.environmentIntensity = 0.45;
+  t.hemi.intensity = realistic ? 0.35 : 2.2;
+  t.sun.intensity = realistic ? 3.2 : 1.4;
+  t.sun.castShadow = realistic;
+  const box = new THREE.Box3().setFromObject(t.group);
+  const hasSite = t.group.children.some((c) => c.userData.category === "Site");
+  if (!box.isEmpty()) {
+    const c = box.getCenter(new THREE.Vector3());
+    const r = Math.max(box.getSize(new THREE.Vector3()).length() / 2, 1000);
+    // The sun from the southeast, high, its shadows falling to the northwest across the
+    // model and the ground (Shaded keeps its light from the southwest).
+    const dir = (
+      realistic ? new THREE.Vector3(0.7, -0.9, 1.1) : new THREE.Vector3(-0.6, -1, 1.4)
+    ).normalize();
+    t.sun.position.copy(c).addScaledVector(dir, r * 3);
+    t.sun.target.position.copy(c);
+    t.sun.target.updateMatrixWorld();
+    Object.assign(t.sun.shadow.camera, {
+      left: -r * 1.3,
+      right: r * 1.3,
+      top: r * 1.3,
+      bottom: -r * 1.3,
+      near: r * 0.5,
+      far: r * 6,
+    });
+    t.sun.shadow.camera.updateProjectionMatrix();
+    const z0 = Math.min(0, ...(useAppStore.getState().app?.levelElevations ?? [0]));
+    t.ground.position.set(c.x, c.y, z0 - 3);
+    t.ground.scale.setScalar(r * 60);
+  }
+  t.ground.visible = realistic && !hasSite && !box.isEmpty();
+  // The grid dims to a quarter in Realistic.
+  for (const g of t.gridGroup.children) {
+    for (const l of g instanceof THREE.LineSegments ? [g] : g.children) {
+      if (!(l instanceof THREE.LineSegments)) continue;
+      const m = l.material as THREE.LineBasicMaterial;
+      m.userData.opacity ??= m.opacity;
+      m.opacity = (m.userData.opacity as number) * (realistic ? 0.25 : 1);
     }
   }
 }

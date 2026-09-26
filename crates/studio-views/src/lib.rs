@@ -13,6 +13,7 @@ use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
 
 pub mod doors;
+pub mod edges;
 pub mod handles;
 mod plan_parts;
 pub mod site_plan;
@@ -2593,6 +2594,9 @@ pub struct Mesh {
     pub level: Option<ElementId>,
     /// Triangle soup, 9 floats per triangle, mm, z-up.
     pub positions: Vec<f32>,
+    /// The lines to draw, 6 floats per segment (ADR-038); empty to find them from the
+    /// triangles.
+    pub edges: Vec<f32>,
 }
 
 /// Meshes for a 3D view, without what it hides (ADR-024).
@@ -2630,17 +2634,10 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     let m = regenerate(doc);
     let mut out = vec![];
     for w in &m.walls {
-        let positions = w
-            .pieces
-            .iter()
-            .flat_map(|p| match &w.top_profile {
-                Some(_) if p.z1 >= w.z1 - 0.5 => {
-                    studio_geom::prism_triangles_to(&p.base, p.z0, |q| w.top_at(q))
-                }
-                _ => p.triangles(),
-            })
-            .collect();
+        let positions = edges::wall_triangles(w);
+        let hosted: Vec<&OpeningSolid> = m.openings.iter().filter(|o| o.host == w.id).collect();
         out.push(Mesh {
+            edges: edges::wall_edges(w, &hosted),
             el: w.id,
             category: Category::Wall,
             exterior: w.exterior,
@@ -2657,6 +2654,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 // Frame, casing and leaves in the finish (with a color); glass without.
                 let p = doors::parts(o, style);
                 out.push(Mesh {
+                    edges: vec![],
                     el: o.id,
                     category: Category::Door,
                     exterior: false,
@@ -2667,6 +2665,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 });
                 if !p.glass.is_empty() {
                     out.push(Mesh {
+                        edges: vec![],
                         el: o.id,
                         category: Category::Door,
                         exterior: false,
@@ -2682,6 +2681,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 // (with a color), and the glass (without).
                 let p = windows::parts(o, style);
                 out.push(Mesh {
+                    edges: vec![],
                     el: o.id,
                     category: Category::Window,
                     exterior: false,
@@ -2691,6 +2691,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                     positions: p.frame,
                 });
                 out.push(Mesh {
+                    edges: vec![],
                     el: o.id,
                     category: Category::Window,
                     exterior: false,
@@ -2704,6 +2705,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for s in m.floors.iter().chain(&m.ceilings) {
         out.push(Mesh {
+            edges: vec![],
             el: s.id,
             category: s.category,
             exterior: false,
@@ -2715,6 +2717,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for r in &m.roofs {
         out.push(Mesh {
+            edges: vec![],
             el: r.id,
             category: Category::Roof,
             exterior: true,
@@ -2726,6 +2729,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for s in &m.stairs {
         out.push(Mesh {
+            edges: vec![],
             el: s.id,
             category: Category::Stair,
             exterior: false,
@@ -2739,6 +2743,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         let positions = s.mesh();
         if !positions.is_empty() {
             out.push(Mesh {
+                edges: vec![],
                 el: s.id,
                 category: Category::Site,
                 exterior: false,
@@ -2751,6 +2756,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for c in &m.columns {
         out.push(Mesh {
+            edges: vec![],
             el: c.id,
             category: Category::Column,
             exterior: c.structural,
@@ -2762,6 +2768,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for bm in &m.beams {
         out.push(Mesh {
+            edges: vec![],
             el: bm.id,
             category: Category::Beam,
             exterior: true,
@@ -2780,6 +2787,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         positions.extend(r.posts.iter().flat_map(|p| p.triangles()));
         let is_stair = m.stairs.iter().any(|s| s.id == r.id);
         out.push(Mesh {
+            edges: vec![],
             el: r.id,
             category: if is_stair {
                 Category::Stair
@@ -3159,6 +3167,86 @@ mod tests {
             .unwrap()
             .id;
         assert_eq!(pick(&dl, Pt::new(10.0, 3000.0), 100.0), Some(west));
+    }
+
+    #[test]
+    fn walls_show_their_outline_and_openings_without_seams() {
+        let (doc, south, _d, _w) = with_openings();
+        let m = regenerate(&doc);
+        let wall = m.walls.iter().find(|w| w.id == south).unwrap();
+        let hosted: Vec<&OpeningSolid> = m.openings.iter().filter(|o| o.host == south).collect();
+        assert_eq!(hosted.len(), 2);
+        // The wall is cut in pieces around its door and window...
+        assert!(wall.pieces.len() > 3);
+        let mesh = meshes(&doc).into_iter().find(|x| x.el == south).unwrap();
+        let segs: Vec<[f32; 6]> = mesh
+            .edges
+            .chunks(6)
+            .map(|c| [c[0], c[1], c[2], c[3], c[4], c[5]])
+            .collect();
+        // ...but draws only its outline (a line along the bottom and top of each side and
+        // a corner line where it turns) and each opening (a rectangle on each face and
+        // four lines through the wall).
+        let ring = wall.footprint.outer.len();
+        assert_eq!(segs.len(), 3 * ring + 12 * 2, "{ring} outline points");
+        for s in &segs {
+            let vertical = (s[0] - s[3]).abs() < 0.01 && (s[1] - s[4]).abs() < 0.01;
+            if !vertical {
+                continue;
+            }
+            let (z0, z1) = (s[2].min(s[5]) as f64, s[2].max(s[5]) as f64);
+            let full = (z0 - wall.z0).abs() < 0.5 && (z1 - wall.z1).abs() < 0.5;
+            let jamb = hosted
+                .iter()
+                .any(|o| (z0 - o.z0.max(wall.z0)).abs() < 0.5 && (z1 - o.z1).abs() < 0.5);
+            assert!(full || jamb, "a seam from {z0} to {z1}");
+        }
+        // No face lies between two pieces (it would flicker through the surface), and every
+        // face looks out of the wall.
+        let inside = |p: [f64; 3]| {
+            wall.pieces.iter().any(|q| {
+                p[2] > q.z0 + 0.1
+                    && p[2] < q.z1 - 0.1
+                    && studio_geom::point_in_ring(Pt::new(p[0], p[1]), &q.base.outer)
+            })
+        };
+        for t in mesh.positions.chunks(9) {
+            let v = |k: usize| [t[k * 3] as f64, t[k * 3 + 1] as f64, t[k * 3 + 2] as f64];
+            let (a, b, c) = (v(0), v(1), v(2));
+            let u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+            let w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+            let n = [
+                u[1] * w[2] - u[2] * w[1],
+                u[2] * w[0] - u[0] * w[2],
+                u[0] * w[1] - u[1] * w[0],
+            ];
+            let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+            if len < 1e-6 {
+                continue;
+            }
+            let mid = [
+                (a[0] + b[0] + c[0]) / 3.0,
+                (a[1] + b[1] + c[1]) / 3.0,
+                (a[2] + b[2] + c[2]) / 3.0,
+            ];
+            let at = |s: f64| {
+                [
+                    mid[0] + n[0] / len * s,
+                    mid[1] + n[1] / len * s,
+                    mid[2] + n[2] / len * s,
+                ]
+            };
+            assert!(!inside(at(2.0)), "a face inside the wall at {mid:?}");
+            assert!(
+                inside(at(-2.0)) || mid[2] <= wall.z0 + 0.1 || mid[2] >= wall.z1 - 0.1,
+                "a face looking in at {mid:?}"
+            );
+        }
+        // Other elements leave their lines to the triangles.
+        assert!(meshes(&doc)
+            .iter()
+            .filter(|x| x.category != Category::Wall)
+            .all(|x| x.edges.is_empty()));
     }
 
     fn with_openings() -> (Document, ElementId, ElementId, ElementId) {

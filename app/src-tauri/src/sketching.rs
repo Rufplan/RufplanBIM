@@ -227,10 +227,19 @@ pub fn sketch_pick_walls(
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
+    // A floor reaches the outside of its exterior walls by default; a ceiling takes the
+    // face on the cursor's side.
+    let floor = lock(&state)?
+        .sketch()
+        .is_some_and(|s| s.kind == SketchKind::Floor);
     sketch_edit(&window, &state, |doc, curves, level| {
         let w = sketch::wall_at(doc, level, cursor, tol)
             .ok_or_else(|| anyhow::anyhow!("click a wall on this level"))?;
-        let picked = sketch::pick_walls(doc, w, cursor, chain, core, offset)?;
+        let picked = if floor {
+            sketch::pick_floor_walls(doc, w, cursor, chain, core, offset)?
+        } else {
+            sketch::pick_walls(doc, w, cursor, chain, core, offset)?
+        };
         sketch::add_picked(curves, picked, PICK_JOIN);
         Ok(())
     })

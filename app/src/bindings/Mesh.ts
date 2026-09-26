@@ -22,4 +22,9 @@ level: ElementId | null,
 /**
  * Triangle soup, 9 floats per triangle, mm, z-up.
  */
-positions: Array<number>, };
+positions: Array<number>, 
+/**
+ * The lines to draw, 6 floats per segment (ADR-038); empty to find them from the
+ * triangles.
+ */
+edges: Array<number>, };

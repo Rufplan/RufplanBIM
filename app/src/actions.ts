@@ -207,7 +207,9 @@ export async function runAction(action: Action) {
     case "wireframe":
     case "hiddenLine":
     case "shaded":
-      s.setUi({ visualStyle: action });
+    case "consistent":
+    case "realistic":
+      if (s.activeView) s.setVisualStyle(s.activeView, action);
       return;
     case "properties":
       s.setUi({ propsHidden: !s.propsHidden });

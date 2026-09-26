@@ -10,7 +10,7 @@ use studio_geom::{line_intersection, point_in_ring, project_to_segment, signed_a
 use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document};
-use crate::element::{Category, ElementData, ElementId};
+use crate::element::{Category, ElementData, ElementId, WallFunction};
 
 const TAU: f64 = std::f64::consts::TAU;
 /// Endpoints closer than this join (mm).
@@ -421,6 +421,68 @@ pub fn pick_walls(
         out.push(pick_wall(doc, *w, probe, core, offset)?);
     }
     Ok(out)
+}
+
+/// Pick Walls for a floor: as [`pick_walls`], but an exterior wall gives its outside face
+/// whichever side the cursor is on, so a floor reaches the outside of its walls (the side
+/// outside the closed chain it belongs to, else its exterior face). Interior walls still
+/// follow the cursor.
+pub fn pick_floor_walls(
+    doc: &Document,
+    hovered: ElementId,
+    cursor: Pt,
+    chain: bool,
+    core: bool,
+    offset: f64,
+) -> CoreResult<Vec<SketchCurve>> {
+    let probe = outside_of(doc, hovered).unwrap_or(cursor);
+    pick_walls(doc, hovered, probe, chain, core, offset)
+}
+
+/// A point just outside an exterior wall: off its middle, outside the closed chain of walls
+/// it is part of, else on its exterior face. None for an interior wall.
+fn outside_of(doc: &Document, wall: ElementId) -> Option<Pt> {
+    let ElementData::Wall {
+        type_id,
+        start,
+        end,
+        ..
+    } = doc.data(wall).ok()?
+    else {
+        return None;
+    };
+    let exterior = matches!(
+        doc.data(*type_id),
+        Ok(ElementData::WallType {
+            function: WallFunction::Exterior,
+            ..
+        })
+    );
+    if !exterior {
+        return None;
+    }
+    let n = end.sub(*start).norm().perp();
+    let mid = start.lerp(*end, 0.5);
+    let off = 600.0;
+    let left = mid.add(n.scale(off));
+    let right = mid.sub(n.scale(off));
+    let center: Vec<SketchCurve> = wall_chain(doc, wall)
+        .iter()
+        .filter_map(|w| match doc.data(*w) {
+            Ok(ElementData::Wall { start, end, .. }) => Some(SketchCurve::line(*start, *end)),
+            _ => None,
+        })
+        .collect();
+    let ring = loops(&center)
+        .ok()
+        .filter(|l| l.len() == 1)
+        .map(|l| loop_points(&l[0]));
+    Some(match ring {
+        Some(r) if point_in_ring(left, &r) => right,
+        Some(_) => left,
+        // Not a closed chain: the exterior face is on the wall's left.
+        None => left,
+    })
 }
 
 /// Adds picked lines, joining each to the lines already there at their corners.
@@ -1538,5 +1600,39 @@ mod tests {
             (area - (40.0 * MM_PER_FT - 2.0 * h) * (30.0 * MM_PER_FT - 2.0 * h)).abs() < 1.0,
             "inside faces"
         );
+    }
+
+    #[test]
+    fn a_floor_picks_the_outside_of_exterior_walls() {
+        let (mut doc, l1, walls) = house();
+        let h = 4.0 * 25.4;
+        let area_of = |doc: &Document, lines: Vec<SketchCurve>| {
+            let mut s = vec![];
+            add_picked(&mut s, lines, 600.0);
+            let l = loops(&s).unwrap();
+            signed_area(&loop_polygon(doc, &l[0])).abs()
+        };
+        // Hovered from inside, Tab: the whole chain by its outer faces.
+        let lines = pick_floor_walls(&doc, walls[0], ft(20.0, 1.0), true, false, 0.0).unwrap();
+        let outside = (40.0 * MM_PER_FT + 2.0 * h) * (30.0 * MM_PER_FT + 2.0 * h);
+        assert!((area_of(&doc, lines) - outside).abs() < 1.0, "outer faces");
+        // One wall hovered from inside: its outer face, 4" south of its centerline.
+        let one = pick_floor_walls(&doc, walls[0], ft(20.0, 1.0), false, false, 0.0).unwrap();
+        let (a, b) = one[0].ends();
+        assert!(
+            (a.y + h).abs() < 1e-6 && (b.y + h).abs() < 1e-6,
+            "{a:?} {b:?}"
+        );
+        // An interior wall still follows the cursor.
+        let it = doc
+            .of(Category::WallType)
+            .find(|e| e.data.name().starts_with("Interior"))
+            .unwrap()
+            .id;
+        let inner = ops::create_wall(&mut doc, it, l1, ft(20.0, 0.0), ft(20.0, 30.0)).unwrap();
+        let west = pick_floor_walls(&doc, inner, ft(19.0, 10.0), false, false, 0.0).unwrap();
+        assert!(west[0].ends().0.x < ft(20.0, 0.0).x);
+        let east = pick_floor_walls(&doc, inner, ft(21.0, 10.0), false, false, 0.0).unwrap();
+        assert!(east[0].ends().0.x > ft(20.0, 0.0).x);
     }
 }

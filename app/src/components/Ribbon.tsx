@@ -11,7 +11,7 @@ import {
 } from "../fileActions";
 import { ipc } from "../ipc";
 import { refreshCloud } from "../rufplan";
-import { activeViewInfo, useAppStore, type Tool } from "../store";
+import { activeViewInfo, styleOf, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
@@ -29,13 +29,14 @@ const TEMP_KEYS = {
   hideCategory: "HC",
   isolateCategory: "IC",
 } as const;
-const STYLE_LABELS = {
-  shaded: "Shaded",
-  hiddenLine: "Hidden Line",
-  wireframe: "Wireframe",
-} as const;
-const STYLE_KEYS = { shaded: "SD", hiddenLine: "HL", wireframe: "WF" } as const;
+const STYLE_KEYS: Partial<Record<VisualStyle, string>> = {
+  shaded: "SD",
+  hiddenLine: "HL",
+  wireframe: "WF",
+};
 import { editBoundary, startSketch } from "../sketch";
+import { VISUAL_STYLES, type VisualStyle } from "../render/visualStyle";
+import { StyleIcon } from "./VisualStyleToggle";
 
 function ToolButton({
   tool,
@@ -146,7 +147,7 @@ export function Ribbon() {
   const satellite = useAppStore((s) => s.satellite);
   const setSatellite = useAppStore((s) => s.setSatellite);
   const thinLines = useAppStore((s) => s.thinLines);
-  const visualStyle = useAppStore((s) => s.visualStyle);
+  const visualStyle = useAppStore((s) => styleOf(s, s.activeView));
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
   const sketchButton = (
@@ -630,15 +631,15 @@ export function Ribbon() {
                 <span>Reset Hide</span>
               </button>
               {activeIs3d &&
-                (["shaded", "hiddenLine", "wireframe"] as const).map((v) => (
+                VISUAL_STYLES.map(({ id, label }) => (
                   <button
-                    key={v}
-                    className={`rb-btn rb-small${visualStyle === v ? " active" : ""}`}
-                    onClick={() => void runAction(v)}
-                    title={`${STYLE_LABELS[v]} (${STYLE_KEYS[v]})`}
+                    key={id}
+                    className={`rb-btn rb-small${visualStyle === id ? " active" : ""}`}
+                    onClick={() => void runAction(id)}
+                    title={STYLE_KEYS[id] ? `${label} (${STYLE_KEYS[id]})` : label}
                   >
-                    {Icons.view3d}
-                    <span>{STYLE_LABELS[v]}</span>
+                    <StyleIcon style={id} size={16} />
+                    <span>{label}</span>
                   </button>
                 ))}
             </Group>

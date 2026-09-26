@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { AppState, CloudStatus, ElementId } from "./ipc";
 import type { SnapKind } from "./bindings/SnapKind";
 import type { ImportReport } from "./bindings/ImportReport";
+import type { VisualStyle } from "./render/visualStyle";
 
 export type PickerCategory = "Door" | "Window";
 
@@ -204,7 +205,9 @@ interface UiState {
   tempHide: Record<ElementId, TempHide>;
   setTempHide: (view: ElementId, t: TempHide | null) => void;
   thinLines: boolean;
-  visualStyle: "shaded" | "hiddenLine" | "wireframe";
+  /** Each 3D view's visual style (ADR-038); Shaded until chosen. */
+  visualStyles: Record<ElementId, VisualStyle>;
+  setVisualStyle: (view: ElementId, style: VisualStyle) => void;
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
   viewDialog:
@@ -219,9 +222,7 @@ interface UiState {
   paintMaterial: ElementId | null;
   setPaintMaterial: (id: ElementId | null) => void;
   setPicker: (p: UiState["picker"]) => void;
-  setUi: (
-    patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
-  ) => void;
+  setUi: (patch: Partial<Pick<UiState, "thinLines" | "propsHidden" | "viewDialog">>) => void;
   /** Site tab dialog: Find Lot or API Keys (ADR-023). */
   siteDialog: "find" | "keys" | null;
   setSiteDialog: (d: "find" | "keys" | null) => void;
@@ -316,7 +317,9 @@ export const useAppStore = create<UiState>((set, get) => ({
       return { tempHide: next };
     }),
   thinLines: false,
-  visualStyle: "shaded",
+  visualStyles: {},
+  setVisualStyle: (view, style) =>
+    set((s) => ({ visualStyles: { ...s.visualStyles, [view]: style } })),
   propsHidden: false,
   viewDialog: null,
   setUi: (patch) => set(patch),
@@ -437,4 +440,12 @@ export const useAppStore = create<UiState>((set, get) => ({
 /** Info about the active view, if any. */
 export function activeViewInfo(s: UiState) {
   return s.app?.views.find((v) => v.id === s.activeView) ?? null;
+}
+
+/** A 3D view's visual style (ADR-038). */
+export function styleOf(
+  s: Pick<UiState, "visualStyles">,
+  view: ElementId | null | undefined,
+): VisualStyle {
+  return (view && s.visualStyles[view]) || "shaded";
 }

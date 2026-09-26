@@ -131,6 +131,8 @@ Read these before writing code:
   Windows opens the Window Library.
 - Door families (ADR-033): studio-core `doors`, studio-views `doors` and `thumbs`; the
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
+- Visual styles (ADR-038): app/src/render/visualStyle.ts, components/VisualStyleToggle.tsx;
+  studio-views `edges` (a wall's seamless triangles and its own lines, `Mesh.edges`).
 - ViewCube (ADR-037): app/src/render/viewCube.ts (drawn by the 3D view's renderer in its
   corner) and components/ViewCubeOverlay.tsx (Home, arrows, menu).
 - Plans to 3D (ADR-036): studio-core `plans` (tracing to model) and app `plans_cmds`; pdf.js
