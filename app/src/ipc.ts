@@ -313,6 +313,9 @@ export const ipc = {
   /** Native menu clicks, forwarded by Rust as the menu item id. */
   onMenu: (handler: (id: string) => void): Promise<UnlistenFn> =>
     listen<string>("menu", (event) => handler(event.payload)),
+  /** Get Topography's progress: USGS batches done, of how many. */
+  onTopoProgress: (handler: (done: number, total: number) => void): Promise<UnlistenFn> =>
+    listen<[number, number]>("topo-progress", (event) => handler(...event.payload)),
 };
 
 export const dialogs = {

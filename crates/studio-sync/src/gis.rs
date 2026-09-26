@@ -33,53 +33,140 @@ pub fn enc(s: &str) -> String {
 const USGS: &str =
     "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/getSamples";
 
+/// Elevations of a batch of points (m, None where there is no data), and the finest
+/// source resolution among them (m).
+pub type Samples = (Vec<Option<f64>>, f64);
+
+/// Points per USGS request: small enough that its gateway doesn't time out when busy.
+const BATCH: usize = 500;
+/// Requests in flight at once.
+const WORKERS: usize = 3;
+/// Tries per batch before giving up.
+const ATTEMPTS: u32 = 4;
+
 /// Ground elevations (m, NAVD88) at each (lat, lon), None where 3DEP has no data, and the
-/// finest source resolution seen (m). Asks 1,000 points at a time.
-pub fn elevations(http: &dyn Http, pts: &[(f64, f64)]) -> SyncResult<(Vec<Option<f64>>, f64)> {
-    let mut out = vec![None; pts.len()];
+/// finest source resolution seen (m).
+pub fn elevations(http: &dyn Http, pts: &[(f64, f64)]) -> SyncResult<Samples> {
+    elevations_with(http, pts, &|_, _| {}, std::time::Duration::from_secs(3))
+}
+
+/// One batch, retried when USGS is busy: a network error, a 5xx or 429, or a 200 carrying
+/// an error. Other 4xx answers are final.
+fn batch(
+    http: &dyn Http,
+    chunk: &[(f64, f64)],
+    backoff: std::time::Duration,
+) -> SyncResult<Samples> {
+    let coords: Vec<String> = chunk
+        .iter()
+        .map(|(la, lo)| format!("[{lo:.8},{la:.8}]"))
+        .collect();
+    let geometry = format!(
+        "{{\"points\":[{}],\"spatialReference\":{{\"wkid\":4326}}}}",
+        coords.join(",")
+    );
+    let body = format!(
+        "geometry={}&geometryType=esriGeometryMultipoint&returnFirstValueOnly=true&interpolation=RSP_BilinearInterpolation&f=json",
+        enc(&geometry)
+    );
+    let mut last = String::new();
+    for attempt in 0..ATTEMPTS {
+        if attempt > 0 {
+            std::thread::sleep(backoff * 2u32.pow(attempt - 1));
+        }
+        let resp = http.send(Request {
+            method: "POST",
+            url: USGS.into(),
+            headers: vec![(
+                "Content-Type".into(),
+                "application/x-www-form-urlencoded".into(),
+            )],
+            body: body.clone().into_bytes(),
+        });
+        match resp {
+            Err(e) => last = e,
+            Ok(r) if r.status >= 500 || r.status == 429 => last = format!("returned {}", r.status),
+            Ok(r) if r.status >= 400 => {
+                return Err(SyncError::Api(format!(
+                    "USGS elevation service returned {}",
+                    r.status
+                )))
+            }
+            Ok(r) => match parse_samples(&r.body, chunk.len()) {
+                Ok(v) => return Ok(v),
+                Err(e) => last = e.to_string(),
+            },
+        }
+    }
+    Err(SyncError::Network(format!(
+        "USGS's elevation service isn't responding ({last}). It is often busy for a few \
+         minutes; try Get Topography again shortly. Nothing was changed."
+    )))
+}
+
+/// [`elevations`], reporting (batches done, batches) as it goes. Batches run a few at a
+/// time; each waits `backoff`, then twice that, and so on between tries.
+pub fn elevations_with(
+    http: &dyn Http,
+    pts: &[(f64, f64)],
+    progress: &(dyn Fn(usize, usize) + Sync),
+    backoff: std::time::Duration,
+) -> SyncResult<Samples> {
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::sync::Mutex;
+    let chunks: Vec<&[(f64, f64)]> = pts.chunks(BATCH).collect();
+    let total = chunks.len();
+    let next = AtomicUsize::new(0);
+    let done = AtomicUsize::new(0);
+    let failed = AtomicBool::new(false);
+    let results: Mutex<Vec<Option<Samples>>> = Mutex::new(vec![None; total]);
+    let error: Mutex<Option<SyncError>> = Mutex::new(None);
+    progress(0, total);
+    std::thread::scope(|s| {
+        for _ in 0..WORKERS.min(total.max(1)) {
+            s.spawn(|| loop {
+                if failed.load(Ordering::Relaxed) {
+                    return;
+                }
+                let i = next.fetch_add(1, Ordering::Relaxed);
+                let Some(chunk) = chunks.get(i) else { return };
+                match batch(http, chunk, backoff) {
+                    Ok(v) => {
+                        if let Ok(mut r) = results.lock() {
+                            r[i] = Some(v);
+                        }
+                        progress(done.fetch_add(1, Ordering::Relaxed) + 1, total);
+                    }
+                    Err(e) => {
+                        failed.store(true, Ordering::Relaxed);
+                        if let Ok(mut slot) = error.lock() {
+                            slot.get_or_insert(e);
+                        }
+                        return;
+                    }
+                }
+            });
+        }
+    });
+    if let Some(e) = error.into_inner().ok().flatten() {
+        return Err(e);
+    }
+    let mut out = Vec::with_capacity(pts.len());
     let mut finest = f64::INFINITY;
-    for (chunk_index, chunk) in pts.chunks(1000).enumerate() {
-        let coords: Vec<String> = chunk
-            .iter()
-            .map(|(la, lo)| format!("[{lo:.8},{la:.8}]"))
-            .collect();
-        let geometry = format!(
-            "{{\"points\":[{}],\"spatialReference\":{{\"wkid\":4326}}}}",
-            coords.join(",")
-        );
-        let body = format!(
-            "geometry={}&geometryType=esriGeometryMultipoint&returnFirstValueOnly=true&interpolation=RSP_BilinearInterpolation&f=json",
-            enc(&geometry)
-        );
-        let resp = http
-            .send(Request {
-                method: "POST",
-                url: USGS.into(),
-                headers: vec![(
-                    "Content-Type".into(),
-                    "application/x-www-form-urlencoded".into(),
-                )],
-                body: body.into_bytes(),
-            })
-            .map_err(|e| SyncError::Network(format!("USGS elevation service: {e}")))?;
-        if resp.status >= 400 {
-            return Err(SyncError::Api(format!(
-                "USGS elevation service returned {}",
-                resp.status
-            )));
-        }
-        let (vals, res) = parse_samples(&resp.body, chunk.len())?;
-        finest = finest.min(res);
-        let base = chunk_index * 1000;
-        for (k, v) in vals.into_iter().enumerate() {
-            out[base + k] = v;
-        }
+    for r in results
+        .into_inner()
+        .unwrap_or_default()
+        .into_iter()
+        .flatten()
+    {
+        finest = finest.min(r.1);
+        out.extend(r.0);
     }
     Ok((out, if finest.is_finite() { finest } else { 10.0 }))
 }
 
 /// The USGS getSamples response: values by locationId (m), and the finest resolution.
-pub fn parse_samples(body: &[u8], n: usize) -> SyncResult<(Vec<Option<f64>>, f64)> {
+pub fn parse_samples(body: &[u8], n: usize) -> SyncResult<Samples> {
     let v: Value = serde_json::from_slice(body)
         .map_err(|e| SyncError::Decode(format!("USGS elevations: {e}")))?;
     if let Some(msg) = v.pointer("/error/message").and_then(Value::as_str) {
@@ -322,6 +409,68 @@ mod tests {
         assert!(static_map(&jpeg, " ", 37.0, -122.0, 19, 100, 100).is_err());
     }
 
+    /// Answers with the scripted statuses in turn (then 200s), with a one-sample body.
+    struct Flaky(Mutex<Vec<u16>>, Mutex<usize>);
+    impl Http for Flaky {
+        fn send(&self, req: Request) -> Result<Response, String> {
+            *self.1.lock().unwrap() += 1;
+            let status = {
+                let mut s = self.0.lock().unwrap();
+                if s.is_empty() {
+                    200
+                } else {
+                    s.remove(0)
+                }
+            };
+            let n = String::from_utf8_lossy(&req.body)
+                .matches("%5B-")
+                .count()
+                .max(1);
+            let samples: Vec<String> = (0..n)
+                .map(|i| format!(r#"{{"locationId":{i},"value":"7","resolution":1}}"#))
+                .collect();
+            Ok(Response {
+                status,
+                body: format!(r#"{{"samples":[{}]}}"#, samples.join(",")).into_bytes(),
+            })
+        }
+    }
+
+    #[test]
+    fn busy_usgs_is_retried_then_explained() {
+        let pts: Vec<(f64, f64)> = (0..1200)
+            .map(|i| (37.0, -122.0 - f64::from(i) * 1e-5))
+            .collect();
+        // Two 502s, then answers: all three batches arrive, with progress.
+        let http = Flaky(Mutex::new(vec![502, 502]), Mutex::new(0));
+        let seen = Mutex::new(vec![]);
+        let (v, res) = elevations_with(
+            &http,
+            &pts,
+            &|d, n| seen.lock().unwrap().push((d, n)),
+            std::time::Duration::ZERO,
+        )
+        .unwrap();
+        assert_eq!(v.len(), 1200);
+        assert!(v.iter().all(|z| *z == Some(7.0)));
+        assert_eq!(res, 1.0);
+        assert_eq!(*http.1.lock().unwrap(), 5, "3 batches + 2 retries");
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(seen.first(), Some(&(0, 3)));
+        assert_eq!(seen.last(), Some(&(3, 3)));
+        // Down for good: a clear message after four tries.
+        let down = Flaky(Mutex::new(vec![502; 50]), Mutex::new(0));
+        let e = elevations_with(&down, &pts[..10], &|_, _| {}, std::time::Duration::ZERO)
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("busy") && e.contains("502"), "{e}");
+        assert_eq!(*down.1.lock().unwrap(), 4);
+        // A 400 is not retried.
+        let bad = Flaky(Mutex::new(vec![400]), Mutex::new(0));
+        assert!(elevations_with(&bad, &pts[..10], &|_, _| {}, std::time::Duration::ZERO).is_err());
+        assert_eq!(*bad.1.lock().unwrap(), 1);
+    }
+
     #[test]
     fn usgs_samples_by_location_with_gaps() {
         let body = br#"{"samples":[
@@ -335,7 +484,7 @@ mod tests {
     }
 
     #[test]
-    fn elevations_batch_by_a_thousand() {
+    fn elevations_batch_by_five_hundred() {
         let fake = Fake(
             Mutex::new(vec![]),
             br#"{"samples":[{"locationId":0,"value":"3","resolution":1}]}"#.to_vec(),
@@ -343,9 +492,9 @@ mod tests {
         let pts = vec![(37.0, -122.0); 2500];
         let (v, _) = elevations(&fake, &pts).unwrap();
         let reqs = fake.0.lock().unwrap();
-        assert_eq!(reqs.len(), 3);
+        assert_eq!(reqs.len(), 5);
         assert_eq!(
-            (v[0], v[1000], v[2000], v[1]),
+            (v[0], v[500], v[2000], v[1]),
             (Some(3.0), Some(3.0), Some(3.0), None)
         );
         let body = String::from_utf8(reqs[0].body.clone()).unwrap();

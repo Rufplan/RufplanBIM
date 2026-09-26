@@ -222,7 +222,18 @@ function FindLot({ onClose }: { onClose: () => void }) {
   const topo = async () => {
     setBusy(true);
     setStatus("Getting elevations from USGS 3DEP…");
+    // USGS can be slow when busy (and failed requests are retried): show how far along.
+    const stop = await ipc
+      .onTopoProgress((done, total) =>
+        setStatus(
+          total > 1
+            ? `Getting elevations from USGS 3DEP… ${done} of ${total} batches`
+            : "Getting elevations from USGS 3DEP…",
+        ),
+      )
+      .catch(() => null);
     const ok = await apply(() => ipc.siteFetchTopo(spacing * FT, margin * FT, extent));
+    stop?.();
     setBusy(false);
     if (ok)
       setStatus(

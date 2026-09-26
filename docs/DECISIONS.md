@@ -675,3 +675,13 @@ Owner decision (2026-09-25): real photo backgrounds, not procedural ones.
   seen from afar.
 - **Not yet:** a firefly clamp (the library has none), clouds in the physical sky,
   interior lights, textures and bump maps, and entourage.
+
+### ADR-023 amendment (2026-09-25): resilient USGS requests
+USGS 3DEP answered a Get Topography with 502, and was taking 20–30 s per request. One failed
+batch used to abort the whole topography. Now:
+- Batches are 500 points (was 1,000), so USGS's gateway times out less often.
+- Three batches run at once.
+- Each batch is retried up to four times, with waits of 3, 6 and 12 s, after a network
+  error, a 5xx or 429, or a 200 carrying an error. Other 4xx answers are final.
+- The Find Lot dialog shows "n of m batches".
+- If USGS stays down, the message says it is busy and nothing was changed.

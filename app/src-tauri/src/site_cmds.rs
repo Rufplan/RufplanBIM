@@ -6,7 +6,7 @@
 use serde::Serialize;
 use studio_core::site::{self, ParcelInfo};
 use studio_sync::gis;
-use tauri::{State, WebviewWindow};
+use tauri::{Emitter, State, WebviewWindow};
 use ts_rs::TS;
 
 use crate::commands::{finish, lock, CommandError, SessionState};
@@ -156,8 +156,19 @@ pub async fn site_fetch_topo(
         let s = lock(&state)?;
         site::topo_grid(s.doc()?, spacing, margin, extent.unwrap_or(1.0))?
     };
-    let (values, resolution) =
-        blocking(move || Ok(gis::elevations(&studio_sync::UreqHttp::default(), &pts)?)).await?;
+    // Progress to the page as (batches done, batches): USGS can take a while when busy.
+    let win = window.clone();
+    let (values, resolution) = blocking(move || {
+        Ok(gis::elevations_with(
+            &studio_sync::UreqHttp::default(),
+            &pts,
+            &|done, total| {
+                let _ = win.emit("topo-progress", (done, total));
+            },
+            std::time::Duration::from_secs(3),
+        )?)
+    })
+    .await?;
     let mut s = lock(&state)?;
     s.edit(|d| site::set_topo(d, (nx, ny, origin), spacing, &values, resolution))?;
     finish(&window, &s)
