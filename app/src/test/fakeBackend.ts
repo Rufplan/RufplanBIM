@@ -13,6 +13,8 @@ export interface FakeBackend {
   regrid: boolean;
   /** Ids last pinned through set_pinned. */
   pinned: string[];
+  /** apply_material calls as (ids, material). */
+  applied: [string[], string][];
 }
 
 const ids = {
@@ -100,6 +102,59 @@ export function appState(path: string | null, dirty = false): AppState {
   };
 }
 
+const appearance = {
+  preset: "wood-white-oak-floor",
+  roughness: 0.55,
+  metalness: 0,
+  reflection: 0.5,
+  refraction: 0,
+  ior: 1.5,
+  bump: 1,
+  texture: "wood_floor",
+  scale: 1700,
+  tint: [255, 255, 255] as [number, number, number],
+  textureColor: true,
+  coat: 0.15,
+  sheen: 0,
+};
+/** A small material library: a high-end wood and a typical metal. */
+export const LIBRARY = [
+  {
+    id: "wood-white-oak-floor",
+    name: "White Oak Plank Flooring, Matte",
+    category: "Wood",
+    tier: "HighEnd" as const,
+    residential: true,
+    hospitality: true,
+    multifamily: true,
+    description: "Wide-plank white oak.",
+    color: [176, 140, 100] as [number, number, number],
+    surface: "none",
+    appearance,
+  },
+  {
+    id: "metal-anodized-clear",
+    name: "Clear Anodized Aluminum",
+    category: "Metal",
+    tier: "Typical" as const,
+    residential: false,
+    hospitality: true,
+    multifamily: true,
+    description: "Storefront and window frames.",
+    color: [190, 192, 196] as [number, number, number],
+    surface: "none",
+    appearance: {
+      ...appearance,
+      preset: "metal-anodized-clear",
+      texture: null,
+      metalness: 1,
+      roughness: 0.35,
+      reflection: 1,
+      coat: 0,
+    },
+  },
+];
+
 /** Installs an in-memory stand-in for the Rust commands and dialog plugin. */
 export function installFakeBackend(): FakeBackend {
   const fake: FakeBackend = {
@@ -111,6 +166,7 @@ export function installFakeBackend(): FakeBackend {
     googleKey: null,
     regrid: false,
     pinned: [],
+    applied: [],
   };
 
   mockIPC(
@@ -236,6 +292,32 @@ export function installFakeBackend(): FakeBackend {
           return [];
         case "parse_length":
           return a.text === '0"' ? 0 : 304.8;
+        case "material_library":
+          return LIBRARY;
+        case "render_materials":
+          return (fake.state?.materials ?? []).map((m) => ({
+            id: m.id,
+            name: m.name,
+            color: [200, 200, 200],
+            appearance: m.name.startsWith("White Oak")
+              ? LIBRARY[0]!.appearance
+              : { ...LIBRARY[1]!.appearance, preset: null },
+          }));
+        case "add_library_material": {
+          const p = LIBRARY.find((x) => x.id === a.id)!;
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              materials: [
+                ...fake.state.materials,
+                { id: "00000000-0000-7000-8000-0000000000a1", name: p.name },
+              ],
+            };
+          return fake.state;
+        }
+        case "apply_material":
+          fake.applied.push([a.ids as string[], a.material as string]);
+          return fake.state;
         case "create_material":
           if (fake.state)
             fake.state = {

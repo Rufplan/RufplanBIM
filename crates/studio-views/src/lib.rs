@@ -2668,6 +2668,8 @@ pub struct Mesh {
     pub exterior: bool,
     /// Shaded color from the element's material (ADR-020), when it has one.
     pub color: Option<[u8; 3]>,
+    /// The material on its outside face, for renderings (ADR-029).
+    pub material: Option<ElementId>,
     /// The level it's on (for placing in 3D, ADR-022).
     pub level: Option<ElementId>,
     /// Triangle soup, 9 floats per triangle, mm, z-up.
@@ -2724,6 +2726,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Wall,
             exterior: w.exterior,
             color: w.color,
+            material: None,
             level: Some(w.level),
             positions,
         });
@@ -2738,6 +2741,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category,
             exterior: false,
             color: None,
+            material: None,
             level: m.walls.iter().find(|w| w.id == o.host).map(|w| w.level),
             positions: o.panel(depth, o.z0, o.z1).triangles(),
         });
@@ -2748,6 +2752,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: s.category,
             exterior: false,
             color: s.color,
+            material: None,
             level: Some(s.level),
             positions: s.prism().triangles(),
         });
@@ -2758,6 +2763,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Roof,
             exterior: true,
             color: r.color,
+            material: None,
             level: Some(r.level),
             positions: r.triangles(),
         });
@@ -2768,6 +2774,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Stair,
             exterior: false,
             color: None,
+            material: None,
             level: Some(s.base_level),
             positions: s.steps.iter().flat_map(|p| p.triangles()).collect(),
         });
@@ -2780,6 +2787,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 category: Category::Site,
                 exterior: false,
                 color: Some([184, 196, 160]),
+                material: None,
                 level: None,
                 positions,
             });
@@ -2791,6 +2799,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Column,
             exterior: c.structural,
             color: c.color,
+            material: None,
             level: Some(c.level),
             positions: c.prism().triangles(),
         });
@@ -2801,6 +2810,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             category: Category::Beam,
             exterior: true,
             color: bm.color,
+            material: None,
             level: Some(bm.level),
             positions: bm.prisms.iter().flat_map(|p| p.triangles()).collect(),
         });
@@ -2822,6 +2832,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             },
             exterior: false,
             color: None,
+            material: None,
             level: Some(r.level),
             positions,
         });

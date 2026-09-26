@@ -12,6 +12,10 @@ exterior: boolean,
  */
 color: [number, number, number] | null, 
 /**
+ * The material on its outside face, for renderings (ADR-029).
+ */
+material: ElementId | null, 
+/**
  * The level it's on (for placing in 3D, ADR-022).
  */
 level: ElementId | null, 

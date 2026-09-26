@@ -44,7 +44,7 @@ describe("detailing, materials and the section box (ADR-020)", () => {
 
   it("New Material creates one and selects it for editing", async () => {
     await openProject();
-    await userEvent.click(screen.getByRole("tab", { name: "Manage" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
     await userEvent.click(screen.getByRole("button", { name: "New Material" }));
     expect(fake.calls.find((c) => c.cmd === "create_material")?.args).toMatchObject({
       from: null,

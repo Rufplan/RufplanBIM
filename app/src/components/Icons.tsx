@@ -196,6 +196,13 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  paint: (
+    <I>
+      <rect x="4" y="3" width="14" height="6" rx="1" />
+      <path d="M18 6h2v5h-8v3" />
+      <rect x="10.5" y="14" width="3" height="7" rx="1" />
+    </I>
+  ),
   camera: (
     <I>
       <rect x="3" y="8" width="12" height="9" rx="1" />

@@ -4,6 +4,7 @@ mod cloud;
 mod commands;
 mod detailing;
 mod editing;
+mod material_cmds;
 mod menu;
 mod render_cmds;
 mod session;
@@ -112,6 +113,11 @@ pub fn run() -> anyhow::Result<()> {
             detailing::opening_preview_3d,
             detailing::set_section_box,
             detailing::create_material,
+            material_cmds::material_library,
+            material_cmds::add_library_material,
+            material_cmds::apply_material,
+            material_cmds::render_materials,
+            material_cmds::material_texture,
             shortcut_cmds::set_pinned,
             shortcut_cmds::select_all_instances,
             shortcut_cmds::tag_element,

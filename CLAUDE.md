@@ -120,6 +120,9 @@ Read these before writing code:
   (never saved), topography over 2x-4x the lot.
 - Rendering tab (ADR-027): Camera tool and camera views, path-traced Render (RR) with the
   site's sun (three-gpu-pathtracer, loaded on first use).
+- Materials tab (ADR-029): V-Ray-style appearance on materials, a 78-preset library
+  (studio-core `library`), Poly Haven 2K textures cached on first use, cube previews in
+  app/public/materials.
 - V-Ray-style lighting and photo backgrounds (ADR-028): Preetham sun & sky, Poly Haven CC0
   panoramas in app/public/backgrounds, ground projection, transparent PNG export.
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.

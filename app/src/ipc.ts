@@ -9,6 +9,9 @@ import type { Category } from "./bindings/Category";
 import type { Handles } from "./bindings/Handles";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
 import type { CameraPose } from "./bindings/CameraPose";
+import type { Preset } from "./bindings/Preset";
+import type { RenderMaterial } from "./bindings/RenderMaterial";
+import type { TextureMap } from "./bindings/TextureMap";
 import type { SunPosition } from "./bindings/SunPosition";
 import type { OffsetPreview } from "./bindings/OffsetPreview";
 import type { ParamDef } from "./bindings/ParamDef";
@@ -284,6 +287,15 @@ export const ipc = {
   siteFetchTopo: (spacing: number, margin: number, extent = 1): S =>
     invoke("site_fetch_topo", { spacing, margin, extent }),
   siteImageryFrame: () => invoke<ImageryFrame>("site_imagery_frame"),
+  // Material library (ADR-029).
+  materialLibrary: () => invoke<Preset[]>("material_library"),
+  addLibraryMaterial: (id: string): S => invoke("add_library_material", { id }),
+  applyMaterial: (ids: ElementId[], material: ElementId): S =>
+    invoke("apply_material", { ids, material }),
+  renderMaterials: () => invoke<RenderMaterial[]>("render_materials"),
+  /** A library texture map (JPEG), downloaded once and cached by Rust. */
+  materialTexture: (set: string, map: TextureMap) =>
+    invoke<ArrayBuffer>("material_texture", { set, map }),
   // Cameras and renderings (ADR-027).
   createCamera: (view: ElementId, eye: Pt, target: Pt, height: number): S =>
     invoke("create_camera", { view, eye, target, height }),

@@ -11,6 +11,8 @@ import type { Mesh } from "../ipc";
 import { uvAt, type Imagery } from "../imagery";
 import { meshColor } from "../components/View3D";
 import { GROUND_ALBEDO } from "./sky";
+import { boxUv, physicalMaterial, texturesFor, type TextureLoader } from "./materials";
+import type { RenderMaterial } from "../bindings/RenderMaterial";
 
 export interface RenderSettings {
   width: number;
@@ -97,6 +99,10 @@ export interface SceneOptions {
   imagery: Imagery | null;
   /** Elevation of the lowest level (mm), for the ground plane. */
   groundZ: number;
+  /** The project material dressing a mesh (ADR-029), with its texture tile size. */
+  materialOf?: (
+    m: Mesh,
+  ) => { material: THREE.Material; scale: number; aspect: number; textured: boolean } | null;
 }
 
 /** Light falling on a horizontal surface from an equirectangular environment map
@@ -221,6 +227,15 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(out, 3));
     geo.computeVertexNormals();
+    const custom = m.category === "Site" ? null : (o.materialOf?.(m) ?? null);
+    if (custom) {
+      if (custom.textured) boxUv(geo, custom.scale, custom.aspect);
+      const mesh = new THREE.Mesh(geo, custom.material);
+      scene.add(mesh);
+      geo.computeBoundingBox();
+      bounds = bounds.union(geo.boundingBox!);
+      continue;
+    }
     const s = surfaceFor(m);
     const mat = new THREE.MeshPhysicalMaterial({
       color: s.color,
@@ -523,4 +538,34 @@ export function cutout(
     renderer.dispose();
   }
   return out;
+}
+
+/** The project's materials ready to render: their textures loaded (photo sets download
+ * once), as a lookup for [`buildScene`]'s `materialOf`. */
+export async function prepareMaterials(
+  meshes: Mesh[],
+  materials: RenderMaterial[],
+  load: TextureLoader,
+  onProgress?: (done: number, total: number) => void,
+): Promise<SceneOptions["materialOf"]> {
+  const used = new Set(meshes.map((m) => m.material).filter((x): x is string => !!x));
+  const list = materials.filter((m) => used.has(m.id));
+  const ready = new Map<
+    string,
+    { material: THREE.Material; scale: number; aspect: number; textured: boolean }
+  >();
+  let done = 0;
+  onProgress?.(0, list.length);
+  for (const m of list) {
+    // A texture that can't download renders as its colour and gloss alone.
+    const tex = await texturesFor(m.appearance, m.color, load).catch(() => null);
+    ready.set(m.id, {
+      material: physicalMaterial(m.appearance, m.color, tex),
+      scale: m.appearance.scale,
+      aspect: tex?.aspect ?? 1,
+      textured: !!tex,
+    });
+    onProgress?.(++done, list.length);
+  }
+  return (mesh) => (mesh.material ? (ready.get(mesh.material) ?? null) : null);
 }

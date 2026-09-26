@@ -10,6 +10,7 @@ import {
   saveOverrides,
 } from "../shortcuts";
 import { activeViewInfo, useAppStore } from "../store";
+import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
 
 // Keyboard Shortcuts (KS) and Visibility/Graphics (VV) dialogs (ADR-024).
@@ -20,6 +21,7 @@ export function ViewDialogs() {
   if (which === "keyboard") return <KeyboardDialog onClose={close} />;
   if (which === "visibility") return <VisibilityDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
+  if (which === "materials") return <MaterialBrowser onClose={close} />;
   return null;
 }
 

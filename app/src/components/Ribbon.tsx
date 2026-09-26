@@ -88,6 +88,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 type Tab =
   | "Site"
   | "Architecture"
+  | "Materials"
   | "Rendering"
   | "Structure"
   | "Modify"
@@ -98,6 +99,7 @@ type Tab =
 const TABS: Tab[] = [
   "Site",
   "Architecture",
+  "Materials",
   "Rendering",
   "Structure",
   "Modify",
@@ -141,6 +143,7 @@ export function Ribbon() {
   const activeIs3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
   const grid3d = useAppStore((s) => s.grid3d);
   const setGrid3d = useAppStore((s) => s.setGrid3d);
+  const setUi = useAppStore((s) => s.setUi);
   const satellite = useAppStore((s) => s.satellite);
   const setSatellite = useAppStore((s) => s.setSatellite);
   const thinLines = useAppStore((s) => s.thinLines);
@@ -285,6 +288,52 @@ export function Ribbon() {
               >
                 {Icons.key}
                 <span>API Keys</span>
+              </button>
+            </Group>
+          </>
+        )}
+        {tab === "Materials" && (
+          <>
+            <Group title="Library">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "materials" })}
+                disabled={!app}
+                title="Material Browser: V-Ray-style materials for residential, hospitality and multifamily work, from typical to high-end"
+              >
+                {Icons.material}
+                <span>Material Browser</span>
+              </button>
+            </Group>
+            <Group title="Project">
+              <button
+                className="rb-btn"
+                onClick={() => void newMaterial(null)}
+                disabled={!app}
+                title="Add a blank material; edit it in Properties"
+              >
+                {Icons.material}
+                <span>New Material</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void newMaterial(selectedMaterial)}
+                disabled={!selectedMaterial}
+                title="Duplicate the selected material"
+              >
+                {Icons.copy}
+                <span>Duplicate</span>
+              </button>
+            </Group>
+            <Group title="Apply">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "materials" })}
+                disabled={!app || selection.length === 0}
+                title="Apply a material to the selected walls, floors, ceilings, roofs, columns or beams (their type's outside finish)"
+              >
+                {Icons.paint}
+                <span>Apply Material</span>
               </button>
             </Group>
           </>
@@ -606,27 +655,6 @@ export function Ribbon() {
               </button>
             </Group>
           </>
-        )}
-        {tab === "Manage" && (
-          <Group title="Materials">
-            <button
-              className="rb-btn"
-              onClick={() => void newMaterial(null)}
-              title="Add a material (cut pattern, surface pattern and color); edit it in Properties"
-            >
-              {Icons.material}
-              <span>New Material</span>
-            </button>
-            <button
-              className="rb-btn"
-              onClick={() => void newMaterial(selectedMaterial)}
-              disabled={!selectedMaterial}
-              title="Duplicate the selected material"
-            >
-              {Icons.copy}
-              <span>Duplicate</span>
-            </button>
-          </Group>
         )}
         {tab === "Manage" && (
           <Group title="Settings">

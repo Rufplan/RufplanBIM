@@ -49,7 +49,7 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(0, 3)).toEqual(["Site", "Architecture", "Rendering"]);
+    expect(tabs.slice(0, 4)).toEqual(["Site", "Architecture", "Materials", "Rendering"]);
     await userEvent.click(screen.getByRole("tab", { name: "Rendering" }));
     // The project opens on a plan: Camera works, Render needs a 3D view.
     const camera = screen.getByRole("button", { name: "Camera" }) as HTMLButtonElement;

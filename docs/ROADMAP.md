@@ -65,6 +65,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   (Sky, Mountains, Grass Plain, City) with ground projection, filmic tone, denoise, and
   saving with the background or as a transparent PNG; the Camera tool places cameras.
 
+- Material library (ADR-029): a Materials tab and Material Browser with 78 V-Ray-style
+  presets for US residential, hospitality and multifamily work (typical to high-end), 2K
+  photo textures on first use, path-traced cube previews, and Apply to Selection.
+
 **Shortcuts still open** (see ADR-011): JSON display lists; roofs on non-right-angled,
 non-convex footprints need sketching per face (no straight skeleton); section box has no
 caps; beams aren't cleaned up against walls; sections don't hatch cut layers yet. (The regeneration

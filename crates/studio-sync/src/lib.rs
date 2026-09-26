@@ -10,6 +10,7 @@
 
 pub mod gis;
 pub mod pkce;
+pub mod textures;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 

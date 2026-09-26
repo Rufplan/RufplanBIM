@@ -140,6 +140,7 @@ fn info_of(doc: &Document, id: ElementId) -> Option<MaterialInfo> {
             cut,
             surface,
             color,
+            ..
         } => Some(MaterialInfo {
             id: Some(id),
             name: name.clone(),
@@ -198,6 +199,7 @@ pub(crate) fn seed_materials(tx: &mut Tx<'_>) {
             cut: *cut,
             surface: preset(surface),
             color: *color,
+            appearance: built_in_appearance(name),
         });
     }
     link_types(tx);
@@ -313,19 +315,21 @@ fn unique_name(doc: &Document, base: &str) -> String {
 
 /// A new material: a copy of `from` (or a plain default), named uniquely.
 pub fn create_material(doc: &mut Document, from: Option<ElementId>) -> CoreResult<ElementId> {
-    let (name, cut, surface, color) = match from.map(|id| doc.data(id)).transpose()? {
+    let (name, cut, surface, color, appearance) = match from.map(|id| doc.data(id)).transpose()? {
         Some(ElementData::Material {
             name,
             cut,
             surface,
             color,
-        }) => (name.clone(), *cut, *surface, *color),
+            appearance,
+        }) => (name.clone(), *cut, *surface, *color, appearance.clone()),
         Some(_) => return Err(CoreError::Invalid("pick a material to duplicate".into())),
         None => (
             "New Material".to_owned(),
             CutPattern::None,
             SurfacePattern::None,
             [200, 200, 200],
+            crate::library::Appearance::default(),
         ),
     };
     let name = unique_name(doc, &name);
@@ -335,8 +339,40 @@ pub fn create_material(doc: &mut Document, from: Option<ElementId>) -> CoreResul
             cut,
             surface,
             color,
+            appearance,
         }))
     })
+}
+
+/// A number from 0 to `max`.
+fn unit(value: &str, max: f64) -> CoreResult<f64> {
+    let v: f64 = value
+        .trim()
+        .parse()
+        .map_err(|_| CoreError::Invalid(format!("enter a number from 0 to {max}")))?;
+    if !(0.0..=max).contains(&v) {
+        return Err(CoreError::Invalid(format!(
+            "enter a number from 0 to {max}"
+        )));
+    }
+    Ok(v)
+}
+
+/// A built-in material's look: glossy steel, matte masonry, painted board…
+fn built_in_appearance(name: &str) -> crate::library::Appearance {
+    let mut a = crate::library::Appearance::default();
+    match name {
+        "Structural Steel" | "Metal Stud" => {
+            a.metalness = 0.8;
+            a.roughness = 0.45;
+            a.reflection = 1.0;
+        }
+        "Hardwood Flooring" => a.roughness = 0.45,
+        "Gypsum Board" => a.roughness = 0.9,
+        "Brick" | "Concrete Masonry Unit" | "Concrete" | "Stucco" => a.roughness = 0.9,
+        _ => {}
+    }
+    a
 }
 
 fn hex(c: [u8; 3]) -> String {
@@ -359,6 +395,7 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
         cut,
         surface,
         color,
+        appearance: a,
     }) = doc.data(id)
     else {
         return;
@@ -398,6 +435,54 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
         surfaces,
     ));
     props.push(text("color", "Shading Color", "Graphics", &hex(*color)));
+    // Appearance (ADR-029), in V-Ray's terms.
+    const A: &str = "Appearance";
+    let num = |v: f64| format!("{v:.2}");
+    if let Some(p) = a.preset.as_deref().and_then(crate::library::preset) {
+        props.push(ro("preset", "Library Material", A, p.name));
+    }
+    props.push(ro(
+        "texture",
+        "Texture",
+        A,
+        match a.texture.as_deref() {
+            None => "None".into(),
+            Some(t) if t.starts_with("proc:") => format!("Procedural: {}", &t[5..]),
+            Some(t) => format!("Photo (Poly Haven {t}, 2K)"),
+        },
+    ));
+    if a.texture.is_some() {
+        props.push(crate::ops::len(
+            "scale",
+            "Texture Size (real world)",
+            A,
+            a.scale,
+        ));
+        props.push(text("tint", "Texture Tint", A, &hex(a.tint)));
+    }
+    props.push(text(
+        "glossiness",
+        "Reflection Glossiness (0–1)",
+        A,
+        &num(1.0 - a.roughness),
+    ));
+    props.push(text(
+        "reflection",
+        "Reflection (0–1)",
+        A,
+        &num(a.reflection),
+    ));
+    props.push(text("metalness", "Metalness (0–1)", A, &num(a.metalness)));
+    props.push(text(
+        "refraction",
+        "Refraction (0–1)",
+        A,
+        &num(a.refraction),
+    ));
+    props.push(text("ior", "IOR", A, &num(a.ior)));
+    props.push(text("bump", "Bump (0–2)", A, &num(a.bump)));
+    props.push(text("coat", "Coat (0–1)", A, &num(a.coat)));
+    props.push(text("sheen", "Sheen (0–1)", A, &num(a.sheen)));
     props.push(ro(
         "uses",
         "Used By",
@@ -421,6 +506,7 @@ pub(crate) fn set_property(
         cut,
         surface,
         color,
+        appearance: a,
     } = &mut data
     else {
         return Err(CoreError::Invalid("not a material".into()));
@@ -450,6 +536,25 @@ pub(crate) fn set_property(
                 .ok_or_else(|| CoreError::Invalid(format!("unknown surface pattern {value}")))?
         }
         "color" => *color = parse_hex(value)?,
+        "tint" => a.tint = parse_hex(value)?,
+        "scale" => a.scale = crate::ops::positive(crate::ops::parse_len(value)?)?,
+        "glossiness" => a.roughness = 1.0 - unit(value, 1.0)?,
+        "reflection" => a.reflection = unit(value, 1.0)?,
+        "metalness" => a.metalness = unit(value, 1.0)?,
+        "refraction" => a.refraction = unit(value, 1.0)?,
+        "coat" => a.coat = unit(value, 1.0)?,
+        "sheen" => a.sheen = unit(value, 1.0)?,
+        "bump" => a.bump = unit(value, 2.0)?,
+        "ior" => {
+            let v: f64 = value
+                .trim()
+                .parse()
+                .map_err(|_| CoreError::Invalid("enter an IOR such as 1.5".into()))?;
+            if !(1.0..=3.0).contains(&v) {
+                return Err(CoreError::Invalid("use an IOR from 1.0 to 3.0".into()));
+            }
+            a.ior = v;
+        }
         _ => return Err(CoreError::Invalid(format!("unknown property {key}"))),
     }
     doc.transact(&format!("Change material {key}"), |tx| tx.set(id, data))

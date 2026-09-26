@@ -685,3 +685,68 @@ batch used to abort the whole topography. Now:
   error, a 5xx or 429, or a 200 carrying an error. Other 4xx answers are final.
 - The Find Lot dialog shows "n of m batches".
 - If USGS stays down, the message says it is busy and nothing was changed.
+
+## ADR-029 Materials tab: V-Ray-style material library — Accepted (2026-09-25)
+Owner request (2026-09-25): "a tab for materials between architecture and rendering… make
+all the materials V-Ray-like high-res materials with presets typical for residential,
+hospitality and multifamily buildings in the USA, high-end to typical, including metals,
+wood, etc.… have the render preview thumbnail be off a cube with the full rendered material".
+Owner decisions (2026-09-25):
+- 2K photo textures are downloaded on first use and cached, not bundled.
+- The file format changes: materials gain appearance settings.
+
+- **Model:** `Material` gains `appearance` (`#[serde(default)]`, so older files open with
+  defaults).
+  - Fields, in V-Ray's terms: reflection glossiness (stored as roughness), reflection,
+    metalness, refraction and IOR, bump, texture, real-world texture size, tint, texture
+    colour on or off (for painted brick and coloured plaster), coat and sheen.
+  - All of these are editable in Properties under Appearance.
+  - The built-in materials get sensible defaults: steel is metallic, masonry matte.
+- **Library** (`studio_core::library`): 78 presets in 12 categories: Wood, Stone, Tile,
+  Masonry, Concrete, Plaster & Paint, Metal, Glass, Fabric & Leather, Roofing, Surfaces &
+  Ceilings and Site.
+  - Each is tagged Typical, Mid-range or High-end, and Residential, Hospitality and/or
+    Multifamily, with a description of typical use.
+  - Each has a shading colour, cut and surface patterns for drawings, and its appearance.
+  - `add_preset` adds one to the project (named uniquely).
+  - `apply_to` sets the outside finish of the selected elements' types: a wall's exterior
+    layer, a slab's or roof's top layer, a column's or beam's material. As in Revit, every
+    element of that type changes.
+- **Textures:**
+  - 34 presets use Poly Haven CC0 photo sets (colour, OpenGL normal, roughness) at their
+    measured real-world size. A few are corrected: shingles and shakes were listed far
+    larger than real, and the green-cast concrete set is used for relief only.
+  - Downloading:
+    - The app fetches the 2K JPEGs from Poly Haven the first time a material renders, then
+      keeps them in the app's local data folder (`studio_sync::textures`).
+    - Only URLs the library itself names can be fetched.
+    - Half-written or error files are never cached.
+    - Without internet, a material renders in its colour and gloss alone.
+  - Procedural textures are generated in the page: subway, hex (on a tile holding whole
+    rows, so it repeats seamlessly) and marble mosaic, CMU, acoustic ceiling tile, standing
+    seam, loop and patterned carpet, Carrara and Calacatta veining, granite, quartz, brushed
+    metal and grass.
+- **Rendering:**
+  - Meshes carry their element's finish material (`Mesh.material`).
+  - The renderer builds a MeshPhysicalMaterial per material: glass is thin and doesn't
+    block the sun; coat is clearcoat; sheen is fabric sheen.
+  - Textures use real-world box mapping, as V-Ray's box UVW map at real-world scale: each
+    face projects along its dominant axis, and tangents are set for the normal maps.
+- **Previews:**
+  - A path-traced 500 mm rounded cube on a studio floor. Lighting is Poly Haven's
+    studio_small_09 HDRI (bundled, 1.6 MB) plus two softboxes, so metals and gloss show
+    crisp highlights. ACES tone, light denoise.
+  - The 78 library previews ship as 256 px WebP (about 1 MB in all). They were rendered by
+    a throwaway page that drove the same `renderPreview` in headless Chrome on the GPU.
+  - Edited project materials render their own preview on demand, one at a time, cached
+    for the session.
+- **UI:** a Materials tab between Architecture and Rendering, with Material Browser, New
+  Material and Duplicate (moved from Manage), and Apply Material.
+  - The browser has Library and In This Project views, filters (category, building type,
+    finish level) and search, cube thumbnails, and a detail panel showing the V-Ray
+    settings.
+  - Actions: Add to Project, Add & Apply to Selection, Apply to Selection, Edit in
+    Properties, Duplicate.
+- **Not yet:** textures in the shaded 3D view (the renderer only), per-face material
+  painting, interior finishes of walls in renders (the exterior layer dresses the whole
+  wall), and user-imported textures.

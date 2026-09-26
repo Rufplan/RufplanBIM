@@ -142,7 +142,15 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const camera = cameraFor(pose, w / h);
       const photo = bg.photo ? await bgs.backgroundPhoto(bg.id) : null;
       const light = horizontalIrradiance(env) * intensity;
+      setStatus("Preparing materials…");
+      const materialOf = await pt.prepareMaterials(
+        meshes,
+        await ipc.renderMaterials(),
+        (set, map) => ipc.materialTexture(set, map),
+        (done, total) => total > 0 && setStatus(`Loading material textures… ${done} of ${total}`),
+      );
       const scene = buildScene(meshes, {
+        materialOf,
         environment: env,
         environmentIntensity: intensity,
         rotation: lightingUsed === "dome" ? rot : 0,

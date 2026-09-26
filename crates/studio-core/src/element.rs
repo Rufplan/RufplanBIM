@@ -928,6 +928,9 @@ pub enum ElementData {
         surface: SurfacePattern,
         /// sRGB.
         color: [u8; 3],
+        /// How it renders (ADR-029): reflection, glossiness, texture, real-world scale…
+        #[serde(default)]
+        appearance: crate::library::Appearance,
     },
     /// An elevation marker placed in plan: up to four views, one per direction (Revit's
     /// Elevation tool; interior ones look at the walls of the room they're in).
