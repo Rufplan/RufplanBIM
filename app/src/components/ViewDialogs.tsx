@@ -10,6 +10,7 @@ import {
   saveOverrides,
 } from "../shortcuts";
 import { activeViewInfo, useAppStore } from "../store";
+import { GenerateDialog } from "./GenerateDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
 
@@ -22,6 +23,7 @@ export function ViewDialogs() {
   if (which === "visibility") return <VisibilityDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
+  if (which === "generate") return <GenerateDialog onClose={close} />;
   return null;
 }
 

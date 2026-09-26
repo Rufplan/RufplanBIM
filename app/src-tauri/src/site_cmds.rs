@@ -18,7 +18,7 @@ const SERVICE: &str = "Rufplan Studio";
 const GOOGLE: &str = "google-maps-api-key";
 const REGRID: &str = "regrid-api-token";
 
-fn get(user: &str) -> Option<String> {
+pub(crate) fn get(user: &str) -> Option<String> {
     keyring::Entry::new(SERVICE, user)
         .ok()?
         .get_password()
@@ -26,7 +26,7 @@ fn get(user: &str) -> Option<String> {
         .filter(|s| !s.is_empty())
 }
 
-fn put(user: &str, value: &str) -> anyhow::Result<()> {
+pub(crate) fn put(user: &str, value: &str) -> anyhow::Result<()> {
     let e = keyring::Entry::new(SERVICE, user)?;
     if value.trim().is_empty() {
         let _ = e.delete_credential();

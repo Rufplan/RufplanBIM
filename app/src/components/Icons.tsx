@@ -196,6 +196,12 @@ export const Icons = {
       <path d="M10 14l2-2 2 2" />
     </I>
   ),
+  sparkle: (
+    <I>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+    </I>
+  ),
   paint: (
     <I>
       <rect x="4" y="3" width="14" height="6" rx="1" />

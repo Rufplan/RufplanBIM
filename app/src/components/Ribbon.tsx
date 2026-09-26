@@ -190,6 +190,17 @@ export function Ribbon() {
         </Group>
         {tab === "Architecture" && (
           <>
+            <Group title="Generate">
+              <button
+                className="rb-btn rb-claude"
+                onClick={() => setUi({ viewDialog: "generate" })}
+                disabled={!app}
+                title="Generate with Claude: describe a building (type, stories, style, references) and it's built as a model"
+              >
+                {Icons.sparkle}
+                <span>Generate</span>
+              </button>
+            </Group>
             <Group title="Build">
               <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
               <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />

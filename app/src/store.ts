@@ -202,7 +202,7 @@ interface UiState {
   visualStyle: "shaded" | "hiddenLine" | "wireframe";
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
-  viewDialog: "keyboard" | "visibility" | "render" | "materials" | null;
+  viewDialog: "keyboard" | "visibility" | "render" | "materials" | "generate" | null;
   setUi: (
     patch: Partial<Pick<UiState, "thinLines" | "visualStyle" | "propsHidden" | "viewDialog">>,
   ) => void;

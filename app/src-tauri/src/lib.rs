@@ -4,6 +4,7 @@ mod cloud;
 mod commands;
 mod detailing;
 mod editing;
+mod generate_cmds;
 mod material_cmds;
 mod menu;
 mod render_cmds;
@@ -113,6 +114,9 @@ pub fn run() -> anyhow::Result<()> {
             detailing::opening_preview_3d,
             detailing::set_section_box,
             detailing::create_material,
+            generate_cmds::claude_key_set,
+            generate_cmds::claude_set_key,
+            generate_cmds::generate_building,
             material_cmds::material_library,
             material_cmds::add_library_material,
             material_cmds::apply_material,

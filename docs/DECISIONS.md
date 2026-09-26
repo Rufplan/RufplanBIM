@@ -750,3 +750,69 @@ Owner decisions (2026-09-25):
 - **Not yet:** textures in the shaded 3D view (the renderer only), per-face material
   painting, interior finishes of walls in renders (the exterior layer dresses the whole
   wall), and user-imported textures.
+
+## ADR-030 Generate with Claude — Accepted (2026-09-25)
+Owner request (2026-09-25): "a Claude input in the program where you can input a prompt…
+per type of building, how many stories, references, etc… then it builds a 3D model in
+Rufplan Studio per those inputs."
+
+- **Flow:**
+  1. Architecture > Generate opens the Generate with Claude dialog.
+  2. The owner sets the brief:
+     - building type: single-family house, duplex, townhouses, garden-style or mid-rise
+       apartments, mixed-use, boutique or select-service hotel;
+     - stories, and bedrooms, units or keys (with baths for houses);
+     - optional area, style and roof;
+     - "Fit on the lot" with front, side and rear setbacks, when a site is set;
+     - text references, up to five reference images (scaled to 1568 px, sent as JPEG), and
+       a free prompt;
+     - model: Opus 5.5, or Sonnet 5 for speed.
+  3. Claude plans; the dialog shows live progress (building name, stories and rooms so far,
+     elapsed time).
+  4. The model is built, and the dialog reports what was built plus any warnings, with
+     Open 3D View and Revise & Generate Again.
+- **Claude** (`studio_sync::claude`): one Messages API call that streams, with the
+  `build_model` tool forced so the answer is always a structured plan.
+  - The API key is stored in the OS credential store (`anthropic-api-key`) and sent only
+    to api.anthropic.com, from Rust.
+  - Errors are explained: a refused key, a busy service or rate limit, a plan cut off at the
+    length limit.
+- **The plan** (`studio_core::generate::BuildingSpec`) is rectangular rooms per story in
+  feet, each with a kind (living, kitchen, bedroom, bath, corridor, stair, unit,
+  guest_room, lobby, retail…), plus roof type and pitch, structure (wood or masonry), and
+  library materials by id (ADR-029).
+  - The system prompt teaches the rules the builder relies on: tiling without overlaps,
+    open-plan kinds, doors needing 4 ft of shared edge, stacked stair rooms, two stairs for
+    multifamily and hotels.
+  - It also gives typical US sizes: rooms, corridor widths, unit and key sizes,
+    floor-to-floor heights.
+  - Larger buildings model each unit or key as one room.
+- **Building from the plan** (`generate::build`, one undo step through the new
+  `Document::merge_undo`):
+  - It replaces the current building's walls, openings, slabs, roofs, rooms, stairs and
+    structure, reusing and renaming levels (Level 1…N and Roof).
+  - It centres the building on the lot, or on the origin without one.
+  - **Walls:** room edges are split at every corner along each grid line. One room on a
+    side makes an exterior wall; two rooms make an interior wall. Between open-plan kinds
+    there's no wall, only a room separator, so each room keeps its own area.
+  - **Doors:** a cheapest-route search from the street entries (ground floor) or stairs
+    (upper floors), preferring circulation; baths, closets and storage are dead ends. Every
+    stair also gets a door onto a non-dead-end room, so no stair is a sealed shaft. Doors
+    are 30" for private rooms, 36" otherwise, double at lobbies and garages.
+  - **Windows:** on exterior walls of habitable kinds about every 7 ft — casements in
+    bedrooms and kitchens, larger units in living spaces and units, storefront at lobbies
+    and retail — kept clear of doors.
+  - **The rest:**
+    - stairs: straight, or U-shaped when the room is short;
+    - one floor slab per story from the union of its rooms;
+    - the roof: hip by footprint (L/T/U handled), gable over a rectangle, or flat;
+    - rooms named as planned;
+    - materials applied to the exterior walls', interior walls', floors' and roofs' types.
+  - Problems become warnings rather than failures: overlapping rooms, a room with no route
+    in, no room for a door. A failed build leaves the model untouched.
+- **Verified:** tests cover a two-story house and three-story garden apartments (exact
+  door counts, stacked stairs, gable slope, one undo). The house's plans were drawn and
+  checked by eye. The live API call can't be tested without the owner's key; the stream
+  parser is tested on recorded events.
+- **Not yet:** refining a generated building by chat, non-rectangular rooms, curtain walls
+  and balconies, parking and site work, and cost estimates.

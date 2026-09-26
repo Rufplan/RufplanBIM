@@ -10,6 +10,9 @@ import type { Handles } from "./bindings/Handles";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
 import type { CameraPose } from "./bindings/CameraPose";
 import type { Preset } from "./bindings/Preset";
+import type { GenerateInputs } from "./bindings/GenerateInputs";
+import type { GenerateProgress } from "./bindings/GenerateProgress";
+import type { GenerateResult } from "./bindings/GenerateResult";
 import type { RenderMaterial } from "./bindings/RenderMaterial";
 import type { TextureMap } from "./bindings/TextureMap";
 import type { SunPosition } from "./bindings/SunPosition";
@@ -287,6 +290,11 @@ export const ipc = {
   siteFetchTopo: (spacing: number, margin: number, extent = 1): S =>
     invoke("site_fetch_topo", { spacing, margin, extent }),
   siteImageryFrame: () => invoke<ImageryFrame>("site_imagery_frame"),
+  // Generate with Claude (ADR-030).
+  claudeKeySet: () => invoke<boolean>("claude_key_set"),
+  claudeSetKey: (key: string) => invoke<boolean>("claude_set_key", { key }),
+  generateBuilding: (inputs: GenerateInputs) =>
+    invoke<GenerateResult>("generate_building", { inputs }),
   // Material library (ADR-029).
   materialLibrary: () => invoke<Preset[]>("material_library"),
   addLibraryMaterial: (id: string): S => invoke("add_library_material", { id }),
@@ -325,6 +333,9 @@ export const ipc = {
   /** Native menu clicks, forwarded by Rust as the menu item id. */
   onMenu: (handler: (id: string) => void): Promise<UnlistenFn> =>
     listen<string>("menu", (event) => handler(event.payload)),
+  /** Generate with Claude: planning and building progress. */
+  onGenerateProgress: (handler: (p: GenerateProgress) => void): Promise<UnlistenFn> =>
+    listen<GenerateProgress>("generate-progress", (event) => handler(event.payload)),
   /** Get Topography's progress: USGS batches done, of how many. */
   onTopoProgress: (handler: (done: number, total: number) => void): Promise<UnlistenFn> =>
     listen<[number, number]>("topo-progress", (event) => handler(...event.payload)),

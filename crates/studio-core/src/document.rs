@@ -290,6 +290,24 @@ impl Document {
         }
     }
 
+    /// How many steps can be undone (a mark for [`merge_undo`]).
+    pub fn undo_depth(&self) -> usize {
+        self.undo.len()
+    }
+
+    /// Folds every transaction since `mark` into one undo step named `name` (a command
+    /// made of many edits, like generating a building, undoes at once).
+    pub fn merge_undo(&mut self, mark: usize, name: &str) {
+        if self.undo.len() <= mark {
+            return;
+        }
+        let entries = self.undo.drain(mark..).flat_map(|c| c.entries).collect();
+        self.undo.push(ChangeSet {
+            name: name.to_owned(),
+            entries,
+        });
+    }
+
     /// Reverts the last transaction. Returns its name.
     pub fn undo(&mut self) -> CoreResult<ChangeSet> {
         let cs = self.undo.pop().ok_or(CoreError::NothingTo("undo"))?;
@@ -521,6 +539,28 @@ mod tests {
         doc.undo().unwrap();
         assert!(doc.get(l).is_none());
         assert_eq!(doc.undo(), Err(CoreError::NothingTo("undo")));
+    }
+
+    #[test]
+    fn merged_steps_undo_and_redo_as_one() {
+        let mut doc = Document::new();
+        crate::ops::seed_default_project(&mut doc).unwrap();
+        let mark = doc.undo_depth();
+        let a = crate::ops::create_level(&mut doc, 10_000.0).unwrap();
+        let b = crate::ops::create_level(&mut doc, 20_000.0).unwrap();
+        crate::ops::set_property(&mut doc, a, "elevation", "40'", 0).unwrap();
+        assert_eq!(doc.undo_depth(), mark + 3);
+        doc.merge_undo(mark, "Two levels");
+        assert_eq!(doc.undo_depth(), mark + 1);
+        assert_eq!(doc.undo().unwrap().name, "Two levels");
+        assert!(doc.data(a).is_err() && doc.data(b).is_err());
+        doc.redo().unwrap();
+        assert!((doc.level_elevation(a).unwrap() - 40.0 * 304.8).abs() < 1e-6);
+        assert!(doc.data(b).is_ok());
+        // Nothing since the mark: nothing merges.
+        let d = doc.undo_depth();
+        doc.merge_undo(d, "none");
+        assert_eq!(doc.undo_depth(), d);
     }
 
     #[test]

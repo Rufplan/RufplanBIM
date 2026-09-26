@@ -15,6 +15,9 @@ export interface FakeBackend {
   pinned: string[];
   /** apply_material calls as (ids, material). */
   applied: [string[], string][];
+  /** Whether a Claude key is saved, and the last generate inputs. */
+  claudeKey: boolean;
+  generated: unknown;
 }
 
 const ids = {
@@ -167,6 +170,8 @@ export function installFakeBackend(): FakeBackend {
     regrid: false,
     pinned: [],
     applied: [],
+    claudeKey: false,
+    generated: null,
   };
 
   mockIPC(
@@ -292,6 +297,30 @@ export function installFakeBackend(): FakeBackend {
           return [];
         case "parse_length":
           return a.text === '0"' ? 0 : 304.8;
+        case "claude_key_set":
+          return fake.claudeKey;
+        case "claude_set_key":
+          fake.claudeKey = !!(a.key as string).trim();
+          return fake.claudeKey;
+        case "generate_building":
+          fake.generated = a.inputs;
+          return {
+            state: fake.state,
+            summary: "A three-bedroom modern farmhouse of about 2,400 sf.",
+            report: {
+              name: "Oak Hollow",
+              levels: 3,
+              walls: 32,
+              doors: 12,
+              windows: 18,
+              floors: 2,
+              rooms: 14,
+              stairs: 1,
+              roofs: 1,
+              materials: 3,
+              warnings: ["Story 2: Loft has no route in"],
+            },
+          };
         case "material_library":
           return LIBRARY;
         case "render_materials":
