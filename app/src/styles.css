@@ -1048,7 +1048,7 @@ button:disabled {
 }
 .view3d-chip {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
   right: 10px;
   z-index: 2;
   font-family: var(--font-display);
@@ -2001,4 +2001,86 @@ button:disabled {
 }
 .plans-drop input {
   display: none;
+}
+
+/* ViewCube (ADR-037), after Revit's. */
+.viewcube {
+  position: absolute;
+  z-index: 3;
+  user-select: none;
+}
+.viewcube-hit {
+  position: absolute;
+  inset: 0;
+}
+.viewcube button {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #6b7178;
+  cursor: pointer;
+  line-height: 0;
+}
+.viewcube button:hover {
+  color: #1f8fe0;
+}
+.viewcube-home {
+  left: 2px;
+  top: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.viewcube-menu-btn {
+  right: 6px;
+  bottom: 18px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.viewcube:hover .viewcube-home,
+.viewcube:hover .viewcube-menu-btn,
+.viewcube-home:focus-visible,
+.viewcube-menu-btn:focus-visible {
+  opacity: 1;
+}
+.viewcube-arrow {
+  width: 14px;
+  height: 14px;
+  color: #8d949b !important;
+}
+.viewcube-arrow:hover {
+  color: #1f8fe0 !important;
+}
+.viewcube .viewcube-menu {
+  position: absolute;
+  top: calc(100% - 14px);
+  right: 0;
+  min-width: 190px;
+  background: #fff;
+  border: 1px solid #c9ced3;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+.viewcube .viewcube-menu button {
+  position: static;
+  text-align: left;
+  padding: 6px 14px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #222;
+}
+.viewcube .viewcube-menu button:hover:not(:disabled) {
+  background: #e8f3fc;
+  color: #222;
+}
+.viewcube .viewcube-menu button:disabled {
+  color: #aaa;
+  cursor: default;
+}
+.viewcube-menu hr {
+  border: 0;
+  border-top: 1px solid #e3e6e9;
+  margin: 4px 0;
 }

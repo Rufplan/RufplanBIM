@@ -1148,3 +1148,42 @@ approves one new dependency: `pdfjs-dist` (Mozilla, Apache-2.0), loaded on first
   - Sections and elevations as input, for heights.
   - Reading at more than 1568 px by tiling large sheets.
   - A trace overlay to correct Claude's reading before building.
+
+## ADR-037 ViewCube — Accepted (2026-09-26)
+Owner request (2026-09-26): "create a 3D navigation cube … for 3D views … design it after
+Revit's".
+
+- **Where:** every 3D view and camera view has the cube in the top-right corner. It turns with
+  the model, and is half see-through until the pointer is over it. The Ground Grid and
+  Satellite chips moved to the bottom-right to make room.
+- **The cube:**
+  - Grey faces labelled FRONT (south), BACK, LEFT (west), RIGHT, TOP and BOTTOM.
+  - Each face has 9 hotspots: its middle, 4 edges and 4 corners, 26 in all. Hovering one
+    highlights it in blue, with its name as a tooltip ("Top, Front, Right").
+- **Clicking a hotspot** turns the view to look from there. The turn is animated, and the view
+  fits the model (the section box when on), as Revit's defaults do.
+  - Top puts north up the screen.
+- **Dragging the cube** orbits the view.
+- **The compass ring** under the cube carries N, E, S and W.
+  - Dragging the ring turns the view about the vertical.
+  - Clicking a letter looks from that side at the same height.
+  - The ring fades out as the view comes level, where it would sit edge-on.
+- **Straight at a face,** four arrows lead to the faces above, below, left and right of it on
+  screen.
+- **Home** (the house above the cube, and Go Home in the menu) goes to the view's home. That is
+  the view's first fit, until Set Current View as Home saves one. Reset Home clears it.
+  - Home is kept per view on this computer (local storage). The file format is unchanged.
+- **The menu** (the arrow at the cube's corner, or a right-click) has:
+  - Go Home, Set Current View as Home, Reset Home;
+  - Fit to View, Orient to Top, Orient to Southeast.
+- **ZF** (Zoom to Fit) now also fits in 3D.
+- **How it's drawn:**
+  - The cube is its own small three.js scene with an orthographic camera that copies the view
+    camera's rotation.
+  - The view's renderer draws it into its corner after the model, so there is no second
+    WebGL context.
+  - An HTML layer over the corner takes the pointer, so orbiting the model and using the cube
+    don't clash.
+- **Not yet** (Revit has these):
+  - The roll arrows: the orbit keeps the scene upright.
+  - Lock to Selection, Set Current View as Front, and perspective/orthographic switching.

@@ -131,6 +131,8 @@ Read these before writing code:
   Windows opens the Window Library.
 - Door families (ADR-033): studio-core `doors`, studio-views `doors` and `thumbs`; the
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
+- ViewCube (ADR-037): app/src/render/viewCube.ts (drawn by the 3D view's renderer in its
+  corner) and components/ViewCubeOverlay.tsx (Home, arrows, menu).
 - Plans to 3D (ADR-036): studio-core `plans` (tracing to model) and app `plans_cmds`; pdf.js
   (`pdfjs-dist`, blob worker) reads PDF pages. Live check: `PLANS_IN=inputs.json
   PLANS_OUT=reading.json cargo test -p rufplan-studio live_plans -- --ignored` (uses API credit).

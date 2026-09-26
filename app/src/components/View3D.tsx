@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { paintElement } from "../actions";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -10,6 +10,8 @@ import { siteImagery, uvAt, type Imagery } from "../imagery";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
 import { useAppStore } from "../store";
 import { samePt, sketchPrompt } from "../tools";
+import { savedHome, ViewCube } from "../render/viewCube";
+import { ViewCubeOverlay } from "./ViewCubeOverlay";
 
 const COLORS = {
   exteriorWall: 0xe9e7e2,
@@ -251,6 +253,8 @@ export function View3D({ view }: { view: ViewInfo }) {
   const boxRef = useRef<SectionBox | null>(sectionBox);
   // The satellite image draped on the ground, when on (ADR-026).
   const imagery = useRef<Imagery | null>(null);
+  // The ViewCube (ADR-037), made with the renderer.
+  const [cube, setCube] = useState<ViewCube | null>(null);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -309,10 +313,34 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
     controls.addEventListener("change", onCameraChange);
 
+    // Fit and the cube's turns fit the section box when there is one, else the model.
+    const cube = new ViewCube({
+      camera,
+      target: controls.target,
+      bounds: () => {
+        const model = new THREE.Box3().setFromObject(group);
+        const b = boxRef.current;
+        if (!b) return model.isEmpty() ? null : model;
+        const box = new THREE.Box3(
+          new THREE.Vector3().fromArray(b.min),
+          new THREE.Vector3().fromArray(b.max),
+        );
+        return model.isEmpty() ? box : box.intersect(model);
+      },
+      home: () => savedHome(view.id),
+    });
+    const stopTurn = () => cube.stop();
+    controls.addEventListener("start", stopTurn);
+    const onFit = () => cube.fit();
+    window.addEventListener("view-fit", onFit);
+    setCube(cube);
+
     let raf = 0;
     const loop = () => {
+      cube.step();
       controls.update();
       renderer.render(scene, camera);
+      cube.render(renderer);
       raf = requestAnimationFrame(loop);
     };
     loop();
@@ -945,6 +973,10 @@ export function View3D({ view }: { view: ViewInfo }) {
       window.removeEventListener("tool-cancel", onCancel);
       window.clearTimeout(saveTimer);
       controls.removeEventListener("change", onCameraChange);
+      controls.removeEventListener("start", stopTurn);
+      window.removeEventListener("view-fit", onFit);
+      setCube(null);
+      cube.dispose();
       renderer.domElement.removeEventListener("dblclick", onDouble);
       unsubTool();
       unsubSketch();
@@ -1105,6 +1137,7 @@ export function View3D({ view }: { view: ViewInfo }) {
 
   return (
     <div ref={wrapRef} className={`canvas-wrap view3d${temp ? " temp-hide" : ""}`} data-tool={tool}>
+      <ViewCubeOverlay cube={cube} viewId={view.id} />
       <button
         className={`view3d-chip${grid3d ? " on" : ""}`}
         aria-pressed={grid3d}

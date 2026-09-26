@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- ViewCube (ADR-037): Revit's navigation cube in every 3D view: 26 hotspots, compass ring,
+  Home, face arrows and its menu; ZF fits in 3D.
+
 - Plans to 3D (ADR-036): Architecture > Plans to 3D takes floor plans (images or PDF pages);
   Claude traces walls, doors, windows, rooms and slabs, and the model is built from them.
   Checked on the HABS drawings of Fallingwater.
