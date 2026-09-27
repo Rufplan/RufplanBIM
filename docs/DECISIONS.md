@@ -1807,3 +1807,9 @@ elevation reference). A mark with several views (interior elevations, or a build
 more views checked) draws the small tangent Filled Arrows again, so four of them square the
 circle into Revit's diamond, with the sheet number in the circle and each view number outside
 by its point. The divider line in a one-view mark is as heavy as the circle.
+
+Amended (2026-09-27, measured from the owner's two references): the one-view pointer is the
+right-angled triangle whose sides are tangent to the body. Its base is the body's diameter
+across the look, reaching √2 radii each side, and its point is √2 radii out. The body drawn
+over it leaves the black point and a wing at each end of the diameter: Revit's standard
+exterior elevation mark.

@@ -1210,19 +1210,20 @@ pub(crate) fn filled_arrow(c: Pt, r: f64, look: Pt) -> Vec<Pt> {
     out
 }
 
-/// Revit's elevation mark pointer: a right-angled triangle (sides at 45°) pointing `look`,
-/// its point 1.95 radii from the center and its base 0.45 radii out, 3 radii long, so the body
-/// drawn over it leaves two black wings and the point.
+/// Revit's standard elevation mark pointer, measured from the owner's references: a
+/// right-angled triangle pointing `look` whose sides are tangent to the body. Its base is the
+/// body's diameter across the look, √2 radii each side, and its point is √2 radii out, so the
+/// body drawn over it leaves the black point and a wing at each end of the diameter.
 pub(crate) fn mark_arrow(c: Pt, r: f64, look: Pt) -> [Pt; 3] {
-    let base = c.add(look.scale(r * 0.45));
-    let side = look.perp().scale(r * 1.5);
-    [c.add(look.scale(r * 1.95)), base.add(side), base.sub(side)]
+    let k = r * std::f64::consts::SQRT_2;
+    let side = look.perp().scale(k);
+    [c.add(look.scale(k)), c.add(side), c.sub(side)]
 }
 
 /// How far a mark's pointer reaches from its center, in radii.
 fn mark_reach(style: studio_core::MarkStyle) -> f64 {
     match style {
-        studio_core::MarkStyle::CircleArrow => 1.95,
+        studio_core::MarkStyle::CircleArrow => std::f64::consts::SQRT_2,
         studio_core::MarkStyle::CircleHalf => 1.55,
         studio_core::MarkStyle::Diamond => std::f64::consts::SQRT_2,
     }
@@ -4274,12 +4275,12 @@ mod tests {
                 _ => None,
             })
             .collect();
-        // Each point is r·√2 out (the tangent Filled Arrow), not the single-view 1.95 r.
+        // Each point is r·√2 out (the tangent Filled Arrow between the tangent points).
         for t in &tips {
             assert!((Pt::new(t[0], t[1]).len() - 4.0 * std::f64::consts::SQRT_2).abs() < 1e-9);
         }
         assert_eq!(tips.len(), 2);
-        // One view: the large point.
+        // One view: the standard pointer (its base on the diameter).
         let mut b = Builder::new(1.0);
         elevation_mark(
             &doc,
@@ -4293,18 +4294,21 @@ mod tests {
             Prim::Fill { rings, .. } if i.el == Some(v1) => Some(rings[0][0]),
             _ => None,
         });
-        assert!((tip.unwrap()[1] - 4.0 * 1.95).abs() < 1e-9);
+        assert!((tip.unwrap()[1] - 4.0 * std::f64::consts::SQRT_2).abs() < 1e-9);
     }
 
     #[test]
     fn elevation_pointer_is_a_right_angled_point_behind_the_body() {
         let (c, r) = (Pt::new(0.0, 0.0), 100.0);
         let [tip, a, b] = mark_arrow(c, r, Pt::new(-1.0, 0.0));
-        // Its point 1.95 radii out; its base 0.45 radii out, 3 radii long.
-        assert!((tip.x + 195.0).abs() < 1e-9 && tip.y.abs() < 1e-9);
-        assert!((a.x + 45.0).abs() < 1e-9 && (b.x + 45.0).abs() < 1e-9);
-        assert!((a.dist(b) - 300.0).abs() < 1e-9);
+        let k = r * std::f64::consts::SQRT_2;
+        // Its point √2 radii out; its base the diameter across the look, √2 radii each side.
+        assert!((tip.x + k).abs() < 1e-9 && tip.y.abs() < 1e-9);
+        assert!(a.x.abs() < 1e-9 && b.x.abs() < 1e-9 && (a.dist(b) - 2.0 * k).abs() < 1e-9);
         assert!(a.sub(tip).dot(b.sub(tip)).abs() < 1e-6, "a right angle");
+        // Its sides touch the body: one radius from the center.
+        let d = tip.sub(a).norm();
+        assert!((c.sub(a).cross(d).abs() - r).abs() < 1e-9, "tangent");
     }
 
     #[test]
