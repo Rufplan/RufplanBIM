@@ -102,7 +102,8 @@ export function PropertiesPanel() {
         tool === "roof" ||
         tool === "column" ||
         tool === "beam" ||
-        tool === "railing"
+        tool === "railing" ||
+        tool === "light"
       ? tool
       : tool.startsWith("floor")
         ? "floor"
@@ -119,6 +120,7 @@ export function PropertiesPanel() {
     column: app.columnTypes,
     beam: app.beamTypes,
     railing: app.railingTypes,
+    light: app.lightingFixtureTypes,
     elevationMarker: app.elevationMarkerTypes,
   };
   const toolOptions = toolKind ? typesByKind[toolKind] : [];
@@ -133,6 +135,7 @@ export function PropertiesPanel() {
     Column: "column",
     Beam: "beam",
     Railing: "railing",
+    LightingFixture: "light",
     ElevationMarker: "elevationMarker",
   };
   const instanceKind = sheet ? categoryKind[sheet.category] : undefined;
@@ -161,10 +164,14 @@ export function PropertiesPanel() {
                 sketching ? void apply(() => ipc.sketchSetType(id)) : setToolType(toolKind, id)
               }
             />
-            {(toolKind === "door" || toolKind === "window") && (
+            {(toolKind === "door" || toolKind === "window" || toolKind === "light") && (
               <button
                 className="link-btn"
-                onClick={() => void openPicker(toolKind === "door" ? "Door" : "Window")}
+                onClick={() =>
+                  void openPicker(
+                    toolKind === "door" ? "Door" : toolKind === "window" ? "Window" : "Light",
+                  )
+                }
               >
                 Browse Types…
               </button>
@@ -185,10 +192,18 @@ export function PropertiesPanel() {
                     options={instanceTypes}
                     onChange={(id) => set("type", id)}
                   />
-                  {(sheet.category === "Door" || sheet.category === "Window") && (
+                  {(sheet.category === "Door" ||
+                    sheet.category === "Window" ||
+                    sheet.category === "LightingFixture") && (
                     <button
                       className="link-btn"
-                      onClick={() => void openPicker(sheet.category as "Door" | "Window")}
+                      onClick={() =>
+                        void openPicker(
+                          sheet.category === "LightingFixture"
+                            ? "Light"
+                            : (sheet.category as "Door" | "Window"),
+                        )
+                      }
                     >
                       Browse Types…
                     </button>

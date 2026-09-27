@@ -26,6 +26,7 @@ const PLURAL: Partial<Record<Category, string>> = {
   Column: "Structural Columns",
   Beam: "Structural Framing",
   Railing: "Railings",
+  LightingFixture: "Lighting Fixtures",
   Level: "Levels",
   Grid: "Grids",
   Dimension: "Dimensions",
@@ -58,6 +59,7 @@ const MODEL: Category[] = [
   "Beam",
   "Railing",
   "Site",
+  "LightingFixture",
 ];
 const TAGGABLE: Category[] = ["Door", "Window", "Room", "Column", "Beam"];
 
@@ -159,6 +161,12 @@ async function tagSelection() {
   if (!view) return;
   const targets = await ofCategory(s.selection, TAGGABLE);
   await apply(() => ipc.tagElements(view.id, targets));
+}
+
+async function switchLights(on: boolean) {
+  const s = useAppStore.getState();
+  const lights = await ofCategory(s.selection, ["LightingFixture"]);
+  await apply(() => ipc.setLights(lights, on, null));
 }
 
 async function setLineStyle(style: LineStyle) {
@@ -339,6 +347,30 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
               onClick={() => void openPicker(only("Door") ? "Door" : "Window")}
             />
           ) : null}
+        </Group>
+      )}
+      {has("LightingFixture") && (
+        <Group title="Lighting">
+          <Btn
+            label="Light On"
+            icon={Icons.bulb}
+            title="Switch the selected fixtures on"
+            onClick={() => void switchLights(true)}
+          />
+          <Btn
+            label="Light Off"
+            icon={Icons.bulb}
+            title="Switch the selected fixtures off (Artificial Lights)"
+            onClick={() => void switchLights(false)}
+          />
+          {only("LightingFixture") && (
+            <Btn
+              label="Browse Types"
+              icon={Icons.light}
+              title="Change the selected fixtures' type in the lighting picker"
+              onClick={() => void openPicker("Light")}
+            />
+          )}
         </Group>
       )}
       {has(...TAGGABLE) && (

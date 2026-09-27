@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use studio_core::{ops, Document, ElementData, ElementId};
+use studio_core::{ops, Category, Document, ElementData, ElementId};
 use studio_geom::{Poly, Pt};
 use studio_regen::{regenerate, OpeningKind};
 use uuid::Uuid;
@@ -289,6 +289,8 @@ pub struct IfcSummary {
     pub columns: usize,
     pub beams: usize,
     pub railings: usize,
+    /// Lighting fixtures (ADR-057).
+    pub lights: usize,
 }
 
 /// Writes the model as an IFC4 STEP file. `timestamp` is ISO 8601 (for the header).
@@ -722,6 +724,48 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         ));
         summary.columns += 1;
     }
+    // Lighting fixtures (ADR-057): IfcLightFixture boxes with their wattage.
+    for e in doc.of(Category::LightingFixture) {
+        let ElementData::LightingFixture { level, type_id, .. } = &e.data else {
+            continue;
+        };
+        let (Some((_, storey, splace, elev)), Some((foot, z0, z1)), Some(spec)) = (
+            storey_of(*level),
+            studio_core::lighting::envelope(doc, e.id),
+            studio_core::lighting::spec_of(doc, *type_id),
+        ) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let shape = w.extrusions(body, &[(Poly::simple(foot), z0 - elev, (z1 - z0).max(1.0))]);
+        let ty = type_name(e.id);
+        use studio_core::lighting::{LightDistribution, LightFamily};
+        let kind = match spec.family {
+            LightFamily::ExitSign | LightFamily::EmergencyLight => "SECURITYLIGHTING",
+            _ if spec.distribution == LightDistribution::Spot => "DIRECTIONSOURCE",
+            _ => "POINTSOURCE",
+        };
+        let fx = w.add(format!(
+            "IFCLIGHTFIXTURE({},$,{},$,{},#{place},#{shape},$,.{kind}.)",
+            s(&ifc_guid(e.id.0)),
+            s(&ty),
+            s(&ty)
+        ));
+        contained.entry(storey).or_default().push(fx);
+        let watts = w.add(format!(
+            "IFCPROPERTYSINGLEVALUE('TotalWattage',$,IFCPOWERMEASURE({}),$)",
+            r(spec.watts)
+        ));
+        let pset = w.add(format!(
+            "IFCPROPERTYSET({},$,'Pset_LightFixtureTypeCommon',$,(#{watts}))",
+            s(&ifc_guid(derived(e.id.0, "pset")))
+        ));
+        w.add(format!(
+            "IFCRELDEFINESBYPROPERTIES({},$,$,$,(#{fx}),#{pset})",
+            s(&ifc_guid(derived(e.id.0, "pset-rel")))
+        ));
+        summary.lights += 1;
+    }
     for beam in &model.beams {
         let Some((_, storey, splace, elev)) = storey_of(beam.level) else {
             continue;
@@ -1040,6 +1084,14 @@ mod tests {
             vec![Pt::new(1600.0, 1000.0), Pt::new(1600.0, 5000.0)],
         )
         .unwrap();
+        // A downlight and an exit sign (ADR-057).
+        for (name, at) in [
+            ("6\" LED Downlight", Pt::new(2000.0, 2000.0)),
+            ("Exit Sign", Pt::new(500.0, 500.0)),
+        ] {
+            let t = studio_core::lighting::load(&mut doc, &[name.to_string()]).unwrap()[0];
+            studio_core::lighting::create_fixture(&mut doc, t, l1, at, 0.0, None).unwrap();
+        }
 
         let (ifc, sum) = export_ifc(&doc, "0.0.1", "2026-09-24T00:00:00");
         assert_eq!(
@@ -1057,8 +1109,10 @@ mod tests {
                 columns: 1,
                 beams: 1,
                 railings: 2,
+                lights: 2,
             }
         );
+        assert!(ifc.contains(".DIRECTIONSOURCE.)") && ifc.contains(".SECURITYLIGHTING.)"));
         assert!(ifc.starts_with("ISO-10303-21;"));
         assert!(ifc.contains("FILE_SCHEMA(('IFC4'));"));
         assert!(ifc.trim_end().ends_with("END-ISO-10303-21;"));

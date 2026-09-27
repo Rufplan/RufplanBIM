@@ -57,6 +57,7 @@ export const PLAN_TOOLS: Tool[] = [
   "roof",
   "stair",
   "column",
+  "light",
   "beam",
   "railing",
   "roomSeparator",
@@ -78,6 +79,7 @@ export const TOOLS_3D: Tool[] = [
   "ceilingAuto",
   "roof",
   "column",
+  "light",
   "room",
   // Boundary sketches on the level's work plane, and moving or copying the selection (ADR-025).
   "sketch",
@@ -113,7 +115,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
     tool === "roomSeparator"
   )
     return view === "Plan";
-  if (tool === "sketch" || tool === "elevation") return view === "Plan" || view === "CeilingPlan";
+  if (tool === "sketch" || tool === "elevation" || tool === "light")
+    return view === "Plan" || view === "CeilingPlan";
   if (tool === "tag") return view === "Plan";
   if (tool === "matchType" || tool === "mirrorPick")
     return view === "Plan" || view === "CeilingPlan";
@@ -206,6 +209,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
         : "Click toward where the stair climbs to the level above.";
     case "column":
       return "Click to place a column; it snaps to grid intersections. Columns rise to the level above.";
+    case "light":
+      return "Click to place the lighting fixture: ceiling fixtures go at the ceiling, wall fixtures on the nearest wall's face, lamps and site lights on the floor or ground.";
     case "beam":
       return n === 0
         ? "Click the beam's start. It frames the floor above this plan."

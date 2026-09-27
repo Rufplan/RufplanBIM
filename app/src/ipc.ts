@@ -60,6 +60,11 @@ import type { Table } from "./bindings/Table";
 import type { DimensionPreview } from "./bindings/DimensionPreview";
 import type { PropertySheet } from "./bindings/PropertySheet";
 import type { PickCandidate } from "./bindings/PickCandidate";
+import type { LightLibrary } from "./bindings/LightLibrary";
+import type { FixtureSource } from "./bindings/FixtureSource";
+import type { FixtureThumb } from "./bindings/FixtureThumb";
+import type { LightInfo } from "./bindings/LightInfo";
+import type { SunSettings } from "./bindings/SunSettings";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
 import type { PublishOptions } from "./bindings/PublishOptions";
 import type { PublishResult } from "./bindings/PublishResult";
@@ -328,6 +333,23 @@ export const ipc = {
   pickCycle: (view: ElementId, point: Pt, tol: number) =>
     invoke<PickCandidate[]>("pick_cycle", { view, point, tol }),
   pickCandidates: (ids: ElementId[]) => invoke<PickCandidate[]>("pick_candidates", { ids }),
+  // Lighting (ADR-057).
+  lightingLibrary: () => invoke<LightLibrary>("lighting_library"),
+  loadLightingTypes: (names: string[]) => invoke<LoadedWindows>("load_lighting_types", { names }),
+  fixtureThumbnail: (source: FixtureSource) =>
+    invoke<FixtureThumb>("fixture_thumbnail", { source }),
+  createLightingFixture: (
+    view: ElementId,
+    typeId: ElementId | null,
+    at: Pt,
+    level: ElementId | null = null,
+    elevation: number | null = null,
+  ): S => invoke("create_lighting_fixture", { view, typeId, at, rotation: null, level, elevation }),
+  setLights: (ids: ElementId[], on: boolean | null, dimming: number | null): S =>
+    invoke("set_lights", { ids, on, dimming }),
+  lights: (view: ElementId | null) => invoke<LightInfo[]>("lights", { view }),
+  setSunSettings: (settings: SunSettings): S => invoke("set_sun_settings", { settings }),
+  sunNow: () => invoke<SunPosition>("sun_now"),
   selectionCategories: (ids: ElementId[]) => invoke<Category[]>("selection_categories", { ids }),
   hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
   setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>

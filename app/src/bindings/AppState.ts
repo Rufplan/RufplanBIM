@@ -7,6 +7,7 @@ import type { RufplanLink } from "./RufplanLink";
 import type { SiteSummary } from "./SiteSummary";
 import type { SketchInfo } from "./SketchInfo";
 import type { StageItem } from "./StageItem";
+import type { SunSettings } from "./SunSettings";
 import type { ViewInfo } from "./ViewInfo";
 
 /**
@@ -20,7 +21,11 @@ revision: number, views: Array<ViewInfo>, levels: Array<NamedItem>,
 /**
  * Elevations of `levels` (mm), for the 3D view's work planes.
  */
-levelElevations: Array<number>, wallTypes: Array<NamedItem>, floorTypes: Array<NamedItem>, ceilingTypes: Array<NamedItem>, doorTypes: Array<NamedItem>, windowTypes: Array<NamedItem>, roofTypes: Array<NamedItem>, columnTypes: Array<NamedItem>, beamTypes: Array<NamedItem>, railingTypes: Array<NamedItem>, materials: Array<NamedItem>, elevationMarkerTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
+levelElevations: Array<number>, wallTypes: Array<NamedItem>, floorTypes: Array<NamedItem>, ceilingTypes: Array<NamedItem>, doorTypes: Array<NamedItem>, windowTypes: Array<NamedItem>, roofTypes: Array<NamedItem>, columnTypes: Array<NamedItem>, beamTypes: Array<NamedItem>, railingTypes: Array<NamedItem>, 
+/**
+ * Lighting fixture types and the project's Sun Settings (ADR-057).
+ */
+lightingFixtureTypes: Array<NamedItem>, sun: SunSettings, materials: Array<NamedItem>, elevationMarkerTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
 /**
  * Issued sets, oldest first.
  */

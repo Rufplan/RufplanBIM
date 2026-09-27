@@ -259,6 +259,8 @@ export function prompt3d(tool: string, n = 0): string {
       return "Click the wall's start on the level's work plane (Level in the options bar), then each next point. Esc finishes.";
     case "column":
       return "Click on the level's work plane to place a column.";
+    case "light":
+      return "Click a ceiling, wall or floor to place the lighting fixture on it.";
     case "floorAuto":
       return "Click a wall: a floor at the outer faces of that level's walls.";
     case "ceilingAuto":
@@ -894,6 +896,36 @@ export function View3D({ view }: { view: ViewInfo }) {
           ipc.createOpening(typeId, pv.preview.host, pv.preview.offset, pv.preview.flipFacing),
         );
         clearGhost();
+      } else if (tool === "light") {
+        // On the face clicked, as Revit hosts fixtures: under a ceiling at its height, on a
+        // wall at the height clicked; on a floor or the ground at the type's own height.
+        const hit = rayAt(e).intersectObjects(
+          group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+          false,
+        )[0];
+        const levels = s.app?.levels ?? [];
+        const elevs = s.app?.levelElevations ?? [];
+        const q = hit?.point ?? planeHit(e)?.point;
+        if (!q || levels.length === 0) {
+          s.setError("Click a ceiling, wall or floor to place the fixture.");
+          return;
+        }
+        // The level at or below the point.
+        let i = 0;
+        elevs.forEach((z, k) => {
+          if (z <= q.z + 1 && z >= (elevs[i] ?? -Infinity)) i = k;
+        });
+        const up = (hit?.face?.normal.z ?? 1) > 0.5;
+        const elevation = up ? null : q.z - (elevs[i] ?? 0);
+        await apply(() =>
+          ipc.createLightingFixture(
+            view.id,
+            s.toolTypes.light,
+            { x: q.x, y: q.y },
+            levels[i]!.id,
+            elevation,
+          ),
+        );
       } else if (tool === "wall" || tool === "column") {
         const h = planeHit(e);
         const plan = h ? planOf(h.level) : null;

@@ -27,4 +27,8 @@ positions: Array<number>,
  * The lines to draw, 6 floats per segment (ADR-038); empty to find them from the
  * triangles.
  */
-edges: Array<number>, };
+edges: Array<number>, 
+/**
+ * A lighting fixture's lit lens glows in this color (ADR-057).
+ */
+glow?: [number, number, number], };

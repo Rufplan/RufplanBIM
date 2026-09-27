@@ -6,6 +6,7 @@ mod detailing;
 mod door_cmds;
 mod editing;
 mod generate_cmds;
+mod lighting_cmds;
 mod lines_cmds;
 mod material_cmds;
 mod menu;
@@ -158,6 +159,14 @@ pub fn run() -> anyhow::Result<()> {
             shortcut_cmds::set_pinned,
             shortcut_cmds::select_all_instances,
             shortcut_cmds::selection_categories,
+            lighting_cmds::lighting_library,
+            lighting_cmds::load_lighting_types,
+            lighting_cmds::fixture_thumbnail,
+            lighting_cmds::create_lighting_fixture,
+            lighting_cmds::set_lights,
+            lighting_cmds::lights,
+            lighting_cmds::set_sun_settings,
+            lighting_cmds::sun_now,
             shortcut_cmds::tag_elements,
             shortcut_cmds::tag_element,
             shortcut_cmds::hide_elements,

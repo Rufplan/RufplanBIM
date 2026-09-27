@@ -33,14 +33,33 @@ export function clock(hour: number): string {
 
 export type Lighting = "sunsky" | "dome";
 
+/** Revit's Lighting Schemes, and the exposure each starts from: interiors and night
+ * scenes need more than daylight exteriors (Revit's exposure control). */
+export const SCHEMES = [
+  ["Exterior: Sun only", 1],
+  ["Exterior: Sun and Artificial", 1],
+  ["Exterior: Artificial only", 12],
+  ["Interior: Sun only", 2.5],
+  ["Interior: Sun and Artificial", 2.5],
+  ["Interior: Artificial only", 25],
+] as const;
+export type Scheme = (typeof SCHEMES)[number][0];
+
 export function RenderDialog({ onClose }: { onClose: () => void }) {
+  const projectSun = useAppStore((s) => s.app?.sun ?? null);
+  const [scheme, setScheme] = useState<Scheme>("Exterior: Sun only");
   const view = useAppStore((s) => activeViewInfo(s));
   const satellite = useAppStore((s) => s.satellite && !!s.app?.site);
   const [size, setSize] = useState(1);
   const [quality, setQuality] = useState(1);
-  const [month, setMonth] = useState(6);
-  const [day, setDay] = useState(21);
-  const [hour, setHour] = useState(15);
+  // The date and time start from the project's Sun Settings (ADR-057).
+  const [month, setMonth] = useState(projectSun?.month ?? 6);
+  const [day, setDay] = useState(projectSun?.day ?? 21);
+  const [hour, setHour] = useState(projectSun?.hour ?? 15);
+  const lightingMode = projectSun?.mode === "Lighting";
+  const sunOn = !scheme.endsWith("Artificial only");
+  const artificial = scheme.includes("Artificial");
+  const baseExposure = SCHEMES.find(([s]) => s === scheme)![1];
   const [background, setBackground] = useState<BackgroundId>("sky");
   const [lighting, setLighting] = useState<Lighting>("sunsky");
   const [rotation, setRotation] = useState(0);
@@ -68,14 +87,15 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   // The sun at the site for the chosen date and time.
   useEffect(() => {
     let live = true;
-    ipc.sunPosition(month, day, hour).then(
+    // Sun Settings' Lighting study: its own azimuth and altitude.
+    (lightingMode ? ipc.sunNow() : ipc.sunPosition(month, day, hour)).then(
       (s) => live && setSun(s),
       () => live && setSun(null),
     );
     return () => {
       live = false;
     };
-  }, [month, day, hour]);
+  }, [month, day, hour, lightingMode]);
 
   useEffect(() => () => job.current?.dispose(), []);
 
@@ -117,7 +137,11 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const levels = useAppStore.getState().app?.levelElevations ?? [0];
       const rot = (rotation * Math.PI) / 180;
       setStatus("Preparing the sky…");
-      const sunUp = sun && sun.altitude > 0 ? sun : null;
+      const sunUp = sunOn && sun && sun.altitude > 0 ? sun : null;
+      const lights = artificial
+        ? (await ipc.lights(view.id)).filter((l) => l.on && l.lumens > 0)
+        : [];
+      const ev = exposure * baseExposure;
       const physical = () =>
         sky.physicalSky({
           sunDir: sunUp ? toYUp(sunUp.dir) : toYUp([0, -1, -0.2]),
@@ -167,18 +191,19 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
             : null,
         imagery,
         groundZ: Math.min(0, ...levels),
+        lights,
       });
       backdrop.current = photo
-        ? renderBackdrop(w, h, camera, { texture: photo, rotation: rot, exposure, tone })
+        ? renderBackdrop(w, h, camera, { texture: photo, rotation: rot, exposure: ev, tone })
         : bg.id === "physical"
           ? renderBackdrop(w, h, camera, {
               texture: lightingUsed === "sunsky" ? env : physical(),
               rotation: 0,
-              exposure,
+              exposure: ev,
               tone,
             })
           : renderBackdrop(w, h, camera, null);
-      const j = new RenderJob({ width: w, height: h, samples, exposure, tone });
+      const j = new RenderJob({ width: w, height: h, samples, exposure: ev, tone });
       job.current = j;
       const shown = document.createElement("canvas");
       shown.width = w;
@@ -320,6 +345,21 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
             )}
             <h3>Lighting</h3>
             <label className="field">
+              Lighting Scheme
+              <select
+                aria-label="Lighting scheme"
+                value={scheme}
+                onChange={(e) => setScheme(e.target.value as Scheme)}
+                disabled={running}
+              >
+                {SCHEMES.map(([s]) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
               Light by
               <select
                 aria-label="Lighting"
@@ -331,7 +371,13 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 <option value="dome">Background photo (dome light)</option>
               </select>
             </label>
-            {lightingUsed === "sunsky" && (
+            {lightingUsed === "sunsky" && lightingMode && (
+              <p className="muted">
+                Sun Settings: Lighting, {projectSun?.azimuth}° azimuth, {projectSun?.altitude}°
+                altitude (Lighting tab &gt; Sun Settings).
+              </p>
+            )}
+            {lightingUsed === "sunsky" && !lightingMode && (
               <>
                 <div className="row">
                   <label className="field">

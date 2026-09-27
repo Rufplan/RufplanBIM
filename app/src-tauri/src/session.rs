@@ -91,6 +91,9 @@ pub struct AppState {
     pub column_types: Vec<NamedItem>,
     pub beam_types: Vec<NamedItem>,
     pub railing_types: Vec<NamedItem>,
+    /// Lighting fixture types and the project's Sun Settings (ADR-057).
+    pub lighting_fixture_types: Vec<NamedItem>,
+    pub sun: studio_core::lighting::SunSettings,
     pub materials: Vec<NamedItem>,
     pub elevation_marker_types: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
@@ -318,6 +321,8 @@ impl Session {
             column_types: named(Category::ColumnType),
             beam_types: named(Category::BeamType),
             railing_types: named(Category::RailingType),
+            lighting_fixture_types: named(Category::LightingFixtureType),
+            sun: studio_core::lighting::sun_settings(doc),
             materials: named(Category::Material),
             elevation_marker_types: named(Category::ElevationMarkerType),
             stages: ops::stages(doc)
@@ -456,6 +461,15 @@ impl Session {
             // Saved before columns, beams and railings existed (ADR-019).
             let dirty = project.doc.is_dirty();
             studio_core::structure::ensure_structure_types(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
+        if project.doc.count(Category::LightingFixtureType) == 0 {
+            // Saved before lighting fixtures existed (ADR-057).
+            let dirty = project.doc.is_dirty();
+            studio_core::lighting::ensure_types(&mut project.doc)?;
             project.doc.clear_history();
             if !dirty {
                 project.doc.mark_saved();

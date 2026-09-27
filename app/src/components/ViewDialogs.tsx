@@ -16,6 +16,8 @@ import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
 import { SheetSetsDialog } from "./SheetSetsDialog";
 import { TypePicker } from "./TypePicker";
+import { LightPicker } from "./LightPicker";
+import { ArtificialLightsDialog, SunSettingsDialog } from "./LightingDialogs";
 
 // Keyboard Shortcuts (KS) and Visibility/Graphics (VV) dialogs (ADR-024).
 
@@ -23,6 +25,13 @@ export function ViewDialogs() {
   const which = useAppStore((s) => s.viewDialog);
   const close = () => useAppStore.getState().setUi({ viewDialog: null });
   const picker = useAppStore((s) => s.picker);
+  if (picker?.category === "Light")
+    return (
+      <LightPicker
+        key={`light:${picker.tab}`}
+        onClose={() => useAppStore.getState().setPicker(null)}
+      />
+    );
   if (picker)
     return (
       <TypePicker
@@ -37,6 +46,8 @@ export function ViewDialogs() {
   if (which === "generate") return <GenerateDialog onClose={close} />;
   if (which === "plans") return <PlansDialog onClose={close} />;
   if (which === "sheetSets") return <SheetSetsDialog onClose={close} />;
+  if (which === "sunSettings") return <SunSettingsDialog onClose={close} />;
+  if (which === "artificialLights") return <ArtificialLightsDialog onClose={close} />;
   return null;
 }
 

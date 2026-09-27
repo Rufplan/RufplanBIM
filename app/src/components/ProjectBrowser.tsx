@@ -132,6 +132,7 @@ export function ProjectBrowser() {
             [
               ["Roofs", app.roofTypes],
               ["Structural Columns", app.columnTypes],
+              ["Lighting Fixtures", app.lightingFixtureTypes],
               ["Structural Framing", app.beamTypes],
               ["Railings", app.railingTypes],
               ["Elevation Marks", app.elevationMarkerTypes],

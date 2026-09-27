@@ -16,6 +16,7 @@ pub mod caps;
 pub mod doors;
 pub mod edges;
 pub mod handles;
+pub mod lighting;
 mod plan_parts;
 pub mod site_plan;
 pub mod slopes;
@@ -679,6 +680,7 @@ fn plan(
         opening_symbol(b, Some(o.id), o);
     }
     plan_parts::columns_in_plan(b, model, elev, cut, &joined_ids);
+    lighting::plan_symbols(doc, b, level, ceiling);
     if !ceiling {
         // Room separation lines (thin, like Revit's).
         for e in doc.of(Category::RoomSeparator) {
@@ -2998,6 +3000,9 @@ pub struct Mesh {
     /// The lines to draw, 6 floats per segment (ADR-038); empty to find them from the
     /// triangles.
     pub edges: Vec<f32>,
+    /// A lighting fixture's lit lens glows in this color (ADR-057).
+    #[ts(optional)]
+    pub glow: Option<[u8; 3]>,
 }
 
 /// Meshes for a 3D view, without what it hides (ADR-024).
@@ -3038,6 +3043,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         let positions = edges::wall_triangles(w);
         let hosted: Vec<&OpeningSolid> = m.openings.iter().filter(|o| o.host == w.id).collect();
         out.push(Mesh {
+            glow: None,
             edges: edges::wall_edges(w, &hosted),
             el: w.id,
             category: Category::Wall,
@@ -3055,6 +3061,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 // Frame, casing and leaves in the finish (with a color); glass without.
                 let p = doors::parts(o, style);
                 out.push(Mesh {
+                    glow: None,
                     edges: vec![],
                     el: o.id,
                     category: Category::Door,
@@ -3066,6 +3073,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 });
                 if !p.glass.is_empty() {
                     out.push(Mesh {
+                        glow: None,
                         edges: vec![],
                         el: o.id,
                         category: Category::Door,
@@ -3082,6 +3090,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 // (with a color), and the glass (without).
                 let p = windows::parts(o, style);
                 out.push(Mesh {
+                    glow: None,
                     edges: vec![],
                     el: o.id,
                     category: Category::Window,
@@ -3092,6 +3101,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                     positions: p.frame,
                 });
                 out.push(Mesh {
+                    glow: None,
                     edges: vec![],
                     el: o.id,
                     category: Category::Window,
@@ -3106,6 +3116,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for s in m.floors.iter().chain(&m.ceilings) {
         out.push(Mesh {
+            glow: None,
             edges: vec![],
             el: s.id,
             category: s.category,
@@ -3135,6 +3146,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             ]);
         }
         out.push(Mesh {
+            glow: None,
             edges,
             el: e.id,
             category: Category::ModelLine,
@@ -3147,6 +3159,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for r in &m.roofs {
         out.push(Mesh {
+            glow: None,
             edges: vec![],
             el: r.id,
             category: Category::Roof,
@@ -3159,6 +3172,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for s in &m.stairs {
         out.push(Mesh {
+            glow: None,
             edges: vec![],
             el: s.id,
             category: Category::Stair,
@@ -3173,6 +3187,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         let positions = s.mesh();
         if !positions.is_empty() {
             out.push(Mesh {
+                glow: None,
                 edges: vec![],
                 el: s.id,
                 category: Category::Site,
@@ -3186,6 +3201,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for c in &m.columns {
         out.push(Mesh {
+            glow: None,
             edges: vec![],
             el: c.id,
             category: Category::Column,
@@ -3198,6 +3214,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for bm in &m.beams {
         out.push(Mesh {
+            glow: None,
             edges: vec![],
             el: bm.id,
             category: Category::Beam,
@@ -3217,6 +3234,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         positions.extend(r.posts.iter().flat_map(|p| p.triangles()));
         let is_stair = m.stairs.iter().any(|s| s.id == r.id);
         out.push(Mesh {
+            glow: None,
             edges: vec![],
             el: r.id,
             category: if is_stair {
@@ -3253,6 +3271,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             mesh.material = studio_core::library::finish_of(doc, mesh.el);
         }
     }
+    lighting::meshes(doc, &mut out);
     out
 }
 

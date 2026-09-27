@@ -96,6 +96,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
         }
         seed_opening_types(tx);
         crate::structure::seed_structure_types(tx);
+        crate::lighting::seed_types(tx);
         crate::material::seed_materials(tx);
         crate::detail::seed_mark_types(tx);
         for (facing, name) in [
@@ -131,6 +132,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             stage_history: vec![],
             rufplan: None,
             param_defs: vec![],
+            sun: Default::default(),
         });
         Ok(())
     })
@@ -1660,6 +1662,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             stage_history,
             rufplan,
             param_defs,
+            ..
         } => {
             props.push(text("name", "Project Name", "Project", name));
             for d in param_defs {
@@ -2105,6 +2108,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::structure::properties(doc, id, &mut props);
         }
         ElementData::Material { .. } => crate::material::properties(doc, id, &mut props),
+        ElementData::LightingFixture { .. } | ElementData::LightingFixtureType { .. } => {
+            crate::lighting::properties(doc, id, &mut props)
+        }
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2348,6 +2354,12 @@ pub fn set_property(
             | ElementData::RailingType { .. }
     ) {
         return crate::structure::set_property(doc, id, key, value);
+    }
+    if matches!(
+        data,
+        ElementData::LightingFixture { .. } | ElementData::LightingFixtureType { .. }
+    ) {
+        return crate::lighting::set_property(doc, id, key, value);
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -2758,7 +2770,9 @@ pub fn set_property(
         | ElementData::Standards(_)
         | ElementData::SpotElevation { .. }
         | ElementData::NorthArrow { .. }
-        | ElementData::GraphicScale { .. } => return Err(unknown()),
+        | ElementData::GraphicScale { .. }
+        | ElementData::LightingFixture { .. }
+        | ElementData::LightingFixtureType { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..
         } => crate::slope::set_spot(format, triangle, key, value)?,

@@ -3087,3 +3087,117 @@ button:disabled {
   background: var(--ink);
   color: var(--white);
 }
+
+/* ---------- Lighting (ADR-057) ---------- */
+.lp-thumb {
+  background: #2f3336;
+}
+.lp-layout {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.lp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  padding: 8px;
+}
+.lp-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid transparent;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.lp-row .tp-thumb {
+  grid-row: span 2;
+  width: 56px;
+}
+.lp-row:hover {
+  border-color: var(--border);
+}
+.lp-row.active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px var(--cyan);
+}
+.lp-note {
+  grid-column: 2;
+  font-size: 11px;
+}
+.lp-specs {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 10px;
+  font-size: 12px;
+}
+.lp-specs th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 2px 8px 2px 0;
+  white-space: nowrap;
+  vertical-align: top;
+}
+.lp-specs td {
+  padding: 2px 0;
+}
+.lp-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border: 1px solid var(--border-strong);
+  vertical-align: -1px;
+}
+.sun-settings,
+.artificial-lights {
+  width: min(460px, calc(100vw - 32px));
+}
+.sun-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+.sun-mode legend {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.sun-mode .muted {
+  flex-basis: 100%;
+  font-size: 11px;
+}
+.al-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+.al-table th,
+.al-table td {
+  padding: 3px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.al-table .al-group th {
+  font-weight: 600;
+  background: var(--light);
+}
+.al-table input[type="number"] {
+  width: 56px;
+}
+.artificial-lights {
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}

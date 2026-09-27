@@ -23,6 +23,8 @@ export interface FakeBackend {
   plans: unknown;
   /** Categories to report for selected ids (anything else is a view). */
   properties?: Record<string, { category: string }>;
+  /** The fixtures' lights (ADR-057). */
+  lights: import("../bindings/LightInfo").LightInfo[];
   /** What pick_cycle finds under the cursor (ADR-056). */
   underCursor: { ids: string[]; label: string }[];
   /** The project's drawing-set standards (ADR-047). */
@@ -139,6 +141,12 @@ export function appState(path: string | null, dirty = false): AppState {
     columnTypes: [{ id: "00000000-0000-7000-8000-000000000025", name: "Steel W10x33" }],
     beamTypes: [{ id: "00000000-0000-7000-8000-000000000026", name: "Steel W12x26" }],
     railingTypes: [{ id: "00000000-0000-7000-8000-000000000027", name: 'Guardrail - 42"' }],
+    lightingFixtureTypes: [
+      { id: "00000000-0000-7000-8000-000000000041", name: "2x4 LED Troffer" },
+      { id: "00000000-0000-7000-8000-000000000042", name: '6" LED Downlight' },
+      { id: "00000000-0000-7000-8000-000000000043", name: "Wall Sconce" },
+    ],
+    sun: { mode: "Still", month: 6, day: 21, hour: 15, azimuth: 225, altitude: 35 },
     materials: [
       { id: "00000000-0000-7000-8000-000000000050", name: "Brick" },
       { id: "00000000-0000-7000-8000-000000000051", name: "Concrete" },
@@ -345,6 +353,7 @@ export function installFakeBackend(): FakeBackend {
     plans: null,
     standards: fakeStandards(),
     underCursor: [],
+    lights: [],
   };
 
   mockIPC(
@@ -859,6 +868,23 @@ export function installFakeBackend(): FakeBackend {
             .filter(Boolean);
           return [...new Set(cats)];
         }
+        case "snap":
+          return { pt: a.point, kind: "None", label: null };
+        // Lighting (ADR-057).
+        case "lighting_library":
+          return FAKE_LIGHT_LIBRARY;
+        case "load_lighting_types":
+          return { state: fake.state, ids: ["00000000-0000-7000-8000-000000000044"] };
+        case "fixture_thumbnail":
+          return { body: [], lens: [], color: [236, 236, 232], glow: [255, 230, 200] };
+        case "lights":
+          return fake.lights;
+        case "set_lights":
+        case "set_sun_settings":
+        case "create_lighting_fixture":
+          return fake.state;
+        case "sun_now":
+          return { dir: [0.5, -0.5, 0.7], altitude: 35, azimuth: 225 };
         case "pick_cycle":
           return fake.underCursor;
         case "pick":
@@ -887,3 +913,70 @@ export const commandsCalled = (fake: FakeBackend) =>
     .filter(
       (c) => !c.startsWith("plugin:event") && c !== "view_display_list" && c !== "properties",
     );
+
+const fixtureSpec = (over: Partial<import("../bindings/FixtureSpec").FixtureSpec>) => ({
+  family: "Downlight" as const,
+  mount: "Ceiling" as const,
+  width: 190.5,
+  depth: 190.5,
+  height: 88.9,
+  drop: 0,
+  mount_height: 0,
+  lumens: 1200,
+  watts: 14,
+  kelvin: 3000,
+  shape: "Circle" as const,
+  distribution: "Spot" as const,
+  beam: 70,
+  ...over,
+});
+
+/** A small lighting library: a downlight, a troffer and a bollard. */
+export const FAKE_LIGHT_LIBRARY: import("../bindings/LightLibrary").LightLibrary = {
+  groups: ["Recessed & Ceiling", "Site & Exterior"],
+  uses: [
+    { id: "Residential", label: "Residential" },
+    { id: "Office", label: "Office" },
+    { id: "Exterior", label: "Site & Exterior" },
+  ],
+  presets: [
+    {
+      name: '6" LED Downlight',
+      description: 'Recessed 6" can',
+      group: "Recessed & Ceiling",
+      uses: ["Residential", "Office"],
+      spec: fixtureSpec({}),
+    },
+    {
+      name: "2x4 LED Troffer",
+      description: "Lay-in 2'x4' troffer",
+      group: "Recessed & Ceiling",
+      uses: ["Office"],
+      spec: fixtureSpec({
+        family: "Troffer",
+        width: 609.6,
+        depth: 1219.2,
+        lumens: 4000,
+        watts: 32,
+        kelvin: 4000,
+        shape: "Rectangle",
+        distribution: "Hemispherical",
+        beam: 180,
+      }),
+    },
+    {
+      name: '42" Bollard',
+      description: "Path bollard",
+      group: "Site & Exterior",
+      uses: ["Exterior"],
+      spec: fixtureSpec({
+        family: "Bollard",
+        mount: "Ground",
+        height: 1066.8,
+        lumens: 900,
+        distribution: "Hemispherical",
+        shape: "Point",
+      }),
+    },
+  ],
+};

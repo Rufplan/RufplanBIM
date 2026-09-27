@@ -100,6 +100,24 @@ export function styleMaterial(
     toneMapped: false,
     ...flat,
   };
+  // A lit fixture's lens glows in its light's color (ADR-057).
+  if (m.glow && style !== "wireframe" && style !== "hiddenLine") {
+    const glow = new THREE.Color().setRGB(
+      m.glow[0] / 255,
+      m.glow[1] / 255,
+      m.glow[2] / 255,
+      THREE.SRGBColorSpace,
+    );
+    return style === "realistic"
+      ? new THREE.MeshStandardMaterial({
+          color: glow,
+          emissive: glow,
+          emissiveIntensity: 1.6,
+          clippingPlanes: planes,
+          ...flat,
+        })
+      : new THREE.MeshBasicMaterial({ color: glow, ...common });
+  }
   switch (style) {
     case "wireframe":
       return new THREE.MeshBasicMaterial({ visible: false, clippingPlanes: planes });

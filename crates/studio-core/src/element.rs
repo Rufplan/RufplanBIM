@@ -93,6 +93,9 @@ pub enum Category {
     /// Lines (ADR-054).
     DetailLine,
     ModelLine,
+    /// Lighting fixtures (ADR-057).
+    LightingFixtureType,
+    LightingFixture,
 }
 
 impl Category {
@@ -142,6 +145,8 @@ impl Category {
             Category::SpotSlope => "SpotSlope",
             Category::DetailLine => "DetailLine",
             Category::ModelLine => "ModelLine",
+            Category::LightingFixtureType => "LightingFixtureType",
+            Category::LightingFixture => "LightingFixture",
         }
     }
 }
@@ -527,6 +532,10 @@ impl CropBox {
     }
 }
 
+fn full() -> f64 {
+    1.0
+}
+
 fn yes() -> bool {
     true
 }
@@ -858,6 +867,9 @@ pub enum ElementData {
         /// User-defined project parameters (ADR-017).
         #[serde(default)]
         param_defs: Vec<crate::params::ParamDef>,
+        /// Revit's Sun Settings (ADR-057).
+        #[serde(default)]
+        sun: crate::lighting::SunSettings,
     },
     DoorType {
         name: String,
@@ -1163,6 +1175,25 @@ pub enum ElementData {
         #[serde(default)]
         style: crate::lines::LineStyle,
     },
+    /// A lighting fixture type (ADR-057): its body and Revit photometrics.
+    LightingFixtureType {
+        name: String,
+        spec: crate::lighting::FixtureSpec,
+    },
+    /// A lighting fixture on `level` at `at`, its mounting point `elevation` above the
+    /// level (the ceiling, a wall height or the floor), rotated `rotation` radians (a wall
+    /// fixture faces that way). It can be off or dimmed (1 = full).
+    LightingFixture {
+        type_id: ElementId,
+        level: ElementId,
+        at: Pt,
+        elevation: f64,
+        rotation: f64,
+        #[serde(default = "yes")]
+        on: bool,
+        #[serde(default = "full")]
+        dimming: f64,
+    },
     /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
     NorthArrow {
         view: ElementId,
@@ -1263,6 +1294,8 @@ impl ElementData {
             ElementData::SpotSlope { .. } => Category::SpotSlope,
             ElementData::DetailLine { .. } => Category::DetailLine,
             ElementData::ModelLine { .. } => Category::ModelLine,
+            ElementData::LightingFixtureType { .. } => Category::LightingFixtureType,
+            ElementData::LightingFixture { .. } => Category::LightingFixture,
         }
     }
 
@@ -1347,6 +1380,7 @@ impl ElementData {
                 top_level,
                 ..
             } => vec![*base_level, *top_level],
+            ElementData::LightingFixture { type_id, level, .. } => vec![*type_id, *level],
             ElementData::Dimension { view, .. }
             | ElementData::AngularDimension { view, .. }
             | ElementData::TextNote { view, .. }
@@ -1431,6 +1465,8 @@ impl ElementData {
             ElementData::SpotSlope { .. } => "Spot Slope".into(),
             ElementData::DetailLine { style, .. } => format!("Detail Line: {}", style.label()),
             ElementData::ModelLine { style, .. } => format!("Model Line: {}", style.label()),
+            ElementData::LightingFixtureType { name, .. } => name.clone(),
+            ElementData::LightingFixture { .. } => "Lighting Fixture".into(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),
@@ -1454,7 +1490,8 @@ impl ElementData {
             | ElementData::Beam { level, .. }
             | ElementData::Railing { level, .. }
             | ElementData::RoomSeparator { level, .. }
-            | ElementData::ElevationMarker { level, .. } => Some(*level),
+            | ElementData::ElevationMarker { level, .. }
+            | ElementData::LightingFixture { level, .. } => Some(*level),
             ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
                 Some(*base_level)
             }
@@ -1477,7 +1514,8 @@ impl ElementData {
             | ElementData::Roof { type_id, .. }
             | ElementData::Column { type_id, .. }
             | ElementData::Beam { type_id, .. }
-            | ElementData::Railing { type_id, .. } => Some(*type_id),
+            | ElementData::Railing { type_id, .. }
+            | ElementData::LightingFixture { type_id, .. } => Some(*type_id),
             ElementData::ElevationMarker { type_id, .. } => *type_id,
             _ => None,
         }

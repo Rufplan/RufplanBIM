@@ -8,7 +8,7 @@ import type { Standards } from "./bindings/Standards";
 import type { DrawTool } from "./bindings/DrawTool";
 import type { LineStyle } from "./bindings/LineStyle";
 
-export type PickerCategory = "Door" | "Window";
+export type PickerCategory = "Door" | "Window" | "Light";
 
 /** An applied Edit Model change: the prompt, what it did, and its undo step's name. */
 export interface EditLogEntry {
@@ -37,6 +37,7 @@ export type Tool =
   | "roof"
   | "stair"
   | "column"
+  | "light"
   | "beam"
   | "railing"
   | "roomSeparator"
@@ -85,6 +86,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   roof: "Roof",
   stair: "Stair",
   column: "Column",
+  light: "Lighting Fixture",
   beam: "Beam",
   railing: "Railing",
   roomSeparator: "Room Separator",
@@ -133,6 +135,7 @@ export interface ToolTypes {
   column: ElementId | null;
   beam: ElementId | null;
   railing: ElementId | null;
+  light: ElementId | null;
 }
 
 /** Options-bar settings of the modify tools (like Revit's options bar). */
@@ -270,7 +273,16 @@ interface UiState {
   propsHidden: boolean;
   /** Keyboard Shortcuts (KS) or Visibility/Graphics (VV) dialog. */
   viewDialog:
-    "keyboard" | "visibility" | "render" | "materials" | "generate" | "plans" | "sheetSets" | null;
+    | "keyboard"
+    | "visibility"
+    | "render"
+    | "materials"
+    | "generate"
+    | "plans"
+    | "sheetSets"
+    | "sunSettings"
+    | "artificialLights"
+    | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
   picker: { category: PickerCategory; tab: "project" | "library"; change: ElementId[] } | null;
@@ -366,6 +378,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     column: null,
     beam: null,
     railing: null,
+    light: null,
   },
   prompt: "",
   cursor: "",
@@ -510,6 +523,7 @@ export const useAppStore = create<UiState>((set, get) => ({
           s.toolTypes.window,
         ),
         roof: firstId(app.roofTypes, s.toolTypes.roof),
+        light: firstId(app.lightingFixtureTypes, s.toolTypes.light),
         // Structural columns and steel beams are the everyday defaults.
         column: firstId(
           [...app.columnTypes].sort(

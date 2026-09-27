@@ -34,7 +34,9 @@ struct ParamDef { key: String, label: String, kind: ParamKind, group: ParamGroup
 | Annotation | view_id + kind: Tag(target_id, tag_family), Dimension(refs), Text, DetailLine, Symbol |
 | Sheet | number, name, title block type, viewports[], issue data, stage_ids[] (deliverable sets it belongs to) |
 | Material | name, cut pattern, surface pattern, color |
-| ProjectInfo | project name, number, address, client, issue date, current_stage_id, stage_history[] (from, to, at, note) |
+| LightingFixtureType | name; spec: family (body), mount (ceiling, pendant, wall, floor, ground), width/depth/height, suspension, default mounting height, lumens, watts, color temperature (K), light source shape and distribution, spot beam (ADR-057) |
+| LightingFixture | type_id, level, point, elevation from level, rotation, on, dimming (ADR-057) |
+| ProjectInfo | project name, number, address, client, issue date, current_stage_id, stage_history[] (from, to, at, note), sun settings (Still date and time, or Lighting azimuth and altitude; ADR-057) |
 | ProjectStage | name, abbreviation, order, planned start date, target date (ADR-010). Defaults: Pre-Design (PD), Schematic Design (SD), Design Development (DD), Construction Documents (CD), Bidding / Negotiation (BN), Construction Administration (CA) |
 
 ## Families (v0.1 scope)

@@ -133,6 +133,11 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Lighting (ADR-057): studio-core `lighting` (FixtureSpec, catalog, create_fixture, on_wall,
+  set_lights, SunSettings, project_sun_now); studio-views `lighting` (plan symbols, meshes with
+  `Mesh.glow`, thumb, lights); app `lighting_cmds`; components/LightPicker.tsx and
+  LightingDialogs.tsx; pathtrace `fixtureLight`; RenderDialog `SCHEMES`. Ribbon: Openings (doors,
+  windows) after Architecture, Lighting before Materials, Sheets after View.
 - Tab selection (ADR-056): studio-views `pick_all`, `pick_candidates` (PickCandidate); app
   `pick_cycle` / `pick_candidates`; the `select-tab` event in ViewCanvas and View3D; store `hoverLabel`.
 - Contextual Modify tab (ADR-055): components/ModifyContext.tsx (contextLabel, the panels by

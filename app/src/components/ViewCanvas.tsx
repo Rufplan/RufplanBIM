@@ -1480,6 +1480,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       await apply(() => ipc.createColumn(view.id, s.toolTypes.column, p));
       return;
     }
+    if (s.tool === "light") {
+      await apply(() => ipc.createLightingFixture(view.id, s.toolTypes.light, p));
+      return;
+    }
     if (SELECTION_TOOLS.includes(s.tool) || POINT_TOOLS.includes(s.tool)) {
       await placePoint(p, raw);
       return;

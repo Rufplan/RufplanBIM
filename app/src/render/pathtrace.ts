@@ -13,6 +13,7 @@ import { meshColor } from "../components/View3D";
 import { GROUND_ALBEDO } from "./sky";
 import { boxUv, physicalMaterial, texturesFor, type TextureLoader } from "./materials";
 import type { RenderMaterial } from "../bindings/RenderMaterial";
+import type { LightInfo } from "../bindings/LightInfo";
 
 export interface RenderSettings {
   width: number;
@@ -109,6 +110,54 @@ export interface SceneOptions {
   materialOf?: (
     m: Mesh,
   ) => { material: THREE.Material; scale: number; aspect: number; textured: boolean } | null;
+  /** Lit lighting fixtures (ADR-057); their lenses glow when there are any. */
+  lights?: LightInfo[];
+}
+
+/** Lux per unit of the sky map's scale (its zenith is about 1): a clear sky and sun light
+ * the ground with about 100,000 lux where physicalSky gives about 17. */
+export const LUX_PER_UNIT = 6000;
+
+/** A fixture's light in the render scene (mm, y-up), in the sky's units: Revit's light
+ * source shapes and distributions as three.js lights. Rectangle and line sources are area
+ * lights; spherical ones point lights; spots and hemispherical ones spot lights. */
+export function fixtureLight(l: LightInfo): THREE.Light {
+  const color = new THREE.Color().setRGB(
+    l.color[0] / 255,
+    l.color[1] / 255,
+    l.color[2] / 255,
+    THREE.SRGBColorSpace,
+  );
+  const at = toYUp(l.at);
+  const dir = toYUp(l.dir).normalize();
+  // Candela to the scene: illuminance falls off per mm², the sky is in LUX_PER_UNIT.
+  const k = 1e6 / LUX_PER_UNIT;
+  if (l.shape === "Rectangle" || l.shape === "Line") {
+    const w = Math.max(l.size[0], 25);
+    const h = Math.max(l.size[1], 25);
+    // Luminance (nits) of a Lambertian panel giving the lumens.
+    const nits = l.lumens / (Math.PI * (w / 1000) * (h / 1000));
+    const a = new THREE.RectAreaLight(color, nits / LUX_PER_UNIT, w, h);
+    a.position.copy(at);
+    a.up.copy(toYUp([l.axis[0], l.axis[1], 0]).normalize());
+    a.lookAt(at.clone().add(dir));
+    return a;
+  }
+  if (l.distribution === "Spherical") {
+    const p = new THREE.PointLight(color, (l.lumens / (4 * Math.PI)) * k, 0, 2);
+    p.position.copy(at);
+    return p;
+  }
+  const spot = l.distribution === "Spot";
+  const half = spot
+    ? THREE.MathUtils.degToRad(Math.min(Math.max(l.beam, 2), 170)) / 2
+    : (Math.PI / 2) * 0.999;
+  // A uniform cone of the beam, or a cosine (Lambertian) hemisphere.
+  const cd = spot ? l.lumens / (2 * Math.PI * (1 - Math.cos(half))) : l.lumens / Math.PI;
+  const s = new THREE.SpotLight(color, cd * k, 0, half, spot ? 0.35 : 1, 2);
+  s.position.copy(at);
+  s.target.position.copy(at.clone().addScaledVector(dir, 1000));
+  return s;
 }
 
 /** Light falling on a horizontal surface from an equirectangular environment map
@@ -233,6 +282,25 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(out, 3));
     geo.computeVertexNormals();
+    // A fixture's lens: glowing when the render has its lights on.
+    if (m.glow) {
+      const glow = new THREE.Color().setRGB(
+        m.glow[0] / 255,
+        m.glow[1] / 255,
+        m.glow[2] / 255,
+        THREE.SRGBColorSpace,
+      );
+      const lit = (o.lights?.length ?? 0) > 0;
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: lit ? glow : 0xf4f4f0,
+        emissive: lit ? glow : 0x000000,
+        emissiveIntensity: lit ? 6 : 0,
+        roughness: 0.6,
+        side: THREE.DoubleSide,
+      });
+      scene.add(new THREE.Mesh(geo, mat));
+      continue;
+    }
     const custom = m.category === "Site" ? null : (o.materialOf?.(m) ?? null);
     if (custom) {
       if (custom.textured) boxUv(geo, custom.scale, custom.aspect);
@@ -323,6 +391,11 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     );
     ground.userData.ground = true;
     scene.add(ground);
+  }
+  for (const l of o.lights ?? []) {
+    const light = fixtureLight(l);
+    scene.add(light);
+    if (light instanceof THREE.SpotLight) scene.add(light.target);
   }
   scene.environment = o.environment;
   scene.environmentIntensity = o.environmentIntensity ?? 1;

@@ -232,6 +232,25 @@ export const Icons = {
       <path d="M5 11v8h14v-8" />
     </I>
   ),
+  light: (
+    <I>
+      <path d="M12 2v5" />
+      <path d="M6 13a6 6 0 0 1 12 0z" fill="currentColor" fillOpacity="0.85" />
+      <path d="M9 16l-1.5 3M12 16.5v3.5M15 16l1.5 3" strokeWidth="1.3" />
+    </I>
+  ),
+  sun: (
+    <I>
+      <circle cx="12" cy="12" r="4" fill="currentColor" fillOpacity="0.85" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" />
+    </I>
+  ),
+  bulb: (
+    <I>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3z" />
+    </I>
+  ),
   column: (
     <I>
       <path d="M8 3h8M8 21h8M10 3v18M14 3v18" strokeWidth="1.8" />

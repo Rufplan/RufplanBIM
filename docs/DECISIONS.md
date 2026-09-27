@@ -1884,3 +1884,103 @@ the default exterior mark type's style and size (`detail::mark_symbol(doc, None,
 at the start of the section line. The line, its heavy end segments and Section Tail - Filled
 are unchanged. An unplaced section shows "—" like an unplaced elevation, not digits from
 its name.
+
+## ADR-057 Openings, Lighting and Sheets tabs; lighting fixtures and sun settings — Accepted (2026-09-27)
+Owner request (2026-09-27): move the View tab's sheets to a Sheets tab. Move doors and windows
+to a new tab after Architecture, which will also hold wall and roof openings. Add a Lighting
+tab before Materials for exterior and interior lights and sun settings, mimicking Revit, with
+lights added like doors and windows from a pop-up of typical fixtures for all building types.
+Owner decisions (2026-09-27):
+- The tab is **Openings**: Revit's name for its panel of wall, shaft, dormer and vertical
+  cuts, so it stays right when those arrive.
+- Two additions to the project file, and older files open unchanged:
+  - a Lighting Fixture element and its type;
+  - Sun Settings saved in ProjectInfo.
+- Fixtures show in ceiling plans and 3D. Floor-standing, wall and site fixtures show in floor
+  plans too.
+
+**Ribbon.** The tab order is:
+- Standards, Site, Architecture, **Openings**, **Lighting**, Materials, Rendering;
+- Structure, Modify, Annotate, View, **Sheets**, Manage, Rufplan.
+
+The new tabs hold:
+- Openings: Door (Door, Load Doors) and Window (Window, Load Windows).
+- Sheets: Sheet Composition (New Sheet, Place View, Key Plan), Sets (Sheet Sets, Issue Set)
+  and Export (PDF, IFC).
+- Lighting:
+  - Lighting Fixture (the tool, and Load Fixtures);
+  - Sun (Sun Settings);
+  - Artificial Lights;
+  - Render.
+
+**Lighting fixtures.**
+- **Type.** A type carries Revit's photometrics:
+  - initial intensity (lumens) and wattage;
+  - initial color (color temperature, drawn with a black-body fit);
+  - the light source's emit shape (point, line, rectangle, circle) and distribution
+    (spherical, hemispherical, spot, with a beam angle);
+  - its body size, suspension and mounting.
+- **Library.** It holds 38 typical fixtures:
+  - recessed and ceiling (downlights, gimbals, wall washers, 2x4 and 2x2 troffers, flat
+    panels, flush mounts, fans, track);
+  - pendants and chandeliers;
+  - linear (pendants, slots, strips, under-cabinet, cove);
+  - wall (sconces, vanity bars);
+  - floor and table lamps;
+  - high bays;
+  - emergency (exit signs, battery units);
+  - site (wall packs, lanterns, bollards, 20' area poles, post tops, floods, in-grade,
+    step and landscape lights).
+  Each is tagged with the building types it is typical of: residential, office, retail,
+  hospitality, healthcare, education, industrial, site. A new project starts with a 6"
+  downlight, a 2x4 troffer and a wall sconce.
+- **Picker.** It works like the door picker: rendered thumbnails with the lens lit, "In This
+  Project" and "Lighting Library" tabs, groups, a building-type filter, a grid/list toggle,
+  and photometrics in the details. Load & Place, Load, and Change Selected work as for doors.
+- **Placement.**
+  - In a plan or ceiling plan, ceiling and pendant fixtures go at the ceiling over the
+    point: that ceiling's height, else 9'-0".
+  - Wall fixtures snap to the nearest wall's face within 5', facing out, at their mounting
+    height.
+  - Lamps and site fixtures sit on the floor or ground.
+  - In 3D, a fixture goes on the face clicked. A floor or ground click uses the type's
+    height instead.
+- **Instance.** Its properties are Level, Elevation from Level, Rotation, Light On and
+  Dimming. Revit's Artificial Lights dialog lists the fixtures by type, with each one's on/off
+  and dimming, All On and All Off (`set_lights`, one undo step). The contextual tab has Light
+  On, Light Off and Browse Types.
+- **Drawing.** Ceiling-plan symbols include the downlight circle, the troffer with its
+  diagonals, linear rectangles, pendant canopies, the chandelier and fan, sconce half-rounds,
+  the exit sign, poles and uplights. In 3D the body is shaded, and a lit lens glows in its
+  light's color (`Mesh.glow`).
+- **IFC.** Fixtures export as IfcLightFixture (point source, direction source or security
+  lighting) with Pset_LightFixtureTypeCommon.TotalWattage.
+
+**Sun Settings.**
+- Revit's Solar Study is saved with the project. Still is the site's sun on a date and time;
+  Lighting is an azimuth and altitude. The dialog has presets (solstices, equinoxes and
+  afternoons; sunlight from the southwest, southeast or overhead).
+- Renders start from them.
+
+**Renders.**
+- **Lighting Scheme.** Revit's six schemes:
+  - Exterior or Interior;
+  - Sun only, Sun and Artificial, or Artificial only.
+- **Artificial lights.** They add each lit fixture's light (`fixtureLight`):
+  - rectangle and line sources become area lights of their size (luminance from the lumens);
+  - spherical sources become point lights;
+  - spots and hemispheres become spot lights (a uniform cone, or a cosine hemisphere).
+  Candela is converted with the sky map's scale of about 6,000 lux per unit, in millimetre
+  scene units. Lenses glow.
+- **Exposure.** Each scheme starts from an exposure, as Revit's exposure control does:
+  interiors ×2.5, night exteriors ×12, night interiors ×25.
+
+**Not yet:**
+- Openings' wall, shaft, dormer and roof openings;
+- photometric web (IES) files;
+- light groups other than by type;
+- Revit's Single Day and Multi-Day solar studies and the sun path;
+- a lighting fixture schedule;
+- fixtures in sections and elevations;
+- Edit Model operations for fixtures;
+- lights in the 3D view's Realistic style (only renders light the scene).

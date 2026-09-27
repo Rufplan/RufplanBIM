@@ -3,7 +3,13 @@ import { apply, deleteSelection } from "./fileActions";
 import { ipc } from "./ipc";
 import { startSketch } from "./sketch";
 import type { Action } from "./shortcuts";
-import { activeViewInfo, useAppStore, type Tool, type ToolTypes } from "./store";
+import {
+  activeViewInfo,
+  useAppStore,
+  type PickerCategory,
+  type Tool,
+  type ToolTypes,
+} from "./store";
 
 /** Paints the element under the cursor with the Paint tool's material (ADR-034); with
  * Shift, the material goes on its type, so every element of that type changes. */
@@ -28,22 +34,20 @@ export function startPaint(material: string) {
 
 /** Opens the door or window type picker (ADR-033). Selected elements of that category
  * become the ones it changes. */
-export async function openPicker(
-  category: "Door" | "Window",
-  tab: "project" | "library" = "project",
-) {
+export async function openPicker(category: PickerCategory, tab: "project" | "library" = "project") {
   const s = useAppStore.getState();
   const ids = s.selection.slice(0, 50);
   const sheets = await Promise.all(ids.map((id) => ipc.properties(id).catch(() => null)));
-  const change = ids.filter((_, i) => sheets[i]?.category === category);
+  const cat = category === "Light" ? "LightingFixture" : category;
+  const change = ids.filter((_, i) => sheets[i]?.category === cat);
   useAppStore.getState().setPicker({ category, tab, change });
 }
 
 /** Starts a tool the way the ribbon and shortcuts do: Door and Window open their type
  * picker first, with any selected doors or windows to change. */
 export async function startTool(tool: Tool) {
-  if (tool === "door" || tool === "window") {
-    const category = tool === "door" ? "Door" : "Window";
+  if (tool === "door" || tool === "window" || tool === "light") {
+    const category = tool === "door" ? "Door" : tool === "window" ? "Window" : "Light";
     const picking = openPicker(category);
     useAppStore.getState().setTool(tool);
     await picking;
@@ -61,6 +65,7 @@ const SIMILAR: Record<string, [Tool, keyof ToolTypes | null]> = {
   Ceiling: ["ceilingAuto", "ceiling"],
   Roof: ["roof", "roof"],
   Column: ["column", "column"],
+  LightingFixture: ["light", "light"],
   Beam: ["beam", "beam"],
   Railing: ["railing", "railing"],
   Room: ["room", null],

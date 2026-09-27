@@ -45,6 +45,7 @@ const STYLE_KEYS: Partial<Record<VisualStyle, string>> = {
 import { startSketch } from "../sketch";
 import { VISUAL_STYLES, type VisualStyle } from "../render/visualStyle";
 import { StyleIcon } from "./VisualStyleToggle";
+import { clock } from "./LightingDialogs";
 
 function ToolButton({
   tool,
@@ -165,6 +166,12 @@ export function Ribbon() {
   const setSatellite = useAppStore((s) => s.setSatellite);
   const thinLines = useAppStore((s) => s.thinLines);
   const visualStyle = useAppStore((s) => styleOf(s, s.activeView));
+  const sun = app?.sun;
+  const sunLabel = !sun
+    ? ""
+    : sun.mode === "Still"
+      ? `Still, ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][sun.month - 1]} ${sun.day}, ${clock(sun.hour)}`
+      : `Lighting, ${sun.azimuth}° azimuth, ${sun.altitude}° altitude`;
   // Selecting elements turns the Modify tab into Revit's "Modify | Walls" (ADR-055).
   const selectedCats = useSelectionCategories();
   const ctxLabel = contextLabel(selectedCats);
@@ -304,6 +311,60 @@ export function Ribbon() {
               >
                 {Icons.window}
                 <span>Load Windows</span>
+              </button>
+            </Group>
+          </>
+        )}
+        {tab === "Lighting" && (
+          <>
+            <Group title="Lighting Fixture">
+              <ToolButton
+                tool="light"
+                label="Lighting Fixture"
+                icon={Icons.light}
+                keys="ceiling, wall, floor or site"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => void openPicker("Light", "library")}
+                disabled={!app}
+                title="Lighting Library: downlights, troffers, pendants, chandeliers, linear, sconces, lamps, high bays, exit signs and site lights for every building type"
+              >
+                {Icons.light}
+                <span>Load Fixtures</span>
+              </button>
+            </Group>
+            <Group title="Sun">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "sunSettings" })}
+                disabled={!app}
+                title={`Sun Settings: ${sunLabel}`}
+              >
+                {Icons.sun}
+                <span>Sun Settings</span>
+              </button>
+            </Group>
+            <Group title="Artificial Lights">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "artificialLights" })}
+                disabled={!app}
+                title="Artificial Lights: switch and dim the fixtures, by type"
+              >
+                {Icons.bulb}
+                <span>Artificial Lights</span>
+              </button>
+            </Group>
+            <Group title="Render">
+              <button
+                className="rb-btn"
+                onClick={() => void runAction("render")}
+                disabled={!activeIs3d}
+                title="Render (RR): choose Exterior or Interior, sun and artificial lights"
+              >
+                {Icons.render}
+                <span>Render</span>
               </button>
             </Group>
           </>
