@@ -4376,8 +4376,11 @@ name = "studio-regen"
 version = "0.0.1"
 dependencies = [
  "geo",
+ "serde",
+ "serde_json",
  "studio-core",
  "studio-geom",
+ "ts-rs",
 ]
 
 [[package]]

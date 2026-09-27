@@ -1,10 +1,12 @@
-//! IPC for Edit Model with Claude (ADR-050): Claude turns the prompt into a structured edit,
-//! studio-core checks and previews it; nothing changes until Apply.
+//! IPC for Edit Model with Claude (ADR-050, ADR-051): Claude turns the prompt into a plan of
+//! operations (create, change, delete, move, annotate…), studio-regen runs it on a copy to
+//! preview it; nothing changes until Apply.
 
 use serde::Serialize;
 use serde_json::{json, Value};
-use studio_core::model_edit::{self, EditContext, EditPreview, ModelEdit};
+use studio_core::model_edit::{self, EditContext, EditPreview};
 use studio_core::{ElementData, ElementId, ViewKind};
+use studio_regen::model_ops::{self, ModelPlan};
 use tauri::{State, WebviewWindow};
 use ts_rs::TS;
 
@@ -19,7 +21,7 @@ type CommandResult<T> = Result<T, CommandError>;
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct EditPlan {
-    pub edit: ModelEdit,
+    pub edit: ModelPlan,
     pub preview: Option<EditPreview>,
     pub error: Option<String>,
 }
@@ -73,6 +75,7 @@ fn context(doc: &studio_core::Document, view: ElementId, selection: Vec<ElementI
         view_level: level,
         view_ids: drawn,
         view_name: name,
+        view: Some(view),
     }
 }
 
@@ -125,36 +128,94 @@ fn behind(doc: &studio_core::Document, look: studio_geom::Pt) -> Vec<ElementId> 
 }
 
 fn system_prompt() -> String {
-    r#"You turn an architect's request into ONE change to a building model in Rufplan Studio (a Revit-like BIM app). Answer only by calling the edit_model tool.
+    format!(
+        r#"You change a building model in Rufplan Studio (a Revit-like BIM app) as an architect asks: anything they ask — create, edit, move, copy, delete, annotate, add levels, views and sheets. Answer only by calling the edit_model tool with a plan: a list of operations run in order as one undoable change.
 
-Actions:
-- set_parameter: set a property on the elements of one category. Use the category and the property names exactly as listed in the model summary (instance properties, or "type:" properties, which you name without the "type:" prefix). The app moves instances to a matching type for type properties (e.g. door Width), so "make all doors 3'-0"" is category Doors, parameter Width, value 3'-0". Choices take one of the listed values; "Type" takes a type name.
-- resize_building: change the building's overall size, outside face to outside face. "50' wide" is axis east-west; "deep"/"long" north-south is axis north-south. anchor is the side that stays put: west (default for width), south (default for depth), east, north, or center when the request says so.
-- none: the request isn't a model change you can make with these (say why in message, one short sentence, and suggest what would work).
+{ops}
 
-Scope: model (default), level (with level = its name, e.g. "Level 1 doors"), selection ("these", "selected", "this wall"), or view ("in this view", "on this elevation", "in this section": what the active view shows). typeFilter narrows to types whose name contains it ("the single doors" → "Single").
-Values: US feet-inches like 3'-0", 7'-6 1/2", 50'-0". Only one change: if asked for several, do the first and say in summary that the rest need their own prompts.
-summary: one line like: Width → 3'-0" on 7 doors."#
-        .into()
+How to plan:
+- Use the ids, types, levels, views and coordinates in the model summary. Name new elements with "as" and refer to them later as "$name" (e.g. make a wall "as": "w1", then a door with "wall": "$w1").
+- Walls are centerlines; a room is four walls meeting at shared corner points. Put doors and windows in walls by "offset" from the wall's start (its first point). Keep new work tied to the building: align to existing walls and grids, and join new walls to existing ones at their ends or along them.
+- Changing something existing: set_parameter for "all/every X", set_property for particular elements (use the property names listed), move/copy/rotate/mirror/delete by id, resize_building for the building's overall size.
+- Annotations go in the active view unless another is named. In plans, points are plan x, y; in elevations and sections give x, y of the spot on the building plus its height z.
+- Lengths are US feet-inches strings like "3'-0\"" or "7'-6 1/2\""; coordinates, offsets and moves are numbers in feet.
+- If the request truly can't be done with these operations, return no operations and say why in "message" (one or two sentences, with what would work instead).
+- summary: one short line describing the whole change, e.g. "Adds a 12' x 10' office with a door and window"."#,
+        ops = model_ops::OPERATIONS
+    )
 }
 
 fn schema() -> Value {
+    let pt = json!({
+        "type": "object",
+        "properties": { "x": { "type": "number" }, "y": { "type": "number" }, "z": { "type": "number" } },
+        "required": ["x", "y"]
+    });
+    let mut op = serde_json::Map::new();
+    for k in [
+        "op",
+        "as",
+        "id",
+        "category",
+        "parameter",
+        "value",
+        "scope",
+        "typeFilter",
+        "axis",
+        "anchor",
+        "level",
+        "topLevel",
+        "type",
+        "from",
+        "wall",
+        "height",
+        "width",
+        "elevation",
+        "slope",
+        "name",
+        "number",
+        "text",
+        "view",
+        "sheet",
+        "material",
+        "color",
+    ] {
+        op.insert(k.into(), json!({ "type": "string" }));
+    }
+    for k in ["offset", "dx", "dy", "angle", "count"] {
+        op.insert(k.into(), json!({ "type": "number" }));
+    }
+    for k in ["start", "end", "at", "center", "a", "b"] {
+        op.insert(k.into(), pt.clone());
+    }
+    op.insert("flip".into(), json!({ "type": "boolean" }));
+    op.insert(
+        "ids".into(),
+        json!({ "type": "array", "items": { "type": "string" } }),
+    );
+    op.insert("points".into(), json!({ "type": "array", "items": pt }));
+    op.insert(
+        "properties".into(),
+        json!({
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": { "name": { "type": "string" }, "value": { "type": "string" } },
+                "required": ["name", "value"]
+            }
+        }),
+    );
     json!({
         "type": "object",
         "properties": {
-            "action": { "type": "string", "enum": ["set_parameter", "resize_building", "none"] },
-            "category": { "type": "string" },
-            "parameter": { "type": "string" },
-            "value": { "type": "string" },
-            "scope": { "type": "string", "enum": ["model", "level", "selection", "view"] },
-            "level": { "type": "string" },
-            "typeFilter": { "type": "string" },
-            "axis": { "type": "string", "enum": ["east-west", "north-south"] },
-            "anchor": { "type": "string", "enum": ["west", "east", "south", "north", "center"] },
+            "operations": {
+                "type": "array",
+                "items": { "type": "object", "properties": op, "required": ["op"] }
+            },
             "summary": { "type": "string" },
             "message": { "type": "string" }
         },
-        "required": ["action", "summary"]
+        "required": ["operations", "summary"]
     })
 }
 
@@ -185,25 +246,25 @@ pub async fn model_edit_preview(
     Ok(plan(doc, edit, context(doc, view, selection)))
 }
 
-/// Asks Claude for one structured edit of the model described by `summary`.
-fn ask(key: &str, summary: &str, prompt: &str) -> anyhow::Result<ModelEdit> {
+/// Asks Claude for a plan for the model described by `summary`.
+fn ask(key: &str, summary: &str, prompt: &str) -> anyhow::Result<ModelPlan> {
     let request = studio_sync::claude::Request {
         model: "claude-opus-5-5".into(),
         system: system_prompt(),
         text: format!("The model:\n{summary}\n\nRequest: {}", prompt.trim()),
         images: vec![],
         tool_name: "edit_model".into(),
-        tool_description: "Make one change to the building model.".into(),
+        tool_description: "Change the building model: a list of operations run in order.".into(),
         tool_schema: schema(),
-        max_tokens: 2000,
+        max_tokens: 16_000,
     };
     let answer = studio_sync::claude::call(key, &request, &mut |_| {})?;
     serde_json::from_value(answer)
         .map_err(|e| anyhow::anyhow!("Claude's answer doesn't fit the model: {e}"))
 }
 
-fn plan(doc: &studio_core::Document, edit: ModelEdit, ctx: EditContext) -> EditPlan {
-    match model_edit::preview(doc, &edit, &ctx) {
+fn plan(doc: &studio_core::Document, edit: ModelPlan, ctx: EditContext) -> EditPlan {
+    match model_ops::preview(doc, &edit, &ctx) {
         Ok(p) => EditPlan {
             edit,
             preview: Some(p),
@@ -220,7 +281,7 @@ fn plan(doc: &studio_core::Document, edit: ModelEdit, ctx: EditContext) -> EditP
 /// Applies a previewed edit as one undo step.
 #[tauri::command]
 pub fn model_edit_apply(
-    edit_plan: ModelEdit,
+    edit_plan: ModelPlan,
     view: ElementId,
     selection: Vec<ElementId>,
     window: WebviewWindow,
@@ -229,7 +290,7 @@ pub fn model_edit_apply(
     edit(&window, &state, |s| {
         s.edit(|d| {
             let ctx = context(d, view, selection);
-            model_edit::apply(d, &edit_plan, &ctx).map(|_| ())
+            model_ops::apply(d, &edit_plan, &ctx).map(|_| ())
         })
     })
 }
@@ -237,6 +298,15 @@ pub fn model_edit_apply(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A plan of one bulk change.
+    fn bulk(category: &str, parameter: &str, value: &str, scope: &str) -> ModelPlan {
+        serde_json::from_value(json!({ "operations": [{
+            "op": "set_parameter", "category": category, "parameter": parameter,
+            "value": value, "scope": scope
+        }]}))
+        .unwrap()
+    }
 
     #[test]
     fn the_sample_house_previews_an_edit_without_changing() {
@@ -257,15 +327,11 @@ mod tests {
             .unwrap()
             .id;
         let before = doc.stamp();
-        let edit = ModelEdit {
-            action: "set_parameter".into(),
-            category: "Doors".into(),
-            parameter: "Width".into(),
-            value: "3'-0\"".into(),
-            scope: "view".into(),
-            ..Default::default()
-        };
-        let p = plan(doc, edit, context(doc, plan_view, vec![]));
+        let p = plan(
+            doc,
+            bulk("Doors", "Width", "3'-0\"", "view"),
+            context(doc, plan_view, vec![]),
+        );
         let preview = p.preview.expect("a preview");
         assert!(preview.count >= 1 && preview.to == "3'-0\"", "{preview:?}");
         assert!(preview.scope.starts_with("In "));
@@ -288,23 +354,12 @@ mod tests {
             .id;
         let ctx = context(doc, elev, vec![]);
         assert!(ctx.view_name.ends_with("(elevation)") && ctx.view_level.is_none());
-        let windows = ModelEdit {
-            action: "set_parameter".into(),
-            category: "Windows".into(),
-            parameter: "Sill Height".into(),
-            value: "2'-6\"".into(),
-            scope: "view".into(),
-            ..Default::default()
-        };
-        let seen = plan(doc, windows.clone(), ctx)
+        let seen = plan(doc, bulk("Windows", "Sill Height", "2'-6\"", "view"), ctx)
             .preview
             .expect("windows in the elevation");
         let all = plan(
             doc,
-            ModelEdit {
-                scope: "model".into(),
-                ..windows
-            },
+            bulk("Windows", "Sill Height", "2'-6\"", "model"),
             context(doc, elev, vec![]),
         )
         .preview
@@ -343,8 +398,9 @@ mod tests {
         let summary = model_edit::describe(doc, &ctx);
         for prompt in [
             "change all doors to be 3'-0\"",
-            "update the building to be 50'-0\" wide",
-            "set the Level 1 windows sill height to 2'-6\"",
+            "add a 12' x 10' office off the east side of the house with a door into it and a window on its east wall",
+            "put a note that says VERIFY IN FIELD by the front door",
+            "add a level called Roof Deck at 26'-0\"",
             "paint the house blue",
         ] {
             let e = ask(&key, &summary, prompt).unwrap();

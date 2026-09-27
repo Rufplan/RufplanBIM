@@ -88,6 +88,27 @@ describe("Edit Model with Claude (ADR-050)", () => {
     );
   });
 
+  it("previews a plan of several steps: what it creates, changes and deletes (ADR-051)", async () => {
+    await openProject();
+    await userEvent.click(screen.getByRole("button", { name: "Edit model with Claude" }));
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Describe a change to the model" }),
+      "add an office off the east side{Enter}",
+    );
+    const card = await screen.findByLabelText("Preview");
+    expect(card.textContent).toContain("PREVIEW · 4 STEPS · 1 HIGHLIGHTED");
+    expect(card.textContent).toContain("Adds a 12' x 10' office");
+    expect(card.textContent).toContain("Creates2 Walls, 1 Doors");
+    expect(card.textContent).toContain("Deletes1 Windows");
+    expect(within(card).getAllByRole("listitem")).toHaveLength(4);
+    await userEvent.click(screen.getByRole("button", { name: /APPLY/ }));
+    await waitFor(() => expect(fake.calls.some((c) => c.cmd === "model_edit_apply")).toBe(true));
+    const call = fake.calls.find((c) => c.cmd === "model_edit_apply");
+    expect(
+      (call?.args as { editPlan: { operations: unknown[] } }).editPlan.operations,
+    ).toHaveLength(1);
+  });
+
   it("shows why a request can't be done, and editing the text drops a preview", async () => {
     await openProject();
     await userEvent.click(screen.getByRole("button", { name: "Edit model with Claude" }));

@@ -1684,3 +1684,45 @@ and modal, README and prototype).
   - geometry beyond overall size (moving a wall, adding rooms; Generate still builds whole
     buildings);
   - filters by other parameters ("the doors narrower than 3'").
+
+## ADR-051 Edit Model plans: any change to the model — Accepted (2026-09-27)
+Owner request (2026-09-27): "make the prompt change anything in the model … I should be able to
+type anything and it should do it, including creating new elements, editing existing ones,
+adding new items, annotating, etc."
+
+- **A plan, not one edit.** Claude now answers with a plan (`studio_regen::model_ops::ModelPlan`):
+  a list of operations run in order. Each operation calls the same function the app's tools
+  do, so the model stays consistent (joins, hosting, bound floors, tags, dimensions anchored
+  to walls).
+  - **Create:** levels, grids, walls (type, level, top level or height), doors and windows
+    (in a wall by offset or point), floors (outline, or fill the level's walls), ceilings
+    (outline, or fill a room), roofs (over a level's walls, or an outline that sits on the
+    walls' tops), rooms, room separators, columns, beams, railings, stairs, sections,
+    elevation markers, sheets, views placed on sheets, types (copies of a type), materials.
+  - **Change:** `set_parameter` (every element of a category, ADR-050), `set_property`
+    (particular elements; type properties retype them), `resize_building`.
+  - **Move and remove:** move, copy (count), rotate, mirror, delete.
+  - **Annotate:** text, aligned dimensions, Tag All, spot elevations and slopes, north
+    arrows, graphic scales, key plans. In elevations and sections, a point is the spot's plan
+    x, y plus a height z.
+  - **Paint:** elements, or a category on a level, with a project material, a library
+    material, or a new colour.
+  - Every create operation also takes properties to set by the names Properties shows.
+- **References.** Claude is given an inventory of the model (`model_edit::inventory`):
+  levels, views, sheets, types, walls, openings, slabs, roofs, rooms and grids, with ids and
+  plan coordinates in feet, and the active view's annotations and the selection. An
+  operation refers to existing elements by id or unique name. It refers to what an earlier
+  step made by `as` / `$name`.
+- **Preview and apply as before.**
+  - The whole plan runs on a copy of the document.
+  - The preview card shows the summary, what it creates, changes and deletes by category,
+    and the steps. The existing elements it changes or deletes are highlighted.
+  - A single bulk change still shows the parameter card.
+  - Apply runs the plan as one undo step. A failing step stops the plan with "step N: why",
+    and nothing changes.
+- Plans can be long, so Claude (Opus 5.5) may take up to 16k tokens. The live check
+  (`live_model_edit`) covers an addition, a note, a level and bulk edits.
+- **Not yet:**
+  - operations the app has no tool for (curtain walls, furniture, sketch arcs);
+  - editing sketches point by point;
+  - a follow-up conversation (each prompt is one plan).

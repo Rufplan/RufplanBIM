@@ -437,28 +437,43 @@ export function installFakeBackend(): FakeBackend {
           };
         // Edit Model (ADR-050): a doors edit, or a refusal for anything "blue".
         case "model_edit_preview": {
-          const edit = {
-            action: "set_parameter",
-            category: "Doors",
-            parameter: "Width",
-            value: "3'-0\"",
-            scope: "model",
-            level: "",
-            typeFilter: "",
-            axis: "",
-            anchor: "",
-            summary: "",
-            message: "",
-          };
-          if (String(a.prompt).includes("blue"))
+          const prompt = String(a.prompt);
+          const empty = { steps: [], created: [], changed: [], deleted: [] };
+          if (prompt.includes("blue"))
             return {
-              edit: { ...edit, action: "none" },
+              edit: { operations: [], summary: "", message: "The model has no blue material." },
               preview: null,
               error: "The model has no blue material.",
             };
+          if (prompt.includes("office"))
+            return {
+              edit: { operations: [{ op: "create_wall" }], summary: "Adds an office", message: "" },
+              preview: {
+                ...empty,
+                category: "",
+                parameter: "",
+                from: "",
+                to: "",
+                scope: "",
+                count: 6,
+                ids: ["window-9"],
+                summary: "Adds a 12' x 10' office",
+                steps: [
+                  "Created 1 Wall",
+                  "Created 1 Wall",
+                  "Created 1 Door",
+                  "Deleted 1 element(s)",
+                ],
+                created: ["2 Walls", "1 Doors"],
+                changed: [],
+                deleted: ["1 Windows"],
+              },
+              error: null,
+            };
           return {
-            edit,
+            edit: { operations: [{ op: "set_parameter" }], summary: "", message: "" },
             preview: {
+              ...empty,
               category: "Doors",
               parameter: "Width",
               from: "2'-8\"",
@@ -467,6 +482,7 @@ export function installFakeBackend(): FakeBackend {
               count: 2,
               ids: ["door-1", "door-2"],
               summary: "Width → 3'-0\" on 2 doors",
+              steps: ["Width → 3'-0\" on 2 doors"],
             },
             error: null,
           };

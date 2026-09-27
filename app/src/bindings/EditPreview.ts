@@ -8,4 +8,9 @@ export type EditPreview = { category: string, parameter: string, from: string, t
 /**
  * The elements it changes, to highlight.
  */
-ids: Array<ElementId>, summary: string, };
+ids: Array<ElementId>, summary: string, 
+/**
+ * For a plan of several operations (ADR-051): one line per step, and what it creates,
+ * changes and deletes by category ("4 Walls").
+ */
+steps: Array<string>, created: Array<string>, changed: Array<string>, deleted: Array<string>, };

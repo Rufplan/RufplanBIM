@@ -11,10 +11,10 @@ type UiStore = ReturnType<typeof useAppStore.getState>;
 // applied as one undo step. Rust checks and makes every change.
 
 const SUGGESTIONS = [
-  "Make all roof overhangs 2'-0\"",
   "Set all doors to 3'-0\" W",
-  "Windows sill height 2'-6\"",
-  "Level 1 ceilings to 9'-0\"",
+  "Add a 12' x 10' office off the east side with a door and window",
+  "Dimension the south wall",
+  "Add a note: VERIFY IN FIELD",
 ];
 
 const sparkle = (color: string) => (
@@ -246,7 +246,41 @@ function Dialog() {
           </ul>
         )}
 
-        {p && (
+        {p && !p.parameter && (
+          <div className="em-preview" aria-label="Preview">
+            <span className="em-eyebrow">
+              PREVIEW · {p.steps.length} STEP{p.steps.length === 1 ? "" : "S"}
+              {p.ids.length > 0 && ` · ${p.ids.length} HIGHLIGHTED`}
+            </span>
+            <strong className="em-summary">{p.summary}</strong>
+            <div className="em-grid">
+              {p.created.length > 0 && (
+                <>
+                  <span>Creates</span>
+                  <span>{p.created.join(", ")}</span>
+                </>
+              )}
+              {p.changed.length > 0 && (
+                <>
+                  <span>Changes</span>
+                  <span>{p.changed.join(", ")}</span>
+                </>
+              )}
+              {p.deleted.length > 0 && (
+                <>
+                  <span>Deletes</span>
+                  <span className="em-deletes">{p.deleted.join(", ")}</span>
+                </>
+              )}
+            </div>
+            <ol className="em-steps" aria-label="Steps">
+              {p.steps.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {p && p.parameter && (
           <div className="em-preview" aria-label="Preview">
             <span className="em-eyebrow">
               PREVIEW · {p.count} ELEMENT{p.count === 1 ? "" : "S"} HIGHLIGHTED
@@ -296,7 +330,7 @@ function Dialog() {
             autoFocus
             value={text}
             placeholder={
-              "Describe a change to the model — e.g. make all roof overhangs 2'-0\", set Level 1 doors to 3'-0\" W…"
+              "Describe any change — add a 12' x 10' office with a door, make all doors 3'-0\", dimension the north wall, add a Roof Deck level…"
             }
             onChange={(e) => {
               setText(e.target.value);

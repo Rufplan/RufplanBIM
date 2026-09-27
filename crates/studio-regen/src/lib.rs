@@ -8,6 +8,7 @@
 //! stamp, so repeated calls for the same state (every mouse move's snap and pick) are free.
 
 pub mod derived;
+pub mod model_ops;
 pub mod parts;
 pub mod roof;
 pub mod site;

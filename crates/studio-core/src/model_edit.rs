@@ -56,7 +56,7 @@ pub struct ModelEdit {
 }
 
 /// What an edit changes, for the preview card.
-#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct EditPreview {
@@ -69,6 +69,12 @@ pub struct EditPreview {
     /// The elements it changes, to highlight.
     pub ids: Vec<ElementId>,
     pub summary: String,
+    /// For a plan of several operations (ADR-051): one line per step, and what it creates,
+    /// changes and deletes by category ("4 Walls").
+    pub steps: Vec<String>,
+    pub created: Vec<String>,
+    pub changed: Vec<String>,
+    pub deleted: Vec<String>,
 }
 
 /// Where the request was made: the selection, and the active view's level and contents.
@@ -79,6 +85,8 @@ pub struct EditContext {
     /// Elements drawn in the active view (for `view` scope).
     pub view_ids: Option<Vec<ElementId>>,
     pub view_name: String,
+    /// The active view (where annotations go by default).
+    pub view: Option<ElementId>,
 }
 
 /// The categories an edit can address, by the names Claude is given.
@@ -338,6 +346,34 @@ fn variant_type(
     Ok(copy)
 }
 
+/// Sets `parameter` (as Properties names it) on one element: on the element, or, for a
+/// type property, by moving it to a type with that value. Returns the property's label.
+pub fn set_element(
+    doc: &mut Document,
+    id: ElementId,
+    parameter: &str,
+    value: &str,
+) -> CoreResult<String> {
+    let found = find_prop(doc, id, parameter).ok_or_else(|| {
+        let name = doc.data(id).map(|d| d.name()).unwrap_or_default();
+        bad(format!("{name} has no \"{parameter}\" to change"))
+    })?;
+    match found {
+        Found::Instance(p) => {
+            set_property(doc, id, &p.key, &value_for(&p, value)?, 0)?;
+            Ok(p.label)
+        }
+        Found::Type(t, p) => {
+            let v = value_for(&p, value)?;
+            if shown(&p) != v {
+                let variant = variant_type(doc, t, &p, &v)?;
+                set_property(doc, id, "type", &variant.to_string(), 0)?;
+            }
+            Ok(p.label)
+        }
+    }
+}
+
 fn set_parameter(
     doc: &mut Document,
     edit: &ModelEdit,
@@ -468,6 +504,7 @@ fn set_parameter(
         count: changed.len(),
         summary: format!("{} → {} on {} {}", first.label, to, changed.len(), noun),
         ids: changed,
+        ..Default::default()
     })
 }
 
@@ -570,10 +607,12 @@ fn resize_building(doc: &mut Document, edit: &ModelEdit) -> CoreResult<EditPrevi
             changed.len()
         ),
         ids: changed,
+        ..Default::default()
     })
 }
 
-fn run(doc: &mut Document, edit: &ModelEdit, ctx: &EditContext) -> CoreResult<EditPreview> {
+/// Runs one edit on `doc` (no undo grouping; see [`apply`]).
+pub fn run(doc: &mut Document, edit: &ModelEdit, ctx: &EditContext) -> CoreResult<EditPreview> {
     match norm(&edit.action).as_str() {
         "setparameter" => set_parameter(doc, edit, ctx),
         "resizebuilding" => resize_building(doc, edit),
@@ -709,7 +748,246 @@ pub fn describe(doc: &Document, ctx: &EditContext) -> String {
             out.push_str(&format!("  types loaded: {}\n", names.join(" | ")));
         }
     }
-    let _ = ViewKind::ThreeD;
+    out.push_str(&inventory(doc, ctx));
+    out
+}
+
+/// A point in feet, as Claude is given coordinates.
+fn fpt(p: Pt) -> String {
+    format!("({:.2}, {:.2})", p.x / MM_PER_FT, p.y / MM_PER_FT)
+}
+
+/// Every element an edit may address, by id, with plan coordinates in feet (x east, y
+/// north): levels, views, sheets, types, walls, openings, slabs, roofs, rooms, grids and the
+/// rest, capped so a large model stays readable.
+pub fn inventory(doc: &Document, ctx: &EditContext) -> String {
+    const CAP: usize = 250;
+    let mut out =
+        String::from("\nElements (ids in brackets; coordinates in feet, x east, y north):\n");
+    let name = |id: &ElementId| doc.data(*id).map(|d| d.name()).unwrap_or_default();
+    let mut section = |title: &str, lines: Vec<String>| {
+        if lines.is_empty() {
+            return;
+        }
+        out.push_str(&format!("{title}:\n"));
+        let n = lines.len();
+        for l in lines.into_iter().take(CAP) {
+            out.push_str("  ");
+            out.push_str(&l);
+            out.push('\n');
+        }
+        if n > CAP {
+            out.push_str(&format!("  … and {} more\n", n - CAP));
+        }
+    };
+    let lines =
+        |cat: Category, f: &dyn Fn(&crate::element::Element) -> Option<String>| -> Vec<String> {
+            doc.of(cat)
+                .filter_map(|e| f(e).map(|s| format!("[{}] {s}", e.id)))
+                .collect()
+        };
+    section(
+        "Levels",
+        lines(Category::Level, &|e| match &e.data {
+            ElementData::Level { name, elevation } => {
+                Some(format!("{name} at {}", format_ft_in(*elevation)))
+            }
+            _ => None,
+        }),
+    );
+    section(
+        "Views",
+        lines(Category::View, &|e| match &e.data {
+            ElementData::View { name, kind, .. } => {
+                let k = match kind {
+                    ViewKind::FloorPlan { .. } => "floor plan",
+                    ViewKind::CeilingPlan { .. } => "ceiling plan",
+                    ViewKind::Elevation { .. } | ViewKind::MarkerElevation { .. } => "elevation",
+                    ViewKind::Section { .. } => "section",
+                    ViewKind::ThreeD => "3D",
+                    ViewKind::Schedule { .. } => "schedule",
+                };
+                let active = if ctx.view == Some(e.id) {
+                    " (active)"
+                } else {
+                    ""
+                };
+                Some(format!("{name} — {k}{active}"))
+            }
+            _ => None,
+        }),
+    );
+    section("Sheets", lines(Category::Sheet, &|e| Some(e.data.name())));
+    let mut types = vec![];
+    for (label, cat) in [
+        ("wall", Category::WallType),
+        ("floor", Category::FloorType),
+        ("ceiling", Category::CeilingType),
+        ("door", Category::DoorType),
+        ("window", Category::WindowType),
+        ("roof", Category::RoofType),
+        ("column", Category::ColumnType),
+        ("beam", Category::BeamType),
+        ("railing", Category::RailingType),
+    ] {
+        types.extend(
+            doc.of(cat)
+                .map(|e| format!("[{}] {label} type: {}", e.id, e.data.name())),
+        );
+    }
+    section("Types", types);
+    section(
+        "Walls",
+        lines(Category::Wall, &|e| match &e.data {
+            ElementData::Wall {
+                type_id,
+                base_level,
+                start,
+                end,
+                ..
+            } => Some(format!(
+                "{} on {} from {} to {}, {} long",
+                name(type_id),
+                name(base_level),
+                fpt(*start),
+                fpt(*end),
+                format_ft_in(start.dist(*end))
+            )),
+            _ => None,
+        }),
+    );
+    let opening = |e: &crate::element::Element| match &e.data {
+        ElementData::Door {
+            type_id,
+            host,
+            offset,
+            mark,
+            ..
+        }
+        | ElementData::Window {
+            type_id,
+            host,
+            offset,
+            mark,
+            ..
+        } => Some(format!(
+            "{} mark {mark} in wall [{host}] at {} from its start",
+            name(type_id),
+            format_ft_in(*offset)
+        )),
+        _ => None,
+    };
+    section("Doors", lines(Category::Door, &opening));
+    section("Windows", lines(Category::Window, &opening));
+    let slab = |e: &crate::element::Element| match &e.data {
+        ElementData::Floor {
+            type_id,
+            level,
+            boundary,
+            ..
+        }
+        | ElementData::Ceiling {
+            type_id,
+            level,
+            boundary,
+            ..
+        } => Some(format!(
+            "{} on {} outline {}",
+            name(type_id),
+            name(level),
+            boundary
+                .iter()
+                .map(|p| fpt(*p))
+                .collect::<Vec<_>>()
+                .join(" ")
+        )),
+        _ => None,
+    };
+    section("Floors", lines(Category::Floor, &slab));
+    section("Ceilings", lines(Category::Ceiling, &slab));
+    section(
+        "Roofs",
+        lines(Category::Roof, &|e| match &e.data {
+            ElementData::Roof {
+                type_id,
+                level,
+                boundary,
+                slope,
+                ..
+            } => Some(format!(
+                "{} on {} slope {} outline {}",
+                name(type_id),
+                name(level),
+                crate::build::format_slope(*slope),
+                boundary
+                    .iter()
+                    .map(|p| fpt(*p))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )),
+            _ => None,
+        }),
+    );
+    section(
+        "Rooms",
+        lines(Category::Room, &|e| match &e.data {
+            ElementData::Room {
+                name: n,
+                number,
+                level,
+                point,
+                ..
+            } => Some(format!(
+                "{n} {number} on {} at {}",
+                name(level),
+                fpt(*point)
+            )),
+            _ => None,
+        }),
+    );
+    section(
+        "Grids",
+        lines(Category::Grid, &|e| match &e.data {
+            ElementData::Grid { name, start, end } => {
+                Some(format!("{name} from {} to {}", fpt(*start), fpt(*end)))
+            }
+            _ => None,
+        }),
+    );
+    for (title, cat) in [
+        ("Columns", Category::Column),
+        ("Beams", Category::Beam),
+        ("Railings", Category::Railing),
+        ("Stairs", Category::Stair),
+    ] {
+        section(title, lines(cat, &|e| Some(e.data.name())));
+    }
+    if let Some(v) = ctx.view {
+        let notes: Vec<String> = doc
+            .iter()
+            .filter(|e| e.data.refs().first() == Some(&v))
+            .filter(|e| {
+                matches!(
+                    e.data.category(),
+                    Category::TextNote
+                        | Category::Dimension
+                        | Category::Tag
+                        | Category::SpotElevation
+                )
+            })
+            .map(|e| format!("[{}] {}", e.id, e.data.name()))
+            .collect();
+        section("Annotations in the active view", notes);
+    }
+    if !ctx.selection.is_empty() {
+        section(
+            "Selected",
+            ctx.selection
+                .iter()
+                .map(|id| format!("[{id}] {}", name(id)))
+                .collect(),
+        );
+    }
     out
 }
 

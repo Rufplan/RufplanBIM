@@ -34,7 +34,7 @@ import type { Terrain } from "./bindings/Terrain";
 import type { Standards } from "./bindings/Standards";
 import type { StandardChoice } from "./bindings/StandardChoice";
 import type { EditPlan } from "./bindings/EditPlan";
-import type { ModelEdit } from "./bindings/ModelEdit";
+import type { ModelPlan } from "./bindings/ModelPlan";
 import type { Reference } from "./bindings/Reference";
 import type { Prefer } from "./bindings/Prefer";
 import type { DimKind } from "./bindings/DimKind";
@@ -329,7 +329,7 @@ export const ipc = {
   // Edit Model with Claude (ADR-050).
   modelEditPreview: (prompt: string, view: ElementId, selection: ElementId[]) =>
     invoke<EditPlan>("model_edit_preview", { prompt, view, selection }),
-  modelEditApply: (editPlan: ModelEdit, view: ElementId, selection: ElementId[]): S =>
+  modelEditApply: (editPlan: ModelPlan, view: ElementId, selection: ElementId[]): S =>
     invoke("model_edit_apply", { editPlan, view, selection }),
   // Standards (ADR-047).
   standardsGet: () => invoke<Standards>("standards_get"),
