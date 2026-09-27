@@ -1443,6 +1443,21 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       data-tool={tool}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {view.site && (
+        // Site plans: grids on or off (ADR-046), as Visibility/Graphics would.
+        <button
+          className={`view3d-chip${view.hiddenCategories.includes("Grid") ? "" : " on"}`}
+          aria-pressed={!view.hiddenCategories.includes("Grid")}
+          title="Show or hide the gridlines in this site plan"
+          onClick={() =>
+            void apply(() =>
+              ipc.setCategoryVisible(view.id, ["Grid"], view.hiddenCategories.includes("Grid")),
+            )
+          }
+        >
+          Grids
+        </button>
+      )}
       {onSheet && (
         <div className="activated-banner" role="status">
           <span>

@@ -1487,3 +1487,21 @@ frequency … as well as label them, but most important add the depth".
   its outline and the contours.
 - **Not yet** (Revit has these): a toposolid thickness per type, and subdivision or grading of
   the terrain.
+
+## ADR-046 Site plan contours and a grids toggle — Accepted (2026-09-27)
+Owner request (2026-09-27): "add the topography contours to the site plan as well and then
+also make a toggle to turn on and off the gridlines in the site plan".
+
+- **Contours as a survey draws them.** Site plans already drew contours (ADR-023), as thin
+  lines with small labels on every fifth only. They were easy to miss, especially over the
+  satellite image. Now (`site_plan::contours`):
+  - Minor contours are thin and every fifth is heavier (pen 3).
+  - Each contour is labelled with its elevation (`412'`, as in 3D, ADR-045), read along the
+    contour and kept upright, in a paper-white gap that breaks the line around it.
+  - With more than 25 contours, only the heavier ones are labelled.
+  - The Site's Contour Interval (the 3D terrain toolbar's interval) sets their frequency, so
+    plan and 3D match.
+- **Grids toggle.** Site plans show a Grids chip in the lower right that hides or shows the
+  gridlines in that view. It is the same as unchecking Grids in Visibility/Graphics, so it is
+  saved with the view and can be undone.
+- **Not yet:** Revit's Label Contours tool (a label where you pick, several along a contour).

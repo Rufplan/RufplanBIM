@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Site plan contours labeled like a survey, and a Grids toggle on site plans (ADR-046).
+
 - Terrain as a toposolid (ADR-045): earth depth, 3D contours with labels, interval control.
 
 - Section box caps (ADR-044): cut surfaces filled in poché with heavy cut lines and wall

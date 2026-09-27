@@ -72,34 +72,49 @@ pub(crate) fn property_line(b: &mut Builder, s: &SiteSolid, labels: bool) {
     }
 }
 
-/// Contours: minor ones thin, every fifth heavier and labeled with its elevation.
+/// Contours, as a survey draws them (ADR-046): minor ones thin, every fifth heavier, and
+/// each labeled with its elevation along it, in a clear gap. With many contours only the
+/// heavier ones are labeled.
 pub(crate) fn contours(b: &mut Builder, s: &SiteSolid) {
     let el = Some(s.id);
-    for (level, major, segs) in s.contours() {
+    let all = s.contours();
+    let label_all = all.iter().filter(|c| !c.2.is_empty()).count() <= 25;
+    for (level, major, segs) in all {
         for seg in &segs {
-            b.line(el, seg, false, if major { 2 } else { 1 }, Dash::Solid);
+            b.line(el, seg, false, if major { 3 } else { 1 }, Dash::Solid);
         }
-        if major {
-            // Label on the longest segment of this contour.
-            if let Some([p, q]) = segs
-                .iter()
-                .max_by(|x, y| x[0].dist(x[1]).total_cmp(&y[0].dist(y[1])))
-            {
-                let d = q.sub(*p).norm();
-                let mut ang = d.y.atan2(d.x);
-                if ang.abs() > std::f64::consts::FRAC_PI_2 {
-                    ang += std::f64::consts::PI;
-                }
-                b.text_rot(
-                    el,
-                    p.lerp(*q, 0.5),
-                    format!("{:.0}", level / 304.8),
-                    2.0,
-                    Anchor::Center,
-                    ang,
-                );
-            }
+        if !(major || label_all) {
+            continue;
         }
+        // On the longest run of this contour, read along it and kept upright.
+        let Some([p, q]) = segs
+            .iter()
+            .max_by(|x, y| x[0].dist(x[1]).total_cmp(&y[0].dist(y[1])))
+        else {
+            continue;
+        };
+        let d = q.sub(*p).norm();
+        let mut ang = d.y.atan2(d.x);
+        let mut u = d;
+        if ang.abs() > std::f64::consts::FRAC_PI_2 {
+            ang += std::f64::consts::PI;
+            u = u.scale(-1.0);
+        }
+        let text = crate::terrain::elevation_text(level);
+        let size = 2.4;
+        // A paper-white gap behind the label, so the line breaks around it.
+        let w = b.paper(size * 0.62 * text.chars().count() as f64 + 1.6);
+        let h = b.paper(size + 1.0);
+        let c = p.lerp(*q, 0.5);
+        let n = u.perp();
+        let corners = [
+            c.sub(u.scale(w / 2.0)).sub(n.scale(h / 2.0)),
+            c.add(u.scale(w / 2.0)).sub(n.scale(h / 2.0)),
+            c.add(u.scale(w / 2.0)).add(n.scale(h / 2.0)),
+            c.sub(u.scale(w / 2.0)).add(n.scale(h / 2.0)),
+        ];
+        b.fill(el, vec![ring(&corners)], FillKind::Paper);
+        b.text_rot(el, c, text, size, Anchor::Center, ang);
     }
 }
 
@@ -173,6 +188,82 @@ pub(crate) fn ground_line(s: &SiteSolid, u_of: &dyn Fn(Pt) -> f64) -> Vec<Pt> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_site_plan_labels_each_contour_with_its_elevation() {
+        use studio_core::site::{set_lot, set_topo, topo_request, GeoFrame, ParcelInfo};
+        use studio_core::units::MM_PER_FT;
+        use studio_core::{Category, Document, ElementData};
+        let mut doc = Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let ring = [
+            (37.7749, -122.4194),
+            (37.7749, -122.41906),
+            (37.77526, -122.41906),
+            (37.77526, -122.4194),
+        ];
+        set_lot(&mut doc, &ring, ParcelInfo::default()).unwrap();
+        let (nx, ny, origin, pts) = topo_request(&doc, 5.0 * MM_PER_FT, 10.0 * MM_PER_FT).unwrap();
+        let frame = GeoFrame {
+            lat0: ring.iter().map(|p| p.0).sum::<f64>() / 4.0,
+            lon0: ring.iter().map(|p| p.1).sum::<f64>() / 4.0,
+        };
+        // Rises 1' for every 10' north.
+        let m: Vec<Option<f64>> = pts
+            .iter()
+            .map(|(la, lo)| Some(30.0 + frame.to_local(*la, *lo).y / 10.0 / 1000.0))
+            .collect();
+        set_topo(&mut doc, (nx, ny, origin), 5.0 * MM_PER_FT, &m, 1.0).unwrap();
+        let site = doc.of(Category::Site).next().unwrap().id;
+        let view = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { site: true, .. }))
+            .unwrap()
+            .id;
+        let dl = crate::display_list(&doc, view).unwrap();
+        let labels: Vec<&str> = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(site))
+            .filter_map(|i| match &i.prim {
+                // Contour elevations (the property line's distances have decimals).
+                crate::Prim::Text { text, .. } if text.ends_with('\x27') && !text.contains('.') => {
+                    Some(text.as_str())
+                }
+                _ => None,
+            })
+            .collect();
+        let contours = regenerate_site_contours(&doc);
+        assert!(contours > 3);
+        // Few contours: every one is labeled, each in a paper gap.
+        assert_eq!(labels.len(), contours, "{labels:?}");
+        let gaps = dl
+            .items
+            .iter()
+            .filter(|i| {
+                i.el == Some(site)
+                    && matches!(
+                        i.prim,
+                        crate::Prim::Fill {
+                            fill: FillKind::Paper,
+                            ..
+                        }
+                    )
+            })
+            .count();
+        assert_eq!(gaps, contours);
+    }
+
+    fn regenerate_site_contours(doc: &studio_core::Document) -> usize {
+        studio_regen::regenerate(doc)
+            .site
+            .as_ref()
+            .unwrap()
+            .contours()
+            .iter()
+            .filter(|c| !c.2.is_empty())
+            .count()
+    }
 
     #[test]
     fn bearings_read_like_a_survey() {

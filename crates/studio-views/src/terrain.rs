@@ -46,7 +46,7 @@ pub struct Terrain {
 }
 
 /// An elevation for a contour label: whole feet as `412'`, else feet and inches.
-fn elevation_text(mm: f64) -> String {
+pub(crate) fn elevation_text(mm: f64) -> String {
     let ft = mm / 304.8;
     if (ft - ft.round()).abs() < 1e-6 {
         format!("{:.0}'", ft.round())
