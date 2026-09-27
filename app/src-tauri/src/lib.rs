@@ -68,6 +68,8 @@ pub fn run() -> anyhow::Result<()> {
             commands::section_caps,
             commands::site_terrain,
             commands::pick,
+            commands::pick_cycle,
+            commands::pick_candidates,
             commands::snap,
             commands::create_wall,
             commands::create_grid,

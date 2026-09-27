@@ -1849,3 +1849,30 @@ object like Revit does in the ribbon … do this for as many elements as it make
   - Revit's per-category geometry tools: Edit Profile, Edit Footprint, Pick New Host, Wall
     Opening, Join/Cut Geometry, Match Type;
   - setting a Line Style on several lines is one undo step per line.
+
+## ADR-056 Tab selection — Accepted (2026-09-27)
+Owner request (2026-09-27): "when you're inside any view allow to tab through selections
+until you get to the object you want to modify … copy what Revit does".
+
+- **Hover.** In the Modify (select) tool, the element under the cursor is pre-highlighted.
+  The status bar names it as Revit does ("Wall : Generic - 8\"", "Door : 36\" x 84\"").
+  It adds "(Tab for the next)" when there's more than one thing there.
+- **Tab** steps to the next candidate under the cursor and **Shift+Tab** steps back. It
+  wraps around at the end, and the status bar says "2 of 3". A wall is followed by the
+  chain of walls joined to it end to end ("Chain of walls (4)"), as in Revit.
+- **Click** selects the lit candidate, a whole chain included. Shift+click adds it to the
+  selection, or takes it off if it's all selected already. Moving the cursor off the
+  point (beyond the pick tolerance) ends the cycle, and the next hover starts over.
+- **Where.** Plans, ceiling plans, elevations, sections, drafting and sheets use the
+  display list (`studio_views::pick_all`): every element within the pick tolerance,
+  nearest first, then topmost. `pick` is now the first of `pick_all`, so a plain click is
+  unchanged. 3D uses everything the ray hits, nearest first, with the candidate lit a
+  lighter blue than the selection.
+- **Backend.** `pick_candidates` turns the hits into Tab's steps with their labels. The app
+  commands are `pick_cycle` (2D) and `pick_candidates` (3D).
+- **Not yet:**
+  - chains of lines (detail and model lines, sketch lines);
+  - Tab inside other tools' picks (Align, Trim, Tag…), except the dimension tools, which
+    already step through references (ADR-040);
+  - the hover name in 3D before Tab is pressed;
+  - Revit's "Select elements by face" and "Select links" options.

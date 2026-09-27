@@ -78,7 +78,7 @@ export function Workspace() {
 }
 
 export function StatusBar() {
-  const prompt = useAppStore((s) => s.prompt);
+  const prompt = useAppStore((s) => (s.tool === "select" && s.hoverLabel) || s.prompt);
   const cursor = useAppStore((s) => s.cursor);
   const view = useAppStore(activeViewInfo);
   return (

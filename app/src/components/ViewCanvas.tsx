@@ -26,6 +26,7 @@ import {
   type ActiveViewport,
 } from "../store";
 import type { Reference } from "../bindings/Reference";
+import type { PickCandidate } from "../bindings/PickCandidate";
 import {
   THEME,
   draw,
@@ -179,7 +180,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     label: string;
     at: Pt;
   } | null>(null);
-  const hover = useRef<string | null>(null);
+  const hover = useRef<string | Set<string> | null>(null);
+  // Revit's Tab selection (ADR-056): what's under the cursor where it last stopped, and the
+  // candidate Tab has stepped to (kept until the cursor moves off).
+  const underCursor = useRef<{ at: Pt; tol: number; cands: PickCandidate[] } | null>(null);
+  const cycle = useRef<{ at: Pt; tol: number; cands: PickCandidate[]; i: number } | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; button: number } | null>(null);
   // Grips and temporary dimensions of the selection, and a grip being dragged.
   const handles = useRef<Handles | null>(null);
@@ -616,7 +621,20 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   };
 
   const hoverPick = useLatest(async (p: Pt, tol: number) => {
-    const id = await ipc.pick(view.id, p, tol);
+    const c = cycle.current;
+    if (c) {
+      // Tab's candidate stays lit until the cursor moves off where Tab was pressed.
+      if (Math.hypot(p.x - c.at.x, p.y - c.at.y) <= c.tol) return;
+      cycle.current = null;
+    }
+    const cands = (await ipc.pickCycle(view.id, p, tol)) ?? [];
+    if (cycle.current) return;
+    underCursor.current = { at: p, tol, cands };
+    const first = cands[0];
+    useAppStore
+      .getState()
+      .setHoverLabel(first ? first.label + (cands.length > 1 ? "  (Tab for the next)" : "") : "");
+    const id = first?.ids[0] ?? null;
     if (id !== hover.current) {
       hover.current = id;
       redraw();
@@ -970,6 +988,19 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         y: at ? at[1] - 34 : size.h / 2,
       });
     };
+    const onSelectTab = (e: Event) => {
+      const last = underCursor.current;
+      const n = last?.cands.length ?? 0;
+      if (!last || n < 2) return;
+      const back = (e as CustomEvent<boolean>).detail === true;
+      const c = cycle.current ?? { ...last, i: 0 };
+      c.i = (c.i + (back ? n - 1 : 1)) % n;
+      cycle.current = c;
+      const cand = c.cands[c.i]!;
+      hover.current = new Set(cand.ids);
+      useAppStore.getState().setHoverLabel(`${cand.label}  (${c.i + 1} of ${n}, Tab for the next)`);
+      redraw();
+    };
     const onDimTab = () => {
       const n = dimCands.current.length;
       if (n < 2) return;
@@ -982,6 +1013,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       redraw();
     };
     window.addEventListener("dimension-tab", onDimTab);
+    window.addEventListener("select-tab", onSelectTab);
     window.addEventListener("tool-cancel", onCancel);
     window.addEventListener("tool-finish", onFinish);
     window.addEventListener("view-fit", onFit);
@@ -991,6 +1023,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     window.addEventListener("typed-value", onTyped);
     return () => {
       window.removeEventListener("dimension-tab", onDimTab);
+      window.removeEventListener("select-tab", onSelectTab);
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("tool-finish", onFinish);
       window.removeEventListener("view-fit", onFit);
@@ -1265,13 +1298,21 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         });
         return;
       }
-      const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
-      if (!id) s.select(shift ? s.selection : []);
-      else if (shift)
+      const c = cycle.current;
+      const ids = c
+        ? c.cands[c.i]!.ids
+        : await ipc.pick(view.id, raw, 6 / cam.current.zoom).then((id) => (id ? [id] : []));
+      cycle.current = null;
+      if (ids.length === 0) s.select(shift ? s.selection : []);
+      else if (shift) {
+        // Shift toggles: all of them off if they're all selected, else all on.
+        const all = ids.every((x) => s.selection.includes(x));
         s.select(
-          s.selection.includes(id) ? s.selection.filter((x) => x !== id) : [...s.selection, id],
+          all
+            ? s.selection.filter((x) => !ids.includes(x))
+            : [...s.selection, ...ids.filter((x) => !s.selection.includes(x))],
         );
-      else s.select([id]);
+      } else s.select(ids);
       return;
     }
     if (!toolAllowed(s.tool, view.viewType)) return;
@@ -1762,6 +1803,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         }}
         onMouseLeave={() => {
           hover.current = null;
+          underCursor.current = null;
+          cycle.current = null;
+          useAppStore.getState().setHoverLabel("");
           hoverGrip.current = null;
           if (!gripDrag.current) snapRef.current = null;
           preview.current = null;

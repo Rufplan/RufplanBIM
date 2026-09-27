@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Tab selection (ADR-056).
 - Contextual Modify tab (ADR-055).
 - Detail lines and model lines (ADR-054).
 - Revit's default elevation and section marks (ADR-053).

@@ -264,6 +264,33 @@ pub fn pick(
     Ok(dl.and_then(|dl| studio_views::pick(&dl, point, tol)))
 }
 
+/// Revit's Tab selection (ADR-056): what's under the cursor, in the order Tab steps
+/// through it, walls followed by their chain.
+#[tauri::command]
+pub fn pick_cycle(
+    view: ElementId,
+    point: Pt,
+    tol: f64,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<studio_views::PickCandidate>> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    let hits = any_display_list(doc, view)
+        .map(|dl| studio_views::pick_all(&dl, point, tol))
+        .unwrap_or_default();
+    Ok(studio_views::pick_candidates(doc, &hits))
+}
+
+/// Tab selection in 3D: the elements a ray hit, nearest first, as Tab candidates.
+#[tauri::command]
+pub fn pick_candidates(
+    ids: Vec<ElementId>,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<studio_views::PickCandidate>> {
+    let session = lock(&state)?;
+    Ok(studio_views::pick_candidates(session.doc()?, &ids))
+}
+
 #[tauri::command]
 pub fn snap(
     view: ElementId,

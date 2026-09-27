@@ -183,6 +183,12 @@ export function App() {
         window.dispatchEvent(new Event("dimension-tab"));
         return;
       }
+      if (e.key === "Tab" && ui.tool === "select") {
+        // Tab (Shift+Tab back) steps through what's under the cursor, as in Revit (ADR-056).
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("select-tab", { detail: e.shiftKey }));
+        return;
+      }
       if (ctrl && e.key.toLowerCase() === "z") {
         e.preventDefault();
         void (e.shiftKey ? redo() : undo());

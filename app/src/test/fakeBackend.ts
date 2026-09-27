@@ -23,6 +23,8 @@ export interface FakeBackend {
   plans: unknown;
   /** Categories to report for selected ids (anything else is a view). */
   properties?: Record<string, { category: string }>;
+  /** What pick_cycle finds under the cursor (ADR-056). */
+  underCursor: { ids: string[]; label: string }[];
   /** The project's drawing-set standards (ADR-047). */
   standards: Standards;
 }
@@ -342,6 +344,7 @@ export function installFakeBackend(): FakeBackend {
     generated: null,
     plans: null,
     standards: fakeStandards(),
+    underCursor: [],
   };
 
   mockIPC(
@@ -856,6 +859,10 @@ export function installFakeBackend(): FakeBackend {
             .filter(Boolean);
           return [...new Set(cats)];
         }
+        case "pick_cycle":
+          return fake.underCursor;
+        case "pick":
+          return fake.underCursor[0]?.ids[0] ?? null;
         case "tag_elements":
           return fake.state;
         case "view_categories":

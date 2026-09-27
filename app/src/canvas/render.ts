@@ -85,7 +85,8 @@ export function zoomAt(
 
 export interface Highlight {
   selected: Set<string>;
-  hover: string | null;
+  /** Pre-highlighted under the cursor: one element, or Tab's candidate (ADR-056). */
+  hover: string | ReadonlySet<string> | null;
   /** Sketch mode: the model draws faded (Revit's halftone), minus the element edited. */
   faded?: boolean;
   hidden?: string | null;
@@ -123,7 +124,10 @@ export function draw(
     if (hl.hidden && el === hl.hidden) continue;
     if (hl.visible && !hl.visible(el)) continue;
     const isSel = el !== null && hl.selected.has(el);
-    const isHover = !isSel && el !== null && hl.hover === el;
+    const isHover =
+      !isSel &&
+      el !== null &&
+      (typeof hl.hover === "string" ? hl.hover === el : (hl.hover?.has(el) ?? false));
     const p = item.prim;
     switch (p.t) {
       case "Fill": {

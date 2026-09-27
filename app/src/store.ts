@@ -331,6 +331,10 @@ interface UiState {
   setTool: (tool: Tool) => void;
   setToolType: (kind: keyof ToolTypes, id: ElementId) => void;
   setPrompt: (prompt: string) => void;
+  /** Revit's status bar name for the element under the cursor, or Tab's candidate
+   * (ADR-056); shown in place of the prompt while there is one. */
+  hoverLabel: string;
+  setHoverLabel: (hoverLabel: string) => void;
   setCursor: (cursor: string) => void;
   setConfirm: (confirm: Confirm | null) => void;
   setRufplan: (mode: RufplanDialogMode | null) => void;
@@ -556,6 +560,8 @@ export const useAppStore = create<UiState>((set, get) => ({
     }),
   setToolType: (kind, id) => set((s) => ({ toolTypes: { ...s.toolTypes, [kind]: id } })),
   setPrompt: (prompt) => set({ prompt }),
+  hoverLabel: "",
+  setHoverLabel: (hoverLabel) => set({ hoverLabel }),
   setCursor: (cursor) => set({ cursor }),
   setConfirm: (confirm) => set({ confirm }),
   setRufplan: (rufplan) => set({ rufplan }),

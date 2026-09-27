@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { PickCandidate } from "../bindings/PickCandidate";
 import { paintElement } from "../actions";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -978,7 +979,52 @@ export function View3D({ view }: { view: ViewInfo }) {
         renderer.domElement.setPointerCapture(e.pointerId);
       }
     };
+    // Revit's Tab selection in 3D (ADR-056): the elements the ray hits, nearest first, and
+    // the candidate Tab has stepped to (until the cursor moves off).
+    let lastPointer: PointerEvent | null = null;
+    let cycle3d: { x: number; y: number; cands: PickCandidate[]; i: number } | null = null;
+    const relight = (lit: Set<string> | undefined) => {
+      const st = useAppStore.getState();
+      applySelection(group, litOf(st), styleOf(st, view.id), lit);
+    };
+    const endCycle = () => {
+      if (!cycle3d) return;
+      cycle3d = null;
+      relight(undefined);
+      useAppStore.getState().setHoverLabel("");
+    };
+    const onSelectTab = async (e: Event) => {
+      const at = lastPointer;
+      if (!at || useAppStore.getState().tool !== "select") return;
+      if (!cycle3d) {
+        const els: string[] = [];
+        for (const h of rayAt(at).intersectObjects(
+          group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+          false,
+        )) {
+          const el = h.object.userData.el as string;
+          if (!els.includes(el)) els.push(el);
+        }
+        const cands = els.length ? ((await ipc.pickCandidates(els)) ?? []) : [];
+        if (cands.length < 2 || lastPointer !== at) return;
+        cycle3d = { x: at.clientX, y: at.clientY, cands, i: 0 };
+      }
+      const c = cycle3d;
+      const n = c.cands.length;
+      c.i = (c.i + ((e as CustomEvent<boolean>).detail === true ? n - 1 : 1)) % n;
+      const cand = c.cands[c.i]!;
+      relight(new Set(cand.ids));
+      useAppStore.getState().setHoverLabel(`${cand.label}  (${c.i + 1} of ${n}, Tab for the next)`);
+    };
+    const onTabEvent = (e: Event) => void onSelectTab(e);
+    window.addEventListener("select-tab", onTabEvent);
+    const onLeave = () => {
+      lastPointer = null;
+      endCycle();
+    };
     const onMove = (e: PointerEvent) => {
+      lastPointer = e;
+      if (cycle3d && Math.hypot(e.clientX - cycle3d.x, e.clientY - cycle3d.y) > 4) endCycle();
       const b = boxRef.current;
       if (!drag || !b) {
         onHover(e);
@@ -1038,7 +1084,17 @@ export function View3D({ view }: { view: ViewInfo }) {
         void click3d(e).finally(() => useAppStore.getState().setSnapOverride(null));
         return;
       }
-      // Click (without dragging) selects the element under the cursor.
+      // Click (without dragging) selects the element under the cursor, or Tab's candidate.
+      if (cycle3d) {
+        const ids = cycle3d.cands[cycle3d.i]!.ids;
+        cycle3d = null;
+        useAppStore.getState().setHoverLabel("");
+        const s = useAppStore.getState();
+        s.select(
+          e.shiftKey ? [...s.selection, ...ids.filter((x) => !s.selection.includes(x))] : ids,
+        );
+        return;
+      }
       const hit = rayAt(e).intersectObjects(
         group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
         false,
@@ -1061,11 +1117,14 @@ export function View3D({ view }: { view: ViewInfo }) {
     renderer.domElement.addEventListener("pointerdown", onOrbitStart, { capture: true });
     renderer.domElement.addEventListener("pointerdown", onDown);
     renderer.domElement.addEventListener("pointermove", onMove);
+    renderer.domElement.addEventListener("pointerleave", onLeave);
     renderer.domElement.addEventListener("pointerup", onUp);
     useAppStore.getState().setPrompt(prompt3d(useAppStore.getState().tool));
 
     return () => {
       window.removeEventListener("tool-cancel", onCancel);
+      window.removeEventListener("select-tab", onTabEvent);
+      renderer.domElement.removeEventListener("pointerleave", onLeave);
       window.clearTimeout(saveTimer);
       controls.removeEventListener("change", onCameraChange);
       controls.removeEventListener("start", stopTurn);
@@ -1474,8 +1533,17 @@ function applyDisplay(
   }
 }
 
-function applySelection(group: THREE.Group, selection: string[], style: VisualStyle) {
+/** Tab's candidate under the cursor, pre-highlighted lighter than the selection (ADR-056). */
+const PRESELECTED = 0x9fe6f8;
+
+function applySelection(
+  group: THREE.Group,
+  selection: string[],
+  style: VisualStyle,
+  preselected?: Set<string>,
+) {
   const sel = new Set(selection);
+  const pre = (el: string) => !sel.has(el) && (preselected?.has(el) ?? false);
   let lastMesh: THREE.Mesh | null = null;
   for (const child of group.children) {
     if (child instanceof THREE.Mesh) {
@@ -1486,16 +1554,20 @@ function applySelection(group: THREE.Group, selection: string[], style: VisualSt
         color?: THREE.Color;
         emissive?: THREE.Color;
       };
+      const lit = pre(child.userData.el as string);
       if (style === "realistic") {
-        mat.emissive?.setHex(on ? 0x146e87 : 0x000000);
+        mat.emissive?.setHex(on ? 0x146e87 : lit ? 0x0b4455 : 0x000000);
       } else if (mat.color) {
-        mat.color.setHex(on ? SELECTED : style === "hiddenLine" ? 0xffffff : info.base);
+        mat.color.setHex(
+          on ? SELECTED : lit ? PRESELECTED : style === "hiddenLine" ? 0xffffff : info.base,
+        );
       }
     } else if (child instanceof THREE.LineSegments && lastMesh) {
       // Selected lines turn blue too (all that shows of an element in Wireframe).
       const on = sel.has(lastMesh.userData.el);
+      const lit = pre(lastMesh.userData.el as string);
       (child.material as THREE.LineBasicMaterial).color.setHex(
-        on ? SELECTED : style === "wireframe" ? 0x2b2e31 : EDGE_COLOR,
+        on ? SELECTED : lit ? PRESELECTED : style === "wireframe" ? 0x2b2e31 : EDGE_COLOR,
       );
     }
   }

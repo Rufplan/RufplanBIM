@@ -59,6 +59,7 @@ import type { RoomPreview } from "./bindings/RoomPreview";
 import type { Table } from "./bindings/Table";
 import type { DimensionPreview } from "./bindings/DimensionPreview";
 import type { PropertySheet } from "./bindings/PropertySheet";
+import type { PickCandidate } from "./bindings/PickCandidate";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
 import type { PublishOptions } from "./bindings/PublishOptions";
 import type { PublishResult } from "./bindings/PublishResult";
@@ -324,6 +325,9 @@ export const ipc = {
   tagElement: (view: ElementId, target: ElementId): S => invoke("tag_element", { view, target }),
   tagElements: (view: ElementId, targets: ElementId[]): S =>
     invoke("tag_elements", { view, targets }),
+  pickCycle: (view: ElementId, point: Pt, tol: number) =>
+    invoke<PickCandidate[]>("pick_cycle", { view, point, tol }),
+  pickCandidates: (ids: ElementId[]) => invoke<PickCandidate[]>("pick_candidates", { ids }),
   selectionCategories: (ids: ElementId[]) => invoke<Category[]>("selection_categories", { ids }),
   hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
   setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>

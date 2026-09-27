@@ -2906,8 +2906,15 @@ pub fn angular_preview(
 
 /// Topmost element at `p` (display-list coordinates) within `tol` mm.
 pub fn pick(dl: &DisplayList, p: Pt, tol: f64) -> Option<ElementId> {
-    let mut best: Option<(f64, ElementId)> = None;
-    for it in dl.items.iter().rev() {
+    pick_all(dl, p, tol).into_iter().next()
+}
+
+/// Every element at `p` within `tol` mm, the one a click picks first, then the others
+/// in the order Tab steps through them (nearest, then topmost).
+pub fn pick_all(dl: &DisplayList, p: Pt, tol: f64) -> Vec<ElementId> {
+    // Each element's nearest distance and the draw order (from the top) it was found at.
+    let mut hits: Vec<(f64, usize, ElementId)> = vec![];
+    for (order, it) in dl.items.iter().rev().enumerate() {
         let Some(el) = it.el else { continue };
         let d = match &it.prim {
             Prim::Line { pts, closed, .. } => {
@@ -2938,11 +2945,70 @@ pub fn pick(dl: &DisplayList, p: Pt, tol: f64) -> Option<ElementId> {
                 }
             }
         };
-        if d <= tol && best.is_none_or(|(bd, _)| d < bd) {
-            best = Some((d, el));
+        if d > tol {
+            continue;
+        }
+        match hits.iter_mut().find(|h| h.2 == el) {
+            Some(h) if d < h.0 => *h = (d, order, el),
+            Some(_) => {}
+            None => hits.push((d, order, el)),
         }
     }
-    best.map(|b| b.1)
+    hits.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+    hits.into_iter().map(|h| h.2).collect()
+}
+
+/// One step of Revit's Tab selection: the elements it would select and the status bar's
+/// name for them.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct PickCandidate {
+    pub ids: Vec<ElementId>,
+    pub label: String,
+}
+
+/// Revit's Tab order for the elements under the cursor (`hits`, the one a click picks
+/// first): each element, and after a wall the chain of walls joined to it.
+pub fn pick_candidates(doc: &Document, hits: &[ElementId]) -> Vec<PickCandidate> {
+    let mut out = vec![];
+    for &id in hits {
+        let Ok(data) = doc.data(id) else { continue };
+        out.push(PickCandidate {
+            ids: vec![id],
+            label: pick_label(doc, data),
+        });
+        if data.category() == Category::Wall {
+            let chain = studio_core::sketch::wall_chain(doc, id);
+            if chain.len() > 1 {
+                out.push(PickCandidate {
+                    label: format!("Chain of walls ({})", chain.len()),
+                    ids: chain,
+                });
+            }
+        }
+    }
+    out
+}
+
+/// "Wall : Generic - 8\"", as Revit's status bar names what's under the cursor.
+fn pick_label(doc: &Document, data: &ElementData) -> String {
+    let mut cat = String::new();
+    for (i, ch) in data.category().as_str().chars().enumerate() {
+        if i > 0 && ch.is_uppercase() {
+            cat.push(' ');
+        }
+        cat.push(ch);
+    }
+    let name = data
+        .type_id()
+        .and_then(|t| doc.data(t).ok())
+        .map(ElementData::name)
+        .unwrap_or_else(|| data.name());
+    if name.is_empty() || name == cat {
+        cat
+    } else {
+        format!("{cat} : {name}")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -4249,6 +4315,56 @@ mod tests {
             (s.pt.x - 3000.0).abs() < 1e-6 && (s.pt.y + 2000.0).abs() < 1e-6,
             "{s:?}"
         );
+    }
+
+    #[test]
+    fn pick_all_orders_what_is_under_the_cursor() {
+        let (a, b, c) = (ElementId::new(), ElementId::new(), ElementId::new());
+        let line = |el, y: f64| Item {
+            el: Some(el),
+            prim: Prim::Line {
+                pts: vec![[0.0, y], [100.0, y]],
+                closed: false,
+                w: 1,
+                dash: Dash::Solid,
+            },
+        };
+        // a at 3 mm, b at 1 mm (drawn twice: its nearest counts), c at 3 mm drawn on top.
+        let dl = DisplayList {
+            view_type: ViewType::Plan,
+            scale: 48,
+            bounds: [0.0, 0.0, 100.0, 100.0],
+            items: vec![line(a, 3.0), line(b, 4.0), line(b, 1.0), line(c, 3.0)],
+        };
+        let p = Pt::new(50.0, 0.0);
+        assert_eq!(pick_all(&dl, p, 5.0), vec![b, c, a]);
+        assert_eq!(pick(&dl, p, 5.0), Some(b));
+        assert_eq!(pick_all(&dl, p, 2.0), vec![b]);
+        assert!(pick_all(&dl, Pt::new(500.0, 0.0), 5.0).is_empty());
+    }
+
+    #[test]
+    fn tab_steps_to_a_walls_chain_after_the_wall() {
+        let mut doc = Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = studio_core::ops::first_of(&doc, Category::WallType).unwrap();
+        let w = |doc: &mut Document, a: (f64, f64), b: (f64, f64)| {
+            studio_core::ops::create_wall(doc, wt, l1, Pt::new(a.0, a.1), Pt::new(b.0, b.1))
+                .unwrap()
+        };
+        let w1 = w(&mut doc, (0.0, 0.0), (5000.0, 0.0));
+        let w2 = w(&mut doc, (5000.0, 0.0), (5000.0, 4000.0));
+        let lone = w(&mut doc, (9000.0, 0.0), (9000.0, 4000.0));
+        let c = pick_candidates(&doc, &[w1, lone]);
+        let type_name = doc.data(wt).unwrap().name();
+        assert_eq!(c.len(), 3, "the wall, its chain, the lone wall (no chain)");
+        assert_eq!(c[0].ids, vec![w1]);
+        assert_eq!(c[0].label, format!("Wall : {type_name}"));
+        assert_eq!(c[1].ids.len(), 2);
+        assert!(c[1].ids.contains(&w1) && c[1].ids.contains(&w2));
+        assert_eq!(c[1].label, "Chain of walls (2)");
+        assert_eq!(c[2].ids, vec![lone]);
     }
 
     #[test]
