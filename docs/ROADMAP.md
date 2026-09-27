@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Typed dimensions move the selection (ADR-041): a selected wall or grid shows its distances
+  to parallel walls and grids, and the permanent dimensions ending on it become typeable.
+
 - Revit dimensions (ADR-040): Aligned (DI) strings across wall faces, centerlines, core faces
   and grids; Linear (horizontal/vertical); Angular; Prefer and Tab.
 

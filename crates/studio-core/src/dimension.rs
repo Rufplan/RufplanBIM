@@ -469,6 +469,107 @@ pub fn create_angular(
     })
 }
 
+/// A wall's centerline or a grid's line, for the temporary and permanent dimensions that
+/// move them (ADR-041).
+pub fn line_of(doc: &Document, id: ElementId) -> Option<(Pt, Pt)> {
+    match doc.data(id).ok()? {
+        ElementData::Wall { start, end, .. } | ElementData::Grid { start, end, .. } => {
+            Some((*start, *end))
+        }
+        _ => None,
+    }
+}
+
+/// Whether an anchor sits on element `id` (a wall or a grid).
+pub fn anchored_to(anchor: &Option<Anchor>, id: ElementId) -> bool {
+    matches!(anchor, Some(Anchor::Wall { wall, .. }) if *wall == id)
+        || matches!(anchor, Some(Anchor::Grid { grid, .. }) if *grid == id)
+}
+
+/// A dimension's anchors in order along it (first, between…, last).
+pub fn string_anchors(data: &ElementData) -> Vec<Option<Anchor>> {
+    match data {
+        ElementData::Dimension {
+            a_ref,
+            b_ref,
+            between,
+            ..
+        } => {
+            let mut v = vec![*a_ref];
+            v.extend(between.iter().map(|r| r.anchor));
+            v.push(*b_ref);
+            v
+        }
+        _ => vec![],
+    }
+}
+
+/// Typing a temporary dimension to a parallel wall or grid (Revit's): moves wall or grid
+/// `id` square to itself so its line is `mm` from `other`'s, on the side it is on now.
+/// Walls joined to it stretch to follow.
+pub fn set_distance_to(
+    doc: &mut Document,
+    id: ElementId,
+    other: ElementId,
+    mm: f64,
+) -> CoreResult<()> {
+    let bad = || CoreError::Invalid("that dimension is gone".into());
+    let (a, b) = line_of(doc, id).ok_or_else(bad)?;
+    let (c, _) = line_of(doc, other).ok_or_else(bad)?;
+    if mm < 0.0 {
+        return Err(CoreError::Invalid("type a positive distance".into()));
+    }
+    let n = b.sub(a).norm().perp();
+    let s = c.sub(a).dot(n);
+    let side = if s < 0.0 { -1.0 } else { 1.0 };
+    crate::modify::move_elements(doc, &[id], n.scale(s - side * mm))
+}
+
+/// Typing a segment of a permanent dimension while its wall or grid is selected (Revit's):
+/// moves element `id` along the dimension so segment `seg` measures `mm`. The segment's
+/// other end stays put.
+pub fn set_dimension_segment(
+    doc: &mut Document,
+    id: ElementId,
+    dim: ElementId,
+    seg: usize,
+    mm: f64,
+) -> CoreResult<()> {
+    let data = doc.data(dim)?.clone();
+    let (pts, u) = string_points(doc, &data)
+        .ok_or_else(|| CoreError::Invalid("that isn't a dimension".into()))?;
+    let anchors = string_anchors(&data);
+    if seg + 1 >= pts.len() || anchors.len() != pts.len() {
+        return Err(CoreError::Invalid(
+            "that dimension has no such segment".into(),
+        ));
+    }
+    if mm < 0.0 {
+        return Err(CoreError::Invalid("type a positive distance".into()));
+    }
+    let now = pts[seg + 1].sub(pts[seg]).dot(u);
+    let dir = if now < 0.0 { -1.0 } else { 1.0 };
+    let (near, far) = (
+        anchored_to(&anchors[seg], id),
+        anchored_to(&anchors[seg + 1], id),
+    );
+    let delta = match (near, far) {
+        (false, true) => u.scale(dir * mm - now),
+        (true, false) => u.scale(now - dir * mm),
+        (true, true) => {
+            return Err(CoreError::Invalid(
+                "both ends are on that element; change its thickness instead".into(),
+            ))
+        }
+        (false, false) => {
+            return Err(CoreError::Invalid(
+                "select the wall or grid that segment ends on".into(),
+            ))
+        }
+    };
+    crate::modify::move_elements(doc, &[id], delta)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -794,5 +895,52 @@ mod tests {
             (seg[0] - h).abs() < 1e-6 && (seg[1] - (20.0 * ft - h)).abs() < 1e-6,
             "{seg:?}"
         );
+    }
+
+    #[test]
+    fn typing_a_distance_moves_the_selected_wall() {
+        let (mut doc, plan, w1, w2) = plan_with_walls();
+        let ft = MM_PER_FT;
+        // Wall 2 is 20' east of wall 1: make it 15'.
+        set_distance_to(&mut doc, w2, w1, 15.0 * ft).unwrap();
+        let (a, _) = line_of(&doc, w2).unwrap();
+        assert!((a.x - 15.0 * ft).abs() < 1e-6, "{a:?}");
+        // A permanent string across both walls: typing its segment moves the selected wall.
+        let pick = |doc: &Document, x: f64| {
+            references_at(doc, plan, Pt::new(x, 3000.0), 20.0, Prefer::WallCenterlines)[0].clone()
+        };
+        let refs = vec![pick(&doc, 3.0), pick(&doc, 15.0 * ft + 3.0)];
+        let d = create_string(
+            &mut doc,
+            plan,
+            &refs,
+            Pt::new(0.0, -2000.0),
+            DimKind::Aligned,
+        )
+        .unwrap();
+        set_dimension_segment(&mut doc, w2, d, 0, 12.0 * ft).unwrap();
+        let (a, _) = line_of(&doc, w2).unwrap();
+        assert!((a.x - 12.0 * ft).abs() < 1e-6, "{a:?}");
+        let (pts, u) = string_points(&doc, doc.data(d).unwrap()).unwrap();
+        assert!((segments(&pts, u)[0] - 12.0 * ft).abs() < 1e-6);
+        // Selecting wall 1 instead moves wall 1, keeping wall 2.
+        set_dimension_segment(&mut doc, w1, d, 0, 10.0 * ft).unwrap();
+        let (a1, _) = line_of(&doc, w1).unwrap();
+        assert!((a1.x - 2.0 * ft).abs() < 1e-6, "{a1:?}");
+        assert!((line_of(&doc, w2).unwrap().0.x - 12.0 * ft).abs() < 1e-6);
+        // An element the segment doesn't end on is refused.
+        let (wt, l1) = (
+            ops::first_of(&doc, Category::WallType).unwrap(),
+            doc.levels()[0].0,
+        );
+        let other = ops::create_wall(
+            &mut doc,
+            wt,
+            l1,
+            Pt::new(0.0, 50.0 * ft),
+            Pt::new(5.0 * ft, 50.0 * ft),
+        )
+        .unwrap();
+        assert!(set_dimension_segment(&mut doc, other, d, 0, 5.0 * ft).is_err());
     }
 }

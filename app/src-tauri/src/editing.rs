@@ -120,6 +120,27 @@ pub fn set_temp_dimension(
             "length" => edit::set_wall_length(d, id, mm),
             "gap_start" => edit::set_opening_gap(d, id, true, mm),
             "gap_end" => edit::set_opening_gap(d, id, false, mm),
+            // To a parallel wall or grid, or a permanent dimension's segment (ADR-041).
+            k if k.starts_with("to:") => match k[3..].parse() {
+                Ok(other) => studio_core::dimension::set_distance_to(d, id, other, mm),
+                Err(_) => Err(studio_core::CoreError::Invalid(format!(
+                    "unknown dimension {k}"
+                ))),
+            },
+            k if k.starts_with("dim:") => {
+                let mut parts = k[4..].split(':');
+                match (
+                    parts.next().and_then(|s| s.parse().ok()),
+                    parts.next().and_then(|s| s.parse().ok()),
+                ) {
+                    (Some(dim), Some(seg)) => {
+                        studio_core::dimension::set_dimension_segment(d, id, dim, seg, mm)
+                    }
+                    _ => Err(studio_core::CoreError::Invalid(format!(
+                        "unknown dimension {k}"
+                    ))),
+                }
+            }
             _ => Err(studio_core::CoreError::Invalid(format!(
                 "unknown dimension {key}"
             ))),

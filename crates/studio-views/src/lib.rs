@@ -2514,12 +2514,29 @@ pub fn dimension_string(b: &mut Builder, el: Option<ElementId>, pts: &[Pt], u: P
     for q in &on_line {
         b.line(el, &[q.sub(tick), q.add(tick)], false, 4, Dash::Solid);
     }
-    let (angle, up) = upright(u);
-    for w in on_line.windows(2) {
+    let (angle, _) = upright(u);
+    let labels = segment_labels(pts, u, offset, b.paper(1.0));
+    for (w, at) in on_line.windows(2).zip(labels) {
         let len = w[1].sub(w[0]).dot(u).abs();
-        let mid = w[0].lerp(w[1], 0.5).add(up.scale(b.paper(2.2)));
-        b.text_rot(el, mid, format_ft_in(len), 2.6, Anchor::Center, angle);
+        b.text_rot(el, at, format_ft_in(len), 2.6, Anchor::Center, angle);
     }
+}
+
+/// Where each segment's value of a dimension string sits (`paper_mm` is one paper mm in the
+/// view's units): above the middle of its part of the dimension line.
+pub fn segment_labels(pts: &[Pt], u: Pt, offset: f64, paper_mm: f64) -> Vec<Pt> {
+    let Some(&o) = pts.first() else {
+        return vec![];
+    };
+    let n = u.perp();
+    let (_, up) = upright(u);
+    let on: Vec<Pt> = pts
+        .iter()
+        .map(|p| o.add(u.scale(p.sub(o).dot(u))).add(n.scale(offset)))
+        .collect();
+    on.windows(2)
+        .map(|w| w[0].lerp(w[1], 0.5).add(up.scale(2.2 * paper_mm)))
+        .collect()
 }
 
 /// An angular dimension (ADR-040): the arc between its lines with a tick at each end,
@@ -2983,6 +3000,71 @@ mod tests {
             .items
             .iter()
             .any(|i| matches!(&i.prim, Prim::Text { text, .. } if text == "45.00°")));
+    }
+
+    #[test]
+    fn a_selected_wall_offers_its_distances_and_dimension_values_to_type() {
+        use studio_core::dimension::{create_string, references_at, Prefer};
+        let (mut doc, l1) = building();
+        let plan = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1))
+            .unwrap()
+            .id;
+        let m = regenerate(&doc);
+        let south = m
+            .walls
+            .iter()
+            .find(|w| w.start.y.abs() < 1.0 && w.end.y.abs() < 1.0)
+            .unwrap()
+            .id;
+        let north = m
+            .walls
+            .iter()
+            .find(|w| w.start.y > 100.0 && w.end.y > 100.0)
+            .unwrap()
+            .id;
+        let h = handles::handles(&doc, plan, &[south]);
+        // 30' to the north wall, centerline to centerline.
+        let to = h
+            .dims
+            .iter()
+            .find(|d| d.key == format!("to:{north}"))
+            .unwrap();
+        assert_eq!(to.value, "30'-0\"");
+        // A permanent dimension from the south wall to the north one: its value is typeable.
+        let x = 20.0 * MM_PER_FT;
+        let a =
+            references_at(&doc, plan, Pt::new(x, 3.0), 20.0, Prefer::WallCenterlines)[0].clone();
+        let b = references_at(
+            &doc,
+            plan,
+            Pt::new(x, 30.0 * MM_PER_FT + 3.0),
+            20.0,
+            Prefer::WallCenterlines,
+        )[0]
+        .clone();
+        let d = create_string(
+            &mut doc,
+            plan,
+            &[a, b],
+            Pt::new(x + 3000.0, 0.0),
+            studio_core::DimKind::Aligned,
+        )
+        .unwrap();
+        let h = handles::handles(&doc, plan, &[south]);
+        let v = h
+            .dims
+            .iter()
+            .find(|x| x.key == format!("dim:{d}:0"))
+            .unwrap();
+        assert_eq!(v.value, "30'-0\"");
+        assert!(v.items.is_empty(), "drawn by the dimension itself");
+        // Typing 25' moves the south wall 5' north.
+        studio_core::dimension::set_dimension_segment(&mut doc, south, d, 0, 25.0 * MM_PER_FT)
+            .unwrap();
+        let (sa, _) = studio_core::dimension::line_of(&doc, south).unwrap();
+        assert!((sa.y - 5.0 * MM_PER_FT).abs() < 1e-6, "{sa:?}");
     }
 
     fn building() -> (Document, ElementId) {

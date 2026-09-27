@@ -89,6 +89,113 @@ fn temp_dim(scale: f64, id: ElementId, key: &str, a: Pt, b: Pt, offset: f64) -> 
     })
 }
 
+/// Revit's temporary dimensions from a selected wall or grid (ADR-041): to the nearest
+/// parallel wall or grid on each side that runs alongside it, centerline to centerline.
+/// Typing one moves the selection (`set_temp_dimension(id, "to:<other>", value)`).
+fn distances_to_parallels(
+    doc: &Document,
+    model: &studio_regen::Model,
+    scale: f64,
+    id: ElementId,
+    level: Option<ElementId>,
+) -> Vec<TempDim> {
+    let Some((a, b)) = studio_core::dimension::line_of(doc, id) else {
+        return vec![];
+    };
+    let len = a.dist(b);
+    if len < 1.0 {
+        return vec![];
+    }
+    let u = b.sub(a).norm();
+    let n = u.perp();
+    let walls = model
+        .walls
+        .iter()
+        .filter(|w| level.is_none_or(|l| w.level == l))
+        .map(|w| (w.id, w.start, w.end));
+    let grids = doc.of(Category::Grid).filter_map(|e| match &e.data {
+        ElementData::Grid { start, end, .. } => Some((e.id, *start, *end)),
+        _ => None,
+    });
+    // The nearest on each side: (distance, other, where along the selection).
+    let mut best: [Option<(f64, ElementId, f64)>; 2] = [None, None];
+    for (other, s, e) in walls.chain(grids) {
+        if other == id || s.dist(e) < 1.0 || e.sub(s).norm().cross(u).abs() > 1e-3 {
+            continue;
+        }
+        let (t0, t1) = {
+            let (p, q) = (s.sub(a).dot(u), e.sub(a).dot(u));
+            (p.min(q).max(0.0), p.max(q).min(len))
+        };
+        if t1 - t0 < 1.0 {
+            continue; // Doesn't run alongside.
+        }
+        let d = s.sub(a).dot(n);
+        if d.abs() < 1.0 {
+            continue;
+        }
+        let k = usize::from(d < 0.0);
+        if best[k].is_none_or(|x| d.abs() < x.0.abs()) {
+            best[k] = Some((d, other, (t0 + t1) / 2.0));
+        }
+    }
+    best.into_iter()
+        .flatten()
+        .filter_map(|(d, other, t)| {
+            let from = a.add(u.scale(t));
+            temp_dim(
+                scale,
+                id,
+                &format!("to:{other}"),
+                from,
+                from.add(n.scale(d)),
+                0.0,
+            )
+        })
+        .collect()
+}
+
+/// The values of permanent dimensions in `view` that end on the selected wall or grid, made
+/// typeable as in Revit (ADR-041): typing one moves the selection so that segment measures it
+/// (`set_temp_dimension(id, "dim:<dimension>:<segment>", value)`).
+fn permanent_values(doc: &Document, view: ElementId, scale: f64, id: ElementId) -> Vec<TempDim> {
+    use studio_core::dimension::{anchored_to, string_anchors, string_points};
+    let mut out = vec![];
+    for e in doc.of(Category::Dimension) {
+        let ElementData::Dimension {
+            view: v, offset, ..
+        } = &e.data
+        else {
+            continue;
+        };
+        if *v != view {
+            continue;
+        }
+        let anchors = string_anchors(&e.data);
+        if !anchors.iter().any(|a| anchored_to(a, id)) {
+            continue;
+        }
+        let Some((pts, u)) = string_points(doc, &e.data) else {
+            continue;
+        };
+        let labels = crate::segment_labels(&pts, u, *offset, scale);
+        for (i, at) in labels.into_iter().enumerate() {
+            // Only segments with exactly one end on the selection move it.
+            if anchored_to(&anchors[i], id) == anchored_to(&anchors[i + 1], id) {
+                continue;
+            }
+            out.push(TempDim {
+                id,
+                key: format!("dim:{}:{i}", e.id),
+                value: format_ft_in(pts[i + 1].sub(pts[i]).dot(u).abs()),
+                label_at: at,
+                items: vec![],
+            });
+        }
+    }
+    out
+}
+
 /// Grips and temporary dimensions for the selected elements in `view`.
 pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
     let mut out = Handles::default();
@@ -128,6 +235,9 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     let off = half + scale * 6.0;
                     out.dims
                         .extend(temp_dim(scale, *id, "length", *start, *end, off));
+                    out.dims
+                        .extend(distances_to_parallels(doc, &model, scale, *id, view_level));
+                    out.dims.extend(permanent_values(doc, view, scale, *id));
                 }
             }
             ElementData::Grid { start, end, .. } if plan => {
@@ -138,6 +248,11 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                         at,
                         anchor: Some(anchor),
                     });
+                }
+                if one {
+                    out.dims
+                        .extend(distances_to_parallels(doc, &model, scale, *id, view_level));
+                    out.dims.extend(permanent_values(doc, view, scale, *id));
                 }
             }
             ElementData::Door { .. } | ElementData::Window { .. } if plan && one => {

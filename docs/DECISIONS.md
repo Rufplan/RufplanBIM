@@ -1344,3 +1344,27 @@ Prefer.
   - "Entire walls" picking (openings and intersecting walls in one pick).
   - EQ constraints, and text moved off crowded segments.
   - Line references in elevations and sections (points only there).
+
+## ADR-041 Typing dimensions moves the selection — Accepted (2026-09-26)
+Owner request (2026-09-26): "when you select a wall … allow to then select the dimension
+numbering and then it updates per that dimension number you entered, just how Revit does it".
+
+- **Temporary dimensions.** A selected wall or grid in a plan shows Revit's temporary
+  dimensions to the nearest parallel wall or grid on each side that runs alongside it,
+  centerline to centerline. They sit beside the wall's length dimension.
+  - Click the value, type a distance, and the selection moves square to itself to that
+    distance (`dimension::set_distance_to`).
+  - Joined walls stretch to follow, as with Move.
+- **Permanent dimensions.** Every value of a permanent dimension in the view whose segment
+  ends on the selected wall or grid gets a box to type into.
+  - Typing moves the selection along the dimension so the segment measures the new value; the
+    segment's other end stays put (`dimension::set_dimension_segment`).
+  - A segment with both ends on the selection is refused, with a hint to change the thickness.
+    So is one with neither end on it.
+- **Wiring.** Both go through `set_temp_dimension` with keys `to:<other>` and
+  `dim:<dimension>:<segment>`. They are computed in `studio_views::handles`, which places
+  the boxes over the dimension's own text (`segment_labels`).
+- **Not yet** (Revit has these):
+  - Moving a door or window by a permanent dimension.
+  - Temporary dimensions to wall faces (Revit's Temporary Dimension settings).
+  - Dragging a temporary dimension's witness line to another reference.
