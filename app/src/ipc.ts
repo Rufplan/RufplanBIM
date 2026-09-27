@@ -29,6 +29,7 @@ import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
+import type { Cap } from "./bindings/Cap";
 import type { Reference } from "./bindings/Reference";
 import type { Prefer } from "./bindings/Prefer";
 import type { DimKind } from "./bindings/DimKind";
@@ -110,6 +111,8 @@ export const ipc = {
 
   displayList: (view: ElementId) => invoke<DisplayList | null>("view_display_list", { view }),
   meshes: (view: ElementId | null = null) => invoke<Mesh[]>("view_meshes", { view }),
+  /** The section box's cuts through the model (ADR-044). */
+  sectionCaps: (view: ElementId) => invoke<Cap[]>("section_caps", { view }),
   pick: (view: ElementId, point: Pt, tol: number) =>
     invoke<ElementId | null>("pick", { view, point, tol }),
   /** Snaps a point; a pending one-pick snap override (SE, SM…) applies unless given. */

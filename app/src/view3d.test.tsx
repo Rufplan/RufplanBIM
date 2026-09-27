@@ -116,3 +116,19 @@ describe("zooming and orbiting about the cursor (ADR-043)", () => {
     expect(pivotAt(camera, camera.position.clone().addScaledVector(fwd, -1000))).toBeNull();
   });
 });
+
+describe("section box caps (ADR-044)", () => {
+  it("fills a cut in a deep tone of the element's colour", async () => {
+    const { cutTone } = await import("./components/View3D");
+    const hsl = { h: 0, s: 0, l: 0 };
+    const light = new THREE.Color(0xe9e7e2);
+    cutTone(light).getHSL(hsl, THREE.SRGBColorSpace);
+    expect(hsl.l).toBeLessThanOrEqual(0.321);
+    // Still a tone of it: a warm wall stays warm.
+    const tan = new THREE.Color(0xc8b48c);
+    const t = { h: 0, s: 0, l: 0 };
+    tan.getHSL(t, THREE.SRGBColorSpace);
+    cutTone(tan).getHSL(hsl, THREE.SRGBColorSpace);
+    expect(hsl.h).toBeCloseTo(t.h, 2);
+  });
+});

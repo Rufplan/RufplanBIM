@@ -61,6 +61,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::project_save,
             commands::view_display_list,
             commands::view_meshes,
+            commands::section_caps,
             commands::pick,
             commands::snap,
             commands::create_wall,

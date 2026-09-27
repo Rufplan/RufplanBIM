@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Section box caps (ADR-044): cut surfaces filled in poché with heavy cut lines and wall
+  layer boundaries.
+
 - 3D zooms toward the cursor and orbits about what's under it (ADR-043).
 
 - Dimension points follow the crossing wall; Align picks faces, centerlines and grids with

@@ -222,6 +222,17 @@ pub fn view_display_list(
     Ok(any_display_list(session.doc()?, view).map(|d| (*d).clone()))
 }
 
+/// Where a 3D view's section box cuts the model: each element's cut, filled and outlined
+/// (ADR-044).
+#[tauri::command]
+pub fn section_caps(
+    view: ElementId,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<studio_views::caps::Cap>> {
+    let session = lock(&state)?;
+    Ok(studio_views::caps::section_caps(session.doc()?, view))
+}
+
 #[tauri::command]
 pub fn view_meshes(
     view: Option<ElementId>,

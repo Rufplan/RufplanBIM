@@ -26,6 +26,10 @@ import {
   type VisualStyle,
 } from "../render/visualStyle";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import type { Cap } from "../bindings/Cap";
 
 const COLORS = {
   exteriorWall: 0xe9e7e2,
@@ -132,6 +136,8 @@ interface Three {
   controls: OrbitControls;
   group: THREE.Group;
   boxGroup: THREE.Group;
+  /** The section box's caps (ADR-044). */
+  capGroup: THREE.Group;
   gridGroup: THREE.Group;
   fitted: boolean;
   hemi: THREE.HemisphereLight;
@@ -315,6 +321,8 @@ export function View3D({ view }: { view: ViewInfo }) {
     scene.add(group);
     const boxGroup = new THREE.Group();
     scene.add(boxGroup);
+    const capGroup = new THREE.Group();
+    scene.add(capGroup);
     // Placement ghosts (a door's box, a wall's rubber band) and the ground grid.
     const ghost = new THREE.Group();
     scene.add(ghost);
@@ -327,6 +335,7 @@ export function View3D({ view }: { view: ViewInfo }) {
       controls,
       group,
       boxGroup,
+      capGroup,
       gridGroup,
       fitted: false,
       hemi,
@@ -977,6 +986,8 @@ export function View3D({ view }: { view: ViewInfo }) {
       boxRef.current = next;
       const t = three.current;
       if (t) {
+        // The caps are for the box as it was; they come back when it's set.
+        t.capGroup.visible = false;
         const planes = boxPlanes(next);
         for (const child of t.group.children) {
           const mats = (child as THREE.Mesh).material as THREE.Material;
@@ -1153,6 +1164,30 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
   }, [revision, sectionBox, view.id]);
 
+  // The section box's caps (ADR-044): fetched with the model and the box.
+  useEffect(() => {
+    const t = three.current;
+    if (!t) return;
+    if (!sectionBox) {
+      clearCaps(t.capGroup);
+      return;
+    }
+    let live = true;
+    ipc.sectionCaps(view.id).then(
+      (caps) => {
+        const t = three.current;
+        if (!live || !t) return;
+        buildCaps(t, caps);
+        const st = useAppStore.getState();
+        applyCaps(t, styleOf(st, view.id), st.selection);
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [revision, sectionBox, view.id, meshRev]);
+
   // A camera view looks from its camera; the default 3D view keeps its own orbit.
   const pose = view.camera;
   const poseKey = pose ? JSON.stringify(pose) : "";
@@ -1185,6 +1220,7 @@ export function View3D({ view }: { view: ViewInfo }) {
     applyDisplay(t.group, temp, visualStyle, real.current?.map ?? null);
     applySelection(t.group, useAppStore.getState().selection, visualStyle);
     applyScene(t, visualStyle);
+    applyCaps(t, visualStyle, useAppStore.getState().selection);
   }, [temp, visualStyle, revision, sketchTarget, meshRev]);
 
   // Realistic: the project's materials with their textures, loaded when first shown.
@@ -1218,8 +1254,11 @@ export function View3D({ view }: { view: ViewInfo }) {
   }, [visualStyle, meshRev, view.id]);
 
   useEffect(() => {
-    if (three.current)
-      applySelection(three.current.group, selection, styleOf(useAppStore.getState(), view.id));
+    if (three.current) {
+      const style = styleOf(useAppStore.getState(), view.id);
+      applySelection(three.current.group, selection, style);
+      applyCaps(three.current, style, selection);
+    }
   }, [selection, view.id]);
 
   const satellite = useAppStore((s) => s.satellite);
@@ -1456,6 +1495,103 @@ function applyScene(t: Three, style: VisualStyle) {
       const m = l.material as THREE.LineBasicMaterial;
       m.userData.opacity ??= m.opacity;
       m.opacity = (m.userData.opacity as number) * (realistic ? 0.25 : 1);
+    }
+  }
+}
+
+/** A deep tone of an element's colour for its cut (in sRGB, as seen). */
+export function cutTone(base: THREE.Color): THREE.Color {
+  const hsl = { h: 0, s: 0, l: 0 };
+  base.getHSL(hsl, THREE.SRGBColorSpace);
+  return new THREE.Color().setHSL(
+    hsl.h,
+    hsl.s * 0.6,
+    Math.min(hsl.l * 0.45, 0.32),
+    THREE.SRGBColorSpace,
+  );
+}
+
+function clearCaps(g: THREE.Group) {
+  for (const c of [...g.children]) {
+    g.remove(c);
+    const o = c as THREE.Mesh;
+    o.geometry?.dispose();
+    (o.material as THREE.Material | undefined)?.dispose();
+  }
+}
+
+/** Section box caps (ADR-044), as Revit draws them: each element's cut filled in its cut
+ * colour, a heavy cut line round it, and a wall's layer boundaries inside. */
+function buildCaps(t: Three, caps: Cap[]) {
+  clearCaps(t.capGroup);
+  const size = t.renderer.getSize(new THREE.Vector2());
+  for (const c of caps) {
+    if (c.positions.length) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(c.positions, 3));
+      geo.computeVertexNormals();
+      const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial());
+      fill.userData = { el: c.el, cap: c, kind: "fill" };
+      fill.renderOrder = 2;
+      t.capGroup.add(fill);
+    }
+    if (c.inner.length) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(c.inner, 3));
+      const inner = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicMaterial({ color: 0x3a3d40, depthTest: true }),
+      );
+      inner.userData = { el: c.el, kind: "inner" };
+      inner.renderOrder = 3;
+      t.capGroup.add(inner);
+    }
+    if (c.outline.length) {
+      const geo = new LineSegmentsGeometry().setPositions(c.outline);
+      const mat = new LineMaterial({ color: 0x111111, linewidth: 2.2 });
+      mat.resolution.set(size.x, size.y);
+      const cut = new LineSegments2(geo, mat);
+      cut.userData = { el: c.el, kind: "cut" };
+      cut.renderOrder = 4;
+      t.capGroup.add(cut);
+    }
+  }
+  t.capGroup.visible = true;
+}
+
+/** Cut colours per visual style: Shaded and Realistic fill it in a deep tone of the element's colour
+ * (Revit's cut faces read as poch&eacute;, much darker than the surfaces beside them); Consistent Colors shows it flat;
+ * Hidden Line leaves the cut white; Wireframe shows only the cut lines. Hidden elements'
+ * cuts hide with them; a selected element's cut turns blue. */
+function applyCaps(t: Three, style: VisualStyle, selection: string[]) {
+  const shown = new Map<string, boolean>();
+  for (const c of t.group.children)
+    if (c instanceof THREE.Mesh) shown.set(c.userData.el as string, c.visible);
+  const sel = new Set(selection);
+  const size = t.renderer.getSize(new THREE.Vector2());
+  for (const c of t.capGroup.children) {
+    const u = c.userData as { el: string; kind: string; cap?: Cap };
+    c.visible = shown.get(u.el) !== false;
+    if (u.kind === "fill") {
+      const mat = (c as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      const base = new THREE.Color(meshColor(u.cap as unknown as Mesh));
+      const color =
+        style === "hiddenLine"
+          ? new THREE.Color(0xffffff)
+          : style === "consistent"
+            ? base
+            : cutTone(base);
+      mat.color.copy(sel.has(u.el) ? new THREE.Color(SELECTED) : color);
+      mat.side = THREE.DoubleSide;
+      mat.polygonOffset = true;
+      mat.polygonOffsetFactor = -1;
+      mat.polygonOffsetUnits = -1;
+      mat.toneMapped = false;
+      c.visible = c.visible && style !== "wireframe";
+    } else if (u.kind === "cut") {
+      const mat = (c as LineSegments2).material;
+      mat.resolution.set(size.x, size.y);
+      mat.color.set(sel.has(u.el) ? SELECTED : 0x111111);
     }
   }
 }

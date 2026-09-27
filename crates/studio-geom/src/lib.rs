@@ -532,6 +532,107 @@ pub fn difference(a: &Poly, cut: &[Poly]) -> Vec<Poly> {
         .collect()
 }
 
+/// Where an axis-aligned plane (`axis` = 0, 1, 2 for x, y, z at `at`) cuts a closed triangle
+/// mesh (9 floats a triangle): the cut's closed loops in the plane's own coordinates (the
+/// other two axes, in order). Loops that don't close (an open surface) are left out.
+pub fn mesh_section(tris: &[f32], axis: usize, at: f64) -> Vec<Vec<Pt>> {
+    let (iu, iv) = match axis {
+        0 => (1, 2),
+        1 => (0, 2),
+        _ => (0, 1),
+    };
+    let mut segs: Vec<(Pt, Pt)> = vec![];
+    for t in tris.as_chunks::<9>().0 {
+        let p = |k: usize| {
+            [
+                f64::from(t[k * 3]),
+                f64::from(t[k * 3 + 1]),
+                f64::from(t[k * 3 + 2]),
+            ]
+        };
+        let v = [p(0), p(1), p(2)];
+        let d = [v[0][axis] - at, v[1][axis] - at, v[2][axis] - at];
+        let side = [d[0] >= 0.0, d[1] >= 0.0, d[2] >= 0.0];
+        if side[0] == side[1] && side[1] == side[2] {
+            continue;
+        }
+        let mut cut = vec![];
+        for (i, j) in [(0, 1), (1, 2), (2, 0)] {
+            if side[i] != side[j] {
+                let s = d[i] / (d[i] - d[j]);
+                let q = |k: usize| v[i][k] + (v[j][k] - v[i][k]) * s;
+                cut.push(Pt::new(q(iu), q(iv)));
+            }
+        }
+        if cut.len() == 2 && cut[0].dist(cut[1]) > 1e-6 {
+            segs.push((cut[0], cut[1]));
+        }
+    }
+    // Chain the segments end to end (ends meet to 0.01 mm).
+    let key = |p: Pt| ((p.x * 100.0).round() as i64, (p.y * 100.0).round() as i64);
+    let mut at_end: std::collections::HashMap<(i64, i64), Vec<usize>> = Default::default();
+    for (i, (a, b)) in segs.iter().enumerate() {
+        at_end.entry(key(*a)).or_default().push(i);
+        at_end.entry(key(*b)).or_default().push(i);
+    }
+    let mut used = vec![false; segs.len()];
+    let mut loops = vec![];
+    for s in 0..segs.len() {
+        if used[s] {
+            continue;
+        }
+        used[s] = true;
+        let start = key(segs[s].0);
+        let mut ring = vec![segs[s].0];
+        let mut cur = segs[s].1;
+        let mut closed = false;
+        for _ in 0..segs.len() {
+            if key(cur) == start {
+                closed = true;
+                break;
+            }
+            ring.push(cur);
+            let Some(&n) = at_end
+                .get(&key(cur))
+                .and_then(|v| v.iter().find(|i| !used[**i]))
+            else {
+                break;
+            };
+            used[n] = true;
+            let (a, b) = segs[n];
+            cur = if key(a) == key(cur) { b } else { a };
+        }
+        if closed && ring.len() >= 3 {
+            loops.push(ring);
+        }
+    }
+    loops
+}
+
+/// The region inside an odd number of `loops` (a section's solid parts, its holes left
+/// open), clipped to the rectangle `lo`..`hi`.
+pub fn even_odd_in_rect(loops: &[Vec<Pt>], lo: Pt, hi: Pt) -> Vec<Poly> {
+    use geo::BooleanOps;
+    let mut acc = geo::MultiPolygon::<f64>::new(vec![]);
+    for l in loops {
+        if l.len() >= 3 && signed_area(l).abs() > 1e-3 {
+            acc = acc.xor(&geo::MultiPolygon::new(vec![to_geo(&Poly::simple(
+                l.clone(),
+            ))]));
+        }
+    }
+    let rect = Poly::simple(vec![lo, Pt::new(hi.x, lo.y), hi, Pt::new(lo.x, hi.y)]);
+    acc.intersection(&geo::MultiPolygon::new(vec![to_geo(&rect)]))
+        .0
+        .iter()
+        .map(|g| Poly {
+            outer: from_geo_ring(g.exterior()),
+            holes: g.interiors().iter().map(from_geo_ring).collect(),
+        })
+        .filter(|p| p.outer.len() >= 3 && p.area() > 1e-2)
+        .collect()
+}
+
 /// Axis-aligned bounds of points.
 pub fn bounds_of(pts: &[Pt]) -> Option<(Pt, Pt)> {
     let first = *pts.first()?;
@@ -827,6 +928,31 @@ pub fn crate_version() -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_box_cut_through_the_middle_is_its_cross_section() {
+        // A 2 x 3 x 4 box, cut at z = 1: a 2 x 3 rectangle.
+        let c = super::box_corners([0.0, 1.5, 0.0], [2.0, 1.5, 0.0], 3.0, 4.0);
+        let tris = super::box_triangles(&c);
+        let loops = super::mesh_section(&tris, 2, 1.0);
+        assert_eq!(loops.len(), 1, "{loops:?}");
+        let r = super::even_odd_in_rect(
+            &loops,
+            super::Pt::new(-10.0, -10.0),
+            super::Pt::new(10.0, 10.0),
+        );
+        assert_eq!(r.len(), 1);
+        assert!((r[0].area() - 6.0).abs() < 1e-6, "{}", r[0].area());
+        // Clipped to a rectangle over half of it.
+        let half = super::even_odd_in_rect(
+            &loops,
+            super::Pt::new(1.0, -10.0),
+            super::Pt::new(10.0, 10.0),
+        );
+        assert!((half[0].area() - 3.0).abs() < 1e-6);
+        // Missing the box: nothing.
+        assert!(super::mesh_section(&tris, 2, 9.0).is_empty());
+    }
+
     use super::*;
 
     fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> Poly {

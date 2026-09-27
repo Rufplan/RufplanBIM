@@ -12,6 +12,7 @@ use studio_geom::{point_in_ring, project_to_segment, Pt};
 use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
 
+pub mod caps;
 pub mod doors;
 pub mod edges;
 pub mod handles;

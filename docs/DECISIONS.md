@@ -1419,3 +1419,37 @@ selected".
   what is under the cursor.
 - **Not yet** (Revit has this): Revit orbits exactly about the selected element, even off the
   line of sight. OrbitControls can only orbit about a point on it.
+
+## ADR-044 Section box caps — Accepted (2026-09-26)
+Owner request (2026-09-26): "when [the section box] is cutting through a building [it] has
+these planes and blank spaces between the assemblies. could you fill those to look like it's
+cutting through something? … mimic as much as possible how Revit does it".
+
+- **The problem.** Clipping planes only hide what's outside the box, so a cut wall or floor
+  was left hollow.
+- **Computed in Rust** (geometry belongs there). For each face of the section box and each
+  element crossing it:
+  - its triangles are cut by the plane and the cuts are chained into loops
+    (`studio_geom::mesh_section`);
+  - the solid region (even-odd, so holes stay open) is clipped to the face's rectangle
+    (`even_odd_in_rect`, geo booleans) and triangulated.
+  - `studio_views::caps::section_caps` returns each cut's fill, its outline, and for walls
+    the boundaries between their layers inside it.
+- **Drawn as Revit draws them:**
+  - The fill is a deep tone of the element's colour, reading as poché against its lit faces.
+  - A heavy cut line (2.2 px) runs around each cut; layer boundaries are thin lines inside
+    walls.
+- **Per visual style:**
+  - Hidden Line leaves the fill white; Consistent Colors shows it flat.
+  - Wireframe shows only the cut lines.
+  - A selected element's cut turns blue, and a hidden element's cut hides with it.
+- **Updates.** Caps follow the model and the box. While a face of the box is dragged they hide,
+  and they come back when it's set.
+- **Verified:**
+  - Unit tests cover a box's cross-section (area, clipping, a miss) and a section box through
+    four layered walls: the right walls capped, a mitered cap's area, cut lines, layer lines,
+    and vertical caps.
+  - A headless render of the sample house cut at 4'-3" shows its wall tops, floor edge and
+    stair landing filled with heavy cut lines.
+- **Not yet** (Revit has these): material cut patterns (hatches) on the fill, and caps for
+  topography.
