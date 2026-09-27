@@ -27,7 +27,7 @@ const I = ({ children }: { children: ReactNode }) => (
   </svg>
 );
 
-const DRAW: [SketchMode, string, ReactNode][] = [
+export const DRAW: [SketchMode, string, ReactNode][] = [
   [
     "Line",
     "Line",

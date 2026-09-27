@@ -65,6 +65,19 @@ export const Icons = {
       <path d="M14 4.5h6" strokeWidth="1.2" />
     </I>
   ),
+  detailLine: (
+    <I>
+      <path d="M4 18L20 6" />
+      <path d="M4 12h6" strokeDasharray="2 2" />
+      <path d="M14 18h6" strokeWidth="2.4" />
+    </I>
+  ),
+  modelLine: (
+    <I>
+      <path d="M3 16l9-5 9 5-9 5z" strokeWidth="1" strokeDasharray="2 1.5" />
+      <path d="M6 16l12-6" strokeWidth="2" />
+    </I>
+  ),
   spotSlope: (
     <I>
       <path d="M3 17L21 8" />

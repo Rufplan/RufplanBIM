@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Detail lines and model lines (ADR-054).
 - Revit's default elevation and section marks (ADR-053).
 - Level ends in elevations and sections (ADR-052): grips drag each end of a level, per view.
 - Edit Model plans (ADR-051): the prompt can create, change, delete, move, copy, paint and annotate

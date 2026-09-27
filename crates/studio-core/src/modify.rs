@@ -57,6 +57,9 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     *start = start.add(delta);
                     *end = end.add(delta);
                 }
+                ElementData::DetailLine { curve, .. } | ElementData::ModelLine { curve, .. } => {
+                    *curve = curve.mapped(&|p| p.add(delta), false);
+                }
                 ElementData::TextNote { at, .. }
                 | ElementData::SpotSlope { at, .. }
                 | ElementData::NorthArrow { at, .. }

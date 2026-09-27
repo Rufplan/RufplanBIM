@@ -179,6 +179,13 @@ fn transformed(
             *at = x.apply(*at);
             *leader = x.apply(*leader);
         }
+        ElementData::DetailLine { view, curve, .. } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            *curve = curve.mapped(&|p| x.apply(p), mirror);
+        }
+        ElementData::ModelLine { curve, .. } => *curve = curve.mapped(&|p| x.apply(p), mirror),
         ElementData::Dimension {
             view,
             a,
@@ -809,6 +816,9 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                     }
                 })
             })
+        }
+        (ElementData::DetailLine { .. } | ElementData::ModelLine { .. }, "start" | "end") => {
+            crate::lines::drag_end(doc, id, key == "start", to)
         }
         (ElementData::Level { .. }, k) if k.starts_with("level_end:") => {
             let parts: Vec<&str> = k.split(':').collect();

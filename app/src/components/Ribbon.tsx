@@ -249,6 +249,14 @@ export function Ribbon() {
               />
               {sketchButton("Ceiling", "Sketch Ceiling", Icons.floor, "CS")}
             </Group>
+            <Group title="Model">
+              <ToolButton
+                tool="modelLine"
+                label="Model Line"
+                icon={Icons.modelLine}
+                keys="LI — on the level, seen in every view"
+              />
+            </Group>
             <Group title="Datum">
               <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
               <ToolButton tool="grid" label="Grid" icon={Icons.grid} keys="GR" />
@@ -550,6 +558,16 @@ export function Ribbon() {
               {Icons.tag}
               <span>Tag All</span>
             </button>
+          </Group>
+        )}
+        {tab === "Annotate" && (
+          <Group title="Detail">
+            <ToolButton
+              tool="detailLine"
+              label="Detail Line"
+              icon={Icons.detailLine}
+              keys="DL — this view only"
+            />
           </Group>
         )}
         {tab === "Annotate" && (

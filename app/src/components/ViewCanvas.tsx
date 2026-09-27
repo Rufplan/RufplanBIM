@@ -15,10 +15,12 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
+import { lineOptions } from "../lines";
 import {
   DIMENSION_TOOLS,
   REFERENCE_TOOLS,
   SELECTION_TOOLS,
+  LINE_TOOLS,
   litOf,
   useAppStore,
   type ActiveViewport,
@@ -197,6 +199,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const firstPick = useRef<{ id: ElementId; at: Pt } | null>(null);
   // Sketch mode: the draw tool's preview, the first pick of Trim/Fillet, a dragged vertex.
   const sketchPreview = useRef<Pt[][]>([]);
+  /** Detail/model lines the draw tool would make for the cursor (ADR-054). */
+  const linePreview = useRef<Pt[][]>([]);
   const sketchFirst = useRef<{ i: number; at: Pt } | null>(null);
   const vertexDrag = useRef<{ from: Pt; to: Pt | null } | null>(null);
   const sketchMode = useAppStore((s) => s.sketchUi.mode);
@@ -382,6 +386,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         const cursor = snapRef.current?.pt ?? null;
         if (cursor) drawCameraGhost(ctx, cam.current, w, h, pts.current[0] ?? null, cursor);
       }
+      if (LINE_TOOLS.includes(s.tool) && linePreview.current.length)
+        drawSketch(ctx, cam.current, w, h, [], new Set(), new Set(), linePreview.current, []);
       const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
         const sn = snapRef.current;
@@ -396,7 +402,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           cam.current,
           w,
           h,
-          s.tool === "sketch" ? [] : (rect ?? pts.current),
+          s.tool === "sketch" || LINE_TOOLS.includes(s.tool) ? [] : (rect ?? pts.current),
           rect ? null : (sn?.pt ?? null),
           sn?.kind ?? null,
           sn?.label ?? null,
@@ -659,6 +665,43 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     );
     redraw();
   });
+
+  /** What the detail/model line tool would draw to the cursor (computed in Rust). */
+  const linePreviewAt = useLatest(async (cursor: Pt) => {
+    const s = useAppStore.getState();
+    if (!LINE_TOOLS.includes(s.tool) || pts.current.length === 0) {
+      if (linePreview.current.length) {
+        linePreview.current = [];
+        redraw();
+      }
+      return;
+    }
+    const ui = s.lineUi;
+    linePreview.current = await ipc.linesPreview(ui.mode, pts.current, cursor, lineOptions(ui));
+    redraw();
+  });
+
+  /** The next point of the detail/model line tool: a draw mode's points make its lines. */
+  async function linePoint(p: Pt) {
+    const s = useAppStore.getState();
+    const ui = s.lineUi;
+    const need = ui.mode === "StartEndRadiusArc" || ui.mode === "CenterEndsArc" ? 3 : 2;
+    const from = pts.current[pts.current.length - 1];
+    if (from && samePt(from, p)) return;
+    const all = [...pts.current, p];
+    if (all.length < need) {
+      pts.current = all;
+    } else {
+      const ok = await apply(() =>
+        ipc.createLines(view.id, s.tool === "modelLine", ui.mode, all, lineOptions(ui), ui.style),
+      );
+      // Chained lines continue from the end of the last one.
+      pts.current = ok && ui.mode === "Line" && ui.chain ? [p] : ok ? [] : pts.current;
+      linePreview.current = [];
+    }
+    s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
+    redraw();
+  }
 
   /** A vertex grip (end of a selected sketch line) under a screen point. */
   const sketchGripAt = (sx: number, sy: number): Pt | null => {
@@ -1349,6 +1392,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       if (text !== null) await apply(() => ipc.createText(view.id, raw, text));
       return;
     }
+    if (LINE_TOOLS.includes(s.tool)) {
+      await linePoint(p);
+      return;
+    }
     // Symbols (ADR-048): one click, or two for a spot elevation (the point, then its text).
     if (s.tool === "spotSlope") {
       await apply(() => ipc.createSpotSlope(view.id, raw));
@@ -1586,6 +1633,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
               snapAt(p, 12 / cam.current.zoom);
               sketchPreviewAt(snapRef.current?.pt ?? p, 8 / cam.current.zoom);
             }
+            return;
+          }
+          if (LINE_TOOLS.includes(s.tool)) {
+            snapAt(p, 12 / cam.current.zoom);
+            linePreviewAt(snapRef.current?.pt ?? p);
             return;
           }
           const ad = areaDrag.current;

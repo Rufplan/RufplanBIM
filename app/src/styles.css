@@ -3064,3 +3064,26 @@ button:disabled {
   flex-direction: column;
   gap: 2px;
 }
+
+/* Detail and model line draw modes (ADR-054). */
+.ob-draw {
+  display: flex;
+  border: 1px solid var(--border-strong);
+}
+.ob-draw button {
+  width: 28px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+}
+.ob-draw button svg {
+  width: 17px;
+  height: 17px;
+}
+.ob-draw button:hover {
+  background: var(--light);
+}
+.ob-draw button.on {
+  background: var(--ink);
+  color: var(--white);
+}

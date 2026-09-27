@@ -12,6 +12,7 @@ pub mod element;
 pub mod generate;
 pub mod hosting;
 pub mod library;
+pub mod lines;
 pub mod material;
 pub mod model_edit;
 pub mod modify;

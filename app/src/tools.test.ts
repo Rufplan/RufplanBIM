@@ -30,6 +30,12 @@ describe("tools", () => {
     expect(toolAllowed("spotElevation", "ThreeD")).toBe(false);
     expect(promptFor("spotElevation", 1, "Plan")).toContain("same point again for no leader");
     expect(promptFor("keyPlan", 0, "Plan")).toBe("Open a sheet to place a key plan.");
+    // Lines (ADR-054): detail lines in 2D views and sheets, model lines in plans.
+    for (const v of ["Plan", "CeilingPlan", "Elevation", "Section", "Sheet"] as const)
+      expect(toolAllowed("detailLine", v)).toBe(true);
+    expect(toolAllowed("detailLine", "ThreeD")).toBe(false);
+    expect(toolAllowed("modelLine", "Plan")).toBe(true);
+    expect(toolAllowed("modelLine", "Elevation")).toBe(false);
     // Spot slopes (ADR-049): plans, elevations and sections.
     for (const v of ["Plan", "Elevation", "Section"] as const)
       expect(toolAllowed("spotSlope", v)).toBe(true);

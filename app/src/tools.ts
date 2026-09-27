@@ -124,6 +124,16 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "text" && view === "Sheet") return true;
   // Symbols (ADR-048): key plans on sheets, north arrows in plans or on sheets.
   if (tool === "keyPlan") return view === "Sheet";
+  // Lines (ADR-054): detail lines in any 2D view or sheet, model lines in plans.
+  if (tool === "detailLine")
+    return (
+      view === "Plan" ||
+      view === "CeilingPlan" ||
+      view === "Elevation" ||
+      view === "Section" ||
+      view === "Sheet"
+    );
+  if (tool === "modelLine") return view === "Plan" || view === "CeilingPlan";
   if (tool === "northArrow") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
   if (tool === "spotElevation" || tool === "graphicScale")
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
@@ -148,6 +158,10 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Open a plan, elevation or section to annotate.";
     if (tool === "dimensionAngular") return "Open a plan to dimension an angle.";
     if (tool === "keyPlan") return "Open a sheet to place a key plan.";
+    if (tool === "detailLine")
+      return "Open a plan, elevation, section or sheet to draw detail lines.";
+    if (tool === "modelLine")
+      return "Open a floor or ceiling plan to draw model lines on its level.";
     if (tool === "northArrow") return "Open a plan or a sheet to place a north arrow.";
     if (tool === "spotElevation" || tool === "graphicScale" || tool === "spotSlope")
       return "Open a plan, elevation or section to place it.";
@@ -274,6 +288,11 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return n === 0
         ? "Click the point to measure (a floor, the ground, or any height in an elevation or section)."
         : "Click where the elevation goes (click the same point again for no leader).";
+    case "detailLine":
+    case "modelLine":
+      return n === 0
+        ? `Click to start the ${tool === "detailLine" ? "detail" : "model"} line. Pick a draw mode and line style in the options bar.`
+        : "Click the next point. Esc finishes.";
     case "spotSlope":
       return view === "Plan"
         ? "Click a sloped roof, ramp, sidewalk or the ground; the arrow points downhill."

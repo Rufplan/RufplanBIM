@@ -177,6 +177,20 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     command: t("spotElevation"),
   },
   {
+    id: "detailLine",
+    label: "Detail Line",
+    group: "Annotate",
+    keys: ["DL"],
+    command: t("detailLine"),
+  },
+  {
+    id: "modelLine",
+    label: "Model Line",
+    group: "Architecture",
+    keys: ["LI"],
+    command: t("modelLine"),
+  },
+  {
     id: "spotSlope",
     label: "Spot Slope",
     group: "Annotate",

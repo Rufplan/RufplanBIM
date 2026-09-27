@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import type { Prefer } from "../bindings/Prefer";
 import { ipc } from "../ipc";
-import { TOOL_LABELS, useAppStore } from "../store";
+import { LINE_STYLES, LINE_TOOLS, TOOL_LABELS, useAppStore } from "../store";
+import type { DrawTool } from "../bindings/DrawTool";
+import type { LineStyle } from "../bindings/LineStyle";
+import { DRAW_TOOLS } from "../lines";
+import { DRAW } from "./SketchRibbon";
 
 type Choices = [[string, string][], [string, string][]];
 
@@ -47,6 +51,8 @@ export function OptionsBar() {
       {label}
     </label>
   );
+  const lineUi = useAppStore((s) => s.lineUi);
+  const setLineUi = useAppStore((s) => s.setLineUi);
   const ui = useAppStore((s) => s.sketchUi);
   const setUi = useAppStore((s) => s.setSketchUi);
   const markTypes = useAppStore((s) => s.app?.elevationMarkerTypes);
@@ -80,7 +86,65 @@ export function OptionsBar() {
       />
     </label>
   );
-  if (tool === "sketch") {
+  if (LINE_TOOLS.includes(tool)) {
+    const draws = DRAW.filter(([m]) => DRAW_TOOLS.includes(m));
+    body = (
+      <>
+        <label className="ob-field">
+          Line Style
+          <select
+            aria-label="Line Style"
+            value={lineUi.style}
+            onChange={(e) => setLineUi({ style: e.target.value as LineStyle })}
+          >
+            {LINE_STYLES.map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="ob-draw" role="radiogroup" aria-label="Draw">
+          {draws.map(([m, label, icon]) => (
+            <button
+              key={m}
+              role="radio"
+              aria-checked={lineUi.mode === m}
+              aria-label={label}
+              title={label}
+              className={lineUi.mode === m ? "on" : undefined}
+              onClick={() => setLineUi({ mode: m as DrawTool })}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
+        {lineUi.mode === "Line" && (
+          <label className="ob-check">
+            <input
+              type="checkbox"
+              checked={lineUi.chain}
+              onChange={(e) => setLineUi({ chain: e.target.checked })}
+            />
+            Chain
+          </label>
+        )}
+        {(lineUi.mode === "InscribedPolygon" || lineUi.mode === "CircumscribedPolygon") && (
+          <label className="ob-field">
+            Sides
+            <input
+              type="number"
+              min={3}
+              max={64}
+              aria-label="Sides"
+              value={lineUi.sides || ""}
+              onChange={(e) => setLineUi({ sides: Number(e.target.value) || 0 })}
+            />
+          </label>
+        )}
+      </>
+    );
+  } else if (tool === "sketch") {
     const m = ui.mode;
     const radius = (
       <>

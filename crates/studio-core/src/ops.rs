@@ -2115,6 +2115,10 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::SpotSlope {
             format, triangle, ..
         } => crate::slope::spot_properties(*format, *triangle, &mut props),
+        ElementData::DetailLine { style, curve, .. }
+        | ElementData::ModelLine { style, curve, .. } => {
+            crate::lines::properties(*style, curve, &mut props)
+        }
         ElementData::ElevationMarkerType {
             name,
             interior,
@@ -2758,6 +2762,9 @@ pub fn set_property(
         ElementData::SpotSlope {
             format, triangle, ..
         } => crate::slope::set_spot(format, triangle, key, value)?,
+        ElementData::DetailLine { style, .. } | ElementData::ModelLine { style, .. } => {
+            crate::lines::set_style(style, key, value)?
+        }
         ElementData::KeyPlan { width, .. } => match key {
             "width" => {
                 let w = parse_len(value)?;

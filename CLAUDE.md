@@ -133,6 +133,8 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Detail and model lines (ADR-054): studio-core `lines` (LineStyle, create_lines), studio-views
+  `line_style`; app `lines_cmds`, `lines.ts`; tools detailLine (DL) / modelLine (LI).
 - Level ends (ADR-052): View `level_ends` (studio-core `LevelEnds`), studio-views `level_line` /
   `apply_level_ends`, level grips in `handles`, `edit::drag_handle` key `level_end:view:side:other`.
 - Edit Model plans (ADR-051): studio-regen `model_ops` (ModelPlan, the operations, preview/apply);

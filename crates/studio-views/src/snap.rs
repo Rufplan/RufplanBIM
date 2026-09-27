@@ -86,6 +86,27 @@ pub fn snap_only(
             }),
     );
 
+    // Detail lines in this view and model lines on its level (ADR-054).
+    let level = match doc.data(view) {
+        Ok(studio_core::ElementData::View {
+            kind:
+                studio_core::ViewKind::FloorPlan { level }
+                | studio_core::ViewKind::CeilingPlan { level },
+            ..
+        }) => Some(*level),
+        _ => None,
+    };
+    for e in doc.iter() {
+        let c = match &e.data {
+            studio_core::ElementData::DetailLine { view: v, curve, .. } if *v == view => curve,
+            studio_core::ElementData::ModelLine {
+                level: l, curve, ..
+            } if Some(*l) == level => curve,
+            _ => continue,
+        };
+        let p = c.points();
+        segs.extend(p.windows(2).map(|w| (w[0], w[1])));
+    }
     let mut cands: Vec<(SnapKind, Pt)> = vec![];
     for (a, b) in &segs {
         cands.push((SnapKind::Endpoint, *a));

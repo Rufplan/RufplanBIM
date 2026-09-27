@@ -90,6 +90,9 @@ pub enum Category {
     GraphicScale,
     KeyPlan,
     SpotSlope,
+    /// Lines (ADR-054).
+    DetailLine,
+    ModelLine,
 }
 
 impl Category {
@@ -137,6 +140,8 @@ impl Category {
             Category::GraphicScale => "GraphicScale",
             Category::KeyPlan => "KeyPlan",
             Category::SpotSlope => "SpotSlope",
+            Category::DetailLine => "DetailLine",
+            Category::ModelLine => "ModelLine",
         }
     }
 }
@@ -1143,6 +1148,21 @@ pub enum ElementData {
         #[serde(default)]
         triangle: bool,
     },
+    /// A detail line (ADR-054): a line or arc drawn in one view (view coordinates).
+    DetailLine {
+        view: ElementId,
+        curve: crate::sketch::SketchCurve,
+        #[serde(default)]
+        style: crate::lines::LineStyle,
+    },
+    /// A model line (ADR-054): a line or arc on `level`'s work plane, seen in its plans,
+    /// in elevations and sections, and in 3D.
+    ModelLine {
+        level: ElementId,
+        curve: crate::sketch::SketchCurve,
+        #[serde(default)]
+        style: crate::lines::LineStyle,
+    },
     /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
     NorthArrow {
         view: ElementId,
@@ -1241,6 +1261,8 @@ impl ElementData {
             ElementData::GraphicScale { .. } => Category::GraphicScale,
             ElementData::KeyPlan { .. } => Category::KeyPlan,
             ElementData::SpotSlope { .. } => Category::SpotSlope,
+            ElementData::DetailLine { .. } => Category::DetailLine,
+            ElementData::ModelLine { .. } => Category::ModelLine,
         }
     }
 
@@ -1330,6 +1352,8 @@ impl ElementData {
             | ElementData::TextNote { view, .. }
             | ElementData::SpotElevation { view, .. }
             | ElementData::SpotSlope { view, .. }
+            | ElementData::DetailLine { view, .. }
+            | ElementData::ModelLine { level: view, .. }
             | ElementData::NorthArrow { view, .. }
             | ElementData::GraphicScale { view, .. }
             | ElementData::KeyPlan { sheet: view, .. } => vec![*view],
@@ -1405,6 +1429,8 @@ impl ElementData {
             ElementData::GraphicScale { .. } => "Graphic Scale".into(),
             ElementData::KeyPlan { .. } => "Key Plan".into(),
             ElementData::SpotSlope { .. } => "Spot Slope".into(),
+            ElementData::DetailLine { style, .. } => format!("Detail Line: {}", style.label()),
+            ElementData::ModelLine { style, .. } => format!("Model Line: {}", style.label()),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),

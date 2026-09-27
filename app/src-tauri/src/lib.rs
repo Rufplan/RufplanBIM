@@ -6,6 +6,7 @@ mod detailing;
 mod door_cmds;
 mod editing;
 mod generate_cmds;
+mod lines_cmds;
 mod material_cmds;
 mod menu;
 mod model_edit_cmds;
@@ -170,6 +171,8 @@ pub fn run() -> anyhow::Result<()> {
             render_cmds::set_camera_pose,
             render_cmds::sun_position,
             render_cmds::save_render,
+            lines_cmds::create_lines,
+            lines_cmds::lines_preview,
             model_edit_cmds::model_edit_preview,
             model_edit_cmds::model_edit_apply,
             standards_cmds::standards_get,

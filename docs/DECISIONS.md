@@ -1768,3 +1768,36 @@ out, 3 radii long, so the circle drawn over it leaves two black wings and the po
 the owner's reference. Marks with several views (interior elevations) put the sheet number in
 the circle and each view number outside, just beyond its point, as Revit does. Section heads
 keep the tangent Filled Arrow.
+
+## ADR-054 Detail lines and model lines — Accepted (2026-09-27)
+Owner request (2026-09-27): "create detail lines and model lines like Revit has". The owner
+approved the two new element kinds (older files open unchanged).
+
+- **Detail Line** (Annotate > Detail, DL): 2D lines owned by one view (`DetailLine`). They
+  can go in a plan, ceiling plan, elevation, section or sheet, and are drawn only there.
+  Copy, Rotate and Mirror act on them in plans, as with text notes; Move works anywhere.
+- **Model Line** (Architecture > Model, LI): lines on a level's work plane (`ModelLine`),
+  drawn from a plan of that level. They show in that level's plans, in elevations and
+  sections (at the level's height; a section sees those within its depth), and in 3D as
+  lines without faces.
+- **Drawing.** Both use the sketch tools' draw modes (`sketch::draw`):
+  - line (with Chain), rectangle, inscribed and circumscribed polygon (sides), circle,
+    start-end-radius arc and center-ends arc;
+  - the options bar has these, and the Line Style;
+  - a rubber band previews the result (`lines_preview`);
+  - each drawing is one undo.
+- **Line styles.** Revit's defaults, each drawn with a pen weight and a pattern
+  (`studio_views::line_style`):
+  - Thin Lines, Medium Lines, Wide Lines;
+  - \<Hidden\> (dashed), \<Centerline\> (dash-dot), \<Overhead\> (dashed, thin),
+    \<Demolished\> (dashed), \<Beyond\> (thin).
+  A line's style can be changed in Properties.
+- **Editing.** A straight line has a grip at each end. Its ends snap, and other tools snap
+  to them. Delete works as for any element. Edit Model can draw both (`create_detail_line`,
+  `create_model_line`).
+- **Not yet:**
+  - custom line styles (Manage > Line Styles);
+  - splines and ellipses;
+  - Pick Lines;
+  - model lines on vertical work planes (in elevations);
+  - Revit's halftone for \<Beyond\>.

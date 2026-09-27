@@ -5,6 +5,8 @@ import type { ImportReport } from "./bindings/ImportReport";
 import type { VisualStyle } from "./render/visualStyle";
 import type { Prefer } from "./bindings/Prefer";
 import type { Standards } from "./bindings/Standards";
+import type { DrawTool } from "./bindings/DrawTool";
+import type { LineStyle } from "./bindings/LineStyle";
 
 export type PickerCategory = "Door" | "Window";
 
@@ -50,6 +52,8 @@ export type Tool =
   | "dimensionAngular"
   | "text"
   | "spotElevation"
+  | "detailLine"
+  | "modelLine"
   | "spotSlope"
   | "northArrow"
   | "graphicScale"
@@ -99,6 +103,8 @@ export const TOOL_LABELS: Record<Tool, string> = {
   dimensionAngular: "Angular Dimension",
   text: "Text",
   spotElevation: "Spot Elevation",
+  detailLine: "Detail Line",
+  modelLine: "Model Line",
   spotSlope: "Spot Slope",
   northArrow: "North Arrow",
   graphicScale: "Graphic Scale",
@@ -195,6 +201,21 @@ export interface TempHide {
 }
 
 /** Tools that act on the current selection. */
+/** Tools that draw detail or model lines (ADR-054). */
+export const LINE_TOOLS: Tool[] = ["detailLine", "modelLine"];
+
+/** Revit's line styles, with their names. */
+export const LINE_STYLES: [LineStyle, string][] = [
+  ["Thin", "Thin Lines"],
+  ["Medium", "Medium Lines"],
+  ["Wide", "Wide Lines"],
+  ["Hidden", "<Hidden>"],
+  ["Centerline", "<Centerline>"],
+  ["Overhead", "<Overhead>"],
+  ["Demolished", "<Demolished>"],
+  ["Beyond", "<Beyond>"],
+];
+
 export const SELECTION_TOOLS: Tool[] = ["move", "copy", "rotate", "mirror", "array"];
 
 /** A pending Save / Don't Save / Cancel question and what to do after it. */
@@ -285,6 +306,9 @@ interface UiState {
   setStandards: (s: Standards | null) => void;
   standardsUi: { category: string; item: number; filter: "all" | "open" };
   setStandardsUi: (patch: Partial<UiState["standardsUi"]>) => void;
+  /** Detail and model lines (ADR-054): draw mode, line style, chain, polygon sides. */
+  lineUi: { mode: DrawTool; style: LineStyle; chain: boolean; sides: number };
+  setLineUi: (patch: Partial<UiState["lineUi"]>) => void;
   /** Edit Model with Claude (ADR-050): the dialog, its history, and the elements a
    * pending edit would change (highlighted like a selection). */
   editModel: { open: boolean; log: EditLogEntry[] };
@@ -379,6 +403,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   standardsUi: { category: "sheet", item: 0, filter: "all" },
   setStandardsUi: (patch) => set((s) => ({ standardsUi: { ...s.standardsUi, ...patch } })),
   standardsPending: {},
+  lineUi: { mode: "Line", style: "Thin", chain: true, sides: 6 },
+  setLineUi: (patch) => set((s) => ({ lineUi: { ...s.lineUi, ...patch } })),
   editModel: { open: false, log: [] },
   setEditModel: (patch) => set((s) => ({ editModel: { ...s.editModel, ...patch } })),
   highlight: [],

@@ -263,6 +263,34 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     anchor: Some(l),
                 });
             }
+            ElementData::DetailLine {
+                view: v,
+                curve: studio_core::sketch::SketchCurve::Line { a, b, .. },
+                ..
+            } if *v == view => {
+                for (key, at, anchor) in [("start", *a, *b), ("end", *b, *a)] {
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: key.into(),
+                        at,
+                        anchor: Some(anchor),
+                    });
+                }
+            }
+            ElementData::ModelLine {
+                level,
+                curve: studio_core::sketch::SketchCurve::Line { a, b, .. },
+                ..
+            } if plan && view_level == Some(*level) => {
+                for (key, at, anchor) in [("start", *a, *b), ("end", *b, *a)] {
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: key.into(),
+                        at,
+                        anchor: Some(anchor),
+                    });
+                }
+            }
             ElementData::Grid { start, end, .. } if plan => {
                 for (key, at, anchor) in [("start", *start, *end), ("end", *end, *start)] {
                     out.grips.push(Grip {

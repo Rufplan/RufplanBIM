@@ -687,6 +687,44 @@ impl Runner<'_> {
                 ops::set_property(doc, id, "name", &name, 0)?;
                 self.keep(op, vec![id])
             }
+            // Lines (ADR-054): a polyline through points (or start to end), in a style.
+            "createdetailline" | "createmodelline" => {
+                let detail = norm(o) == "createdetailline";
+                let pts: Vec<Pt> = if op.points.len() >= 2 {
+                    op.points.iter().map(|p| mm(*p)).collect()
+                } else {
+                    vec![need(op.start, "start", o)?, need(op.end, "end", o)?]
+                };
+                let on = if detail {
+                    let v = self.view(doc, &op.view)?;
+                    studio_core::lines::LinesOn::View(v)
+                } else {
+                    studio_core::lines::LinesOn::Level(self.level(doc, &op.level)?)
+                };
+                let style = if op.slope.is_empty() && op.value.is_empty() {
+                    studio_core::lines::LineStyle::Thin
+                } else {
+                    let s = if op.value.is_empty() {
+                        &op.slope
+                    } else {
+                        &op.value
+                    };
+                    studio_core::lines::LineStyle::parse(s)
+                        .ok_or_else(|| bad(format!("no line style \"{s}\"")))?
+                };
+                let mut made = vec![];
+                for w in pts.windows(2) {
+                    made.extend(studio_core::lines::create_lines(
+                        doc,
+                        on,
+                        studio_core::sketch::DrawTool::Line,
+                        &[w[0], w[1]],
+                        &studio_core::sketch::DrawOptions::default(),
+                        style,
+                    )?);
+                }
+                self.keep(op, made)
+            }
             "paint" => {
                 let m = self.material(doc, op)?;
                 let ids = if op.ids.is_empty() && op.id.is_empty() {
@@ -1015,6 +1053,7 @@ pub const OPERATIONS: &str = r##"Operations (fields besides "op"; points are {"x
 - create_spot_elevation: view, at, b (where the text goes). create_spot_slope: view, at. create_north_arrow / create_graphic_scale: view, at. create_key_plan: sheet, at (inches on the sheet).
 - create_section: start, end, name. create_elevation_marker: level, at. create_sheet: name, number. place_view: sheet, view, at (inches from the sheet's lower left; default centered).
 - paint: ids, or category (+ level), and material (a project or library material by name, e.g. "Brick, Running Bond") — or color "#rrggbb" (with name) for a new one. create_material: name, color, or material (a library material to add).
+- create_detail_line: view (blank = active), points (a polyline) or start/end, value (line style: Thin Lines, Medium Lines, Wide Lines, Hidden, Centerline, Overhead, Demolished, Beyond) — 2D, in that view only. create_model_line: level, points or start/end, value (line style) — on the level, seen in plans, elevations and 3D.
 - create_type: category (Wall|Floor|Ceiling|Door|Window|Roof|Column|Beam|Railing), from (a type to copy), name, properties.
 Every create operation also takes "properties": [{"name","value"}] set afterwards, by the names Properties shows (e.g. {"name":"Sill Height","value":"3'-0\""}, {"name":"Mark","value":"101A"}, {"name":"Width","value":"3'-6\""})."##;
 
@@ -1169,6 +1208,42 @@ mod tests {
         )
         .unwrap();
         assert_eq!(doc.count(Category::TextNote), 0);
+    }
+
+    #[test]
+    fn plans_draw_detail_and_model_lines() {
+        let mut doc = project();
+        let plan_view = doc
+            .of(Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::FloorPlan { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        let ctx = EditContext {
+            view: Some(plan_view),
+            ..Default::default()
+        };
+        apply(
+            &mut doc,
+            &plan(json!({ "operations": [
+                { "op": "create_detail_line", "value": "Hidden",
+                  "points": [{"x": 0, "y": 0}, {"x": 10, "y": 0}, {"x": 10, "y": 5}] },
+                { "op": "create_model_line", "start": {"x": 0, "y": 20}, "end": {"x": 30, "y": 20} }
+            ]})),
+            &ctx,
+        )
+        .unwrap();
+        assert_eq!(doc.count(Category::DetailLine), 2);
+        assert_eq!(doc.count(Category::ModelLine), 1);
+        assert!(doc.of(Category::DetailLine).all(|e| matches!(&e.data,
+            ElementData::DetailLine { style: studio_core::lines::LineStyle::Hidden, view, .. } if *view == plan_view)));
     }
 
     #[test]

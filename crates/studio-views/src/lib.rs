@@ -338,6 +338,9 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         }
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
+    if let ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } = kind {
+        plan_model_lines(doc, &mut b, *level);
+    }
     annotations(doc, &mut b, view);
     if let Ok(ElementData::View { level_ends, .. }) = doc.data(view) {
         apply_level_ends(&mut b.items, level_ends);
@@ -2037,6 +2040,25 @@ fn projected(
         Dash::Solid,
     );
 
+    // Model lines (ADR-054), at their level's height; a section sees those in its depth.
+    for e in doc.of(Category::ModelLine) {
+        let ElementData::ModelLine {
+            level,
+            curve,
+            style,
+        } = &e.data
+        else {
+            continue;
+        };
+        let pts = curve.points();
+        if cut.is_some() && seen(&pts) == Seen::Hidden {
+            continue;
+        }
+        let z = doc.level_elevation(*level).unwrap_or(0.0);
+        let uz: Vec<Pt> = pts.iter().map(|p| Pt::new(u_of(*p), z)).collect();
+        let (w, dash) = line_style(*style);
+        b.line(Some(e.id), &uz, false, w, dash);
+    }
     for l in &model.levels {
         let x1 = umax + ext * 2.0;
         b.line(
@@ -2597,6 +2619,38 @@ pub fn opening_preview(
     })
 }
 
+/// How a line style draws (ADR-054): pen and pattern.
+pub fn line_style(style: studio_core::lines::LineStyle) -> (u8, Dash) {
+    use studio_core::lines::LineStyle as L;
+    match style {
+        L::Thin => (1, Dash::Solid),
+        L::Medium => (3, Dash::Solid),
+        L::Wide => (5, Dash::Solid),
+        L::Hidden => (2, Dash::Dashed),
+        L::Centerline => (1, Dash::Center),
+        L::Overhead => (1, Dash::Dashed),
+        L::Demolished => (2, Dash::Dashed),
+        L::Beyond => (1, Dash::Solid),
+    }
+}
+
+/// Model lines (ADR-054) on `level`, drawn in its plans.
+fn plan_model_lines(doc: &Document, b: &mut Builder, level: ElementId) {
+    for e in doc.of(Category::ModelLine) {
+        if let ElementData::ModelLine {
+            level: l,
+            curve,
+            style,
+        } = &e.data
+        {
+            if *l == level {
+                let (w, dash) = line_style(*style);
+                b.line(Some(e.id), &curve.points(), curve.is_circle(), w, dash);
+            }
+        }
+    }
+}
+
 /// Dimensions, text notes and symbols (ADR-048) owned by `view`.
 pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
     for e in doc.iter() {
@@ -2620,6 +2674,14 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
                 size,
             } if *v == view => {
                 b.text(Some(e.id), *at, text.clone(), *size, Anchor::Left);
+            }
+            ElementData::DetailLine {
+                view: v,
+                curve,
+                style,
+            } if *v == view => {
+                let (w, dash) = line_style(*style);
+                b.line(Some(e.id), &curve.points(), curve.is_circle(), w, dash);
             }
             _ => {}
         }
@@ -3008,6 +3070,35 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             material: None,
             level: Some(s.level),
             positions: s.triangles(),
+        });
+    }
+    // Model lines (ADR-054): no faces, their segments at the level's height.
+    for e in doc.of(Category::ModelLine) {
+        let ElementData::ModelLine { level, curve, .. } = &e.data else {
+            continue;
+        };
+        let z = doc.level_elevation(*level).unwrap_or(0.0) as f32;
+        let pts = curve.points();
+        let mut edges = vec![];
+        for w in pts.windows(2) {
+            edges.extend_from_slice(&[
+                w[0].x as f32,
+                w[0].y as f32,
+                z,
+                w[1].x as f32,
+                w[1].y as f32,
+                z,
+            ]);
+        }
+        out.push(Mesh {
+            edges,
+            el: e.id,
+            category: Category::ModelLine,
+            exterior: false,
+            color: None,
+            material: None,
+            level: Some(*level),
+            positions: vec![],
         });
     }
     for r in &m.roofs {
@@ -4065,6 +4156,90 @@ mod tests {
         )
         .unwrap();
         (doc, l1, roof, stair)
+    }
+
+    #[test]
+    fn detail_lines_stay_in_their_view_and_model_lines_show_everywhere() {
+        use studio_core::lines::{create_lines, LineStyle, LinesOn};
+        use studio_core::sketch::{DrawOptions, DrawTool};
+        let (mut doc, l1, _, _) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::South
+                }
+            )
+        });
+        let o = DrawOptions::default();
+        let detail = create_lines(
+            &mut doc,
+            LinesOn::View(plan),
+            DrawTool::Line,
+            &[Pt::new(0.0, -2000.0), Pt::new(3000.0, -2000.0)],
+            &o,
+            LineStyle::Hidden,
+        )
+        .unwrap()[0];
+        let model = create_lines(
+            &mut doc,
+            LinesOn::Level(l1),
+            DrawTool::Line,
+            &[Pt::new(0.0, -4000.0), Pt::new(3000.0, -4000.0)],
+            &o,
+            LineStyle::Wide,
+        )
+        .unwrap()[0];
+        let lines = |v, el| {
+            display_list(&doc, v)
+                .unwrap()
+                .items
+                .into_iter()
+                .filter(move |i| i.el == Some(el))
+                .collect::<Vec<_>>()
+        };
+        // The detail line: in its plan only, dashed (Hidden).
+        let d = lines(plan, detail);
+        assert_eq!(d.len(), 1);
+        assert!(matches!(
+            &d[0].prim,
+            Prim::Line {
+                dash: Dash::Dashed,
+                w: 2,
+                ..
+            }
+        ));
+        assert!(lines(south, detail).is_empty());
+        // The model line: in the plan, and in the elevation at Level 1's height.
+        assert!(matches!(
+            &lines(plan, model)[0].prim,
+            Prim::Line { w: 5, .. }
+        ));
+        let e = lines(south, model);
+        assert_eq!(e.len(), 1);
+        let Prim::Line { pts, .. } = &e[0].prim else {
+            panic!()
+        };
+        assert!(pts.iter().all(|p| p[1].abs() < 1e-6));
+        assert!(((pts[0][0] - pts[1][0]).abs() - 3000.0).abs() < 1e-6);
+        // And in 3D, as edges with no faces.
+        let m = meshes(&doc).into_iter().find(|m| m.el == model).unwrap();
+        assert!(m.positions.is_empty() && m.edges.len() == 6);
+        // Grips at a straight line's ends; the ends snap.
+        let h = handles::handles(&doc, plan, &[detail]);
+        assert_eq!(
+            h.grips.iter().map(|g| g.key.as_str()).collect::<Vec<_>>(),
+            ["start", "end"]
+        );
+        let s = snap::snap(&doc, plan, Pt::new(3010.0, -2010.0), None, 50.0);
+        assert!(
+            (s.pt.x - 3000.0).abs() < 1e-6 && (s.pt.y + 2000.0).abs() < 1e-6,
+            "{s:?}"
+        );
     }
 
     #[test]

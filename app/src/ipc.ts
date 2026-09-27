@@ -33,6 +33,7 @@ import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
 import type { Standards } from "./bindings/Standards";
 import type { StandardChoice } from "./bindings/StandardChoice";
+import type { LineStyle } from "./bindings/LineStyle";
 import type { EditPlan } from "./bindings/EditPlan";
 import type { ModelPlan } from "./bindings/ModelPlan";
 import type { Reference } from "./bindings/Reference";
@@ -326,6 +327,17 @@ export const ipc = {
     invoke("set_category_visible", { view, categories, visible }),
   unhideAll: (view: ElementId): S => invoke("unhide_all", { view }),
   viewCategories: (view: ElementId) => invoke<[ElementId, Category][]>("view_categories", { view }),
+  // Detail and model lines (ADR-054).
+  createLines: (
+    view: ElementId,
+    model: boolean,
+    tool: DrawTool,
+    pts: Pt[],
+    options: DrawOptions,
+    style: LineStyle,
+  ): S => invoke("create_lines", { view, model, tool, pts, options, style }),
+  linesPreview: (tool: DrawTool, pts: Pt[], cursor: Pt, options: DrawOptions) =>
+    invoke<Pt[][]>("lines_preview", { tool, pts, cursor, options }),
   // Edit Model with Claude (ADR-050).
   modelEditPreview: (prompt: string, view: ElementId, selection: ElementId[]) =>
     invoke<EditPlan>("model_edit_preview", { prompt, view, selection }),
