@@ -93,6 +93,29 @@ pub fn tag_element(
     })
 }
 
+/// Tag on the contextual Modify tab: tags each selected door, window, room, column or beam
+/// that isn't tagged in this floor plan yet, as one undo step. Returns how many it tagged.
+pub fn tag_elements(
+    doc: &mut Document,
+    view: ElementId,
+    targets: &[ElementId],
+) -> CoreResult<usize> {
+    let mark = doc.undo_depth();
+    let mut n = 0;
+    let mut first_err = None;
+    for t in targets {
+        match tag_element(doc, view, *t) {
+            Ok(_) => n += 1,
+            Err(e) => first_err = first_err.or(Some(e)),
+        }
+    }
+    doc.merge_undo(mark, "Tag");
+    match (n, first_err) {
+        (0, Some(e)) => Err(e),
+        _ => Ok(n),
+    }
+}
+
 /// Hide in View > Elements (EH).
 pub fn hide_elements(doc: &mut Document, view: ElementId, ids: &[ElementId]) -> CoreResult<()> {
     doc.transact("Hide in view", |tx| {
@@ -235,6 +258,23 @@ mod tests {
             tag_element(&mut doc, plan, a).is_err(),
             "walls aren't tagged"
         );
+    }
+
+    #[test]
+    fn tag_several_elements_as_one_step() {
+        let (mut doc, a, _, plan) = setup();
+        let dt = doc.of(Category::DoorType).next().unwrap().id;
+        let d1 = ops::create_door(&mut doc, dt, a, 1500.0, false).unwrap();
+        let d2 = ops::create_door(&mut doc, dt, a, 3500.0, false).unwrap();
+        let tags: Vec<ElementId> = doc.of(Category::Tag).map(|e| e.id).collect();
+        ops::delete(&mut doc, &tags).unwrap();
+        // The wall isn't taggable: skipped, the doors tagged.
+        assert_eq!(tag_elements(&mut doc, plan, &[d1, d2, a]).unwrap(), 2);
+        assert_eq!(doc.count(Category::Tag), 2);
+        // Both again: nothing to tag.
+        assert!(tag_elements(&mut doc, plan, &[d1, d2]).is_err());
+        doc.undo().unwrap();
+        assert_eq!(doc.count(Category::Tag), 0, "one undo removes both tags");
     }
 
     #[test]

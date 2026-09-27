@@ -848,6 +848,16 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "select_all_instances":
           return ["w1", "w2", "w3"];
+        case "selection_categories": {
+          // From the categories the test gave, else the view's (w… walls, d… doors).
+          const known: Record<string, string> = { w1: "Wall", w2: "Wall", w3: "Wall", d1: "Door" };
+          const cats = (a.ids as string[])
+            .map((id) => fake.properties?.[id]?.category ?? known[id])
+            .filter(Boolean);
+          return [...new Set(cats)];
+        }
+        case "tag_elements":
+          return fake.state;
         case "view_categories":
           return [
             ["w1", "Wall"],

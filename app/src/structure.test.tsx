@@ -71,8 +71,10 @@ describe("structure and circulation (ADR-019)", () => {
 
   it("Attach Top sends the selected walls", async () => {
     await openProject();
+    fake.properties = { "00000000-0000-7000-8000-0000000000aa": { category: "Wall" } };
     useAppStore.getState().select(["00000000-0000-7000-8000-0000000000aa"]);
-    await userEvent.click(screen.getByRole("tab", { name: "Modify" }));
+    // Selecting a wall opens Modify | Walls, with its Modify Wall panel.
+    await screen.findByRole("tab", { name: "Modify | Walls" });
     await userEvent.click(screen.getByRole("button", { name: "Attach Top" }));
     expect(fake.calls.find((c) => c.cmd === "attach_wall_tops")?.args).toMatchObject({
       ids: ["00000000-0000-7000-8000-0000000000aa"],

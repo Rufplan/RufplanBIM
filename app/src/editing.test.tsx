@@ -81,7 +81,8 @@ describe("modify tools", () => {
     ]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
-    expect(screen.getByRole("button", { name: "Flip" })).toBeDisabled();
+    // Flip is on the contextual tab, once walls, doors or windows are selected (ADR-055).
+    expect(screen.queryByRole("button", { name: "Flip" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Array" }));
     const bar = screen.getByRole("group", { name: "Tool options" });
     const n = within(bar).getByLabelText("Number of items");

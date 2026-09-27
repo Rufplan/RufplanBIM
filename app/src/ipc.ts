@@ -322,6 +322,9 @@ export const ipc = {
   setPinned: (ids: ElementId[], pinned: boolean): S => invoke("set_pinned", { ids, pinned }),
   selectAllInstances: (id: ElementId) => invoke<ElementId[]>("select_all_instances", { id }),
   tagElement: (view: ElementId, target: ElementId): S => invoke("tag_element", { view, target }),
+  tagElements: (view: ElementId, targets: ElementId[]): S =>
+    invoke("tag_elements", { view, targets }),
+  selectionCategories: (ids: ElementId[]) => invoke<Category[]>("selection_categories", { ids }),
   hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
   setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>
     invoke("set_category_visible", { view, categories, visible }),

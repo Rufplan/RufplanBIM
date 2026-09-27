@@ -33,6 +33,26 @@ pub fn set_pinned(
     })
 }
 
+/// The selected elements' categories, for the ribbon's contextual Modify tab. Elements that
+/// no longer exist are left out.
+#[tauri::command]
+pub fn selection_categories(
+    ids: Vec<ElementId>,
+    state: State<'_, SessionState>,
+) -> Result<Vec<Category>, CommandError> {
+    let s = lock(&state)?;
+    let doc = s.doc()?;
+    let mut cats: Vec<Category> = vec![];
+    for id in ids {
+        if let Ok(d) = doc.data(id) {
+            if !cats.contains(&d.category()) {
+                cats.push(d.category());
+            }
+        }
+    }
+    Ok(cats)
+}
+
 /// SA: every instance of the selected element's type.
 #[tauri::command]
 pub fn select_all_instances(
@@ -53,6 +73,20 @@ pub fn tag_element(
 ) -> StateResult {
     edit_state(&window, &state, |s| {
         s.edit(|d| visibility::tag_element(d, view, target))?;
+        Ok(())
+    })
+}
+
+/// Tag on the contextual Modify tab: the selection's untagged elements, one undo.
+#[tauri::command]
+pub fn tag_elements(
+    view: ElementId,
+    targets: Vec<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        s.edit(|d| visibility::tag_elements(d, view, &targets))?;
         Ok(())
     })
 }

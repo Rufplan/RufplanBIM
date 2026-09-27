@@ -16,6 +16,13 @@ import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
 import { StandardsRibbon } from "./Standards";
+import {
+  ContextPanels,
+  ContextPropertiesGroup,
+  contextLabel,
+  useContextualSwitch,
+  useSelectionCategories,
+} from "./ModifyContext";
 import { runAction, openPicker, startTool } from "../actions";
 
 const TEMP_LABELS = {
@@ -35,7 +42,7 @@ const STYLE_KEYS: Partial<Record<VisualStyle, string>> = {
   hiddenLine: "HL",
   wireframe: "WF",
 };
-import { editBoundary, startSketch } from "../sketch";
+import { startSketch } from "../sketch";
 import { VISUAL_STYLES, type VisualStyle } from "../render/visualStyle";
 import { StyleIcon } from "./VisualStyleToggle";
 
@@ -152,6 +159,10 @@ export function Ribbon() {
   const setSatellite = useAppStore((s) => s.setSatellite);
   const thinLines = useAppStore((s) => s.thinLines);
   const visualStyle = useAppStore((s) => styleOf(s, s.activeView));
+  // Selecting elements turns the Modify tab into Revit's "Modify | Walls" (ADR-055).
+  const selectedCats = useSelectionCategories();
+  const ctxLabel = contextLabel(selectedCats);
+  useContextualSwitch(ctxLabel);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
   const sketchButton = (
@@ -178,13 +189,13 @@ export function Ribbon() {
             key={t}
             role="tab"
             aria-selected={tab === t}
-            className={`rb-tab${tab === t ? " active" : ""}`}
+            className={`rb-tab${tab === t ? " active" : ""}${t === "Modify" && ctxLabel ? " contextual" : ""}`}
             onClick={() => {
               setTab(t);
               if (t === "Rufplan" && !useAppStore.getState().cloud) void refreshCloud();
             }}
           >
-            {t}
+            {t === "Modify" && ctxLabel ? ctxLabel : t}
           </button>
         ))}
       </div>
@@ -462,6 +473,7 @@ export function Ribbon() {
         )}
         {tab === "Modify" && (
           <>
+            {ctxLabel && <ContextPropertiesGroup />}
             <Group title="Modify">
               <ToolButton tool="copy" label="Copy" icon={Icons.copy} keys="CO — select first" />
               <ToolButton tool="rotate" label="Rotate" icon={Icons.rotate} keys="RO" />
@@ -471,15 +483,6 @@ export function Ribbon() {
               <ToolButton tool="trim" label="Trim/Extend" icon={Icons.trim} keys="TR — corner" />
               <ToolButton tool="offset" label="Offset" icon={Icons.offset} keys="OF" />
               <ToolButton tool="split" label="Split" icon={Icons.split} keys="SL" />
-              <button
-                className="rb-btn"
-                onClick={() => void apply(() => ipc.flipSelection(selection))}
-                disabled={selection.length === 0}
-                title="Flip walls, doors and windows (Space)"
-              >
-                {Icons.flip}
-                <span>Flip</span>
-              </button>
               <button
                 className="rb-btn"
                 onClick={() => void runAction("pin")}
@@ -498,33 +501,6 @@ export function Ribbon() {
                 {Icons.unpin}
                 <span>Unpin</span>
               </button>
-              <button
-                className="rb-btn"
-                onClick={() => selection[0] && void editBoundary(selection[0])}
-                disabled={selection.length !== 1}
-                title="Edit the selected floor's or ceiling's boundary sketch (or double-click it)"
-              >
-                {Icons.floor}
-                <span>Edit Boundary</span>
-              </button>
-              <button
-                className="rb-btn"
-                onClick={() => void apply(() => ipc.attachWallTops(selection, true))}
-                disabled={selection.length === 0}
-                title="Attach the selected walls' tops to the roof above"
-              >
-                {Icons.attach}
-                <span>Attach Top</span>
-              </button>
-              <button
-                className="rb-btn"
-                onClick={() => void apply(() => ipc.attachWallTops(selection, false))}
-                disabled={selection.length === 0}
-                title="Detach the selected walls' tops from the roof"
-              >
-                {Icons.del}
-                <span>Detach Top</span>
-              </button>
             </Group>
           </>
         )}
@@ -542,6 +518,7 @@ export function Ribbon() {
             </button>
           </Group>
         )}
+        {tab === "Modify" && ctxLabel && <ContextPanels cats={selectedCats} />}
         {tab === "Annotate" && (
           <Group title="Annotate">
             <ToolButton tool="dimension" label="Aligned" icon={Icons.dimension} keys="DI" />

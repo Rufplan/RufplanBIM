@@ -1813,3 +1813,39 @@ right-angled triangle whose sides are tangent to the body. Its base is the body'
 across the look, reaching √2 radii each side, and its point is √2 radii out. The body drawn
 over it leaves the black point and a wing at each end of the diameter: Revit's standard
 exterior elevation mark.
+
+## ADR-055 Contextual Modify tab — Accepted (2026-09-27)
+Owner request (2026-09-27): "when you select an object can you have a prompt to modify that
+object like Revit does in the ribbon … do this for as many elements as it makes sense".
+
+- **The tab.** Selecting elements turns the Modify tab into Revit's green contextual tab,
+  named for the selection: "Modify | Walls", "Modify | Floors", "Modify | Lines",
+  "Modify | Multi-Select" and so on (`contextLabel`). The ribbon switches to it on each
+  selection. Clearing the selection goes back to the tab the user was on. Types, materials,
+  sheets and project settings picked in the browser keep the plain ribbon.
+- **Panels.** In order:
+  - Properties (Properties, Type Properties);
+  - the usual Modify and Move tools;
+  - View (Hide in View, Hide Element, Isolate Element, Isolate Category);
+  - Create (Create Similar, Select All Instances, Edit with Claude);
+  - Geometry (Paint, for model elements);
+  - one panel for each selected category that has its own tools:
+    - Walls: Modify Wall (Attach Top, Detach Top, Flip);
+    - Floors and ceilings: Mode (Edit Boundary);
+    - Doors and windows: Flip, and Browse Types (the type picker) when only one of the two
+      is selected;
+    - Doors, windows, rooms, columns and beams: Tag (Tag Room for rooms), in floor plans;
+    - Detail and model lines: Line Style;
+    - Sections, elevations, callouts and viewports: Go to View, and Activate View for a
+      viewport on the active sheet.
+- **Moved.** Flip, Edit Boundary, Attach Top and Detach Top leave the plain Modify tab.
+  They were disabled there without a selection, and Revit shows them only in context.
+- **Backend.** Two thin commands:
+  - `selection_categories` returns the selection's categories;
+  - `tag_elements` (studio-core `visibility::tag_elements`) tags the untagged taggable
+    elements of the selection as one undo step.
+- **Not yet:**
+  - Filter (by category) for a multi-selection;
+  - Revit's per-category geometry tools: Edit Profile, Edit Footprint, Pick New Host, Wall
+    Opening, Join/Cut Geometry, Match Type;
+  - setting a Line Style on several lines is one undo step per line.

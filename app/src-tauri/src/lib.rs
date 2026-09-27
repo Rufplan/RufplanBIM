@@ -155,6 +155,8 @@ pub fn run() -> anyhow::Result<()> {
             window_cmds::load_window_types,
             shortcut_cmds::set_pinned,
             shortcut_cmds::select_all_instances,
+            shortcut_cmds::selection_categories,
+            shortcut_cmds::tag_elements,
             shortcut_cmds::tag_element,
             shortcut_cmds::hide_elements,
             shortcut_cmds::set_category_visible,
