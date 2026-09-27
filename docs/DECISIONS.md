@@ -1876,3 +1876,11 @@ until you get to the object you want to modify … copy what Revit does".
     already step through references (ADR-040);
   - the hover name in 3D before Tab is pressed;
   - Revit's "Select elements by face" and "Select links" options.
+
+Amended (2026-09-27, owner request "make the section marker look like the exterior
+elevation marker"): the section head is now the building elevation mark: its body, the
+large right-angled pointer toward the view, and the detail over sheet number. It's drawn at
+the default exterior mark type's style and size (`detail::mark_symbol(doc, None, false)`),
+at the start of the section line. The line, its heavy end segments and Section Tail - Filled
+are unchanged. An unplaced section shows "—" like an unplaced elevation, not digits from
+its name.

@@ -894,7 +894,6 @@ fn opening_tag(
 fn section_markers(doc: &Document, b: &mut Builder) {
     for v in doc.of(Category::View) {
         let ElementData::View {
-            name,
             kind: ViewKind::Section { start, end, .. },
             ..
         } = &v.data
@@ -904,11 +903,12 @@ fn section_markers(doc: &Document, b: &mut Builder) {
         let el = Some(v.id);
         let d = end.sub(*start).norm();
         let look = d.perp();
-        // Revit's Section Head - Filled: a 1/2" bubble split by a line, the detail number
-        // over the sheet number, with a Filled Arrow toward the view; the line runs from the
-        // bubble to Section Tail - Filled, a 3/32" x 3/8" bar on the view's side.
-        let rp = 6.35;
-        let r = b.paper(rp);
+        // The head is the building elevation mark (the owner's request): its body, the
+        // large right-angled pointer toward the view and the detail over sheet number, at the
+        // default exterior mark's size. The line runs from the head to Section Tail - Filled,
+        // a 3/32" x 3/8" bar on the view's side.
+        let symbol = studio_core::detail::mark_symbol(doc, None, false);
+        let r = b.paper(symbol.1);
         let c = start.sub(d.scale(r));
         b.line(el, &[*start, *end], false, 1, Dash::Center);
         let seg = b.paper(8.0);
@@ -920,38 +920,7 @@ fn section_markers(doc: &Document, b: &mut Builder) {
             Dash::Solid,
         );
         b.line(el, &[*end, end.sub(d.scale(seg))], false, 5, Dash::Solid);
-        b.fill(el, vec![ring(&filled_arrow(c, r, look))], FillKind::Ink);
-        b.fill(
-            el,
-            vec![ring(&arc(c, r, 0.0, std::f64::consts::TAU))],
-            FillKind::Paper,
-        );
-        b.circle(el, c, rp, 2, false);
-        b.line(
-            el,
-            &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
-            false,
-            1,
-            Dash::Solid,
-        );
-        let (detail, sheet) = view_ref(doc, v.id).unwrap_or_else(|| {
-            let n: String = name.chars().filter(|ch| ch.is_ascii_digit()).collect();
-            (if n.is_empty() { "—".into() } else { n }, "—".into())
-        });
-        b.text(
-            el,
-            c.add(Pt::new(0.0, r * 0.42)),
-            detail,
-            rp * 0.49,
-            Anchor::Center,
-        );
-        b.text(
-            el,
-            c.sub(Pt::new(0.0, r * 0.58)),
-            sheet,
-            rp * 0.4,
-            Anchor::Center,
-        );
+        elevation_mark(doc, b, el, c, &[(v.id, look)], symbol);
         let (len, w) = (b.paper(9.525), b.paper(2.38));
         let tail = [
             *end,
@@ -4315,6 +4284,39 @@ mod tests {
             (s.pt.x - 3000.0).abs() < 1e-6 && (s.pt.y + 2000.0).abs() < 1e-6,
             "{s:?}"
         );
+    }
+
+    #[test]
+    fn a_section_head_is_the_exterior_elevation_mark() {
+        let mut doc = Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let (start, end) = (Pt::new(0.0, 0.0), Pt::new(10000.0, 0.0));
+        let sec = studio_core::ops::create_section(&mut doc, start, end).unwrap();
+        let mut b = Builder::new(48.0);
+        section_markers(&doc, &mut b);
+        let (style, size) = studio_core::detail::mark_symbol(&doc, None, false);
+        let r = b.paper(size);
+        let c = start.sub(Pt::new(r, 0.0));
+        // The same pieces the building elevation mark draws, pointing the way the view looks.
+        let mut mark = Builder::new(48.0);
+        let look = end.sub(start).norm().perp();
+        elevation_mark(&doc, &mut mark, Some(sec), c, &[(sec, look)], (style, size));
+        let head: Vec<&Item> = b
+            .items
+            .iter()
+            .filter(|i| mark.items.iter().any(|m| m == *i))
+            .collect();
+        assert_eq!(
+            head.len(),
+            mark.items.len(),
+            "every piece of the mark is in the head"
+        );
+        // Its pointer is the large one: the tip √2 radii out along the look.
+        let tip = c.add(look.scale(r * std::f64::consts::SQRT_2));
+        assert!(b.items.iter().any(
+            |i| matches!(&i.prim, Prim::Fill { rings, fill: FillKind::Ink }
+            if Pt::new(rings[0][0][0], rings[0][0][1]).dist(tip) < 1e-6)
+        ));
     }
 
     #[test]
