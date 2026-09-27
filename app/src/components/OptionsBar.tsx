@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Prefer } from "../bindings/Prefer";
 import { ipc } from "../ipc";
 import { TOOL_LABELS, useAppStore } from "../store";
 
@@ -208,6 +209,27 @@ export function OptionsBar() {
         </label>
       </>
     );
+  else if (tool === "dimension" || tool === "dimensionAngular")
+    body = (
+      <>
+        <label className="ob-field">
+          Prefer
+          <select
+            aria-label="Prefer"
+            value={o.dimPrefer}
+            onChange={(e) => set("dimPrefer", e.target.value as Prefer)}
+          >
+            <option value="WallCenterlines">Wall centerlines</option>
+            <option value="WallFaces">Wall faces</option>
+            <option value="CenterOfCore">Center of core</option>
+            <option value="FacesOfCore">Faces of core</option>
+          </select>
+        </label>
+        <span className="ob-hint">Tab cycles the references under the cursor</span>
+      </>
+    );
+  else if (tool === "dimensionLinear")
+    body = <span className="ob-hint">Tab cycles the references under the cursor</span>;
   else if (tool === "offset")
     body = (
       <label className="ob-field">

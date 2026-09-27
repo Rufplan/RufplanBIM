@@ -15,7 +15,8 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
-import { SELECTION_TOOLS, useAppStore, type ActiveViewport } from "../store";
+import { DIMENSION_TOOLS, SELECTION_TOOLS, useAppStore, type ActiveViewport } from "../store";
+import type { Reference } from "../bindings/Reference";
 import {
   THEME,
   draw,
@@ -167,6 +168,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   // Grips and temporary dimensions of the selection, and a grip being dragged.
   const handles = useRef<Handles | null>(null);
   const hoverGrip = useRef<number | null>(null);
+  // Dimension tools (ADR-040): the references picked so far, those under the cursor (best
+  // first) and which of them Tab has stepped to.
+  const dimRefs = useRef<Reference[]>([]);
+  const dimCands = useRef<Reference[]>([]);
+  const dimIndex = useRef(0);
   // A view title being dragged into place (ADR-039): the area, where the drag began, and
   // where the area's point goes.
   const areaDrag = useRef<{ index: number; from: Pt; to: Pt | null } | null>(null);
@@ -330,7 +336,29 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         s.tool === "window" ||
         s.tool === "room" ||
         s.tool === "offset" ||
-        (s.tool === "dimension" && pts.current.length === 2);
+        (DIMENSION_TOOLS.includes(s.tool) && dimRefs.current.length >= 2);
+      if (DIMENSION_TOOLS.includes(s.tool)) {
+        // Picked references in cyan; the one under the cursor bolder (Revit's highlight).
+        const hovered = dimCands.current[dimIndex.current];
+        const mark = (r: Reference, width: number) => {
+          const [ax, ay] = toScreen(cam.current!, w, h, r.from.x, r.from.y);
+          const [bx, by] = toScreen(cam.current!, w, h, r.to.x, r.to.y);
+          ctx.save();
+          ctx.strokeStyle = THEME.cyan;
+          ctx.lineWidth = width;
+          ctx.beginPath();
+          if (r.dir) {
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+          } else {
+            ctx.arc(ax, ay, 5, 0, Math.PI * 2);
+          }
+          ctx.stroke();
+          ctx.restore();
+        };
+        for (const r of dimRefs.current) mark(r, 2);
+        if (hovered) mark(hovered, 3.5);
+      }
       if (placing && preview.current) {
         const { items, valid, label, at } = preview.current;
         drawPreview(ctx, cam.current, w, h, items, valid ? THEME.cyan : "#c0352b", label, at);
@@ -488,6 +516,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   useEffect(redraw, [selection, redraw]);
 
   const resetRefs = useCallback(() => {
+    dimRefs.current = [];
+    dimCands.current = [];
+    dimIndex.current = 0;
     matchSource.current = null;
     pts.current = [];
     snapRef.current = null;
@@ -695,11 +726,49 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     redraw();
   }
 
-  const dimensionAt = useLatest(async (p: Pt) => {
-    const [a, b] = pts.current;
-    if (!a || !b) return;
-    const d = await ipc.dimensionPreview(view.id, a, b, p);
-    preview.current = d ? { items: d.items, valid: true, label: "", at: p } : null;
+  const dimensionHover = useLatest(async (raw: Pt, tol: number) => {
+    const s = useAppStore.getState();
+    const tool = s.tool;
+    if (!DIMENSION_TOOLS.includes(tool)) return;
+    const angular = tool === "dimensionAngular";
+    const placing = dimRefs.current.length >= 2;
+    let cands: Reference[] = [];
+    if (!(angular && placing)) {
+      // Points (endpoints, intersections) as well as lines, except for angles.
+      const sn = angular ? null : await ipc.snap(view.id, raw, null, tol).catch(() => null);
+      const snapped =
+        sn && sn.kind !== "None" && sn.kind !== "Nearest" && sn.kind !== "Angle" ? sn.pt : null;
+      cands = await ipc
+        .dimensionReferences(view.id, raw, tol, s.options.dimPrefer, snapped)
+        .catch(() => []);
+      if (angular) cands = cands.filter((c) => c.dir);
+    }
+    const same =
+      cands.length === dimCands.current.length &&
+      cands.every((c, i) => c.label === dimCands.current[i]?.label);
+    dimCands.current = cands;
+    if (!same) dimIndex.current = 0;
+    const refs = dimRefs.current;
+    if (placing) {
+      const d = angular
+        ? await ipc.angularPreview(view.id, refs[0]!, refs[1]!, raw).catch(() => null)
+        : await ipc
+            .dimensionStringPreview(
+              view.id,
+              refs,
+              raw,
+              tool === "dimensionLinear" ? "Linear" : "Aligned",
+            )
+            .catch(() => null);
+      preview.current = d ? { items: d.items, valid: true, label: "", at: raw } : null;
+    } else preview.current = null;
+    const c = cands[dimIndex.current];
+    const next = promptFor(tool, refs.length, view.viewType);
+    s.setPrompt(
+      c
+        ? `${c.label}: click to pick${cands.length > 1 ? " (Tab for the next)" : ""}. ${next}`
+        : next,
+    );
     redraw();
   });
 
@@ -762,6 +831,13 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   useEffect(() => {
     const onCancel = () => {
       const s = useAppStore.getState();
+      if (DIMENSION_TOOLS.includes(s.tool) && dimRefs.current.length > 0) {
+        dimRefs.current = [];
+        preview.current = null;
+        s.setPrompt(promptFor(s.tool, 0, view.viewType));
+        redraw();
+        return;
+      }
       if (s.tool === "sketch") {
         // Esc ends the current line chain, then returns to Modify; it never leaves sketch mode.
         if (pts.current.length || sketchFirst.current) {
@@ -820,6 +896,18 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         y: at ? at[1] - 34 : size.h / 2,
       });
     };
+    const onDimTab = () => {
+      const n = dimCands.current.length;
+      if (n < 2) return;
+      dimIndex.current = (dimIndex.current + 1) % n;
+      const c = dimCands.current[dimIndex.current]!;
+      const s = useAppStore.getState();
+      s.setPrompt(
+        `${c.label}: click to pick (Tab for the next). ${promptFor(s.tool, dimRefs.current.length, view.viewType)}`,
+      );
+      redraw();
+    };
+    window.addEventListener("dimension-tab", onDimTab);
     window.addEventListener("tool-cancel", onCancel);
     window.addEventListener("tool-finish", onFinish);
     window.addEventListener("view-fit", onFit);
@@ -828,6 +916,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     window.addEventListener("view-zoom-region", onZoomRegion);
     window.addEventListener("typed-value", onTyped);
     return () => {
+      window.removeEventListener("dimension-tab", onDimTab);
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("tool-finish", onFinish);
       window.removeEventListener("view-fit", onFit);
@@ -1017,6 +1106,50 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     if (e.id && e.key) await apply(() => ipc.setTempDimension(e.id!, e.key!, e.text));
   }
 
+  /** A click with a dimension tool (ADR-040): picks the reference under the cursor, or
+   * with enough picked, places the dimension there. */
+  async function dimensionClick(raw: Pt) {
+    const s = useAppStore.getState();
+    const angular = s.tool === "dimensionAngular";
+    const refs = dimRefs.current;
+    const cand = dimCands.current[dimIndex.current];
+    const done = () => {
+      dimRefs.current = [];
+      dimCands.current = [];
+      preview.current = null;
+      s.setPrompt(promptFor(s.tool, 0, view.viewType));
+      redraw();
+    };
+    if (angular) {
+      if (refs.length < 2) {
+        if (!cand?.dir) s.setError("Pick a wall or grid line.");
+        else dimRefs.current = [...refs, cand];
+      } else {
+        await apply(() => ipc.createAngularDimension(view.id, refs[0]!, refs[1]!, raw));
+        done();
+        return;
+      }
+    } else if (cand) {
+      const dup = refs.some(
+        (r) => Math.hypot(r.at.x - cand.at.x, r.at.y - cand.at.y) < 0.5 && r.label === cand.label,
+      );
+      if (!dup) dimRefs.current = [...refs, cand];
+    } else if (refs.length >= 2) {
+      await apply(() =>
+        ipc.createDimensionString(
+          view.id,
+          refs,
+          raw,
+          s.tool === "dimensionLinear" ? "Linear" : "Aligned",
+        ),
+      );
+      done();
+      return;
+    }
+    s.setPrompt(promptFor(s.tool, dimRefs.current.length, view.viewType));
+    redraw();
+  }
+
   async function click(sx: number, sy: number, shift: boolean) {
     const s = useAppStore.getState();
     if (!cam.current) return;
@@ -1165,22 +1298,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       redraw();
       return;
     }
-    const from = pts.current[pts.current.length - 1] ?? null;
-    const p = (await ipc.snap(view.id, raw, from, tol)).pt;
-    if (s.tool === "dimension") {
-      const [a, b] = pts.current;
-      if (a && b) {
-        const pv = await ipc.dimensionPreview(view.id, a, b, raw);
-        pts.current = [];
-        preview.current = null;
-        if (pv) await apply(() => ipc.createDimension(view.id, a, b, pv.offset));
-      } else if (!from || !samePt(from, p)) {
-        pts.current = [...pts.current, p];
-      }
-      s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
-      redraw();
+    if (DIMENSION_TOOLS.includes(s.tool)) {
+      await dimensionClick(raw);
       return;
     }
+    const from = pts.current[pts.current.length - 1] ?? null;
+    const p = (await ipc.snap(view.id, raw, from, tol)).pt;
     if (s.tool === "text") {
       const text = window.prompt("Text note", "");
       if (text !== null) await apply(() => ipc.createText(view.id, raw, text));
@@ -1418,7 +1541,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             s.tool === "offset"
           )
             previewAt(p, 12 / cam.current.zoom);
-          else if (s.tool === "dimension" && pts.current.length === 2) dimensionAt(p);
+          else if (DIMENSION_TOOLS.includes(s.tool)) dimensionHover(p, 12 / cam.current.zoom);
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
         }}
         onMouseUp={(e) => {

@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Revit dimensions (ADR-040): Aligned (DI) strings across wall faces, centerlines, core faces
+  and grids; Linear (horizontal/vertical); Angular; Prefer and Tab.
+
 - Activate View and stretchable view titles (ADR-039): double-click a viewport on a sheet
   to work in its view in place; drag the end of a view title's line to stretch it.
 

@@ -540,13 +540,39 @@ impl Compass {
 }
 
 /// Where a dimension end is attached, so it follows the model. Lengths in mm.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export, rename = "DimAnchor")]
 pub enum Anchor {
     /// `t` is the fraction along the wall's location line from its start; `side` the signed
     /// distance to the left of it (e.g. ±half the thickness for a face).
     Wall { wall: ElementId, t: f64, side: f64 },
     /// `t` is the fraction along the grid line from its start.
     Grid { grid: ElementId, t: f64 },
+}
+
+/// A reference of a dimension string between its first and last (ADR-040).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct DimRef {
+    pub at: Pt,
+    #[serde(default)]
+    pub anchor: Option<Anchor>,
+}
+
+/// How a dimension measures (ADR-040): Revit's Aligned (across the references it was
+/// picked from) or Linear (horizontal or vertical).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum DimKind {
+    #[default]
+    Aligned,
+    Linear,
+}
+
+impl DimKind {
+    pub fn is_aligned(&self) -> bool {
+        *self == DimKind::Aligned
+    }
 }
 
 fn default_text_size() -> f64 {
@@ -835,6 +861,32 @@ pub enum ElementData {
         a_ref: Option<Anchor>,
         #[serde(default)]
         b_ref: Option<Anchor>,
+        /// References between the first (`a`) and last (`b`) of a dimension string, in
+        /// order along it (ADR-040).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        between: Vec<DimRef>,
+        /// The direction it measures along (unit): across the parallel references it was
+        /// picked from, or horizontal or vertical for a linear dimension. None measures from
+        /// `a` toward `b`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        along: Option<Pt>,
+        #[serde(default, skip_serializing_if = "DimKind::is_aligned")]
+        kind: DimKind,
+    },
+    /// The angle between two lines (walls or grids) in a view (ADR-040). Each line runs
+    /// through its point in its direction, following its element when anchored; the arc
+    /// passes through `at`, in the angle between the lines that holds it.
+    AngularDimension {
+        view: ElementId,
+        a: Pt,
+        a_dir: Pt,
+        #[serde(default)]
+        a_ref: Option<Anchor>,
+        b: Pt,
+        b_dir: Pt,
+        #[serde(default)]
+        b_ref: Option<Anchor>,
+        at: Pt,
     },
     /// A text note in a view, `at` in the view's coordinates.
     TextNote {
@@ -1059,7 +1111,9 @@ impl ElementData {
             ElementData::WindowType { .. } => Category::WindowType,
             ElementData::Window { .. } => Category::Window,
             ElementData::Room { .. } => Category::Room,
-            ElementData::Dimension { .. } => Category::Dimension,
+            ElementData::Dimension { .. } | ElementData::AngularDimension { .. } => {
+                Category::Dimension
+            }
             ElementData::TextNote { .. } => Category::TextNote,
             ElementData::Sheet { .. } => Category::Sheet,
             ElementData::Viewport { .. } => Category::Viewport,
@@ -1079,6 +1133,43 @@ impl ElementData {
             ElementData::ElevationMarker { .. } => Category::ElevationMarker,
             ElementData::ElevationMarkerType { .. } => Category::ElevationMarkerType,
             ElementData::Site { .. } => Category::Site,
+        }
+    }
+
+    /// A dimension's anchors (its ends and every reference between).
+    pub fn dimension_anchors(&self) -> Vec<&Option<Anchor>> {
+        match self {
+            ElementData::Dimension {
+                a_ref,
+                b_ref,
+                between,
+                ..
+            } => {
+                let mut v = vec![a_ref, b_ref];
+                v.extend(between.iter().map(|r| &r.anchor));
+                v
+            }
+            ElementData::AngularDimension { a_ref, b_ref, .. } => vec![a_ref, b_ref],
+            _ => vec![],
+        }
+    }
+
+    /// A dimension's anchors (its ends and every reference between), to retarget or flip
+    /// them when their elements are copied, split or flipped.
+    pub fn dimension_anchors_mut(&mut self) -> Vec<&mut Option<Anchor>> {
+        match self {
+            ElementData::Dimension {
+                a_ref,
+                b_ref,
+                between,
+                ..
+            } => {
+                let mut v = vec![a_ref, b_ref];
+                v.extend(between.iter_mut().map(|r| &mut r.anchor));
+                v
+            }
+            ElementData::AngularDimension { a_ref, b_ref, .. } => vec![a_ref, b_ref],
+            _ => vec![],
         }
     }
 
@@ -1126,7 +1217,9 @@ impl ElementData {
                 top_level,
                 ..
             } => vec![*base_level, *top_level],
-            ElementData::Dimension { view, .. } | ElementData::TextNote { view, .. } => vec![*view],
+            ElementData::Dimension { view, .. }
+            | ElementData::AngularDimension { view, .. }
+            | ElementData::TextNote { view, .. } => vec![*view],
             ElementData::Viewport { sheet, view, .. } => vec![*sheet, *view],
             ElementData::Tag { view, target, .. } => vec![*view, *target],
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
@@ -1191,6 +1284,7 @@ impl ElementData {
             ElementData::Window { mark, .. } => format!("Window {mark}"),
             ElementData::Room { name, number, .. } => format!("{name} {number}"),
             ElementData::Dimension { .. } => "Dimension".into(),
+            ElementData::AngularDimension { .. } => "Angular Dimension".into(),
             ElementData::TextNote { text, .. } => text.clone(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),

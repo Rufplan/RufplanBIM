@@ -526,7 +526,9 @@ export function Ribbon() {
         </Group>
         {tab === "Annotate" && (
           <Group title="Annotate">
-            <ToolButton tool="dimension" label="Dimension" icon={Icons.dimension} keys="DI" />
+            <ToolButton tool="dimension" label="Aligned" icon={Icons.dimension} keys="DI" />
+            <ToolButton tool="dimensionLinear" label="Linear" icon={Icons.dimLinear} keys="" />
+            <ToolButton tool="dimensionAngular" label="Angular" icon={Icons.dimAngular} keys="" />
             <ToolButton tool="text" label="Text" icon={Icons.text} keys="TX" />
             <ToolButton tool="tag" label="Tag" icon={Icons.tag} keys="TG — by category" />
             <button

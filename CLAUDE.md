@@ -131,6 +131,9 @@ Read these before writing code:
   Windows opens the Window Library.
 - Door families (ADR-033): studio-core `doors`, studio-views `doors` and `thumbs`; the
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
+- Dimensions (ADR-040): studio-core `dimension` (references, strings, linear, angular);
+  studio-views `dimension_string`, `angular`; tools dimension / dimensionLinear /
+  dimensionAngular.
 - Activate View (ADR-039): store `activeViewport`, ViewCanvas `onSheet`; stretchable view
   titles are `Viewport.title_length` (studio-sheets `title_line`, `sheet_handles`,
   `drag_title`).

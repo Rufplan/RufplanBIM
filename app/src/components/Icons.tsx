@@ -33,6 +33,18 @@ export const Icons = {
       <path d="M1.5 13.5l3-3M19.5 13.5l3-3" strokeWidth="2" />
     </I>
   ),
+  dimLinear: (
+    <I>
+      <path d="M4 18V9M20 18V5M4 7h16" />
+      <path d="M2.5 8.5l3-3M18.5 8.5l3-3" strokeWidth="2" />
+    </I>
+  ),
+  dimAngular: (
+    <I>
+      <path d="M4 20L20 20M4 20L16 6" />
+      <path d="M12 20a8 8 0 0 0-2.2-5.5" />
+    </I>
+  ),
   text: (
     <I>
       <path d="M5 5h14M12 5v14M9 19h6" strokeWidth="2" />

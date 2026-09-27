@@ -1282,3 +1282,65 @@ The owner approved the file-format change for (2).
 - **Not yet** (Revit has these):
   - The activated view's own title hides while it's active.
   - Activate View from the View tab or a right-click.
+
+## ADR-040 Revit-style dimensions — Accepted (2026-09-26)
+Owner request (2026-09-26): "update dimensions to be more like Revit's where it has angled,
+aligned, etc. and make them default snap to gridlines, face of wall, centerline of wall".
+
+The owner approved the file-format additions and chose Wall centerlines as the default
+Prefer.
+
+- **References** (`studio_core::dimension::references_at`). In plans, the dimension tools
+  pick:
+  - a wall's exterior or interior face, its centerline, and on layered walls its core faces
+    and core centerline;
+  - grid lines;
+  - points: endpoints, intersections and midpoints from the snaps.
+- **Picking a reference:**
+  - The nearest line within reach wins.
+  - Inside a wall but at none of its lines, the **Prefer** option (Options Bar: Wall
+    centerlines, Wall faces, Center of core, Faces of core) decides, as in Revit.
+  - **Tab** steps through the other references under the cursor.
+  - The reference under the cursor is highlighted cyan, the picked ones stay cyan, and its
+    name shows in the status bar.
+- **Aligned (DI):**
+  - Pick references one after another; the preview string follows the cursor, and a click in
+    empty space places it.
+  - Lines must be parallel to the first (within 1°). The string then measures across them,
+    one value per segment.
+  - Picking only points measures point to point, as before.
+- **Linear:** pick points or references. The dimension is horizontal or vertical: horizontal
+  when the cursor is above or below the picks, vertical when beside them. It can be a string.
+- **Angular:** pick two walls or grid lines, then click inside the angle to measure. The arc
+  goes in the angle that holds the cursor, with extension lines out to the arc, a tick at each
+  end, and the value in degrees (`45.00°`).
+- **Following the model.** Every reference is anchored to its wall or grid, so the dimension
+  follows it:
+  - moving or stretching the wall or grid;
+  - copying or mirroring it with its elements (the copy re-anchors to the copies);
+  - splitting or flipping walls.
+  - A grip moves a string's line; an angular dimension's grip moves its arc.
+- **File (additive, optional):**
+  - `Dimension.between` holds a string's middle references (`DimRef`).
+  - `Dimension.along` is the fixed measuring direction.
+  - `Dimension.kind` is Aligned or Linear.
+  - The new `AngularDimension` element holds each line's point, direction and anchor, and a
+    point on the arc.
+  - Older dimensions are 2-point aligned ones and draw as before.
+- **Properties:**
+  - Value (the total), and the Segments of a string.
+  - Type (Aligned, Linear horizontal or vertical, Angular).
+  - How many references follow the model, and the line's offset.
+- **Verified:** unit tests cover:
+  - the references at faces, centerlines and grids, and Prefer from inside a wall;
+  - parallel-only strings and their values, following a moved wall and a copy;
+  - linear horizontal/vertical by the cursor;
+  - angular's angle and supplementary side, following walls, and parallel lines refused;
+  - one value per segment, and the degrees.
+  - A headless render of the sample house showed a string across its walls, a vertical linear
+    and an angular dimension.
+- **Not yet** (Revit has these):
+  - Radial, diameter and arc-length dimensions (no curved walls yet).
+  - "Entire walls" picking (openings and intersecting walls in one pick).
+  - EQ constraints, and text moved off crowded segments.
+  - Line references in elevations and sections (points only there).

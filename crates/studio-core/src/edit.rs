@@ -175,6 +175,8 @@ fn transformed(
             b,
             a_ref,
             b_ref,
+            between,
+            along,
             ..
         } => {
             if !is_plan_view(tx, *view) {
@@ -182,24 +184,44 @@ fn transformed(
             }
             *a = x.apply(*a);
             *b = x.apply(*b);
-            for r in [&mut *a_ref, &mut *b_ref] {
-                *r = match r.take() {
-                    Some(Anchor::Wall { wall, t, side }) => map.get(&wall).map(|w| Anchor::Wall {
-                        wall: *w,
-                        t: if mirror { 1.0 - t } else { t },
-                        side,
-                    }),
-                    Some(Anchor::Grid { grid, t }) => {
-                        map.get(&grid).map(|g| Anchor::Grid { grid: *g, t })
-                    }
-                    None => None,
-                };
+            for r in between.iter_mut() {
+                r.at = x.apply(r.at);
+            }
+            // Mirrored, it measures the other way round so its line stays on the same side.
+            *along = along.map(|u| x.apply_vec(u).scale(if mirror { -1.0 } else { 1.0 }));
+            for r in [&mut *a_ref, &mut *b_ref]
+                .into_iter()
+                .chain(between.iter_mut().map(|r| &mut r.anchor))
+            {
+                *r = remap_anchor(r.take(), map, mirror);
             }
             if mirror {
                 // Keep the dimension line on the same side of the measured points.
                 std::mem::swap(a, b);
                 std::mem::swap(a_ref, b_ref);
+                between.reverse();
             }
+        }
+        ElementData::AngularDimension {
+            view,
+            a,
+            a_dir,
+            a_ref,
+            b,
+            b_dir,
+            b_ref,
+            at,
+        } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            *a = x.apply(*a);
+            *b = x.apply(*b);
+            *at = x.apply(*at);
+            *a_dir = x.apply_vec(*a_dir);
+            *b_dir = x.apply_vec(*b_dir);
+            *a_ref = remap_anchor(a_ref.take(), map, mirror);
+            *b_ref = remap_anchor(b_ref.take(), map, mirror);
         }
         ElementData::Door {
             host,
@@ -523,8 +545,12 @@ pub fn split_wall(doc: &mut Document, wall: ElementId, at: Pt) -> CoreResult<Ele
     }
     let dims: Vec<ElementId> = doc
         .of(Category::Dimension)
-        .filter(|e| matches!(&e.data, ElementData::Dimension { a_ref, b_ref, .. }
-            if [a_ref, b_ref].iter().any(|r| matches!(r, Some(Anchor::Wall { wall: w, .. }) if *w == wall))))
+        .filter(|e| {
+            e.data
+                .dimension_anchors()
+                .iter()
+                .any(|r| matches!(r, Some(Anchor::Wall { wall: w, .. }) if *w == wall))
+        })
         .map(|e| e.id)
         .collect();
     doc.transact("Split wall", |tx| {
@@ -552,30 +578,28 @@ pub fn split_wall(doc: &mut Document, wall: ElementId, at: Pt) -> CoreResult<Ele
         }
         for id in &dims {
             tx.modify(*id, |d| {
-                if let ElementData::Dimension { a_ref, b_ref, .. } = d {
-                    for r in [a_ref, b_ref] {
-                        if let Some(Anchor::Wall {
-                            wall: w,
-                            t: f,
-                            side,
-                        }) = r
-                        {
-                            if *w == wall {
-                                let along = *f * len;
-                                *r = Some(if along > t {
-                                    Anchor::Wall {
-                                        wall: b,
-                                        t: (along - t) / (len - t),
-                                        side: *side,
-                                    }
-                                } else {
-                                    Anchor::Wall {
-                                        wall,
-                                        t: along / t,
-                                        side: *side,
-                                    }
-                                });
-                            }
+                for r in d.dimension_anchors_mut() {
+                    if let Some(Anchor::Wall {
+                        wall: w,
+                        t: f,
+                        side,
+                    }) = r
+                    {
+                        if *w == wall {
+                            let along = *f * len;
+                            *r = Some(if along > t {
+                                Anchor::Wall {
+                                    wall: b,
+                                    t: (along - t) / (len - t),
+                                    side: *side,
+                                }
+                            } else {
+                                Anchor::Wall {
+                                    wall,
+                                    t: along / t,
+                                    side: *side,
+                                }
+                            });
                         }
                     }
                 }
@@ -644,13 +668,11 @@ pub fn flip_walls(doc: &mut Document, walls: &[ElementId]) -> CoreResult<()> {
             let dims: Vec<ElementId> = tx.of(Category::Dimension).map(|e| e.id).collect();
             for id in dims {
                 tx.modify(id, |d| {
-                    if let ElementData::Dimension { a_ref, b_ref, .. } = d {
-                        for r in [a_ref, b_ref] {
-                            if let Some(Anchor::Wall { wall, t, side }) = r {
-                                if wall == w {
-                                    *t = 1.0 - *t;
-                                    *side = -*side;
-                                }
+                    for r in d.dimension_anchors_mut() {
+                        if let Some(Anchor::Wall { wall, t, side }) = r {
+                            if wall == w {
+                                *t = 1.0 - *t;
+                                *side = -*side;
                             }
                         }
                     }
@@ -768,9 +790,8 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
             })
         }),
         (d @ ElementData::Dimension { .. }, "line") => {
-            let (a, b) = crate::ops::dimension_ends(doc, &d).ok_or_else(bad)?;
-            let n = b.sub(a).norm().perp();
-            let off = to.sub(a).dot(n);
+            let (pts, u) = crate::dimension::string_points(doc, &d).ok_or_else(bad)?;
+            let off = to.sub(pts[0]).dot(u.perp());
             doc.transact("Move dimension line", |tx| {
                 tx.modify(id, |d| {
                     if let ElementData::Dimension { offset, .. } = d {
@@ -779,6 +800,13 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                 })
             })
         }
+        (ElementData::AngularDimension { .. }, "arc") => doc.transact("Move dimension arc", |tx| {
+            tx.modify(id, |d| {
+                if let ElementData::AngularDimension { at, .. } = d {
+                    *at = to;
+                }
+            })
+        }),
         (
             ElementData::View {
                 camera: Some(_), ..
@@ -809,6 +837,24 @@ pub fn set_crop(doc: &mut Document, view: ElementId, crop: Option<CropBox>) -> C
             }
         })
     })
+}
+
+/// A dimension anchor on a copied element, moved to its copy (and, mirrored, measured
+/// from the copy's other end); None when its element isn't copied.
+fn remap_anchor(
+    r: Option<Anchor>,
+    map: &std::collections::HashMap<ElementId, ElementId>,
+    mirror: bool,
+) -> Option<Anchor> {
+    match r {
+        Some(Anchor::Wall { wall, t, side }) => map.get(&wall).map(|w| Anchor::Wall {
+            wall: *w,
+            t: if mirror { 1.0 - t } else { t },
+            side,
+        }),
+        Some(Anchor::Grid { grid, t }) => map.get(&grid).map(|g| Anchor::Grid { grid: *g, t }),
+        None => None,
+    }
 }
 
 #[cfg(test)]

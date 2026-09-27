@@ -264,6 +264,9 @@ pub fn create_dimension(
             offset,
             a_ref,
             b_ref,
+            between: vec![],
+            along: None,
+            kind: crate::element::DimKind::Aligned,
         }))
     })
 }
@@ -1704,23 +1707,63 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             ));
         }
         ElementData::Dimension {
-            a,
-            b,
             offset,
             a_ref,
             b_ref,
+            between,
+            kind,
             ..
         } => {
-            let (a, b) = dimension_ends(doc, &el.data).unwrap_or((*a, *b));
-            props.push(ro("value", "Value", "Dimensions", format_ft_in(a.dist(b))));
+            let (pts, u) = crate::dimension::string_points(doc, &el.data).unwrap_or_default();
+            let seg = crate::dimension::segments(&pts, u);
+            let kind = match kind {
+                crate::element::DimKind::Aligned => "Aligned",
+                crate::element::DimKind::Linear if u.x.abs() > 0.5 => "Linear (horizontal)",
+                crate::element::DimKind::Linear => "Linear (vertical)",
+            };
+            props.push(ro(
+                "value",
+                "Value",
+                "Dimensions",
+                format_ft_in(seg.iter().sum::<f64>()),
+            ));
+            props.push(ro("kind", "Type", "Dimensions", kind.into()));
+            if seg.len() > 1 {
+                props.push(ro(
+                    "segments",
+                    "Segments",
+                    "Dimensions",
+                    seg.iter()
+                        .map(|s| format_ft_in(*s))
+                        .collect::<Vec<_>>()
+                        .join("  |  "),
+                ));
+            }
+            let total = between.len() + 2;
+            let attached = [a_ref, b_ref]
+                .into_iter()
+                .chain(between.iter().map(|r| &r.anchor))
+                .filter(|r| r.is_some())
+                .count();
+            props.push(ro(
+                "attached",
+                "Follows Model",
+                "Dimensions",
+                format!("{attached} of {total} references"),
+            ));
+            props.push(len("offset", "Offset from Points", "Graphics", *offset));
+        }
+        ElementData::AngularDimension { a_ref, b_ref, .. } => {
+            let deg = crate::dimension::angular_arc(doc, &el.data).map_or(0.0, |a| a.degrees());
+            props.push(ro("value", "Value", "Dimensions", format!("{deg:.2}°")));
+            props.push(ro("kind", "Type", "Dimensions", "Angular".into()));
             let attached = [a_ref, b_ref].iter().filter(|r| r.is_some()).count();
             props.push(ro(
                 "attached",
                 "Follows Model",
                 "Dimensions",
-                format!("{attached} of 2 ends"),
+                format!("{attached} of 2 lines"),
             ));
-            props.push(len("offset", "Offset from Points", "Graphics", *offset));
         }
         ElementData::TextNote { text: t, size, .. } => {
             props.push(text("text", "Text", "Text", t));
@@ -2528,7 +2571,9 @@ pub fn set_property(
             }
             _ => return Err(unknown()),
         },
-        ElementData::Tag { .. } | ElementData::Issuance { .. } => return Err(unknown()),
+        ElementData::Tag { .. }
+        | ElementData::Issuance { .. }
+        | ElementData::AngularDimension { .. } => return Err(unknown()),
         ElementData::Sheet {
             number,
             name,

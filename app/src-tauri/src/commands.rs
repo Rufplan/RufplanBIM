@@ -505,6 +505,101 @@ pub fn create_dimension(
     })
 }
 
+/// Dimension references under the cursor (ADR-040): wall faces, centerlines and core faces
+/// and grid lines, best first; else the snapped point, if any.
+#[tauri::command]
+pub fn dimension_references(
+    view: ElementId,
+    cursor: Pt,
+    tol: f64,
+    prefer: studio_core::dimension::Prefer,
+    snapped: Option<Pt>,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<studio_core::dimension::Reference>> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    let mut refs = studio_core::dimension::references_at(doc, view, cursor, tol, prefer);
+    // A snapped point (an endpoint, intersection…) comes first when it's nearer than any line.
+    if let Some(p) = snapped {
+        let point = studio_core::dimension::Reference::point(doc, view, p);
+        let nearer = refs
+            .first()
+            .is_none_or(|r| p.dist(cursor) + 1e-9 < r.at.dist(cursor) && p.dist(cursor) <= tol);
+        if nearer {
+            refs.insert(0, point);
+        } else {
+            refs.push(point);
+        }
+    }
+    Ok(refs)
+}
+
+/// An aligned or linear dimension string being placed (ADR-040).
+#[tauri::command]
+pub fn dimension_string_preview(
+    view: ElementId,
+    refs: Vec<studio_core::dimension::Reference>,
+    cursor: Pt,
+    kind: studio_core::DimKind,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<DimensionPreview>> {
+    let session = lock(&state)?;
+    Ok(studio_views::string_preview(
+        session.doc()?,
+        view,
+        &refs,
+        cursor,
+        kind,
+    ))
+}
+
+#[tauri::command]
+pub fn create_dimension_string(
+    view: ElementId,
+    refs: Vec<studio_core::dimension::Reference>,
+    cursor: Pt,
+    kind: studio_core::DimKind,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| studio_core::dimension::create_string(d, view, &refs, cursor, kind))
+    })
+}
+
+/// An angular dimension being placed between two lines (ADR-040).
+#[tauri::command]
+pub fn angular_preview(
+    view: ElementId,
+    first: studio_core::dimension::Reference,
+    second: studio_core::dimension::Reference,
+    cursor: Pt,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<DimensionPreview>> {
+    let session = lock(&state)?;
+    Ok(studio_views::angular_preview(
+        session.doc()?,
+        view,
+        &first,
+        &second,
+        cursor,
+    ))
+}
+
+#[tauri::command]
+pub fn create_angular_dimension(
+    view: ElementId,
+    first: studio_core::dimension::Reference,
+    second: studio_core::dimension::Reference,
+    cursor: Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| studio_core::dimension::create_angular(d, view, &first, &second, cursor))
+    })
+}
+
 #[tauri::command]
 pub fn create_text(
     view: ElementId,

@@ -2433,8 +2433,13 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
             ElementData::Dimension {
                 view: v, offset, ..
             } if *v == view => {
-                if let Some((a, p2)) = studio_core::ops::dimension_ends(doc, &e.data) {
-                    dimension(b, Some(e.id), a, p2, *offset);
+                if let Some((pts, u)) = studio_core::dimension::string_points(doc, &e.data) {
+                    dimension_string(b, Some(e.id), &pts, u, *offset);
+                }
+            }
+            ElementData::AngularDimension { view: v, .. } if *v == view => {
+                if let Some(arc) = studio_core::dimension::angular_arc(doc, &e.data) {
+                    angular(b, Some(e.id), &arc);
                 }
             }
             ElementData::TextNote {
@@ -2450,58 +2455,117 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
     }
 }
 
-/// An aligned dimension: witness lines, dimension line with architectural ticks, and the
-/// length in feet-inches above the line, kept upright.
+/// An aligned dimension from `a` to `p2`: witness lines, dimension line with architectural
+/// ticks, and the length in feet-inches above the line, kept upright.
 pub fn dimension(b: &mut Builder, el: Option<ElementId>, a: Pt, p2: Pt, offset: f64) {
-    let u = p2.sub(a).norm();
-    let n = u.perp();
-    let (da, db) = (a.add(n.scale(offset)), p2.add(n.scale(offset)));
-    let side = if offset < 0.0 { -1.0 } else { 1.0 };
-    let gap = b.paper(1.5) * side;
-    let ext = b.paper(2.0) * side;
-    if offset.abs() > gap.abs() {
-        b.line(
-            el,
-            &[a.add(n.scale(gap)), da.add(n.scale(ext))],
-            false,
-            1,
-            Dash::Solid,
-        );
-        b.line(
-            el,
-            &[p2.add(n.scale(gap)), db.add(n.scale(ext))],
-            false,
-            1,
-            Dash::Solid,
-        );
-    }
-    let over = b.paper(2.0);
-    b.line(
-        el,
-        &[da.sub(u.scale(over)), db.add(u.scale(over))],
-        false,
-        1,
-        Dash::Solid,
-    );
-    let t = u.add(n).norm().scale(b.paper(1.5));
-    for p in [da, db] {
-        b.line(el, &[p.sub(t), p.add(t)], false, 4, Dash::Solid);
-    }
+    dimension_string(b, el, &[a, p2], p2.sub(a).norm(), offset);
+}
+
+/// Text rotation along direction `u`, kept upright, and the side "above" it.
+fn upright(u: Pt) -> (f64, Pt) {
     let mut angle = u.y.atan2(u.x);
-    let mut up = n;
+    let mut up = u.perp();
     if angle > std::f64::consts::FRAC_PI_2 + 1e-9 || angle <= -std::f64::consts::FRAC_PI_2 + 1e-9 {
         angle += if angle > 0.0 {
             -std::f64::consts::PI
         } else {
             std::f64::consts::PI
         };
-        up = n.scale(-1.0);
+        up = up.scale(-1.0);
     }
-    let mid = da.lerp(db, 0.5).add(up.scale(b.paper(2.2)));
+    (angle, up)
+}
+
+/// A dimension string (ADR-040): references `pts` (in order along `u`) measured along `u`,
+/// the dimension line `offset` to the left of the first. A witness line from each
+/// reference, a tick at each, and each segment's length above its part of the line.
+pub fn dimension_string(b: &mut Builder, el: Option<ElementId>, pts: &[Pt], u: Pt, offset: f64) {
+    let Some(&o) = pts.first() else { return };
+    let n = u.perp();
+    let on_line: Vec<Pt> = pts
+        .iter()
+        .map(|p| o.add(u.scale(p.sub(o).dot(u))).add(n.scale(offset)))
+        .collect();
+    for (p, q) in pts.iter().zip(&on_line) {
+        let w = q.sub(*p).dot(n);
+        let side = if w < 0.0 { -1.0 } else { 1.0 };
+        let gap = b.paper(1.5) * side;
+        let ext = b.paper(2.0) * side;
+        if w.abs() > gap.abs() {
+            b.line(
+                el,
+                &[p.add(n.scale(gap)), q.add(n.scale(ext))],
+                false,
+                1,
+                Dash::Solid,
+            );
+        }
+    }
+    let (first, last) = (on_line[0], on_line[on_line.len() - 1]);
+    let over = b.paper(2.0);
+    b.line(
+        el,
+        &[first.sub(u.scale(over)), last.add(u.scale(over))],
+        false,
+        1,
+        Dash::Solid,
+    );
+    let tick = u.add(n).norm().scale(b.paper(1.5));
+    for q in &on_line {
+        b.line(el, &[q.sub(tick), q.add(tick)], false, 4, Dash::Solid);
+    }
+    let (angle, up) = upright(u);
+    for w in on_line.windows(2) {
+        let len = w[1].sub(w[0]).dot(u).abs();
+        let mid = w[0].lerp(w[1], 0.5).add(up.scale(b.paper(2.2)));
+        b.text_rot(el, mid, format_ft_in(len), 2.6, Anchor::Center, angle);
+    }
+}
+
+/// An angular dimension (ADR-040): the arc between its lines with a tick at each end,
+/// extension lines along the lines out to the arc where it passes beyond them, and the
+/// angle in degrees outside the arc's middle.
+pub fn angular(b: &mut Builder, el: Option<ElementId>, arc: &studio_core::dimension::AngleArc) {
+    let c = arc.center;
+    let r = arc.radius;
+    let a0 = arc.from.y.atan2(arc.from.x);
+    let steps = 48;
+    let pts: Vec<Pt> = (0..=steps)
+        .map(|k| {
+            let a = a0 + arc.sweep * f64::from(k) / f64::from(steps);
+            c.add(Pt::new(a.cos(), a.sin()).scale(r))
+        })
+        .collect();
+    b.line(el, &pts, false, 1, Dash::Solid);
+    let gap = b.paper(1.5);
+    let ext = b.paper(2.0);
+    for (ray, p) in [(arc.from, arc.refs[0]), (arc.to, arc.refs[1])] {
+        let d = p.sub(c).dot(ray);
+        if d < r - gap {
+            b.line(
+                el,
+                &[
+                    c.add(ray.scale(d.max(0.0) + gap)),
+                    c.add(ray.scale(r + ext)),
+                ],
+                false,
+                1,
+                Dash::Solid,
+            );
+        }
+        // A tick across the arc's end.
+        let end = c.add(ray.scale(r));
+        let tangent = ray.perp();
+        let t = ray.add(tangent).norm().scale(b.paper(1.5));
+        b.line(el, &[end.sub(t), end.add(t)], false, 4, Dash::Solid);
+    }
+    let am = a0 + arc.sweep / 2.0;
+    let dir = Pt::new(am.cos(), am.sin());
+    let (angle, _) = upright(dir.perp());
     b.text_rot(
         el,
-        mid,
-        format_ft_in(a.dist(p2)),
+        c.add(dir.scale(r + b.paper(2.4))),
+        format!("{:.2}°", arc.degrees()),
         2.6,
         Anchor::Center,
         angle,
@@ -2534,6 +2598,48 @@ pub fn dimension_preview(
     dimension(&mut b, None, a, p2, offset);
     Some(DimensionPreview {
         offset,
+        items: b.items,
+    })
+}
+
+/// A dimension string from picked references, its line through `cursor` (ADR-040).
+pub fn string_preview(
+    doc: &Document,
+    view: ElementId,
+    refs: &[studio_core::dimension::Reference],
+    cursor: Pt,
+    kind: studio_core::DimKind,
+) -> Option<DimensionPreview> {
+    let ElementData::View { scale, .. } = doc.data(view).ok()? else {
+        return None;
+    };
+    let plan = studio_core::dimension::plan_string(refs, cursor, kind).ok()?;
+    let pts: Vec<Pt> = plan.refs.iter().map(|r| r.0).collect();
+    let mut b = Builder::new(f64::from(*scale));
+    dimension_string(&mut b, None, &pts, plan.along, plan.offset);
+    Some(DimensionPreview {
+        offset: plan.offset,
+        items: b.items,
+    })
+}
+
+/// An angular dimension between two picked lines, its arc through `cursor` (ADR-040).
+pub fn angular_preview(
+    doc: &Document,
+    view: ElementId,
+    first: &studio_core::dimension::Reference,
+    second: &studio_core::dimension::Reference,
+    cursor: Pt,
+) -> Option<DimensionPreview> {
+    let ElementData::View { scale, .. } = doc.data(view).ok()? else {
+        return None;
+    };
+    let arc =
+        studio_core::dimension::angle_arc(first.at, first.dir?, second.at, second.dir?, cursor)?;
+    let mut b = Builder::new(f64::from(*scale));
+    angular(&mut b, None, &arc);
+    Some(DimensionPreview {
+        offset: 0.0,
         items: b.items,
     })
 }
@@ -2837,6 +2943,47 @@ mod tests {
     use studio_core::ops;
     use studio_core::units::MM_PER_FT;
     use studio_core::Compass;
+
+    #[test]
+    fn dimension_strings_and_angles_draw_each_value() {
+        let mut b = Builder::new(48.0);
+        let pts = [
+            Pt::new(0.0, 0.0),
+            Pt::new(3048.0, 0.0),
+            Pt::new(4572.0, 0.0),
+        ];
+        dimension_string(&mut b, None, &pts, Pt::new(1.0, 0.0), 900.0);
+        let texts: Vec<String> = b
+            .items
+            .iter()
+            .filter_map(|i| match &i.prim {
+                Prim::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(texts, ["10'-0\"", "5'-0\""], "one value per segment");
+        // Three witness lines, the dimension line and three ticks.
+        let lines = b
+            .items
+            .iter()
+            .filter(|i| matches!(i.prim, Prim::Line { .. }))
+            .count();
+        assert_eq!(lines, 3 + 1 + 3);
+        let arc = studio_core::dimension::angle_arc(
+            Pt::new(0.0, 0.0),
+            Pt::new(1.0, 0.0),
+            Pt::new(0.0, 0.0),
+            Pt::new(1.0, 1.0).norm(),
+            Pt::new(2000.0, 500.0),
+        )
+        .unwrap();
+        let mut b = Builder::new(48.0);
+        angular(&mut b, None, &arc);
+        assert!(b
+            .items
+            .iter()
+            .any(|i| matches!(&i.prim, Prim::Text { text, .. } if text == "45.00°")));
+    }
 
     fn building() -> (Document, ElementId) {
         let mut doc = Document::new();

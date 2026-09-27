@@ -3,6 +3,7 @@ import type { AppState, CloudStatus, ElementId, Pt } from "./ipc";
 import type { SnapKind } from "./bindings/SnapKind";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { VisualStyle } from "./render/visualStyle";
+import type { Prefer } from "./bindings/Prefer";
 
 export type PickerCategory = "Door" | "Window";
 
@@ -31,6 +32,8 @@ export type Tool =
   | "mirrorPick"
   | "camera"
   | "dimension"
+  | "dimensionLinear"
+  | "dimensionAngular"
   | "text"
   | "section"
   | "room"
@@ -72,7 +75,9 @@ export const TOOL_LABELS: Record<Tool, string> = {
   select: "Select",
   room: "Room",
   move: "Move",
-  dimension: "Dimension",
+  dimension: "Aligned Dimension",
+  dimensionLinear: "Linear Dimension",
+  dimensionAngular: "Angular Dimension",
   text: "Text",
   section: "Section",
   door: "Door",
@@ -118,6 +123,8 @@ export interface ToolOptions {
   stairShape: string;
   /** Camera: eye height above the plan's level, as typed (Revit's Offset). */
   cameraHeight: string;
+  /** Dimensions: the wall line picked from inside a wall (Revit's Prefer, ADR-040). */
+  dimPrefer: Prefer;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -293,6 +300,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     mirrorCopy: true,
     arrayCount: 3,
     offsetDistance: "2'-0\"",
+    dimPrefer: "WallCenterlines",
     wallLocation: "Centerline",
     stairShape: "straight",
     cameraHeight: "5' 6\"",
@@ -474,3 +482,6 @@ export function styleOf(
 ): VisualStyle {
   return (view && s.visualStyles[view]) || "shaded";
 }
+
+/** The dimension tools (ADR-040). */
+export const DIMENSION_TOOLS: Tool[] = ["dimension", "dimensionLinear", "dimensionAngular"];

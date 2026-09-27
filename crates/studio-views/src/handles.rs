@@ -163,13 +163,30 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                 ));
             }
             d @ ElementData::Dimension { offset, .. } => {
-                if let Some((a, b)) = studio_core::ops::dimension_ends(doc, d) {
-                    let n = b.sub(a).norm().perp();
+                if let Some((pts, u)) = studio_core::dimension::string_points(doc, d) {
+                    // The middle of the dimension line.
+                    let o = pts[0];
+                    let span = pts.iter().map(|p| p.sub(o).dot(u));
+                    let (lo, hi) =
+                        span.fold((f64::MAX, f64::MIN), |(l, h), s| (l.min(s), h.max(s)));
                     out.grips.push(Grip {
                         id: *id,
                         key: "line".into(),
-                        at: a.lerp(b, 0.5).add(n.scale(*offset)),
+                        at: o.add(u.scale((lo + hi) / 2.0)).add(u.perp().scale(*offset)),
                         anchor: None,
+                    });
+                }
+            }
+            d @ ElementData::AngularDimension { .. } => {
+                if let Some(arc) = studio_core::dimension::angular_arc(doc, d) {
+                    let a0 = arc.from.y.atan2(arc.from.x) + arc.sweep / 2.0;
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: "arc".into(),
+                        at: arc
+                            .center
+                            .add(Pt::new(a0.cos(), a0.sin()).scale(arc.radius)),
+                        anchor: Some(arc.center),
                     });
                 }
             }

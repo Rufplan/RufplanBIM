@@ -122,9 +122,11 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   // Move works in plan coordinates, and on sheets for viewports.
   if (tool === "move") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
   if (tool === "text" && view === "Sheet") return true;
-  if (tool === "dimension" || tool === "text") {
+  if (tool === "dimension" || tool === "dimensionLinear" || tool === "text") {
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   }
+  // Angular dimensions measure between walls or grids (ADR-040).
+  if (tool === "dimensionAngular") return view === "Plan" || view === "CeilingPlan";
   if (tool === "grid") return view === "Plan" || view === "CeilingPlan";
   return view === "Plan" || view === "CeilingPlan";
 }
@@ -136,8 +138,9 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     if (tool === "room") return "Open a floor plan to place rooms.";
     if (tool === "section") return "Open a floor plan to draw a section line.";
     if (tool === "callout") return "Open a plan, elevation or section to draw a callout.";
-    if (tool === "dimension" || tool === "text")
+    if (tool === "dimension" || tool === "dimensionLinear" || tool === "text")
       return "Open a plan, elevation or section to annotate.";
+    if (tool === "dimensionAngular") return "Open a plan to dimension an angle.";
     return "Open a floor or ceiling plan to use this tool.";
   }
   switch (tool) {
@@ -241,10 +244,20 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
         : "Click the destination. Joined walls stretch to follow.";
     case "dimension":
       return n === 0
-        ? "Click the first point to dimension from."
+        ? "Pick a wall face, centerline, grid or point (Tab for the next reference)."
         : n === 1
-          ? "Click the second point."
-          : "Move to place the dimension line, then click.";
+          ? "Pick the next reference."
+          : "Pick more references, or click in empty space to place the dimension.";
+    case "dimensionLinear":
+      return n < 2
+        ? "Pick points or references; the dimension is horizontal or vertical."
+        : "Pick more, or click above/below (horizontal) or beside (vertical) to place it.";
+    case "dimensionAngular":
+      return n === 0
+        ? "Pick the first wall or grid line."
+        : n === 1
+          ? "Pick the second line."
+          : "Click inside the angle to place the arc.";
     case "text":
       return "Click where the text note goes.";
     case "paint":

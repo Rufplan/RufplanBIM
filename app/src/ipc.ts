@@ -29,6 +29,9 @@ import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
+import type { Reference } from "./bindings/Reference";
+import type { Prefer } from "./bindings/Prefer";
+import type { DimKind } from "./bindings/DimKind";
 import type { ViewportInfo } from "./bindings/ViewportInfo";
 import type { PlansProgress } from "./bindings/PlansProgress";
 import type { PlansResult } from "./bindings/PlansResult";
@@ -131,6 +134,22 @@ export const ipc = {
     invoke("create_ceiling", { view, typeId, boundary, inside }),
   createSection: (start: Pt, end: Pt): S => invoke("create_section", { start, end }),
   /** The dimension a→b with its line through `cursor`. */
+  /** Dimension references under the cursor, best first (ADR-040). */
+  dimensionReferences: (
+    view: ElementId,
+    cursor: Pt,
+    tol: number,
+    prefer: Prefer,
+    snapped: Pt | null,
+  ) => invoke<Reference[]>("dimension_references", { view, cursor, tol, prefer, snapped }),
+  dimensionStringPreview: (view: ElementId, refs: Reference[], cursor: Pt, kind: DimKind) =>
+    invoke<DimensionPreview | null>("dimension_string_preview", { view, refs, cursor, kind }),
+  createDimensionString: (view: ElementId, refs: Reference[], cursor: Pt, kind: DimKind): S =>
+    invoke("create_dimension_string", { view, refs, cursor, kind }),
+  angularPreview: (view: ElementId, first: Reference, second: Reference, cursor: Pt) =>
+    invoke<DimensionPreview | null>("angular_preview", { view, first, second, cursor }),
+  createAngularDimension: (view: ElementId, first: Reference, second: Reference, cursor: Pt): S =>
+    invoke("create_angular_dimension", { view, first, second, cursor }),
   dimensionPreview: (view: ElementId, a: Pt, b: Pt, cursor: Pt) =>
     invoke<DimensionPreview | null>("dimension_preview", { view, a, b, cursor }),
   createDimension: (view: ElementId, a: Pt, b: Pt, offset: number): S =>

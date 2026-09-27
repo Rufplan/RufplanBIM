@@ -15,7 +15,7 @@ import {
   sampleProject,
   undo,
 } from "./fileActions";
-import { useAppStore } from "./store";
+import { DIMENSION_TOOLS, useAppStore } from "./store";
 import { shortcut, startsTypedValue } from "./tools";
 import { TopBar } from "./components/TopBar";
 import { Ribbon } from "./components/Ribbon";
@@ -165,6 +165,12 @@ export function App() {
           return;
         }
         keys.current = (keys.current + e.key).slice(-1);
+        return;
+      }
+      if (e.key === "Tab" && DIMENSION_TOOLS.includes(ui.tool)) {
+        // Tab steps to the next reference under the cursor, as in Revit.
+        e.preventDefault();
+        window.dispatchEvent(new Event("dimension-tab"));
         return;
       }
       if (ctrl && e.key.toLowerCase() === "z") {

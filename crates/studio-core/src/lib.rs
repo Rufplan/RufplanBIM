@@ -4,6 +4,7 @@ pub mod build;
 pub mod camera;
 pub mod compound;
 pub mod detail;
+pub mod dimension;
 pub mod document;
 pub mod doors;
 pub mod edit;
@@ -26,10 +27,10 @@ pub mod windows;
 
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};
 pub use element::{
-    Anchor, BeamShape, Category, ColumnShape, Compass, CropBox, CutPattern, DoorFamily, Element,
-    ElementData, ElementId, LayerFunction, LocationLine, MarkStyle, RufplanLink, ScheduleKind,
-    SectionBox, SheetSize, SlabBound, StageChange, StairShape, SurfacePattern, ViewKind,
-    WallFunction, WallLayer, WallTop, WindowFamily,
+    Anchor, BeamShape, Category, ColumnShape, Compass, CropBox, CutPattern, DimKind, DimRef,
+    DoorFamily, Element, ElementData, ElementId, LayerFunction, LocationLine, MarkStyle,
+    RufplanLink, ScheduleKind, SectionBox, SheetSize, SlabBound, StageChange, StairShape,
+    SurfacePattern, ViewKind, WallFunction, WallLayer, WallTop, WindowFamily,
 };
 pub use params::{ParamDef, ParamKind, ParamScope, ParamValue};
 

@@ -63,7 +63,9 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "New Sheet" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Wall" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Annotate" }));
-    expect(screen.getByRole("button", { name: "Dimension" })).toBeInTheDocument();
+    // Revit's dimension tools (ADR-040).
+    for (const name of ["Aligned", "Linear", "Angular"])
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
   });
 
   it("responds to the native File > Open menu", async () => {

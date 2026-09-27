@@ -65,13 +65,40 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     offset,
                     a_ref,
                     b_ref,
+                    between,
+                    along,
                     ..
                 } => {
-                    if a_ref.is_some() || b_ref.is_some() {
-                        // Attached ends stay on their elements: moving slides the dimension line.
-                        *offset += delta.dot(b.sub(*a).norm().perp());
+                    let attached = a_ref.is_some()
+                        || b_ref.is_some()
+                        || between.iter().any(|r| r.anchor.is_some());
+                    if attached {
+                        // Attached references stay on their elements: moving slides the
+                        // dimension line.
+                        let u = along.unwrap_or_else(|| b.sub(*a).norm());
+                        *offset += delta.dot(u.perp());
                     } else {
                         *a = a.add(delta);
+                        *b = b.add(delta);
+                        for r in between.iter_mut() {
+                            r.at = r.at.add(delta);
+                        }
+                    }
+                }
+                ElementData::AngularDimension {
+                    a,
+                    b,
+                    a_ref,
+                    b_ref,
+                    at,
+                    ..
+                } => {
+                    // The arc moves; lines not attached to elements move with it.
+                    *at = at.add(delta);
+                    if a_ref.is_none() {
+                        *a = a.add(delta);
+                    }
+                    if b_ref.is_none() {
                         *b = b.add(delta);
                     }
                 }
