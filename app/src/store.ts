@@ -36,6 +36,10 @@ export type Tool =
   | "dimensionLinear"
   | "dimensionAngular"
   | "text"
+  | "spotElevation"
+  | "northArrow"
+  | "graphicScale"
+  | "keyPlan"
   | "section"
   | "room"
   | "move"
@@ -80,6 +84,10 @@ export const TOOL_LABELS: Record<Tool, string> = {
   dimensionLinear: "Linear Dimension",
   dimensionAngular: "Angular Dimension",
   text: "Text",
+  spotElevation: "Spot Elevation",
+  northArrow: "North Arrow",
+  graphicScale: "Graphic Scale",
+  keyPlan: "Key Plan",
   section: "Section",
   door: "Door",
   window: "Window",
@@ -262,6 +270,9 @@ interface UiState {
   setStandards: (s: Standards | null) => void;
   standardsUi: { category: string; item: number; filter: "all" | "open" };
   setStandardsUi: (patch: Partial<UiState["standardsUi"]>) => void;
+  /** The choice pop-up for the standard picked (ADR-048). */
+  choicesOpen: boolean;
+  setChoicesOpen: (open: boolean) => void;
   /** Values being typed, not saved yet, by "category:index". */
   standardsPending: Record<string, string>;
   setStandardsPending: (key: string, value: string | null) => void;
@@ -347,6 +358,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   standardsUi: { category: "sheet", item: 0, filter: "all" },
   setStandardsUi: (patch) => set((s) => ({ standardsUi: { ...s.standardsUi, ...patch } })),
   standardsPending: {},
+  choicesOpen: false,
+  setChoicesOpen: (choicesOpen) => set({ choicesOpen }),
   setStandardsPending: (key, value) =>
     set((s) => {
       const next = { ...s.standardsPending };

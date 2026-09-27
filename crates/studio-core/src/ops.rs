@@ -2103,6 +2103,10 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
+        ElementData::SpotElevation { .. }
+        | ElementData::NorthArrow { .. }
+        | ElementData::GraphicScale { .. }
+        | ElementData::KeyPlan { .. } => crate::symbols::properties(doc, id, &mut props),
         ElementData::ElevationMarkerType {
             name,
             interior,
@@ -2737,7 +2741,22 @@ pub fn set_property(
         | ElementData::ElevationMarker { .. }
         | ElementData::ElevationMarkerType { .. }
         | ElementData::Site { .. }
-        | ElementData::Standards(_) => return Err(unknown()),
+        | ElementData::Standards(_)
+        | ElementData::SpotElevation { .. }
+        | ElementData::NorthArrow { .. }
+        | ElementData::GraphicScale { .. } => return Err(unknown()),
+        ElementData::KeyPlan { width, .. } => match key {
+            "width" => {
+                let w = parse_len(value)?;
+                if w < 12.0 {
+                    return Err(CoreError::Invalid(
+                        "a key plan is at least 1/2\" wide".into(),
+                    ));
+                }
+                *width = w;
+            }
+            _ => return Err(unknown()),
+        },
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {

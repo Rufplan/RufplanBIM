@@ -16,6 +16,22 @@ describe("tools", () => {
     expect(shortcut("X", "1")).toEqual({ buffer: "", tool: null, action: null });
   });
 
+  it("symbols go where Revit puts them (ADR-048)", () => {
+    for (const v of ["Plan", "CeilingPlan", "Elevation", "Section"] as const) {
+      expect(toolAllowed("spotElevation", v)).toBe(true);
+      expect(toolAllowed("graphicScale", v)).toBe(true);
+      expect(toolAllowed("keyPlan", v)).toBe(false);
+    }
+    expect(toolAllowed("northArrow", "Plan")).toBe(true);
+    expect(toolAllowed("northArrow", "Sheet")).toBe(true);
+    expect(toolAllowed("northArrow", "Elevation")).toBe(false);
+    expect(toolAllowed("keyPlan", "Sheet")).toBe(true);
+    expect(toolAllowed("spotElevation", "Sheet")).toBe(false);
+    expect(toolAllowed("spotElevation", "ThreeD")).toBe(false);
+    expect(promptFor("spotElevation", 1, "Plan")).toContain("same point again for no leader");
+    expect(promptFor("keyPlan", 0, "Plan")).toBe("Open a sheet to place a key plan.");
+  });
+
   it("tools are limited to views where they make sense", () => {
     expect(toolAllowed("wall", "Plan")).toBe(true);
     expect(toolAllowed("wall", "Elevation")).toBe(false);

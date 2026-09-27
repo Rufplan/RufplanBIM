@@ -189,6 +189,7 @@ export function StandardsView() {
   const ui = useAppStore((st) => st.standardsUi);
   const setUi = useAppStore((st) => st.setStandardsUi);
   const pending = useAppStore((st) => st.standardsPending);
+  const openChoices = useAppStore((st) => st.setChoicesOpen);
   if (!s || !cat) return <section className="workspace std-workspace" />;
   const index = s.categories.indexOf(cat);
   const d = defined(cat);
@@ -256,6 +257,10 @@ export function StandardsView() {
                 key={i}
                 className={`std-grid std-item${i === ui.item ? " on" : ""}`}
                 onClick={() => setUi({ item: i })}
+                onDoubleClick={() => {
+                  setUi({ item: i });
+                  openChoices(true);
+                }}
               >
                 <button
                   className={`std-check${it.done ? " on" : ""}`}
@@ -270,9 +275,20 @@ export function StandardsView() {
                   {it.done ? "✓" : ""}
                 </button>
                 <span className="std-name">{it.name}</span>
-                <span className={`std-value${value ? "" : " unset"}`}>
-                  {value || "Not yet set"}
-                </span>
+                <button
+                  className={`std-value${value ? "" : " unset"}`}
+                  title="See the choices"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUi({ item: i });
+                    openChoices(true);
+                  }}
+                >
+                  <span>{value || "Not yet set"}</span>
+                  <span className="std-more" aria-hidden>
+                    ▾
+                  </span>
+                </button>
                 <span className={`std-status${it.done ? " done" : ""}`}>
                   {it.done ? "DEFINED" : "OPEN"}
                 </span>
@@ -295,6 +311,7 @@ export function StandardsProperties() {
   const cat = useCategory(s);
   const ui = useAppStore((st) => st.standardsUi);
   const setPending = useAppStore((st) => st.setStandardsPending);
+  const openChoices = useAppStore((st) => st.setChoicesOpen);
   const item = cat?.items[ui.item] ?? cat?.items[0] ?? null;
   const index = cat && item ? cat.items.indexOf(item) : -1;
   const key = cat ? `${cat.id}:${index}` : "";
@@ -335,6 +352,9 @@ export function StandardsProperties() {
         </div>
         <div className="std-section">VALUE</div>
         <div className="std-value-edit">
+          <button className="std-choices-btn" onClick={() => openChoices(true)}>
+            Choices…
+          </button>
           {options.length > 0 && (
             <select
               aria-label="Preset"

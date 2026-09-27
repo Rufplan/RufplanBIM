@@ -1539,3 +1539,55 @@ seed has 14 categories and 90 standards).
   - A different project opens on Architecture.
 - **Not yet:** standards don't drive anything. For example, Sheet Size doesn't yet set new
   sheets' title blocks. Office libraries can't be saved from a project to reuse.
+
+## ADR-048 Standard choices, spot elevations, north arrows, graphic scales, key plans — Accepted (2026-09-27)
+Owner request (2026-09-27): "create a pop up for each standard and to see choices of how to
+change it, both list and grid versions controlled by a toggle in top right, also add spot
+elevations, key plan and north arrow, and graphic scale". The owner chose Revit-style tools and
+approved the new element kinds.
+
+- **Choices.** `standards_catalog` offers 2–5 choices, each a label and a line on what it
+  means, for every one of the 90 standards. Every default and library value is among them.
+  - A standard's preset options now come from the catalog, not the file.
+  - The pop-up opens by clicking a row's value, double-clicking the row, or Properties >
+    Choices…
+  - A toggle in its top right shows the choices as a grid (previews) or a list (small
+    previews). The toggle is remembered on this computer.
+  - It marks the current choice. Use this (or a double-click) saves the choice as the value,
+    and it can be undone. Custom values are still typed in Properties.
+- **Previews.** 30 graphic standards draw a preview of each choice in Rust
+  (`standards_preview`, paper mm):
+  - symbols, tags, dimension ticks, sheet sizes, the key plan and phasing;
+  - spot elevations, north arrows and graphic scales use their real drawing code.
+  - Other standards show their text.
+- **Symbols (new element kinds; older files open unchanged).**
+  - *Spot Elevation* (plans, ceiling plans, elevations, sections): click the point, then
+    where the text goes (the same point: no leader). It reads the model and follows it:
+    - in plans, the top of the floor there (at or below the 4'-0" cut plane), else the
+      ground (site topography), else the level;
+    - in ceiling plans, the ceiling;
+    - in elevations and sections, the point's height.
+  - *North Arrow* (plans and sheets). It shows project north and, from the Site's rotation,
+    true north.
+  - *Graphic Scale* (plans, elevations, sections). It is divided 0 · u · 2u · 4u, with u
+    picked so the bar is at most 60 mm on paper (1/8" gives 0 · 4 · 8 · 16'). It follows the
+    view's scale.
+  - *Key Plan* (sheets). It shows the building's outline, with the area the sheet's plans
+    show shaded (their crop boxes; an uncropped plan shades the whole building), a north
+    arrow and a label.
+  - Spot elevations, north arrows and graphic scales count in a view's extent (Zoom to Fit,
+    viewports).
+- **The standards drive the symbols.** Each symbol's style is the index of its standard's
+  choice. An open or custom value uses the first choice.
+  - Spot Elevations: triangle with the project elevation; target relative to 100'-0"; cross
+    with the survey elevation (the site's datum, decimal feet); text only.
+  - North Arrow: project north with a TN line; circle; half-filled; compass rose; true north
+    only.
+  - Graphic Scale: alternating bar; line with ticks; double checkered; bar with the scale
+    written.
+  - Key Plan & North Arrow: title block key plan with north arrow (as before); placed key
+    plans (the title block leaves it out); a north arrow only; none.
+- **Shortcuts.** Annotate > Symbol has the four tools, and they are in Keyboard Shortcuts.
+  Revit's EL is already our Elevation (ADR-024), so Spot Elevation has no default key.
+- **Not yet:** other standards (text, linework, tags…) don't drive drawing yet. There are no
+  per-instance style overrides, and no spot coordinates or spot slopes.

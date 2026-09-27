@@ -437,6 +437,13 @@ export function installFakeBackend(): FakeBackend {
           };
         case "standards_get":
           return fake.standards;
+        case "standards_choices":
+          return a.category === "sheet" && a.index === 0
+            ? [
+                { label: "ARCH C", detail: "Houses.", preview: null },
+                { label: "ARCH D", detail: "The usual set.", preview: null },
+              ]
+            : [];
         case "standards_libraries":
           return ["Rufplan Default (NCS 6)", "Residential", "Preservation"];
         case "standards_set": {

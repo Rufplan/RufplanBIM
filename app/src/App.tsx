@@ -31,6 +31,7 @@ import {
   StandardsStatus,
   StandardsView,
 } from "./components/Standards";
+import { StandardChoicesDialog } from "./components/StandardChoices";
 import { RufplanDialog } from "./components/RufplanDialog";
 import { ParamsDialog } from "./components/ParamsDialog";
 import logo from "./assets/rufplan-logo-white.svg";
@@ -242,6 +243,7 @@ export function App() {
                 <StandardsProperties />
               </div>
               <StandardsStatus />
+              <StandardChoicesDialog />
             </>
           ) : (
             <>

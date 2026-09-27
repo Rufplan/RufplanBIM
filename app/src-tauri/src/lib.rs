@@ -17,6 +17,7 @@ mod site_cmds;
 mod sketching;
 mod standards_cmds;
 mod structure;
+mod symbols_cmds;
 mod window_cmds;
 
 use tauri::{Emitter, Manager, WindowEvent};
@@ -172,6 +173,11 @@ pub fn run() -> anyhow::Result<()> {
             standards_cmds::standards_libraries,
             standards_cmds::standards_set,
             standards_cmds::standards_load_library,
+            standards_cmds::standards_choices,
+            symbols_cmds::create_spot_elevation,
+            symbols_cmds::create_north_arrow,
+            symbols_cmds::create_graphic_scale,
+            symbols_cmds::create_key_plan,
             sketching::sketch_begin,
             sketching::sketch_draw,
             sketching::sketch_pick_walls,

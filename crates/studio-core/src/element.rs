@@ -84,6 +84,11 @@ pub enum Category {
     Site,
     /// The project's drawing-set standards (ADR-047).
     Standards,
+    /// Annotation symbols (ADR-048).
+    SpotElevation,
+    NorthArrow,
+    GraphicScale,
+    KeyPlan,
 }
 
 impl Category {
@@ -126,6 +131,10 @@ impl Category {
             Category::ElevationMarkerType => "ElevationMarkerType",
             Category::Site => "Site",
             Category::Standards => "Standards",
+            Category::SpotElevation => "SpotElevation",
+            Category::NorthArrow => "NorthArrow",
+            Category::GraphicScale => "GraphicScale",
+            Category::KeyPlan => "KeyPlan",
         }
     }
 }
@@ -1064,6 +1073,31 @@ pub enum ElementData {
     },
     /// The project's drawing-set standards (ADR-047): one, made on the first edit.
     Standards(crate::standards::Standards),
+    /// A spot elevation (ADR-048): the height of the model at `at` (view coordinates), its
+    /// symbol and text at `leader` (the same point: no leader). Follows the model.
+    SpotElevation {
+        view: ElementId,
+        at: Pt,
+        leader: Pt,
+    },
+    /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
+    NorthArrow {
+        view: ElementId,
+        at: Pt,
+    },
+    /// A graphic scale (ADR-048) in a view, its left end at `at`; its divisions follow the
+    /// view's scale.
+    GraphicScale {
+        view: ElementId,
+        at: Pt,
+    },
+    /// A key plan on a sheet (ADR-048), centered at `at` (paper mm), `width` wide: the
+    /// building's outline with the area the sheet's plans show shaded.
+    KeyPlan {
+        sheet: ElementId,
+        at: Pt,
+        width: f64,
+    },
     /// An elevation mark family type (ADR-022): interior or building, and its symbol.
     ElevationMarkerType {
         name: String,
@@ -1139,6 +1173,10 @@ impl ElementData {
             ElementData::ElevationMarkerType { .. } => Category::ElevationMarkerType,
             ElementData::Site { .. } => Category::Site,
             ElementData::Standards(_) => Category::Standards,
+            ElementData::SpotElevation { .. } => Category::SpotElevation,
+            ElementData::NorthArrow { .. } => Category::NorthArrow,
+            ElementData::GraphicScale { .. } => Category::GraphicScale,
+            ElementData::KeyPlan { .. } => Category::KeyPlan,
         }
     }
 
@@ -1225,7 +1263,11 @@ impl ElementData {
             } => vec![*base_level, *top_level],
             ElementData::Dimension { view, .. }
             | ElementData::AngularDimension { view, .. }
-            | ElementData::TextNote { view, .. } => vec![*view],
+            | ElementData::TextNote { view, .. }
+            | ElementData::SpotElevation { view, .. }
+            | ElementData::NorthArrow { view, .. }
+            | ElementData::GraphicScale { view, .. }
+            | ElementData::KeyPlan { sheet: view, .. } => vec![*view],
             ElementData::Viewport { sheet, view, .. } => vec![*sheet, *view],
             ElementData::Tag { view, target, .. } => vec![*view, *target],
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
@@ -1293,6 +1335,10 @@ impl ElementData {
             ElementData::Dimension { .. } => "Dimension".into(),
             ElementData::AngularDimension { .. } => "Angular Dimension".into(),
             ElementData::TextNote { text, .. } => text.clone(),
+            ElementData::SpotElevation { .. } => "Spot Elevation".into(),
+            ElementData::NorthArrow { .. } => "North Arrow".into(),
+            ElementData::GraphicScale { .. } => "Graphic Scale".into(),
+            ElementData::KeyPlan { .. } => "Key Plan".into(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),

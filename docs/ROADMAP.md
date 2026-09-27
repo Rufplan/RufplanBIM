@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Standard choices and symbols (ADR-048): a choice pop-up per standard (list or grid of previews);
+  Spot Elevation, North Arrow, Graphic Scale and Key Plan, drawn as the standards say.
 - Standards tab (ADR-047): the office drawing-set standards as a checklist saved in the project.
 
 - Site plan contours labeled like a survey, and a Grids toggle on site plans (ADR-046).

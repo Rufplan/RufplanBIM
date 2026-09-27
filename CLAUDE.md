@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Symbols (ADR-048): studio-core `symbols` (elements, styles) and `standards_catalog` (choices
+  for all 90 standards); studio-views `symbols` and `standards_preview`; studio-sheets placed key
+  plans; components/StandardChoices.tsx; Annotate > Symbol.
 - Standards tab (ADR-047): studio-core `standards` (14 categories, 90 items, libraries),
   app `standards_cmds`, components/Standards.tsx; the first ribbon tab.
 - Section box caps (ADR-044): studio-geom `mesh_section`, `even_odd_in_rect`; studio-views

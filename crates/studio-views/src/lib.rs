@@ -19,6 +19,8 @@ pub mod handles;
 mod plan_parts;
 pub mod site_plan;
 pub mod snap;
+pub mod standards_preview;
+pub mod symbols;
 pub mod terrain;
 pub mod thumbs;
 pub mod windows;
@@ -349,6 +351,8 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
                 .is_some_and(|e| studio_core::visibility::hidden_in(doc, &vdata, e))
         });
     }
+    // Placed symbols (ADR-048) are part of the view's extent, like Revit's annotations.
+    let bounds = symbols::grow_bounds(doc, &b.items, bounds, b.paper(4.0));
     let (items, bounds) = match &crop {
         Some(c) => {
             let mut items = crop_items(b.items, c);
@@ -2428,7 +2432,7 @@ pub fn opening_preview(
     })
 }
 
-/// Dimensions and text notes owned by `view`.
+/// Dimensions, text notes and symbols (ADR-048) owned by `view`.
 pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
     for e in doc.iter() {
         match &e.data {
@@ -2455,6 +2459,7 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
             _ => {}
         }
     }
+    symbols::draw_symbols(doc, b, view);
 }
 
 /// An aligned dimension from `a` to `p2`: witness lines, dimension line with architectural

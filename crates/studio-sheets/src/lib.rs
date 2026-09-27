@@ -118,6 +118,62 @@ mod tests {
         assert!((b8.x - a8.x - sheet::MIN_TITLE_LENGTH).abs() < 1e-9 && b8.dist(b7) < 1e-9);
     }
 
+    #[test]
+    fn key_plans_follow_the_standard() {
+        use studio_core::standards::set_standard;
+        let (mut doc, _, plan) = project();
+        let sheet = ops::create_sheet(&mut doc, "Floor Plan", SheetSize::ArchD).unwrap();
+        ops::place_view(&mut doc, sheet, plan, Pt::new(400.0, 300.0)).unwrap();
+        let texts = |doc: &Document, el: Option<ElementId>| -> Vec<String> {
+            sheet_display_list(doc, sheet, "2026-09-27")
+                .unwrap()
+                .items
+                .into_iter()
+                .filter(|it| it.el == el)
+                .filter_map(|it| match it.prim {
+                    Prim::Text { text, .. } => Some(text),
+                    _ => None,
+                })
+                .collect()
+        };
+        // The default: the title block's key plan.
+        assert!(texts(&doc, None).contains(&"KEY PLAN".to_owned()));
+        // A placed one: its own label, the building toned (the plan isn't cropped).
+        let kp =
+            studio_core::symbols::create_key_plan(&mut doc, sheet, Pt::new(300.0, 200.0)).unwrap();
+        assert_eq!(texts(&doc, Some(kp)), ["N", "KEY PLAN"]);
+        let dl = sheet_display_list(&doc, sheet, "2026-09-27").unwrap();
+        assert!(dl.items.iter().any(|it| it.el == Some(kp)
+            && matches!(
+                it.prim,
+                Prim::Fill {
+                    fill: studio_views::FillKind::PocheLight,
+                    ..
+                }
+            )));
+        // "Placed": the title block leaves its key plan out.
+        set_standard(
+            &mut doc,
+            "sheet",
+            9,
+            Some("Placed key plan, sheet area shaded"),
+            None,
+        )
+        .unwrap();
+        assert!(!texts(&doc, None).contains(&"KEY PLAN".to_owned()));
+        // "North arrow only": the title block shows a north arrow.
+        set_standard(
+            &mut doc,
+            "sheet",
+            9,
+            Some("North arrow on every plan; no key plan"),
+            None,
+        )
+        .unwrap();
+        let tb = texts(&doc, None);
+        assert!(tb.contains(&"NORTH".to_owned()) && !tb.contains(&"KEY PLAN".to_owned()));
+    }
+
     fn schedule_view(doc: &Document, name: &str) -> ElementId {
         doc.of(Category::View)
             .find(|e| e.data.name() == name)

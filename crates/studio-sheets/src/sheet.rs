@@ -208,6 +208,7 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
     }
     // Text notes placed on the sheet itself (e.g. a cover title), in paper mm.
     studio_views::annotations(doc, &mut b, sheet);
+    placed_key_plans(doc, &mut b, sheet);
     title_block(doc, &mut b, sheet, *size, number, name, date);
     Some(DisplayList {
         view_type: ViewType::Sheet,
@@ -236,8 +237,33 @@ fn extents(items: &[Item]) -> Option<(Pt, Pt)> {
     studio_regen::bounds(&pts)
 }
 
-/// The building's outline on its lowest level, fitted into a `w` × `h` box at `origin`.
-fn key_plan(doc: &Document, b: &mut Builder, origin: Pt, w: f64, h: f64) {
+/// What the sheet's plans show (ADR-048): each plan viewport's crop box, or None for an
+/// uncropped plan (the whole building).
+fn shown_areas(doc: &Document, sheet: ElementId) -> Vec<Option<studio_core::CropBox>> {
+    viewports_on(doc, sheet)
+        .into_iter()
+        .filter_map(|(_, view, ..)| match doc.data(view) {
+            Ok(ElementData::View {
+                kind: ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. },
+                crop,
+                ..
+            }) => Some(*crop),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The building's outline on its lowest level, fitted into a `w` × `h` box at `origin`,
+/// with the areas in `shade` toned (None: all of it).
+fn key_plan(
+    doc: &Document,
+    b: &mut Builder,
+    el: Option<ElementId>,
+    origin: Pt,
+    w: f64,
+    h: f64,
+    shade: &[Option<studio_core::CropBox>],
+) {
     let model = studio_regen::regenerate(doc);
     let Some(level) = doc.levels().first().map(|l| l.0) else {
         return;
@@ -254,34 +280,90 @@ fn key_plan(doc: &Document, b: &mut Builder, origin: Pt, w: f64, h: f64) {
     let k = (w / bw).min(h / bh);
     let off = origin.add(Pt::new((w - bw * k) / 2.0, (h - bh * k) / 2.0));
     let map = |p: &Pt| off.add(p.sub(lo).scale(k));
+    let all = shade.iter().any(Option::is_none);
     for r in &regions {
         let outline: Vec<Pt> = r.outer.iter().map(map).collect();
-        b.fill(None, vec![studio_views::ring(&outline)], FillKind::Slab);
-        b.line(None, &outline, true, 3, Dash::Solid);
+        let fill = if all {
+            FillKind::PocheLight
+        } else {
+            FillKind::Slab
+        };
+        b.fill(el, vec![studio_views::ring(&outline)], fill);
+    }
+    for c in shade.iter().flatten() {
+        let (a, z) = (
+            Pt::new(c.min.x.max(lo.x), c.min.y.max(lo.y)),
+            Pt::new(c.max.x.min(hi.x), c.max.y.min(hi.y)),
+        );
+        if z.x - a.x < 1.0 || z.y - a.y < 1.0 {
+            continue;
+        }
+        let rect = [a, Pt::new(z.x, a.y), z, Pt::new(a.x, z.y)];
+        let mapped: Vec<Pt> = rect.iter().map(map).collect();
+        b.fill(el, vec![studio_views::ring(&mapped)], FillKind::PocheLight);
+        b.line(el, &mapped, true, 1, Dash::Dashed);
+    }
+    for r in &regions {
+        let outline: Vec<Pt> = r.outer.iter().map(map).collect();
+        b.line(el, &outline, true, 3, Dash::Solid);
     }
 }
 
-/// A north arrow (plan north is +y) at `c` with radius `r` paper mm.
-fn north_arrow(b: &mut Builder, c: Pt, r: f64) {
-    b.circle(None, c, r, 2, false);
-    let tip = c.add(Pt::new(0.0, r * 0.95));
-    b.fill(
-        None,
-        vec![studio_views::ring(&[
-            tip,
-            c.add(Pt::new(r * 0.45, -r * 0.6)),
-            c,
-            c.add(Pt::new(-r * 0.45, -r * 0.6)),
-        ])],
-        FillKind::Ink,
-    );
-    b.text(
-        None,
-        c.add(Pt::new(0.0, r + 3.0)),
-        "N".into(),
-        3.0,
-        Anchor::Center,
-    );
+/// Key plans placed on `sheet` (ADR-048): the key plan, a north arrow and its label.
+fn placed_key_plans(doc: &Document, b: &mut Builder, sheet: ElementId) {
+    let shade = shown_areas(doc, sheet);
+    let style = studio_core::symbols::NorthStyle::of(doc);
+    let tn = studio_views::symbols::true_north(doc);
+    for e in doc.of(Category::KeyPlan) {
+        let ElementData::KeyPlan {
+            sheet: s,
+            at,
+            width,
+        } = &e.data
+        else {
+            continue;
+        };
+        if *s != sheet {
+            continue;
+        }
+        let el = Some(e.id);
+        let (w, h) = (*width, width * 0.7);
+        let o = at.sub(Pt::new(w / 2.0, h / 2.0));
+        let frame = [
+            o,
+            Pt::new(o.x + w, o.y),
+            Pt::new(o.x + w, o.y + h),
+            Pt::new(o.x, o.y + h),
+        ];
+        b.fill(el, vec![studio_views::ring(&frame)], FillKind::Paper);
+        b.line(el, &frame, true, 1, Dash::Solid);
+        let r = (w * 0.06).clamp(3.0, 6.0);
+        let pad = 3.0;
+        key_plan(
+            doc,
+            b,
+            el,
+            o.add(Pt::new(pad, pad + 5.0)),
+            w - 2.0 * pad - 2.6 * r,
+            h - 2.0 * pad - 5.0,
+            &shade,
+        );
+        studio_views::symbols::north_arrow(
+            b,
+            el,
+            Pt::new(o.x + w - pad - r, o.y + h - pad - r * 1.9),
+            r,
+            style,
+            tn,
+        );
+        b.text(
+            el,
+            o.add(Pt::new(pad, pad + 1.2)),
+            "KEY PLAN".into(),
+            2.2,
+            Anchor::Left,
+        );
+    }
 }
 
 /// One viewport on a sheet: (viewport, view, center, title length, title offset).
@@ -663,9 +745,16 @@ fn title_block(
     y -= 4.0 * k;
     rule(b, y);
 
-    // Key plan with north arrow, just above the sheet name block.
+    // Key plan with north arrow, just above the sheet name block, as the Key Plan & North
+    // Arrow standard says (ADR-048).
     let key_top = m + 42.0 * k + 62.0 * k;
-    if y > key_top + 2.0 {
+    let kp = studio_core::symbols::KeyPlanStyle::of(doc);
+    let show = matches!(
+        kp,
+        studio_core::symbols::KeyPlanStyle::TitleBlock
+            | studio_core::symbols::KeyPlanStyle::ArrowOnly
+    );
+    if y > key_top + 2.0 && show {
         b.line(
             None,
             &[Pt::new(x0, key_top), Pt::new(x1, key_top)],
@@ -673,24 +762,37 @@ fn title_block(
             3,
             Dash::Solid,
         );
+        let arrow_only = kp == studio_core::symbols::KeyPlanStyle::ArrowOnly;
         b.text(
             None,
             Pt::new(tx, key_top - 5.5 * k),
-            "KEY PLAN".into(),
+            if arrow_only { "NORTH" } else { "KEY PLAN" }.into(),
             2.2 * k,
             Anchor::Left,
         );
-        key_plan(
-            doc,
+        if !arrow_only {
+            key_plan(
+                doc,
+                b,
+                None,
+                Pt::new(tx, m + 42.0 * k + 5.0 * k),
+                x1 - tx - pad - 14.0 * k,
+                44.0 * k,
+                &shown_areas(doc, sheet),
+            );
+        }
+        let c = if arrow_only {
+            Pt::new((tx + x1) / 2.0, m + 42.0 * k + 26.0 * k)
+        } else {
+            Pt::new(x1 - pad - 5.0 * k, m + 42.0 * k + 12.0 * k)
+        };
+        studio_views::symbols::north_arrow(
             b,
-            Pt::new(tx, m + 42.0 * k + 5.0 * k),
-            x1 - tx - pad - 14.0 * k,
-            44.0 * k,
-        );
-        north_arrow(
-            b,
-            Pt::new(x1 - pad - 5.0 * k, m + 42.0 * k + 12.0 * k),
+            None,
+            c,
             4.5 * k,
+            studio_core::symbols::NorthStyle::of(doc),
+            studio_views::symbols::true_north(doc),
         );
     }
 

@@ -32,6 +32,7 @@ import type { PlansInputs } from "./bindings/PlansInputs";
 import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
 import type { Standards } from "./bindings/Standards";
+import type { StandardChoice } from "./bindings/StandardChoice";
 import type { Reference } from "./bindings/Reference";
 import type { Prefer } from "./bindings/Prefer";
 import type { DimKind } from "./bindings/DimKind";
@@ -330,6 +331,15 @@ export const ipc = {
   standardsSet: (category: string, index: number, value: string | null, done: boolean | null): S =>
     invoke("standards_set", { category, index, value, done }),
   standardsLoadLibrary: (name: string): S => invoke("standards_load_library", { name }),
+  /** A standard's choices, with previews of graphic ones (ADR-048). */
+  standardsChoices: (category: string, index: number) =>
+    invoke<StandardChoice[]>("standards_choices", { category, index }),
+  // Symbols (ADR-048).
+  createSpotElevation: (view: ElementId, at: Pt, leader: Pt): S =>
+    invoke("create_spot_elevation", { view, at, leader }),
+  createNorthArrow: (view: ElementId, at: Pt): S => invoke("create_north_arrow", { view, at }),
+  createGraphicScale: (view: ElementId, at: Pt): S => invoke("create_graphic_scale", { view, at }),
+  createKeyPlan: (sheet: ElementId, at: Pt): S => invoke("create_key_plan", { sheet, at }),
   // Site (ADR-023).
   siteKeys: () => invoke<SiteKeys>("site_keys"),
   siteSetKeys: (google: string | null, regrid: string | null) =>

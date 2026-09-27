@@ -122,6 +122,11 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   // Move works in plan coordinates, and on sheets for viewports.
   if (tool === "move") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
   if (tool === "text" && view === "Sheet") return true;
+  // Symbols (ADR-048): key plans on sheets, north arrows in plans or on sheets.
+  if (tool === "keyPlan") return view === "Sheet";
+  if (tool === "northArrow") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
+  if (tool === "spotElevation" || tool === "graphicScale")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   if (tool === "dimension" || tool === "dimensionLinear" || tool === "text") {
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   }
@@ -141,6 +146,10 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     if (tool === "dimension" || tool === "dimensionLinear" || tool === "text")
       return "Open a plan, elevation or section to annotate.";
     if (tool === "dimensionAngular") return "Open a plan to dimension an angle.";
+    if (tool === "keyPlan") return "Open a sheet to place a key plan.";
+    if (tool === "northArrow") return "Open a plan or a sheet to place a north arrow.";
+    if (tool === "spotElevation" || tool === "graphicScale")
+      return "Open a plan, elevation or section to place it.";
     return "Open a floor or ceiling plan to use this tool.";
   }
   switch (tool) {
@@ -260,6 +269,16 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
           : "Click inside the angle to place the arc.";
     case "text":
       return "Click where the text note goes.";
+    case "spotElevation":
+      return n === 0
+        ? "Click the point to measure (a floor, the ground, or any height in an elevation or section)."
+        : "Click where the elevation goes (click the same point again for no leader).";
+    case "northArrow":
+      return "Click where the north arrow goes. Its look is set on the Standards tab.";
+    case "graphicScale":
+      return "Click the graphic scale's left end. Its divisions follow the view's scale.";
+    case "keyPlan":
+      return "Click where the key plan goes; the area this sheet's plans show is shaded.";
     case "paint":
       return "Click walls, floors, ceilings, roofs, columns or beams to paint them. Shift-click paints every element of that type. Esc finishes.";
     case "section":

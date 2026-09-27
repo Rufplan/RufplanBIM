@@ -163,11 +163,20 @@ fn transformed(
             *start = x.apply(*start);
             *end = x.apply(*end);
         }
-        ElementData::TextNote { view, at, .. } => {
+        ElementData::TextNote { view, at, .. }
+        | ElementData::NorthArrow { view, at }
+        | ElementData::GraphicScale { view, at } => {
             if !is_plan_view(tx, *view) {
                 return None;
             }
             *at = x.apply(*at);
+        }
+        ElementData::SpotElevation { view, at, leader } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            *at = x.apply(*at);
+            *leader = x.apply(*leader);
         }
         ElementData::Dimension {
             view,

@@ -70,6 +70,10 @@ const SIMILAR: Record<string, [Tool, keyof ToolTypes | null]> = {
   RoomSeparator: ["roomSeparator", null],
   Dimension: ["dimension", null],
   TextNote: ["text", null],
+  SpotElevation: ["spotElevation", null],
+  NorthArrow: ["northArrow", null],
+  GraphicScale: ["graphicScale", null],
+  KeyPlan: ["keyPlan", null],
 };
 
 async function selectedCategories(view: string, ids: string[]): Promise<string[]> {

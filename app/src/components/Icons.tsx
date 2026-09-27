@@ -57,6 +57,37 @@ export const Icons = {
       <path d="M4 6.5l2.5 3h-5z" fill="currentColor" stroke="none" />
     </I>
   ),
+  spotElevation: (
+    <I>
+      <path d="M3 18h9" />
+      <path d="M7.5 18l-3-5h6z" fill="currentColor" stroke="none" />
+      <path d="M7.5 13L13 7h8" />
+      <path d="M14 4.5h6" strokeWidth="1.2" />
+    </I>
+  ),
+  northArrow: (
+    <I>
+      <circle cx="12" cy="13" r="7" />
+      <path d="M12 6.5l3.2 9.5L12 14z" fill="currentColor" stroke="none" />
+      <path d="M12 6.5L8.8 16 12 14" />
+      <path d="M10.3 4.2V1.2l3.4 3V1.2" strokeWidth="1.2" />
+    </I>
+  ),
+  graphicScale: (
+    <I>
+      <path d="M2 11h20v4H2z" />
+      <path d="M2 11h5v4H2zM12 11h10v4H12z" fill="currentColor" />
+      <path d="M2 8V7M7 8V7M12 8V7M22 8V7" />
+    </I>
+  ),
+  keyPlan: (
+    <I>
+      <path d="M3 4h18v16H3z" strokeWidth="1.2" />
+      <path d="M6 8h9v4h-4v5H6z" />
+      <path d="M6 8h5v9H6z" fill="currentColor" fillOpacity="0.35" stroke="none" />
+      <path d="M18 7.5l1.4 4H16.6z" fill="currentColor" stroke="none" />
+    </I>
+  ),
   tag: (
     <I>
       <path d="M4 8h11l5 4-5 4H4z" />

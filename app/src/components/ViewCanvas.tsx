@@ -1347,6 +1347,30 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       if (text !== null) await apply(() => ipc.createText(view.id, raw, text));
       return;
     }
+    // Symbols (ADR-048): one click, or two for a spot elevation (the point, then its text).
+    if (s.tool === "northArrow") {
+      await apply(() => ipc.createNorthArrow(view.id, raw));
+      return;
+    }
+    if (s.tool === "graphicScale") {
+      await apply(() => ipc.createGraphicScale(view.id, raw));
+      return;
+    }
+    if (s.tool === "keyPlan") {
+      await apply(() => ipc.createKeyPlan(view.id, raw));
+      return;
+    }
+    if (s.tool === "spotElevation") {
+      if (!from) {
+        pts.current = [p];
+      } else {
+        pts.current = [];
+        await apply(() => ipc.createSpotElevation(view.id, from, samePt(from, p) ? from : p));
+      }
+      s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
+      redraw();
+      return;
+    }
     if (s.tool === "section") {
       if (!from) {
         pts.current = [p];

@@ -552,6 +552,29 @@ export function Ribbon() {
             </button>
           </Group>
         )}
+        {tab === "Annotate" && (
+          <Group title="Symbol">
+            <ToolButton
+              tool="spotElevation"
+              label="Spot Elevation"
+              icon={Icons.spotElevation}
+              keys="click the point, then the text"
+            />
+            <ToolButton
+              tool="northArrow"
+              label="North Arrow"
+              icon={Icons.northArrow}
+              keys="plans and sheets"
+            />
+            <ToolButton
+              tool="graphicScale"
+              label="Graphic Scale"
+              icon={Icons.graphicScale}
+              keys="follows the view scale"
+            />
+            <ToolButton tool="keyPlan" label="Key Plan" icon={Icons.keyPlan} keys="on sheets" />
+          </Group>
+        )}
         {tab === "View" && (
           <>
             <Group title="View">

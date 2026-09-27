@@ -168,6 +168,29 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     command: t("dimensionAngular"),
   },
   { id: "text", label: "Text", group: "Annotate", keys: ["TX"], command: t("text") },
+  // Symbols (ADR-048). Revit's EL is our Elevation, so Spot Elevation has no default key.
+  {
+    id: "spotElevation",
+    label: "Spot Elevation",
+    group: "Annotate",
+    keys: [],
+    command: t("spotElevation"),
+  },
+  {
+    id: "northArrow",
+    label: "North Arrow",
+    group: "Annotate",
+    keys: [],
+    command: t("northArrow"),
+  },
+  {
+    id: "graphicScale",
+    label: "Graphic Scale",
+    group: "Annotate",
+    keys: [],
+    command: t("graphicScale"),
+  },
+  { id: "keyPlan", label: "Key Plan", group: "Annotate", keys: [], command: t("keyPlan") },
   { id: "tag", label: "Tag by Category", group: "Annotate", keys: ["TG"], command: t("tag") },
   { id: "roomTag", label: "Room Tag", group: "Annotate", keys: ["RT"], command: t("tag") },
   // View

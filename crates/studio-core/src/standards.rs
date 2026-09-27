@@ -269,10 +269,37 @@ pub fn library(name: &str) -> CoreResult<Standards> {
         }
         other => return Err(CoreError::Invalid(format!("no standards library {other}"))),
     }
-    Ok(Standards {
+    Ok(with_choices(Standards {
         library: name.into(),
         categories: cats,
-    })
+    }))
+}
+
+/// Each standard's preset options, from the catalog (ADR-048).
+fn with_choices(mut s: Standards) -> Standards {
+    for c in &mut s.categories {
+        for it in &mut c.items {
+            let ch = crate::standards_catalog::choices(&c.id, &it.name);
+            if !ch.is_empty() {
+                it.options = ch.iter().map(|x| x.label.to_owned()).collect();
+            }
+        }
+    }
+    s
+}
+
+/// Which catalog choice standard `item` of `category` is set to, if one (ADR-048): the
+/// style the symbols it governs draw in.
+pub fn choice(doc: &Document, category: &str, item: &str) -> Option<usize> {
+    let s = standards(doc);
+    let it = s
+        .categories
+        .iter()
+        .find(|c| c.id == category)?
+        .items
+        .iter()
+        .find(|i| i.name == item)?;
+    crate::standards_catalog::index_of(category, item, &it.value)
 }
 
 fn element(doc: &Document) -> Option<(ElementId, Standards)> {
@@ -286,7 +313,7 @@ fn element(doc: &Document) -> Option<(ElementId, Standards)> {
 pub fn standards(doc: &Document) -> Standards {
     element(doc).map_or_else(
         || library(LIBRARIES[0]).unwrap_or_else(|_| empty()),
-        |e| e.1,
+        |e| with_choices(e.1),
     )
 }
 

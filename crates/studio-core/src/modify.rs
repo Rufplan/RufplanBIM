@@ -57,7 +57,14 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     *start = start.add(delta);
                     *end = end.add(delta);
                 }
-                ElementData::TextNote { at, .. } => *at = at.add(delta),
+                ElementData::TextNote { at, .. }
+                | ElementData::NorthArrow { at, .. }
+                | ElementData::GraphicScale { at, .. }
+                | ElementData::KeyPlan { at, .. } => *at = at.add(delta),
+                ElementData::SpotElevation { at, leader, .. } => {
+                    *at = at.add(delta);
+                    *leader = leader.add(delta);
+                }
                 ElementData::Viewport { center, .. } => *center = center.add(delta),
                 ElementData::Dimension {
                     a,

@@ -48,10 +48,10 @@ describe("Standards tab (ADR-047)", () => {
   it("lists a category's standards and filters to the undefined ones", async () => {
     await openStandards();
     expect(await screen.findByRole("heading", { name: "Sheet Setup" })).toBeInTheDocument();
-    expect(screen.getByText("ARCH D", { selector: ".std-value" })).toBeInTheDocument();
+    expect(screen.getByText("ARCH D", { selector: ".std-value > span" })).toBeInTheDocument();
     expect(screen.getByText("Not yet set")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("radio", { name: "UNDEFINED" }));
-    expect(screen.queryByText("ARCH D", { selector: ".std-value" })).toBeNull();
+    expect(screen.queryByText("ARCH D", { selector: ".std-value > span" })).toBeNull();
     // The ribbon picks another category.
     const ribbon = screen.getByRole("toolbar", { name: "Tools" });
     await userEvent.click(within(ribbon).getByRole("button", { name: /Dims/ }));
@@ -89,7 +89,7 @@ describe("Standards tab (ADR-047)", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByText("Delta, lower right", { selector: ".std-value" }),
+        screen.getByText("Delta, lower right", { selector: ".std-value > span" }),
       ).toBeInTheDocument(),
     );
     expect(fake.standards.categories[0]!.items[1]!.done).toBe(true);
@@ -102,6 +102,47 @@ describe("Standards tab (ADR-047)", () => {
     expect(await screen.findByRole("complementary", { name: "Project browser" })).toBeVisible();
   });
 
+  it("a standard's value opens its choices, as a grid or a list (ADR-048)", async () => {
+    try {
+      localStorage.removeItem("rufplan.standards.choicesView");
+    } catch {
+      // jsdom has storage.
+    }
+    await openStandards();
+    await screen.findByRole("heading", { name: "Sheet Setup" });
+    await userEvent.click(screen.getAllByTitle("See the choices")[0]!);
+    const dialog = await screen.findByRole("dialog", { name: "Sheet size choices" });
+    const options = await within(dialog).findAllByRole("option");
+    expect(options.map((o) => o.querySelector(".std-choice-label")?.textContent)).toEqual([
+      "ARCH C",
+      "ARCH D",
+    ]);
+    // Grid first; the toggle top right shows a list, remembered.
+    const body = within(dialog).getByRole("listbox", { name: "Choices" });
+    expect(body.className).toContain("grid");
+    await userEvent.click(within(dialog).getByRole("radio", { name: "List" }));
+    expect(body.className).toContain("list");
+    expect(localStorage.getItem("rufplan.standards.choicesView")).toBe("list");
+    // The current one is marked; picking another and Use this saves it.
+    expect(options[1]!.textContent).toContain("CURRENT");
+    const use = within(dialog).getByRole("button", { name: "Use this" });
+    expect(use).toBeDisabled();
+    await userEvent.click(options[0]!);
+    await userEvent.click(use);
+    expect(fake.calls.find((c) => c.cmd === "standards_set")?.args).toEqual({
+      category: "sheet",
+      index: 0,
+      value: "ARCH C",
+      done: null,
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // Properties opens it too, and Escape closes it.
+    await userEvent.click(screen.getByRole("button", { name: "Choices…" }));
+    expect(await screen.findByRole("dialog", { name: "Sheet size choices" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("the Office Standard select loads a library", async () => {
     await openStandards();
     await userEvent.selectOptions(await screen.findByLabelText("Office Standard"), "Residential");
@@ -109,7 +150,7 @@ describe("Standards tab (ADR-047)", () => {
       name: "Residential",
     });
     await waitFor(() =>
-      expect(screen.getByText("ARCH C", { selector: ".std-value" })).toBeInTheDocument(),
+      expect(screen.getByText("ARCH C", { selector: ".std-value > span" })).toBeInTheDocument(),
     );
   });
 });
