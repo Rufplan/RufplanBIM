@@ -204,6 +204,152 @@ fn stretch_joined_walls(
     Ok(())
 }
 
+/// Stretches the model through `f`, a plan map that moves points on one side of a line
+/// (Revit's Stretch with a crossing window over half the building): walls' ends, grids,
+/// slab and roof outlines, rooms, columns, beams, railings, stairs, section lines and plan
+/// annotations all go where `f` sends them, and doors and windows stay where `f` puts their
+/// centers. One transaction; returns the elements it changed.
+pub fn stretch(
+    doc: &mut Document,
+    f: &dyn Fn(Pt) -> Pt,
+    label: &str,
+) -> CoreResult<Vec<ElementId>> {
+    use crate::element::ViewKind;
+    let moved = |p: Pt| f(p).dist(p) > tol::LINEAR;
+    // Openings' centers before the walls change.
+    let mut openings: Vec<(ElementId, ElementId, Pt)> = vec![];
+    for e in doc.iter() {
+        if let ElementData::Door { host, offset, .. } | ElementData::Window { host, offset, .. } =
+            &e.data
+        {
+            if let Ok(ElementData::Wall { start, end, .. }) = doc.data(*host) {
+                let d = end.sub(*start).norm();
+                openings.push((e.id, *host, start.add(d.scale(*offset))));
+            }
+        }
+    }
+    let plan_views: HashSet<ElementId> = doc
+        .iter()
+        .filter(|e| {
+            matches!(
+                &e.data,
+                ElementData::View {
+                    kind: ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. },
+                    ..
+                }
+            )
+        })
+        .map(|e| e.id)
+        .collect();
+    let ids: Vec<ElementId> = doc.iter().map(|e| e.id).collect();
+    doc.transact(label, |tx| {
+        let mut changed = vec![];
+        for id in ids {
+            let Some(el) = tx.get(id) else { continue };
+            let mut d = el.data.clone();
+            let mut any = false;
+            let mut map = |p: &mut Pt| {
+                if moved(*p) {
+                    *p = f(*p);
+                    any = true;
+                }
+            };
+            match &mut d {
+                ElementData::Wall { start, end, .. }
+                | ElementData::Grid { start, end, .. }
+                | ElementData::RoomSeparator { start, end, .. }
+                | ElementData::Beam { start, end, .. } => {
+                    map(start);
+                    map(end);
+                }
+                ElementData::Floor {
+                    boundary, sketch, ..
+                }
+                | ElementData::Ceiling {
+                    boundary, sketch, ..
+                } => {
+                    boundary.iter_mut().for_each(&mut map);
+                    for c in sketch.iter_mut().flatten() {
+                        let m = c.mapped(f, false);
+                        if m != *c {
+                            *c = m;
+                            any = true;
+                        }
+                    }
+                }
+                ElementData::Roof { boundary, .. } => boundary.iter_mut().for_each(&mut map),
+                ElementData::Railing { path, .. } => path.iter_mut().for_each(&mut map),
+                ElementData::Room { point, .. } => map(point),
+                ElementData::Column { at, .. } | ElementData::ElevationMarker { at, .. } => map(at),
+                // A stair moves whole with its first riser (its run keeps its length).
+                ElementData::Stair { start, end, .. } => {
+                    let t = f(*start).sub(*start);
+                    if t.len() > tol::LINEAR {
+                        *start = start.add(t);
+                        *end = end.add(t);
+                        any = true;
+                    }
+                }
+                ElementData::View {
+                    kind: ViewKind::Section { start, end, .. },
+                    ..
+                } => {
+                    map(start);
+                    map(end);
+                }
+                ElementData::TextNote { view, at, .. }
+                | ElementData::SpotSlope { view, at, .. }
+                | ElementData::NorthArrow { view, at }
+                | ElementData::GraphicScale { view, at }
+                    if plan_views.contains(view) =>
+                {
+                    map(at)
+                }
+                ElementData::SpotElevation { view, at, leader } if plan_views.contains(view) => {
+                    map(at);
+                    map(leader);
+                }
+                ElementData::Dimension {
+                    view,
+                    a,
+                    b,
+                    between,
+                    ..
+                } if plan_views.contains(view) => {
+                    map(a);
+                    map(b);
+                    for r in between.iter_mut() {
+                        map(&mut r.at);
+                    }
+                }
+                _ => {}
+            }
+            if any {
+                tx.set(id, d)?;
+                changed.push(id);
+            }
+        }
+        // Doors and windows: where the stretch put their centers, along their (new) walls.
+        for (id, host, c) in &openings {
+            let Ok(ElementData::Wall { start, end, .. }) = tx.data(*host) else {
+                continue;
+            };
+            let (s, e) = (*start, *end);
+            let dir = e.sub(s).norm();
+            let new = f(*c).sub(s).dot(dir);
+            let mut d = tx.data(*id)?.clone();
+            if let ElementData::Door { offset, .. } | ElementData::Window { offset, .. } = &mut d {
+                if (new - *offset).abs() > tol::LINEAR {
+                    *offset = new;
+                    tx.set(*id, d)?;
+                    changed.push(*id);
+                }
+            }
+        }
+        Ok(changed)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

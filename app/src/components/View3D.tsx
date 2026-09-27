@@ -8,7 +8,7 @@ import { apply } from "../fileActions";
 import { errorMessage, ipc, type Mesh, type Pt, type ViewInfo } from "../ipc";
 import { siteImagery, uvAt, type Imagery } from "../imagery";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
-import { styleOf, useAppStore } from "../store";
+import { litOf, styleOf, useAppStore } from "../store";
 import { samePt, sketchPrompt } from "../tools";
 import { savedHome, ViewCube } from "../render/viewCube";
 import { ViewCubeOverlay } from "./ViewCubeOverlay";
@@ -1160,7 +1160,7 @@ export function View3D({ view }: { view: ViewInfo }) {
         const style = styleOf(st, view.id);
         applyImagery(t.group, imagery.current);
         applyDisplay(t.group, st.tempHide[view.id] ?? null, style, real.current?.map ?? null);
-        applySelection(t.group, st.selection, style);
+        applySelection(t.group, litOf(st), style);
         applyScene(t, style);
         setMeshRev((n) => n + 1);
       },
@@ -1186,7 +1186,7 @@ export function View3D({ view }: { view: ViewInfo }) {
         if (!live || !t) return;
         buildCaps(t, caps);
         const st = useAppStore.getState();
-        applyCaps(t, styleOf(st, view.id), st.selection);
+        applyCaps(t, styleOf(st, view.id), litOf(st));
       },
       () => {},
     );
@@ -1225,9 +1225,9 @@ export function View3D({ view }: { view: ViewInfo }) {
     const t = three.current;
     if (!t) return;
     applyDisplay(t.group, temp, visualStyle, real.current?.map ?? null);
-    applySelection(t.group, useAppStore.getState().selection, visualStyle);
+    applySelection(t.group, litOf(useAppStore.getState()), visualStyle);
     applyScene(t, visualStyle);
-    applyCaps(t, visualStyle, useAppStore.getState().selection);
+    applyCaps(t, visualStyle, litOf(useAppStore.getState()));
   }, [temp, visualStyle, revision, sketchTarget, meshRev]);
 
   // Realistic: the project's materials with their textures, loaded when first shown.
@@ -1251,7 +1251,7 @@ export function View3D({ view }: { view: ViewInfo }) {
           const st = useAppStore.getState();
           const style = styleOf(st, view.id);
           applyDisplay(t.group, st.tempHide[view.id] ?? null, style, map);
-          applySelection(t.group, st.selection, style);
+          applySelection(t.group, litOf(st), style);
         },
         () => {},
       );
@@ -1260,13 +1260,15 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
   }, [visualStyle, meshRev, view.id]);
 
+  const highlight = useAppStore((s) => s.highlight);
   useEffect(() => {
     if (three.current) {
       const style = styleOf(useAppStore.getState(), view.id);
-      applySelection(three.current.group, selection, style);
-      applyCaps(three.current, style, selection);
+      const lit = litOf({ selection, highlight });
+      applySelection(three.current.group, lit, style);
+      applyCaps(three.current, style, lit);
     }
-  }, [selection, view.id]);
+  }, [selection, highlight, view.id]);
 
   const satellite = useAppStore((s) => s.satellite);
   const hasSite = useAppStore((s) => !!s.app?.site);
@@ -1301,7 +1303,7 @@ export function View3D({ view }: { view: ViewInfo }) {
     const t = three.current;
     if (!t) return;
     applyTerrain(t, terrainUi, visualStyle, sectionBox);
-    applyCaps(t, visualStyle, useAppStore.getState().selection);
+    applyCaps(t, visualStyle, litOf(useAppStore.getState()));
   }, [terrainUi, visualStyle, sectionBox]);
 
   useEffect(() => {
@@ -1318,7 +1320,7 @@ export function View3D({ view }: { view: ViewInfo }) {
         styleOf(st, view.id),
         real.current?.map ?? null,
       );
-      applySelection(t.group, st.selection, styleOf(st, view.id));
+      applySelection(t.group, litOf(st), styleOf(st, view.id));
     };
     if (!satellite || !hasSite) {
       off();
@@ -1337,7 +1339,7 @@ export function View3D({ view }: { view: ViewInfo }) {
           styleOf(st, view.id),
           real.current?.map ?? null,
         );
-        applySelection(t.group, st.selection, styleOf(st, view.id));
+        applySelection(t.group, litOf(st), styleOf(st, view.id));
       },
       (e) => {
         if (!live) return;

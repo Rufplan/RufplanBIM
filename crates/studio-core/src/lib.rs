@@ -13,6 +13,7 @@ pub mod generate;
 pub mod hosting;
 pub mod library;
 pub mod material;
+pub mod model_edit;
 pub mod modify;
 pub mod ops;
 pub mod paint;

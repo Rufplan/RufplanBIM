@@ -8,6 +8,7 @@ mod editing;
 mod generate_cmds;
 mod material_cmds;
 mod menu;
+mod model_edit_cmds;
 mod plans_cmds;
 mod render_cmds;
 mod session;
@@ -169,6 +170,8 @@ pub fn run() -> anyhow::Result<()> {
             render_cmds::set_camera_pose,
             render_cmds::sun_position,
             render_cmds::save_render,
+            model_edit_cmds::model_edit_preview,
+            model_edit_cmds::model_edit_apply,
             standards_cmds::standards_get,
             standards_cmds::standards_libraries,
             standards_cmds::standards_set,

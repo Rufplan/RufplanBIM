@@ -8,6 +8,19 @@ import type { Standards } from "./bindings/Standards";
 
 export type PickerCategory = "Door" | "Window";
 
+/** An applied Edit Model change: the prompt, what it did, and its undo step's name. */
+export interface EditLogEntry {
+  prompt: string;
+  summary: string;
+  label: string;
+  undone: boolean;
+}
+
+/** What views draw as selected: the selection and any Edit Model highlight. */
+export function litOf(s: { selection: ElementId[]; highlight: ElementId[] }): ElementId[] {
+  return s.highlight.length ? [...s.selection, ...s.highlight] : s.selection;
+}
+
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
@@ -272,6 +285,12 @@ interface UiState {
   setStandards: (s: Standards | null) => void;
   standardsUi: { category: string; item: number; filter: "all" | "open" };
   setStandardsUi: (patch: Partial<UiState["standardsUi"]>) => void;
+  /** Edit Model with Claude (ADR-050): the dialog, its history, and the elements a
+   * pending edit would change (highlighted like a selection). */
+  editModel: { open: boolean; log: EditLogEntry[] };
+  setEditModel: (patch: Partial<UiState["editModel"]>) => void;
+  highlight: ElementId[];
+  setHighlight: (ids: ElementId[]) => void;
   /** The choice pop-up for the standard picked (ADR-048). */
   choicesOpen: boolean;
   setChoicesOpen: (open: boolean) => void;
@@ -360,6 +379,10 @@ export const useAppStore = create<UiState>((set, get) => ({
   standardsUi: { category: "sheet", item: 0, filter: "all" },
   setStandardsUi: (patch) => set((s) => ({ standardsUi: { ...s.standardsUi, ...patch } })),
   standardsPending: {},
+  editModel: { open: false, log: [] },
+  setEditModel: (patch) => set((s) => ({ editModel: { ...s.editModel, ...patch } })),
+  highlight: [],
+  setHighlight: (highlight) => set({ highlight }),
   choicesOpen: false,
   setChoicesOpen: (choicesOpen) => set({ choicesOpen }),
   setStandardsPending: (key, value) =>

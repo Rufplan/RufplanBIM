@@ -2,6 +2,7 @@ import { activeViewInfo, useAppStore } from "../store";
 import { ViewCanvas } from "./ViewCanvas";
 import { View3D } from "./View3D";
 import { ScheduleView } from "./ScheduleView";
+import { EditModelButton, useEditModelAllowed } from "./EditModel";
 
 const TYPE_LABEL = {
   Plan: "Floor Plan",
@@ -15,6 +16,7 @@ const TYPE_LABEL = {
 
 export function Workspace() {
   const app = useAppStore((s) => s.app);
+  const editAllowed = useEditModelAllowed();
   const openViews = useAppStore((s) => s.openViews);
   const activeView = useAppStore((s) => s.activeView);
   const openView = useAppStore((s) => s.openView);
@@ -54,7 +56,7 @@ export function Workspace() {
           );
         })}
       </div>
-      <div className="view-area">
+      <div className={`view-area${editAllowed ? " has-edit" : ""}`}>
         {view ? (
           view.viewType === "ThreeD" ? (
             <View3D key={view.id} view={view} />
@@ -69,6 +71,7 @@ export function Workspace() {
         ) : (
           <div className="view-empty">Open a view from the Project Browser.</div>
         )}
+        <EditModelButton />
       </div>
     </section>
   );

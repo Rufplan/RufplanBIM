@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Edit Model with Claude (ADR-050): a prompt that changes the model (parameters of any category,
+  or the building's overall size), previewed and applied as one undo.
 - Spot slopes and sloped floors (ADR-049): Annotate > Spot Slope on roofs, ramps, sidewalks and
   the ground; floors take a Slope and a direction.
 - Standard choices and symbols (ADR-048): a choice pop-up per standard (list or grid of previews);

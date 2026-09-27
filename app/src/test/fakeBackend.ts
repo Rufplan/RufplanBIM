@@ -435,6 +435,57 @@ export function installFakeBackend(): FakeBackend {
               { x: -23000, y: 23000 },
             ],
           };
+        // Edit Model (ADR-050): a doors edit, or a refusal for anything "blue".
+        case "model_edit_preview": {
+          const edit = {
+            action: "set_parameter",
+            category: "Doors",
+            parameter: "Width",
+            value: "3'-0\"",
+            scope: "model",
+            level: "",
+            typeFilter: "",
+            axis: "",
+            anchor: "",
+            summary: "",
+            message: "",
+          };
+          if (String(a.prompt).includes("blue"))
+            return {
+              edit: { ...edit, action: "none" },
+              preview: null,
+              error: "The model has no blue material.",
+            };
+          return {
+            edit,
+            preview: {
+              category: "Doors",
+              parameter: "Width",
+              from: "2'-8\"",
+              to: "3'-0\"",
+              scope: "Entire model",
+              count: 2,
+              ids: ["door-1", "door-2"],
+              summary: "Width → 3'-0\" on 2 doors",
+            },
+            error: null,
+          };
+        }
+        case "model_edit_apply":
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              revision: fake.state.revision + 1,
+              undo: "Edit model: Width → 3'-0\" on 2 doors",
+              redo: null,
+            };
+          return fake.state;
+        case "undo":
+          if (fake.state) fake.state = { ...fake.state, redo: fake.state.undo, undo: null };
+          return fake.state;
+        case "redo":
+          if (fake.state) fake.state = { ...fake.state, undo: fake.state.redo, redo: null };
+          return fake.state;
         case "standards_get":
           return fake.standards;
         case "standards_choices":

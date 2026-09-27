@@ -1627,3 +1627,56 @@ files open unchanged).
 - **Not yet:** slope arrows drawn in sketch mode, floors that warp (more than one slope),
   sloped ceilings, stair and ramp families, and a default key (Revit's SS here turns snap
   overrides off).
+
+## ADR-050 Edit Model with Claude — Accepted (2026-09-27)
+Owner request (2026-09-27): "create an edit model button that is tied into Claude and the
+model. So you can add a prompt like change all doors to be 3'-0" or update building to be
+50'-0" Wide … and the building model will respond", following the handoff (EDIT MODEL pill
+and modal, README and prototype).
+
+- **Claude proposes; Rust decides.** Claude gets:
+  - the prompt;
+  - a summary of the model (`model_edit::describe`): levels, the building's size, and for
+    each category its count, types and every writable property with its current values;
+  - the active view and the selection.
+  It answers with one structured edit through a forced tool call (`edit_model`), using
+  Opus 5.5 and the key in the OS credential store. studio-core checks the edit against the
+  model: the category exists, the property is writable, the value parses and a choice
+  exists. It then previews the edit on a copy of the document, so nothing changes until
+  Apply.
+- **Edits**
+  - `set_parameter`: any property the Properties panel can write, for one category.
+    - Scope: the model, a level, the selection, or what the view shows. An optional type-name
+      filter narrows it further.
+    - A type property (a door's Width) moves each instance to a type with that value, as you
+      would in Revit. It reuses a type that already matches, or makes one named for its size
+      ("Single Six-Panel 36" x 80"").
+    - The history's summary and the preview's count are computed, not taken from Claude.
+      Elements that already have the value aren't counted.
+  - `resize_building`: overall width (east–west) or depth (north–south), outside face to
+    outside face. It is Revit's Stretch across the building's middle (`modify::stretch`):
+    - everything past the middle moves: walls' ends, grids, slab and roof outlines, rooms,
+      columns, beams, railings, stairs, section lines, plan annotations;
+    - walls that cross the middle get longer;
+    - doors and windows stay where the stretch puts them.
+    The anchor side (west or south by default, or east, north, center) stays put.
+  - `none`: Claude says why, and suggests what would work; the dialog shows it.
+- **One undo step.** Apply runs the edit and folds its transactions into one undo step
+  (`Document::merge_undo`) named "Edit model: summary". A failed edit rolls back.
+- **UI** (per the handoff):
+  - The EDIT MODEL pill sits at the lower right of plan views (floor, ceiling, site) and 3D
+    views only. The 3D chips and terrain bar move up above it.
+  - ⌘K / Ctrl+K opens and closes it there.
+  - The dialog closes and drops its preview when the view changes to one it isn't offered
+    in (elevations, sections, sheets, schedules, an activated viewport, the Standards tab,
+    sketch mode).
+  - It has history, a preview card with the changed elements highlighted like a selection,
+    the error line, suggestion chips, and PREVIEW CHANGE, or CANCEL / APPLY when a preview
+    is showing.
+  - History UNDO/REDO acts on the app's undo stack. Only the step at the top of that stack
+    can go from the history (the undo stack is linear); Ctrl+Z works as always.
+- **Not yet:**
+  - several changes in one prompt;
+  - geometry beyond overall size (moving a wall, adding rooms; Generate still builds whole
+    buildings);
+  - filters by other parameters ("the doors narrower than 3'").

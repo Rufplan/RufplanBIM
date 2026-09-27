@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Edit Model with Claude (ADR-050): studio-core `model_edit` (ModelEdit, preview/apply, describe)
+  and `modify::stretch`; app `model_edit_cmds`; components/EditModel.tsx (pill + dialog, ⌘K).
+  Live check: `cargo test -p rufplan-studio live_model_edit -- --ignored --nocapture` (uses API credit).
 - Slopes (ADR-049): studio-core `slope` (FloorSlope, SlopeFormat, parse/format), studio-regen
   `SlabSolid::tilt`, studio-views `slopes` (slope_at, spot_slope).
 - Symbols (ADR-048): studio-core `symbols` (elements, styles) and `standards_catalog` (choices

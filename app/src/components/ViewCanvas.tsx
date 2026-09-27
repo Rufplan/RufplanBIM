@@ -19,6 +19,7 @@ import {
   DIMENSION_TOOLS,
   REFERENCE_TOOLS,
   SELECTION_TOOLS,
+  litOf,
   useAppStore,
   type ActiveViewport,
 } from "../store";
@@ -247,7 +248,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           ? modelToSheetCam(cam.current, onSheet.center, dl.bounds, view.scale)
           : null;
       draw(ctx, dl, cam.current, w, h, {
-        selected: new Set(s.selection),
+        selected: new Set(litOf(s)),
         hover: hover.current,
         faded: sk !== null,
         hidden: sk?.target ?? null,
@@ -526,7 +527,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     redraw();
   }, [size, dl, redraw, view.id, onSheet, view.scale]);
 
-  useEffect(redraw, [selection, redraw]);
+  const highlight = useAppStore((s) => s.highlight);
+  useEffect(redraw, [selection, highlight, redraw]);
 
   const resetRefs = useCallback(() => {
     dimRefs.current = [];

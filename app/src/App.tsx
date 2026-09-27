@@ -32,6 +32,7 @@ import {
   StandardsView,
 } from "./components/Standards";
 import { StandardChoicesDialog } from "./components/StandardChoices";
+import { EditModelDialog } from "./components/EditModel";
 import { RufplanDialog } from "./components/RufplanDialog";
 import { ParamsDialog } from "./components/ParamsDialog";
 import logo from "./assets/rufplan-logo-white.svg";
@@ -261,6 +262,7 @@ export function App() {
       ) : (
         <Welcome />
       )}
+      <EditModelDialog />
       <ConfirmDialog />
       <RufplanDialog />
       <ParamsDialog />
