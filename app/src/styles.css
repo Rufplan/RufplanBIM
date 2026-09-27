@@ -2160,3 +2160,48 @@ button:disabled {
   padding: 3px 10px;
   font-size: 11px;
 }
+
+/* The 3D terrain toolbar (ADR-045): earth depth, contours, labels, interval. */
+.terrain-bar {
+  position: absolute;
+  right: 10px;
+  bottom: 46px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: #ffffff;
+  border: 1px solid #d5d9dc;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.terrain-bar button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.5;
+}
+.terrain-bar button.on {
+  background: #eceff1;
+  opacity: 1;
+}
+.terrain-bar button:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+.terrain-bar select {
+  height: 26px;
+  margin: 0 4px 0 2px;
+  border: 1px solid #d5d9dc;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 12px;
+  background: #fff;
+}

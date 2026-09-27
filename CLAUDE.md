@@ -131,6 +131,8 @@ Read these before writing code:
   Windows opens the Window Library.
 - Door families (ADR-033): studio-core `doors`, studio-views `doors` and `thumbs`; the
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
+- Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
+  TerrainBar (earth depth, contours, labels, interval).
 - Section box caps (ADR-044): studio-geom `mesh_section`, `even_odd_in_rect`; studio-views
   `caps::section_caps`; View3D `buildCaps` / `applyCaps`.
 - Dimensions (ADR-040): studio-core `dimension` (references, strings, linear, angular);

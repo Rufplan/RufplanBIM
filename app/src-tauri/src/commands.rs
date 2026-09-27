@@ -222,6 +222,15 @@ pub fn view_display_list(
     Ok(any_display_list(session.doc()?, view).map(|d| (*d).clone()))
 }
 
+/// The site's terrain for 3D: its earth block and contours with labels (ADR-045).
+#[tauri::command]
+pub fn site_terrain(
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<studio_views::terrain::Terrain>> {
+    let session = lock(&state)?;
+    Ok(studio_views::terrain::terrain(session.doc()?))
+}
+
 /// Where a 3D view's section box cuts the model: each element's cut, filled and outlined
 /// (ADR-044).
 #[tauri::command]

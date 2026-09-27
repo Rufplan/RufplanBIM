@@ -37,8 +37,17 @@ pub fn section_caps(doc: &Document, view: ElementId) -> Vec<Cap> {
         return vec![];
     };
     let b = *b;
-    let meshes = meshes_in_view(doc, Some(view));
+    let mut meshes = meshes_in_view(doc, Some(view));
     let model = regenerate(doc);
+    // The site closes into a block with its earth sides (ADR-045), so it caps too.
+    if let Some(s) = &model.site {
+        if let Some(low) = s.lowest() {
+            let skirt = s.skirt(low - crate::terrain::TERRAIN_DEPTH);
+            for m in meshes.iter_mut().filter(|m| m.category == Category::Site) {
+                m.positions.extend_from_slice(&skirt);
+            }
+        }
+    }
     let mut out = vec![];
     for axis in 0..3 {
         for at in [b.min[axis], b.max[axis]] {
@@ -68,7 +77,7 @@ fn cap_of(
     at: f64,
     model: &studio_regen::Model,
 ) -> Option<Cap> {
-    if m.positions.is_empty() || m.category == Category::Site {
+    if m.positions.is_empty() {
         return None;
     }
     // Only elements that reach across the plane.

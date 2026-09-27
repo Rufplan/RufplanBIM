@@ -243,6 +243,9 @@ interface UiState {
   /** 3D view: the ground plane's cyan grid is shown. */
   grid3d: boolean;
   setGrid3d: (on: boolean) => void;
+  /** 3D terrain (ADR-045): the ground as a block of earth, its contours, their labels. */
+  terrain: { solid: boolean; contours: boolean; labels: boolean };
+  setTerrain: (patch: Partial<UiState["terrain"]>) => void;
   /** Site plans and 3D: Google satellite imagery over the topography (ADR-026). */
   satellite: boolean;
   setSatellite: (on: boolean) => void;
@@ -352,6 +355,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,
   setGrid3d: (grid3d) => set({ grid3d }),
+  terrain: { solid: true, contours: true, labels: true },
+  setTerrain: (patch) => set((s) => ({ terrain: { ...s.terrain, ...patch } })),
   satellite: false,
   setSatellite: (satellite) => set({ satellite }),
   level3d: null,

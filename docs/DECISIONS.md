@@ -1453,3 +1453,37 @@ cutting through something? … mimic as much as possible how Revit does it".
     stair landing filled with heavy cut lines.
 - **Not yet** (Revit has these): material cut patterns (hatches) on the fill, and caps for
   topography.
+
+## ADR-045 Terrain as a toposolid — Accepted (2026-09-26)
+Owner request (2026-09-26): "the site topo that comes in is on a plane, could you make it so
+there's a small icon that toggles … so the topo looks like it has depth below it like it's
+cut out of the earth like Revit does. also add contour lines and be able to control the
+frequency … as well as label them, but most important add the depth".
+
+- **Earth depth (Revit's toposolid).** The ground becomes a block
+  (`SiteSolid::skirt`).
+  - Its sides drop straight down from every edge of the topography, to 10' below the lowest
+    ground (`TERRAIN_DEPTH`), and it has a bottom.
+  - The sides are soil in faint strata with a cut outline, so the terrain reads as cut out
+    of the earth.
+  - Section boxes cap the block like any solid (ADR-044).
+- **Contours in 3D.**
+  - They lie on the ground (lifted 25 mm so they don't flicker), from the site's contour
+    interval.
+  - Every fifth is heavier, as in the site plan.
+  - Each contour's elevation labels the middle of its longest run: `412'`, or feet-inches
+    when the interval isn't whole feet.
+  - Labels keep a steady on-screen size, like annotation text. With more than 60 contours,
+    only the heavier ones are labelled.
+- **Toolbar.** Only when the project has a site, the 3D view shows a small pill above the
+  Satellite and Ground Grid chips with:
+  - an Earth depth toggle;
+  - a Contours toggle and a Labels toggle;
+  - the interval (6", 1', 2', 5', 10', 20').
+  - Choosing an interval sets the Site's Contour Interval, so plan contours change too, and
+    it can be undone.
+  - The toggles are per session; earth depth, contours and labels start on.
+- **Visual styles:** Hidden Line shows the block white with its outline; Wireframe shows only
+  its outline and the contours.
+- **Not yet** (Revit has these): a toposolid thickness per type, and subdivision or grading of
+  the terrain.

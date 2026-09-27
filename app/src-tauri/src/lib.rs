@@ -62,6 +62,7 @@ pub fn run() -> anyhow::Result<()> {
             commands::view_display_list,
             commands::view_meshes,
             commands::section_caps,
+            commands::site_terrain,
             commands::pick,
             commands::snap,
             commands::create_wall,

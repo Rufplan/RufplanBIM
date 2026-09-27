@@ -19,6 +19,7 @@ pub mod handles;
 mod plan_parts;
 pub mod site_plan;
 pub mod snap;
+pub mod terrain;
 pub mod thumbs;
 pub mod windows;
 pub use handles::{

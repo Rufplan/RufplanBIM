@@ -90,6 +90,59 @@ impl SiteSolid {
         out
     }
 
+    /// The lowest ground (project z), if there's topography.
+    pub fn lowest(&self) -> Option<f64> {
+        let t = self.topo.as_ref()?;
+        let lo = t.z.iter().fold(f64::INFINITY, |a, z| a.min(f64::from(*z)));
+        lo.is_finite().then_some(lo - self.datum)
+    }
+
+    /// Revit's toposolid look (ADR-045): the ground's sides straight down to `base` (project
+    /// z) all round its edge, and its bottom, as triangles, so the terrain reads as a block
+    /// cut out of the earth.
+    pub fn skirt(&self, base: f64) -> Vec<f32> {
+        let Some(t) = &self.topo else {
+            return vec![];
+        };
+        if t.nx < 2 || t.ny < 2 {
+            return vec![];
+        }
+        // The edge nodes, counter-clockwise from the south-west corner.
+        let mut ring: Vec<(u32, u32)> = vec![];
+        ring.extend((0..t.nx - 1).map(|i| (i, 0)));
+        ring.extend((0..t.ny - 1).map(|j| (t.nx - 1, j)));
+        ring.extend((1..t.nx).rev().map(|i| (i, t.ny - 1)));
+        ring.extend((1..t.ny).rev().map(|j| (0, j)));
+        let top = |(i, j): (u32, u32)| {
+            let p = self.place(t.node(i, j));
+            [p.x, p.y, t.at(i, j) - self.datum]
+        };
+        let mut out: Vec<f32> = vec![];
+        let mut tri = |a: [f64; 3], b: [f64; 3], c: [f64; 3]| {
+            out.extend([a, b, c].iter().flat_map(|v| v.map(|x| x as f32)));
+        };
+        for k in 0..ring.len() {
+            let (a, b) = (top(ring[k]), top(ring[(k + 1) % ring.len()]));
+            let (a0, b0) = ([a[0], a[1], base], [b[0], b[1], base]);
+            tri(a0, b0, b);
+            tri(a0, b, a);
+        }
+        // The bottom, facing down.
+        let corner = |i: u32, j: u32| {
+            let p = self.place(t.node(i, j));
+            [p.x, p.y, base]
+        };
+        let (sw, se, ne, nw) = (
+            corner(0, 0),
+            corner(t.nx - 1, 0),
+            corner(t.nx - 1, t.ny - 1),
+            corner(0, t.ny - 1),
+        );
+        tri(sw, ne, se);
+        tri(sw, nw, ne);
+        out
+    }
+
     /// Contour lines: (absolute elevation mm, major?, segments in project coordinates).
     /// Every fifth interval is a major contour.
     pub fn contours(&self) -> Vec<(f64, bool, Vec<[Pt; 2]>)> {
@@ -173,6 +226,16 @@ mod tests {
             "level lines run east-west"
         );
         assert!(c.iter().filter(|x| x.1).count() >= 1);
+        // The toposolid: a side quad per edge span all round, and the bottom.
+        let low = s.lowest().unwrap();
+        let skirt = s.skirt(low - 10.0 * MM_PER_FT);
+        let spans = 2 * ((nx - 1) + (ny - 1)) as usize;
+        assert_eq!(skirt.len(), (spans * 2 + 2) * 9);
+        let zmin = skirt
+            .chunks(3)
+            .map(|p| f64::from(p[2]))
+            .fold(f64::INFINITY, f64::min);
+        assert!((zmin - (low - 10.0 * MM_PER_FT)).abs() < 1.0);
         // Turning the site turns its contours and lot.
         let sid = studio_core::site::site_of(&doc).unwrap();
         studio_core::ops::set_property(&mut doc, sid, "rotation", "90", 0).unwrap();

@@ -30,6 +30,8 @@ import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { Cap } from "../bindings/Cap";
+import type { Terrain } from "../bindings/Terrain";
+import { TerrainBar } from "./TerrainBar";
 
 const COLORS = {
   exteriorWall: 0xe9e7e2,
@@ -138,6 +140,8 @@ interface Three {
   boxGroup: THREE.Group;
   /** The section box's caps (ADR-044). */
   capGroup: THREE.Group;
+  /** The site's earth block, contours and labels (ADR-045). */
+  terrainGroup: THREE.Group;
   gridGroup: THREE.Group;
   fitted: boolean;
   hemi: THREE.HemisphereLight;
@@ -323,6 +327,8 @@ export function View3D({ view }: { view: ViewInfo }) {
     scene.add(boxGroup);
     const capGroup = new THREE.Group();
     scene.add(capGroup);
+    const terrainGroup = new THREE.Group();
+    scene.add(terrainGroup);
     // Placement ghosts (a door's box, a wall's rubber band) and the ground grid.
     const ghost = new THREE.Group();
     scene.add(ghost);
@@ -336,6 +342,7 @@ export function View3D({ view }: { view: ViewInfo }) {
       group,
       boxGroup,
       capGroup,
+      terrainGroup,
       gridGroup,
       fitted: false,
       hemi,
@@ -1263,6 +1270,40 @@ export function View3D({ view }: { view: ViewInfo }) {
 
   const satellite = useAppStore((s) => s.satellite);
   const hasSite = useAppStore((s) => !!s.app?.site);
+  // The site's terrain (ADR-045): fetched with the model, shown per the terrain toolbar.
+  const terrainUi = useAppStore((s) => s.terrain);
+  const setTerrainUi = useAppStore((s) => s.setTerrain);
+  const [fetched, setTerrain] = useState<Terrain | null>(null);
+  const terrain = hasSite ? fetched : null;
+  useEffect(() => {
+    let live = true;
+    if (!hasSite) return;
+    ipc.siteTerrain().then(
+      (t) => live && setTerrain(t),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [revision, hasSite]);
+  useEffect(() => {
+    const t = three.current;
+    if (!t) return;
+    buildTerrain(t, terrain);
+    applyTerrain(
+      t,
+      useAppStore.getState().terrain,
+      styleOf(useAppStore.getState(), view.id),
+      sectionBox,
+    );
+  }, [terrain, view.id, sectionBox]);
+  useEffect(() => {
+    const t = three.current;
+    if (!t) return;
+    applyTerrain(t, terrainUi, visualStyle, sectionBox);
+    applyCaps(t, visualStyle, useAppStore.getState().selection);
+  }, [terrainUi, visualStyle, sectionBox]);
+
   useEffect(() => {
     let live = true;
     const off = () => {
@@ -1340,6 +1381,20 @@ export function View3D({ view }: { view: ViewInfo }) {
         </button>
       )}
       {hasSite && satellite && <span className="view3d-credit">Imagery ©Google</span>}
+      {hasSite && terrain && (
+        <TerrainBar
+          solid={terrainUi.solid}
+          contours={terrainUi.contours}
+          labels={terrainUi.labels}
+          interval={terrain.interval}
+          onSolid={(solid) => setTerrainUi({ solid })}
+          onContours={(contours) => setTerrainUi({ contours })}
+          onLabels={(labels) => setTerrainUi({ labels })}
+          onInterval={(mm) =>
+            void apply(() => ipc.setProperty(terrain.site, "contour", `${(mm / 25.4).toFixed(2)}"`))
+          }
+        />
+      )}
     </div>
   );
 }
@@ -1542,7 +1597,7 @@ function buildCaps(t: Three, caps: Cap[]) {
         geo,
         new THREE.LineBasicMaterial({ color: 0x3a3d40, depthTest: true }),
       );
-      inner.userData = { el: c.el, kind: "inner" };
+      inner.userData = { el: c.el, kind: "inner", cap: c };
       inner.renderOrder = 3;
       t.capGroup.add(inner);
     }
@@ -1551,7 +1606,7 @@ function buildCaps(t: Three, caps: Cap[]) {
       const mat = new LineMaterial({ color: 0x111111, linewidth: 2.2 });
       mat.resolution.set(size.x, size.y);
       const cut = new LineSegments2(geo, mat);
-      cut.userData = { el: c.el, kind: "cut" };
+      cut.userData = { el: c.el, kind: "cut", cap: c };
       cut.renderOrder = 4;
       t.capGroup.add(cut);
     }
@@ -1571,7 +1626,9 @@ function applyCaps(t: Three, style: VisualStyle, selection: string[]) {
   const size = t.renderer.getSize(new THREE.Vector2());
   for (const c of t.capGroup.children) {
     const u = c.userData as { el: string; kind: string; cap?: Cap };
-    c.visible = shown.get(u.el) !== false;
+    // The ground caps only as a block of earth (ADR-045).
+    const ground = u.cap?.category === "Site";
+    c.visible = shown.get(u.el) !== false && !(ground && !useAppStore.getState().terrain.solid);
     if (u.kind === "fill") {
       const mat = (c as THREE.Mesh).material as THREE.MeshBasicMaterial;
       const base = new THREE.Color(meshColor(u.cap as unknown as Mesh));
@@ -1592,6 +1649,178 @@ function applyCaps(t: Three, style: VisualStyle, selection: string[]) {
       const mat = (c as LineSegments2).material;
       mat.resolution.set(size.x, size.y);
       mat.color.set(sel.has(u.el) ? SELECTED : 0x111111);
+    }
+  }
+}
+
+/** The earth texture of the terrain's sides: soil in faint strata. */
+let earthTexture: THREE.Texture | null = null;
+function earth(): THREE.Texture | null {
+  if (earthTexture || typeof document === "undefined") return earthTexture;
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 256;
+  const g = c.getContext("2d");
+  if (!g) return null;
+  const bands = ["#8a6a47", "#7d5f3f", "#94734e", "#735636", "#86663f"];
+  let y = 0;
+  let k = 0;
+  while (y < 256) {
+    const h = 18 + ((k * 37) % 29);
+    g.fillStyle = bands[k % bands.length]!;
+    g.fillRect(0, y, 64, h);
+    y += h;
+    k++;
+  }
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = i % 2 ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)";
+    g.fillRect((i * 53) % 64, (i * 97) % 256, 1 + (i % 2), 1);
+  }
+  earthTexture = new THREE.CanvasTexture(c);
+  earthTexture.colorSpace = THREE.SRGBColorSpace;
+  earthTexture.wrapS = earthTexture.wrapT = THREE.RepeatWrapping;
+  return earthTexture;
+}
+
+function contourLabel(text: string, major: boolean): THREE.Sprite {
+  const c = document.createElement("canvas");
+  const g = c.getContext("2d");
+  const font = `${major ? 700 : 600} 44px "Barlow Condensed", Arial, sans-serif`;
+  let w = 160;
+  if (g) {
+    g.font = font;
+    w = Math.ceil(g.measureText(text).width) + 20;
+  }
+  c.width = w;
+  c.height = 60;
+  if (g) {
+    g.font = font;
+    g.fillStyle = "rgba(255,255,255,0.85)";
+    g.fillRect(0, 6, w, 48);
+    g.fillStyle = "#3b2f22";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(text, w / 2, 32);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: tex,
+      depthTest: true,
+      toneMapped: false,
+      // A steady size on screen, like annotation text.
+      sizeAttenuation: false,
+    }),
+  );
+  // About 12 px tall on screen, sitting just above its contour (not sunk into a slope).
+  const h = 0.018;
+  s.center.set(0.5, 0);
+  s.scale.set((h * w) / 60, h, 1);
+  return s;
+}
+
+/** The site's terrain (ADR-045): its earth block (sides and bottom) with its outline, its
+ * contours (minor thin, every fifth heavier) and their labels. */
+function buildTerrain(t: Three, terrain: Terrain | null) {
+  for (const c of [...t.terrainGroup.children]) {
+    t.terrainGroup.remove(c);
+    c.traverse((o) => {
+      const m = o as THREE.Mesh;
+      m.geometry?.dispose();
+      const mat = m.material as (THREE.Material & { map?: THREE.Texture | null }) | undefined;
+      if (mat && mat.map && mat.map !== earthTexture) mat.map.dispose();
+      mat?.dispose();
+    });
+  }
+  if (!terrain) return;
+  if (terrain.skirt.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(terrain.skirt, 3));
+    // Soil strata run level: v up the side, u along it.
+    const p = terrain.skirt;
+    const uv = new Float32Array((p.length / 3) * 2);
+    for (let i = 0, k = 0; i < p.length; i += 3, k += 2) {
+      uv[k] = (p[i]! + p[i + 1]!) / 4000;
+      uv[k + 1] = p[i + 2]! / 3048;
+    }
+    geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    geo.computeVertexNormals();
+    const block = new THREE.Mesh(
+      geo,
+      new THREE.MeshLambertMaterial({ map: earth(), side: THREE.DoubleSide }),
+    );
+    block.userData.kind = "block";
+    t.terrainGroup.add(block);
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo, 30),
+      new THREE.LineBasicMaterial({ color: EDGE_COLOR }),
+    );
+    edges.userData.kind = "blockEdges";
+    t.terrainGroup.add(edges);
+  }
+  for (const major of [false, true]) {
+    const segs = terrain.contours.filter((c) => c.major === major).flatMap((c) => c.segments);
+    if (!segs.length) continue;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(segs, 3));
+    const lines = new THREE.LineSegments(
+      geo,
+      new THREE.LineBasicMaterial({
+        color: major ? 0x3f3325 : 0x6d5d48,
+        transparent: !major,
+        opacity: major ? 1 : 0.7,
+      }),
+    );
+    lines.userData.kind = "contours";
+    t.terrainGroup.add(lines);
+  }
+  if (typeof document !== "undefined") {
+    // Many contours: only the heavier ones carry labels.
+    const all = terrain.labels.length <= 60;
+    const labels = new THREE.Group();
+    labels.userData.kind = "labels";
+    for (const l of terrain.labels) {
+      if (!all && !l.major) continue;
+      const s = contourLabel(l.text, l.major);
+      s.position.set(l.at[0], l.at[1], l.at[2] + 60);
+      labels.add(s);
+    }
+    t.terrainGroup.add(labels);
+  }
+}
+
+function applyTerrain(
+  t: Three,
+  ui: { solid: boolean; contours: boolean; labels: boolean },
+  style: VisualStyle,
+  box: SectionBox | null,
+) {
+  const planes = boxPlanes(box);
+  for (const c of t.terrainGroup.children) {
+    const kind = c.userData.kind as string;
+    if (kind === "block") {
+      c.visible = ui.solid && style !== "wireframe";
+      const mat = (c as THREE.Mesh).material as THREE.MeshLambertMaterial;
+      mat.color.setHex(style === "hiddenLine" ? 0xffffff : 0xffffff);
+      mat.map = style === "hiddenLine" ? null : earth();
+      mat.clippingPlanes = planes;
+      mat.needsUpdate = true;
+    } else if (kind === "blockEdges") {
+      c.visible = ui.solid && style !== "realistic";
+      ((c as THREE.LineSegments).material as THREE.Material).clippingPlanes = planes;
+    } else if (kind === "contours") {
+      c.visible = ui.contours;
+      ((c as THREE.LineSegments).material as THREE.Material).clippingPlanes = planes;
+    } else if (kind === "labels") {
+      c.visible = ui.contours && ui.labels;
+      if (box)
+        for (const s of c.children)
+          s.visible =
+            s.position.x >= box.min[0]! &&
+            s.position.x <= box.max[0]! &&
+            s.position.y >= box.min[1]! &&
+            s.position.y <= box.max[1]!;
     }
   }
 }
