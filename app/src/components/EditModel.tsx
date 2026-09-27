@@ -6,7 +6,7 @@ import { activeViewInfo, useAppStore, type EditLogEntry } from "../store";
 
 type UiStore = ReturnType<typeof useAppStore.getState>;
 
-// Edit Model with Claude (ADR-050): a floating button over plan and 3D views opens a
+// Edit Model with Claude (ADR-050): a floating button over model views opens a
 // prompt; Claude's structured edit is previewed (the elements it changes highlighted) and
 // applied as one undo step. Rust checks and makes every change.
 
@@ -34,12 +34,14 @@ const sparkle = (color: string) => (
   </svg>
 );
 
-/** Where Edit Model is offered: plan views (floor, ceiling, site) and 3D, not sheets,
- * elevations, sections, schedules or the Standards tab. */
+/** Where Edit Model is offered: plans (floor, ceiling, site), elevations, sections and 3D;
+ * not sheets, schedules or the Standards tab. */
 export function editModelAllowed(s: UiStore): boolean {
   if (!s.app || s.app.sketch || s.activeViewport || s.ribbonTab === "Standards") return false;
   const t = activeViewInfo(s)?.viewType;
-  return t === "Plan" || t === "CeilingPlan" || t === "ThreeD";
+  return (
+    t === "Plan" || t === "CeilingPlan" || t === "Elevation" || t === "Section" || t === "ThreeD"
+  );
 }
 
 export function useEditModelAllowed(): boolean {
@@ -67,7 +69,7 @@ export function EditModelButton() {
 }
 
 /** The Edit Model dialog and its ⌘K / Ctrl+K shortcut. It closes (dropping any preview)
- * when the active view stops being a plan or 3D view. */
+ * when the active view becomes one it isn't offered in. */
 export function EditModelDialog() {
   const allowed = useEditModelAllowed();
   const open = useAppStore((s) => s.editModel.open);

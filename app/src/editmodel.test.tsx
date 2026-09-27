@@ -30,15 +30,22 @@ async function openProject() {
 const dialog = () => screen.queryByRole("dialog", { name: "Edit model with Claude" });
 
 describe("Edit Model with Claude (ADR-050)", () => {
-  it("is offered in plan and 3D views only, and Ctrl+K opens it", async () => {
+  it("is offered in plans, elevations, sections and 3D, and Ctrl+K opens it", async () => {
     await openProject();
     expect(screen.getByRole("button", { name: "Edit model with Claude" })).toBeVisible();
     await userEvent.keyboard("{Control>}k{/Control}");
     expect(dialog()).not.toBeNull();
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(dialog()).toBeNull());
-    // An elevation: no button, and Ctrl+K does nothing.
+    // Elevations too (ADR-050); the view is Claude's context.
     useAppStore.getState().openView(FAKE_IDS.north);
+    await screen.findByRole("button", { name: "Edit model with Claude" });
+    await userEvent.keyboard("{Control>}k{/Control}");
+    expect(dialog()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(dialog()).toBeNull());
+    // Not on the Standards tab: no button, and Ctrl+K does nothing.
+    useAppStore.getState().setRibbonTab("Standards");
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Edit model with Claude" })).toBeNull(),
     );
@@ -106,7 +113,7 @@ describe("Edit Model with Claude (ADR-050)", () => {
       "doors 3'-0\"{Enter}",
     );
     await screen.findByLabelText("Preview");
-    useAppStore.getState().openView(FAKE_IDS.north);
+    useAppStore.getState().setRibbonTab("Standards");
     await waitFor(() => expect(dialog()).toBeNull());
     expect(useAppStore.getState().highlight).toEqual([]);
     expect(useAppStore.getState().editModel.open).toBe(false);

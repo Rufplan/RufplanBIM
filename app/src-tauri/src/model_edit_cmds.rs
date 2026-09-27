@@ -46,9 +46,25 @@ fn context(doc: &studio_core::Document, view: ElementId, selection: Vec<ElementI
                         }
                     }
                 }
+                // A building elevation draws the far facades too, behind the near ones, and
+                // the side walls edge-on: "on this elevation" means the facade you see
+                // face-on in front, and its openings.
+                if let ViewKind::Elevation { facing } = kind {
+                    let hidden = behind(doc, facing.look().scale(-1.0));
+                    v.retain(|id| !hidden.contains(id));
+                }
                 v
             });
-            (name.clone(), level, drawn)
+            // Claude reads "this view" better knowing what kind of view it is.
+            let kind_name = match kind {
+                ViewKind::FloorPlan { .. } => "floor plan",
+                ViewKind::CeilingPlan { .. } => "ceiling plan",
+                ViewKind::Elevation { .. } | ViewKind::MarkerElevation { .. } => "elevation",
+                ViewKind::Section { .. } => "section",
+                ViewKind::ThreeD => "3D view",
+                ViewKind::Schedule { .. } => "schedule",
+            };
+            (format!("{name} ({kind_name})"), level, drawn)
         }
         _ => (String::new(), None, None),
     };
@@ -60,6 +76,54 @@ fn context(doc: &studio_core::Document, view: ElementId, selection: Vec<ElementI
     }
 }
 
+/// In an elevation looking along `look`, the walls not on its facade — seen edge-on, or
+/// face-on behind a nearer face-on wall — and the doors and windows in them.
+fn behind(doc: &studio_core::Document, look: studio_geom::Pt) -> Vec<ElementId> {
+    let right = studio_geom::Pt::new(look.y, -look.x);
+    // Face-on walls as (id, u-range, depth).
+    let walls: Vec<(ElementId, f64, f64, f64)> = doc
+        .of(studio_core::Category::Wall)
+        .filter_map(|e| match &e.data {
+            ElementData::Wall { start, end, .. } => {
+                let d = end.sub(*start).norm();
+                (d.dot(look).abs() < 0.3).then(|| {
+                    let (u0, u1) = (start.dot(right), end.dot(right));
+                    (
+                        e.id,
+                        u0.min(u1),
+                        u0.max(u1),
+                        start.lerp(*end, 0.5).dot(look),
+                    )
+                })
+            }
+            _ => None,
+        })
+        .collect();
+    let mut out: Vec<ElementId> = walls
+        .iter()
+        .filter(|(_, a0, a1, depth)| {
+            walls.iter().any(|(_, b0, b1, d2)| {
+                let overlap = a1.min(*b1) - a0.max(*b0);
+                *d2 < depth - 1.0 && overlap > 0.5 * (a1 - a0)
+            })
+        })
+        .map(|w| w.0)
+        .collect();
+    out.extend(
+        doc.of(studio_core::Category::Wall)
+            .map(|e| e.id)
+            .filter(|id| !walls.iter().any(|w| w.0 == *id)),
+    );
+    for e in doc.iter() {
+        if let ElementData::Door { host, .. } | ElementData::Window { host, .. } = &e.data {
+            if out.contains(host) {
+                out.push(e.id);
+            }
+        }
+    }
+    out
+}
+
 fn system_prompt() -> String {
     r#"You turn an architect's request into ONE change to a building model in Rufplan Studio (a Revit-like BIM app). Answer only by calling the edit_model tool.
 
@@ -68,7 +132,7 @@ Actions:
 - resize_building: change the building's overall size, outside face to outside face. "50' wide" is axis east-west; "deep"/"long" north-south is axis north-south. anchor is the side that stays put: west (default for width), south (default for depth), east, north, or center when the request says so.
 - none: the request isn't a model change you can make with these (say why in message, one short sentence, and suggest what would work).
 
-Scope: model (default), level (with level = its name, e.g. "Level 1 doors"), selection ("these", "selected"), or view ("in this view"). typeFilter narrows to types whose name contains it ("the single doors" → "Single").
+Scope: model (default), level (with level = its name, e.g. "Level 1 doors"), selection ("these", "selected", "this wall"), or view ("in this view", "on this elevation", "in this section": what the active view shows). typeFilter narrows to types whose name contains it ("the single doors" → "Single").
 Values: US feet-inches like 3'-0", 7'-6 1/2", 50'-0". Only one change: if asked for several, do the first and say in summary that the rest need their own prompts.
 summary: one line like: Width → 3'-0" on 7 doors."#
         .into()
@@ -207,7 +271,50 @@ mod tests {
         assert!(preview.scope.starts_with("In "));
         assert_eq!(doc.stamp(), before, "previewing changes nothing");
         let d = model_edit::describe(doc, &context(doc, plan_view, vec![]));
-        assert!(d.contains("Doors:") && d.contains("Active view: "), "{d}");
+        assert!(d.contains("Doors:") && d.contains("(floor plan)"), "{d}");
+        // In an elevation, "view" scope is what the elevation shows (ADR-050).
+        let elev = doc
+            .of(studio_core::Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::Elevation { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        let ctx = context(doc, elev, vec![]);
+        assert!(ctx.view_name.ends_with("(elevation)") && ctx.view_level.is_none());
+        let windows = ModelEdit {
+            action: "set_parameter".into(),
+            category: "Windows".into(),
+            parameter: "Sill Height".into(),
+            value: "2'-6\"".into(),
+            scope: "view".into(),
+            ..Default::default()
+        };
+        let seen = plan(doc, windows.clone(), ctx)
+            .preview
+            .expect("windows in the elevation");
+        let all = plan(
+            doc,
+            ModelEdit {
+                scope: "model".into(),
+                ..windows
+            },
+            context(doc, elev, vec![]),
+        )
+        .preview
+        .unwrap();
+        assert!(
+            seen.count >= 1 && seen.count < all.count,
+            "{} of {}",
+            seen.count,
+            all.count
+        );
     }
 
     /// Live check (uses API credit):
@@ -248,5 +355,28 @@ mod tests {
                 p.error
             );
         }
+        // From an elevation: "on this elevation" is the facade it shows.
+        let elev = doc
+            .of(studio_core::Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: ViewKind::Elevation { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        let ctx = context(doc, elev, vec![]);
+        let prompt = "make the windows on this elevation 2'-6\" sill height";
+        let e = ask(&key, &model_edit::describe(doc, &ctx), prompt).unwrap();
+        let p = plan(doc, e.clone(), ctx);
+        println!(
+            "{prompt}\n  -> {e:?}\n  -> {:?} {:?}",
+            p.preview.map(|p| p.summary),
+            p.error
+        );
     }
 }

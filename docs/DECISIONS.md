@@ -1664,12 +1664,16 @@ and modal, README and prototype).
 - **One undo step.** Apply runs the edit and folds its transactions into one undo step
   (`Document::merge_undo`) named "Edit model: summary". A failed edit rolls back.
 - **UI** (per the handoff):
-  - The EDIT MODEL pill sits at the lower right of plan views (floor, ceiling, site) and 3D
-    views only. The 3D chips and terrain bar move up above it.
+  - The EDIT MODEL pill sits at the lower right of plan views (floor, ceiling, site),
+    elevations, sections and 3D views (elevations and sections added at the owner's request,
+    2026-09-27). The 3D chips and terrain bar move up above it.
+  - Claude is told the active view's kind. In a building elevation, "view" scope ("the
+    windows on this elevation") is the facade seen face-on in front and its openings, not
+    the far facades drawn behind it or the side walls seen edge-on. In sections it is what
+    the section shows.
   - ⌘K / Ctrl+K opens and closes it there.
   - The dialog closes and drops its preview when the view changes to one it isn't offered
-    in (elevations, sections, sheets, schedules, an activated viewport, the Standards tab,
-    sketch mode).
+    in (sheets, schedules, an activated viewport, the Standards tab, sketch mode).
   - It has history, a preview card with the changed elements highlighted like a selection,
     the error line, suggestion chips, and PREVIEW CHANGE, or CANCEL / APPLY when a preview
     is showing.
