@@ -338,6 +338,8 @@ export const ipc = {
   createSpotElevation: (view: ElementId, at: Pt, leader: Pt): S =>
     invoke("create_spot_elevation", { view, at, leader }),
   createNorthArrow: (view: ElementId, at: Pt): S => invoke("create_north_arrow", { view, at }),
+  /** A spot slope on a sloped roof, floor or the ground (ADR-049). */
+  createSpotSlope: (view: ElementId, at: Pt): S => invoke("create_spot_slope", { view, at }),
   createGraphicScale: (view: ElementId, at: Pt): S => invoke("create_graphic_scale", { view, at }),
   createKeyPlan: (sheet: ElementId, at: Pt): S => invoke("create_key_plan", { sheet, at }),
   // Site (ADR-023).

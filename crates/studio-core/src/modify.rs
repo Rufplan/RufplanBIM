@@ -58,6 +58,7 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     *end = end.add(delta);
                 }
                 ElementData::TextNote { at, .. }
+                | ElementData::SpotSlope { at, .. }
                 | ElementData::NorthArrow { at, .. }
                 | ElementData::GraphicScale { at, .. }
                 | ElementData::KeyPlan { at, .. } => *at = at.add(delta),

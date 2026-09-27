@@ -37,6 +37,7 @@ export type Tool =
   | "dimensionAngular"
   | "text"
   | "spotElevation"
+  | "spotSlope"
   | "northArrow"
   | "graphicScale"
   | "keyPlan"
@@ -85,6 +86,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   dimensionAngular: "Angular Dimension",
   text: "Text",
   spotElevation: "Spot Elevation",
+  spotSlope: "Spot Slope",
   northArrow: "North Arrow",
   graphicScale: "Graphic Scale",
   keyPlan: "Key Plan",

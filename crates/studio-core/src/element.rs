@@ -89,6 +89,7 @@ pub enum Category {
     NorthArrow,
     GraphicScale,
     KeyPlan,
+    SpotSlope,
 }
 
 impl Category {
@@ -135,6 +136,7 @@ impl Category {
             Category::NorthArrow => "NorthArrow",
             Category::GraphicScale => "GraphicScale",
             Category::KeyPlan => "KeyPlan",
+            Category::SpotSlope => "SpotSlope",
         }
     }
 }
@@ -323,6 +325,41 @@ impl SurfacePattern {
             .find(|(_, _, p)| *p == self)
             .map_or("custom", |(id, _, _)| id)
     }
+}
+
+/// A floor's slope (ADR-049), like Revit's slope arrow: it falls `rise` per unit of run
+/// toward plan direction `dir` (radians, counter-clockwise from east), and its top is at the
+/// level plus offset along its highest edge. A rise of 0 is a flat floor.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+pub struct FloorSlope {
+    pub rise: f64,
+    pub dir: f64,
+}
+
+impl FloorSlope {
+    pub fn is_flat(&self) -> bool {
+        self.rise.abs() < 1e-9
+    }
+    /// The unit plan direction it falls toward.
+    pub fn down(&self) -> Pt {
+        Pt::new(self.dir.cos(), self.dir.sin())
+    }
+}
+
+/// How a spot slope writes its value (ADR-049).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum SlopeFormat {
+    /// Roofs as rise over 12", floors and ground as a percent (a ratio at ramp slopes).
+    #[default]
+    Auto,
+    /// 6" / 12".
+    RisePer12,
+    /// 2.00%.
+    Percent,
+    /// 1:12.
+    Ratio,
+    /// 26.57°.
+    Degrees,
 }
 
 /// Where a floor's or ceiling's boundary comes from.
@@ -737,6 +774,9 @@ pub enum ElementData {
         /// Boundary loops as sketched (ADR-021); when present they define the outline.
         #[serde(default)]
         sketch: Vec<Vec<crate::sketch::SketchCurve>>,
+        /// Flat unless set (ADR-049): sidewalks, ramps, sloped slabs.
+        #[serde(default)]
+        slope: FloorSlope,
     },
     CeilingType {
         name: String,
@@ -1080,6 +1120,16 @@ pub enum ElementData {
         at: Pt,
         leader: Pt,
     },
+    /// A spot slope (ADR-049): the slope of the roof, floor or ground at `at` (view
+    /// coordinates), shown as an arrow (or, in elevations and sections, a triangle).
+    SpotSlope {
+        view: ElementId,
+        at: Pt,
+        #[serde(default)]
+        format: SlopeFormat,
+        #[serde(default)]
+        triangle: bool,
+    },
     /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
     NorthArrow {
         view: ElementId,
@@ -1177,6 +1227,7 @@ impl ElementData {
             ElementData::NorthArrow { .. } => Category::NorthArrow,
             ElementData::GraphicScale { .. } => Category::GraphicScale,
             ElementData::KeyPlan { .. } => Category::KeyPlan,
+            ElementData::SpotSlope { .. } => Category::SpotSlope,
         }
     }
 
@@ -1265,6 +1316,7 @@ impl ElementData {
             | ElementData::AngularDimension { view, .. }
             | ElementData::TextNote { view, .. }
             | ElementData::SpotElevation { view, .. }
+            | ElementData::SpotSlope { view, .. }
             | ElementData::NorthArrow { view, .. }
             | ElementData::GraphicScale { view, .. }
             | ElementData::KeyPlan { sheet: view, .. } => vec![*view],
@@ -1339,6 +1391,7 @@ impl ElementData {
             ElementData::NorthArrow { .. } => "North Arrow".into(),
             ElementData::GraphicScale { .. } => "Graphic Scale".into(),
             ElementData::KeyPlan { .. } => "Key Plan".into(),
+            ElementData::SpotSlope { .. } => "Spot Slope".into(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),

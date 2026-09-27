@@ -592,6 +592,7 @@ mod tests {
                 boundary: vec![Pt::new(0.0, 0.0), Pt::new(1.0, 0.0), Pt::new(0.0, 1.0)],
                 bound: Default::default(),
                 sketch: vec![],
+                slope: Default::default(),
             }))
         });
         assert!(matches!(r, Err(CoreError::DanglingRef { .. })));

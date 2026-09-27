@@ -561,6 +561,12 @@ export function Ribbon() {
               keys="click the point, then the text"
             />
             <ToolButton
+              tool="spotSlope"
+              label="Spot Slope"
+              icon={Icons.spotSlope}
+              keys="roofs, ramps, sidewalks, ground"
+            />
+            <ToolButton
               tool="northArrow"
               label="North Arrow"
               icon={Icons.northArrow}

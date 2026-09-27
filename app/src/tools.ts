@@ -127,6 +127,7 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "northArrow") return view === "Plan" || view === "CeilingPlan" || view === "Sheet";
   if (tool === "spotElevation" || tool === "graphicScale")
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
+  if (tool === "spotSlope") return view === "Plan" || view === "Elevation" || view === "Section";
   if (tool === "dimension" || tool === "dimensionLinear" || tool === "text") {
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   }
@@ -148,7 +149,7 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     if (tool === "dimensionAngular") return "Open a plan to dimension an angle.";
     if (tool === "keyPlan") return "Open a sheet to place a key plan.";
     if (tool === "northArrow") return "Open a plan or a sheet to place a north arrow.";
-    if (tool === "spotElevation" || tool === "graphicScale")
+    if (tool === "spotElevation" || tool === "graphicScale" || tool === "spotSlope")
       return "Open a plan, elevation or section to place it.";
     return "Open a floor or ceiling plan to use this tool.";
   }
@@ -273,6 +274,10 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return n === 0
         ? "Click the point to measure (a floor, the ground, or any height in an elevation or section)."
         : "Click where the elevation goes (click the same point again for no leader).";
+    case "spotSlope":
+      return view === "Plan"
+        ? "Click a sloped roof, ramp, sidewalk or the ground; the arrow points downhill."
+        : "Click on a sloped edge (a roof, ramp or the ground in a section).";
     case "northArrow":
       return "Click where the north arrow goes. Its look is set on the Standards tab.";
     case "graphicScale":

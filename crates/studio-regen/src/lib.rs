@@ -176,15 +176,86 @@ pub struct SlabSolid {
     pub layers: Vec<f64>,
     /// Shaded color of the top layer's material.
     pub color: Option<[u8; 3]>,
+    /// A sloped floor's fall (ADR-049); None: level. `z0` and `z1` are at its highest point.
+    pub tilt: Option<Tilt>,
+}
+
+/// How a sloped slab falls: `rise` per mm of run along `down` from `high`, its highest point.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Tilt {
+    pub down: Pt,
+    pub rise: f64,
+    pub high: Pt,
 }
 
 impl SlabSolid {
+    /// The level prism (a sloped slab's shape before it's tilted).
     pub fn prism(&self) -> Prism {
         Prism {
             base: self.base.clone(),
             z0: self.z0,
             z1: self.z1,
         }
+    }
+    /// How far the slab has dropped at plan point `p` (0 when level).
+    pub fn drop_at(&self, p: Pt) -> f64 {
+        self.tilt
+            .map_or(0.0, |t| t.rise * p.sub(t.high).dot(t.down))
+    }
+    /// Top height above plan point `p`.
+    pub fn top_at(&self, p: Pt) -> f64 {
+        self.z1 - self.drop_at(p)
+    }
+    /// The plan gradient of its top (uphill, mm per mm); zero when level.
+    pub fn gradient(&self) -> Pt {
+        self.tilt
+            .map_or(Pt::new(0.0, 0.0), |t| t.down.scale(-t.rise))
+    }
+    /// Its lowest point.
+    pub fn bottom(&self) -> f64 {
+        let fall = self
+            .base
+            .outer
+            .iter()
+            .map(|p| self.drop_at(*p))
+            .fold(0.0, f64::max);
+        self.z0 - fall
+    }
+    /// Triangles (9 floats each, z-up): the prism, sheared to its slope.
+    pub fn triangles(&self) -> Vec<f32> {
+        let mut v = self.prism().triangles();
+        if self.tilt.is_some() {
+            for c in v.as_chunks_mut::<3>().0 {
+                c[2] -= self.drop_at(Pt::new(f64::from(c[0]), f64::from(c[1]))) as f32;
+            }
+        }
+        v
+    }
+    /// Its faces as 3D polygons: top, bottom and a side per boundary edge.
+    pub fn surfaces(&self) -> Vec<Vec<[f64; 3]>> {
+        let at = |p: Pt, z: f64| [p.x, p.y, z - self.drop_at(p)];
+        let mut out = vec![
+            self.base.outer.iter().map(|p| at(*p, self.z1)).collect(),
+            self.base
+                .outer
+                .iter()
+                .rev()
+                .map(|p| at(*p, self.z0))
+                .collect(),
+        ];
+        for r in std::iter::once(&self.base.outer).chain(&self.base.holes) {
+            let n = r.len();
+            for i in 0..n {
+                let (a, b) = (r[i], r[(i + 1) % n]);
+                out.push(vec![
+                    at(a, self.z0),
+                    at(b, self.z0),
+                    at(b, self.z1),
+                    at(a, self.z1),
+                ]);
+            }
+        }
+        out
     }
 }
 
@@ -305,7 +376,7 @@ impl Model {
                 self.floors
                     .iter()
                     .chain(&self.ceilings)
-                    .map(|s| (s.z0, s.z1)),
+                    .map(|s| (s.bottom(), s.z1)),
             )
             .chain(self.roofs.iter().map(|r| (r.base, r.peak())))
             .chain(self.stairs.iter().map(|s| (s.z0, s.z1())))
@@ -701,7 +772,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
     let slab = |cat: Category| -> Vec<SlabSolid> {
         doc.of(cat)
             .flat_map(|e| -> Vec<SlabSolid> {
-                let (type_id, level, z0, z1, bases) = match &e.data {
+                let (type_id, level, z0, z1, bases, slope) = match &e.data {
                     ElementData::Floor {
                         type_id,
                         level,
@@ -709,13 +780,14 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         boundary,
                         bound,
                         sketch,
+                        slope,
                     } => {
                         let Some(t) = type_thickness(doc, *type_id) else {
                             return vec![];
                         };
                         let top = elev(*level) + offset;
                         let b = bases(*level, bound, boundary, sketch);
-                        (*type_id, *level, top - t, top, b)
+                        (*type_id, *level, top - t, top, b, *slope)
                     }
                     ElementData::Ceiling {
                         type_id,
@@ -730,10 +802,25 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         };
                         let bottom = elev(*level) + height;
                         let b = bases(*level, bound, boundary, sketch);
-                        (*type_id, *level, bottom, bottom + t, b)
+                        (*type_id, *level, bottom, bottom + t, b, Default::default())
                     }
                     _ => return vec![],
                 };
+                // A sloped floor falls from the highest point of all its pieces (ADR-049).
+                let tilt = (!slope.is_flat())
+                    .then(|| {
+                        let down = slope.down();
+                        bases
+                            .iter()
+                            .flat_map(|b| b.outer.iter().copied())
+                            .min_by(|a, b| a.dot(down).total_cmp(&b.dot(down)))
+                            .map(|high| Tilt {
+                                down,
+                                rise: slope.rise,
+                                high,
+                            })
+                    })
+                    .flatten();
                 bases
                     .into_iter()
                     .map(|base| SlabSolid {
@@ -745,6 +832,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                         z1,
                         color: slab_color(type_id),
                         layers: type_layer_depths(doc, type_id),
+                        tilt,
                     })
                     .collect()
             })

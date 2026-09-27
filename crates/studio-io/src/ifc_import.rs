@@ -1236,6 +1236,7 @@ fn build(r: &Reader<'_>, doc: &mut Document, report: &mut ImportReport) -> CoreR
                 boundary: outline.clone(),
                 bound: Default::default(),
                 sketch: vec![],
+                slope: Default::default(),
             }))
         });
         if made.is_ok() {

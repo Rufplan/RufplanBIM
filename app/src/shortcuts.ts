@@ -177,6 +177,13 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     command: t("spotElevation"),
   },
   {
+    id: "spotSlope",
+    label: "Spot Slope",
+    group: "Annotate",
+    keys: [],
+    command: t("spotSlope"),
+  },
+  {
     id: "northArrow",
     label: "North Arrow",
     group: "Annotate",

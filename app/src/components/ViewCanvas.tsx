@@ -1348,6 +1348,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       return;
     }
     // Symbols (ADR-048): one click, or two for a spot elevation (the point, then its text).
+    if (s.tool === "spotSlope") {
+      await apply(() => ipc.createSpotSlope(view.id, raw));
+      return;
+    }
     if (s.tool === "northArrow") {
       await apply(() => ipc.createNorthArrow(view.id, raw));
       return;

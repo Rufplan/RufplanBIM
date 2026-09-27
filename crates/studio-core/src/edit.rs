@@ -164,6 +164,7 @@ fn transformed(
             *end = x.apply(*end);
         }
         ElementData::TextNote { view, at, .. }
+        | ElementData::SpotSlope { view, at, .. }
         | ElementData::NorthArrow { view, at }
         | ElementData::GraphicScale { view, at } => {
             if !is_plan_view(tx, *view) {

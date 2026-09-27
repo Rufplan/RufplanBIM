@@ -1292,6 +1292,7 @@ pub fn finish(
                 boundary: outer.clone(),
                 bound: crate::element::SlabBound::Sketch,
                 sketch: loops.clone(),
+                slope: Default::default(),
             },
             SketchKind::Ceiling => ElementData::Ceiling {
                 type_id,

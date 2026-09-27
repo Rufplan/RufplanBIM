@@ -133,6 +133,8 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Slopes (ADR-049): studio-core `slope` (FloorSlope, SlopeFormat, parse/format), studio-regen
+  `SlabSolid::tilt`, studio-views `slopes` (slope_at, spot_slope).
 - Symbols (ADR-048): studio-core `symbols` (elements, styles) and `standards_catalog` (choices
   for all 90 standards); studio-views `symbols` and `standards_preview`; studio-sheets placed key
   plans; components/StandardChoices.tsx; Annotate > Symbol.

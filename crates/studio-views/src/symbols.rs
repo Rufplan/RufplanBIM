@@ -52,8 +52,8 @@ pub fn spot_height(doc: &Document, model: &Model, view: ElementId, at: Pt) -> Op
             let floor = model
                 .floors
                 .iter()
-                .filter(|f| f.z1 <= cut + 1.0 && f.base.contains(at))
-                .map(|f| f.z1)
+                .filter(|f| f.top_at(at) <= cut + 1.0 && f.base.contains(at))
+                .map(|f| f.top_at(at))
                 .fold(None, |m: Option<f64>, z| Some(m.map_or(z, |m| m.max(z))));
             floor
                 .or_else(|| model.site.as_ref().and_then(|s| s.ground_at(at)))
@@ -94,6 +94,34 @@ pub fn draw_symbols(doc: &Document, b: &mut Builder, view: ElementId) {
                 let text = spot_text(style, z, survey_datum(doc));
                 spot_elevation(b, Some(e.id), *at, *leader, &text, style);
             }
+            ElementData::SpotSlope {
+                view: v,
+                at,
+                format,
+                triangle,
+            } if *v == view => {
+                let m = model.get_or_insert_with(|| studio_regen::regenerate(doc));
+                let in_plan = matches!(
+                    doc.data(view),
+                    Ok(ElementData::View {
+                        kind: ViewKind::FloorPlan { .. },
+                        ..
+                    })
+                );
+                match crate::slopes::slope_at(doc, m, view, *at, b.paper(3.0)) {
+                    Some(hit) => crate::slopes::spot_slope(
+                        b,
+                        Some(e.id),
+                        *at,
+                        &hit,
+                        *format,
+                        *triangle,
+                        in_plan,
+                    ),
+                    // The model changed under it: say so, so it can be moved or deleted.
+                    None => b.text(Some(e.id), *at, "NO SLOPE".into(), 2.0, Anchor::Center),
+                }
+            }
             ElementData::NorthArrow { view: v, at } if *v == view => {
                 north_arrow(
                     b,
@@ -127,7 +155,10 @@ pub fn grow_bounds(
         let is_symbol = doc.data(el).is_ok_and(|d| {
             matches!(
                 d.category(),
-                Category::SpotElevation | Category::NorthArrow | Category::GraphicScale
+                Category::SpotElevation
+                    | Category::SpotSlope
+                    | Category::NorthArrow
+                    | Category::GraphicScale
             )
         });
         if !is_symbol {

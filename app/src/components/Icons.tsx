@@ -65,6 +65,19 @@ export const Icons = {
       <path d="M14 4.5h6" strokeWidth="1.2" />
     </I>
   ),
+  spotSlope: (
+    <I>
+      <path d="M3 17L21 8" />
+      <path d="M6 12.5l9-4.5" strokeWidth="1.2" />
+      <path
+        d="M15 8l-2.8 0.2 1.3 2.4z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="0.8"
+      />
+      <path d="M3 21h18" strokeWidth="1" strokeDasharray="2 2" />
+    </I>
+  ),
   northArrow: (
     <I>
       <circle cx="12" cy="13" r="7" />

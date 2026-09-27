@@ -791,6 +791,7 @@ pub fn create_floor(
             boundary: ccw(boundary),
             bound: SlabBound::Sketch,
             sketch: vec![],
+            slope: Default::default(),
         }))
     })
 }
@@ -811,6 +812,7 @@ pub fn create_floor_by_walls(
             boundary: ccw(boundary),
             bound: SlabBound::Walls,
             sketch: vec![],
+            slope: Default::default(),
         }))
     })
 }
@@ -1481,6 +1483,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 };
                 props.push(bound_row(b, "walls", "Follows Walls"));
             }
+            if let ElementData::Floor { slope, .. } = &el.data {
+                crate::slope::floor_properties(slope, &mut props);
+            }
             props.push(ro(
                 "area",
                 "Area",
@@ -2107,6 +2112,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }
         | ElementData::KeyPlan { .. } => crate::symbols::properties(doc, id, &mut props),
+        ElementData::SpotSlope {
+            format, triangle, ..
+        } => crate::slope::spot_properties(*format, *triangle, &mut props),
         ElementData::ElevationMarkerType {
             name,
             interior,
@@ -2456,11 +2464,13 @@ pub fn set_property(
             level,
             offset,
             bound,
+            slope,
             ..
         } => match key {
             "type" => *type_id = parse_id(value)?,
             "level" => *level = parse_id(value)?,
             "offset" => *offset = parse_len(value)?,
+            "slope" | "slope_dir" => crate::slope::set_floor(slope, key, value)?,
             // Detaching needs the current outline: see studio_regen::derived.
             "bound" if value == "walls" => *bound = SlabBound::Walls,
             _ => return Err(unknown()),
@@ -2745,6 +2755,9 @@ pub fn set_property(
         | ElementData::SpotElevation { .. }
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. } => return Err(unknown()),
+        ElementData::SpotSlope {
+            format, triangle, ..
+        } => crate::slope::set_spot(format, triangle, key, value)?,
         ElementData::KeyPlan { width, .. } => match key {
             "width" => {
                 let w = parse_len(value)?;

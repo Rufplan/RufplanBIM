@@ -18,6 +18,7 @@ pub mod edges;
 pub mod handles;
 mod plan_parts;
 pub mod site_plan;
+pub mod slopes;
 pub mod snap;
 pub mod standards_preview;
 pub mod symbols;
@@ -1583,7 +1584,8 @@ fn projected(
         (&model.floors, FillKind::Slab),
         (&model.ceilings, FillKind::Paper),
     ] {
-        for f in slabs {
+        // Sloped floors are drawn from their faces, with the roofs (ADR-049).
+        for f in slabs.iter().filter(|f| f.tilt.is_none()) {
             match seen(&f.base.outer) {
                 Seen::Beyond => faces.push(face(f.id, &f.base.outer, f.z0, f.z1, fill)),
                 Seen::Cut => {
@@ -1707,6 +1709,45 @@ fn projected(
                 poly: Some(hull),
                 lines: vec![],
             });
+        }
+    }
+    for f in model.floors.iter().filter(|f| f.tilt.is_some()) {
+        let push = |s: &[[f64; 3]], faces: &mut Vec<Face>| {
+            if let Some(mut face) = poly_face(f.id, s) {
+                face.fill = FillKind::Slab;
+                faces.push(face);
+            }
+        };
+        match seen(&f.base.outer) {
+            Seen::Beyond => {
+                for s in f.surfaces() {
+                    push(&s, &mut faces);
+                }
+            }
+            Seen::Cut => {
+                for s in f.surfaces() {
+                    push(&clip3(&s, depth_of), &mut faces);
+                }
+                // The cut profile: a parallelogram where the slab falls along the cut.
+                let t = f.z1 - f.z0;
+                for (u0, u1) in cut_intervals(&f.base) {
+                    let top = |u: f64| f.top_at(origin.add(right.scale(u)));
+                    let (t0, t1) = (top(u0), top(u1));
+                    cut_polys.push((
+                        f.id,
+                        vec![
+                            Pt::new(u0, t0 - t),
+                            Pt::new(u1, t1 - t),
+                            Pt::new(u1, t1),
+                            Pt::new(u0, t0),
+                        ],
+                    ));
+                    for d in &f.layers {
+                        cut_lines.push((f.id, [Pt::new(u0, t0 - d), Pt::new(u1, t1 - d)]));
+                    }
+                }
+            }
+            Seen::Hidden => {}
         }
     }
     for r in &model.roofs {
@@ -2842,7 +2883,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             color: s.color,
             material: None,
             level: Some(s.level),
-            positions: s.prism().triangles(),
+            positions: s.triangles(),
         });
     }
     for r in &m.roofs {

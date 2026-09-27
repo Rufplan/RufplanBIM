@@ -1591,3 +1591,39 @@ approved the new element kinds.
   Revit's EL is already our Elevation (ADR-024), so Spot Elevation has no default key.
 - **Not yet:** other standards (text, linework, tags…) don't drive drawing yet. There are no
   per-instance style overrides, and no spot coordinates or spot slopes.
+
+## ADR-049 Spot slopes and sloped floors — Accepted (2026-09-27)
+Owner request (2026-09-27): "add a spot slope annotation tool similar to how Revit has it for
+Roofs, sidewalks, ramps, etc." Floors were always level, so sidewalks and ramps had no slope to
+read. The owner approved a Spot Slope element and a slope on floors (both change the file; older
+files open unchanged).
+
+- **Sloped floors** (Revit's slope arrow, as two properties):
+  - *Slope*: typed as 2%, 1:12, 1/4"/12", 6/12 or 5°.
+  - *Slopes Down Toward*: one of eight directions.
+  - The floor's top is at its level plus offset along its highest edge and falls from there.
+  - Regeneration gives the slab a `Tilt`:
+    - 3D, and the section box caps made from it, use the sheared prism (planar faces);
+    - sections cut it as a parallelogram with its layer lines;
+    - elevations draw its faces;
+    - spot elevations read its height where clicked.
+  - IFC writes a sloped floor as a tessellation, as roofs are written.
+- **Spot Slope** (Annotate > Symbol; plans, elevations, sections): one click on the surface.
+  It reads the model and follows it:
+  - *In plans*, it reads the highest surface there: roofs on that level, floors at or below
+    the cut plane, else the ground (the site topography's gradient). The arrow points downhill.
+  - *In elevations and sections*, it reads a sloped edge within 3 mm (on paper) of the click:
+    - a roof face or sloped floor cut by the section, or seen nearly edge-on (within about 15°);
+    - the ground where a section cuts it.
+    The arrow sits just above the edge, or it can be a slope triangle (Representation), with
+    legs labelled 12 and the rise, 100 and the percent, or the run and 1.
+  - Clicking where nothing slopes is refused with a message. If the model later changes under
+    it, it reads NO SLOPE so it can be found.
+- **Formats** (Properties > Slope Format): Auto, Rise / 12" (6" / 12", 1/4" / 12"), Percent
+  (2.00%), Ratio (1:12) and Degrees.
+  - Auto writes roofs as rise over 12".
+  - It writes floors at 1:20 or steeper (ramps) as a ratio, gentler floors (sidewalks) and
+    the ground as a percent.
+- **Not yet:** slope arrows drawn in sketch mode, floors that warp (more than one slope),
+  sloped ceilings, stair and ramp families, and a default key (Revit's SS here turns snap
+  overrides off).

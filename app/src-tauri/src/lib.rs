@@ -178,6 +178,7 @@ pub fn run() -> anyhow::Result<()> {
             symbols_cmds::create_north_arrow,
             symbols_cmds::create_graphic_scale,
             symbols_cmds::create_key_plan,
+            symbols_cmds::create_spot_slope,
             sketching::sketch_begin,
             sketching::sketch_draw,
             sketching::sketch_pick_walls,

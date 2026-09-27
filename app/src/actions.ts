@@ -71,6 +71,7 @@ const SIMILAR: Record<string, [Tool, keyof ToolTypes | null]> = {
   Dimension: ["dimension", null],
   TextNote: ["text", null],
   SpotElevation: ["spotElevation", null],
+  SpotSlope: ["spotSlope", null],
   NorthArrow: ["northArrow", null],
   GraphicScale: ["graphicScale", null],
   KeyPlan: ["keyPlan", null],

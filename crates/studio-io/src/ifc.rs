@@ -588,7 +588,17 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
                 .filter(|p| p.id == slab.id)
                 .map(|p| (p.base.clone(), p.z0 - elev, p.z1 - p.z0))
                 .collect();
-            let shape = w.extrusions(body, &parts);
+            // A sloped floor (ADR-049) isn't an extrusion: its faces, as roofs are written.
+            let shape = if slab.tilt.is_some() {
+                let tris: Vec<f32> = slabs
+                    .iter()
+                    .filter(|p| p.id == slab.id)
+                    .flat_map(|p| p.triangles())
+                    .collect();
+                w.tessellation(body, &tris, elev)
+            } else {
+                w.extrusions(body, &parts)
+            };
             let ty = type_name(slab.id);
             let e = if is_floor {
                 summary.slabs += 1;
