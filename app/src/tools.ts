@@ -164,8 +164,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
         : "Click the second point of the mirror axis.";
     case "align":
       return n === 0
-        ? "Click the reference line to align to (a wall face, centerline or grid)."
-        : "Click the line on the element that should move to it.";
+        ? "Pick the reference to align to: a wall face, centerline or grid (Tab for the next)."
+        : "Pick the line on the element that should move onto it (Tab for the next).";
     case "trim":
       return n === 0
         ? "Click the part of the first wall to keep."

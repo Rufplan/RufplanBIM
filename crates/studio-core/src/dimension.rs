@@ -220,7 +220,8 @@ pub fn anchor_dir(doc: &Document, anchor: &Anchor) -> Option<Pt> {
 /// the direction it measures along, whether that direction is fixed (else from the first to
 /// the last), and the dimension line's offset through `cursor`.
 pub struct StringPlan {
-    pub refs: Vec<(Pt, Option<Anchor>)>,
+    /// (where, anchor, picked as a point rather than a line).
+    pub refs: Vec<(Pt, Option<Anchor>, bool)>,
     pub along: Pt,
     pub fixed: bool,
     pub offset: f64,
@@ -276,9 +277,9 @@ pub fn plan_string(refs: &[Reference], cursor: Pt, kind: DimKind) -> CoreResult<
         },
     };
     let origin = refs[0].at;
-    let mut sorted: Vec<(f64, Pt, Option<Anchor>)> = refs
+    let mut sorted: Vec<(f64, Pt, Option<Anchor>, bool)> = refs
         .iter()
-        .map(|r| (r.at.sub(origin).dot(along), r.at, r.anchor))
+        .map(|r| (r.at.sub(origin).dot(along), r.at, r.anchor, r.dir.is_none()))
         .collect();
     sorted.sort_by(|a, b| a.0.total_cmp(&b.0));
     sorted.dedup_by(|x, y| (x.0 - y.0).abs() < 0.5);
@@ -289,7 +290,7 @@ pub fn plan_string(refs: &[Reference], cursor: Pt, kind: DimKind) -> CoreResult<
     }
     let first = sorted[0].1;
     Ok(StringPlan {
-        refs: sorted.into_iter().map(|s| (s.1, s.2)).collect(),
+        refs: sorted.into_iter().map(|s| (s.1, s.2, s.3)).collect(),
         along,
         fixed,
         offset: cursor.sub(first).dot(along.perp()),
@@ -306,10 +307,26 @@ pub fn create_string(
     kind: DimKind,
 ) -> CoreResult<ElementId> {
     let plan = plan_string(refs, cursor, kind)?;
-    let n = plan.refs.len();
-    let (a, a_ref) = plan.refs[0];
-    let (b, b_ref) = plan.refs[n - 1];
-    let between = plan.refs[1..n - 1]
+    // A picked point follows the wall or grid that crosses the dimension there (Revit's
+    // references), not one running along it, whose stretching would slide it.
+    let refs: Vec<(Pt, Option<Anchor>)> = plan
+        .refs
+        .iter()
+        .map(|(at, anchor, point)| {
+            (
+                *at,
+                if *point {
+                    anchor_across(doc, view, *at, plan.along)
+                } else {
+                    *anchor
+                },
+            )
+        })
+        .collect();
+    let n = refs.len();
+    let (a, a_ref) = refs[0];
+    let (b, b_ref) = refs[n - 1];
+    let between = refs[1..n - 1]
         .iter()
         .map(|(at, anchor)| DimRef {
             at: *at,
@@ -467,6 +484,129 @@ pub fn create_angular(
             at: cursor,
         }))
     })
+}
+
+/// What a dimension point at `p` measuring along `u` follows: the wall line (a face or the
+/// centerline) or grid through it that crosses the dimension; else a wall end it sits at.
+/// A point partway along a wall that runs with the dimension follows nothing (it would
+/// slide as that wall stretches).
+pub fn anchor_across(doc: &Document, view: ElementId, p: Pt, u: Pt) -> Option<Anchor> {
+    let level = plan_level(doc, view)?;
+    let slop = 1.0;
+    let mut best: Option<(f64, Anchor)> = None;
+    for e in doc.iter() {
+        match &e.data {
+            ElementData::Wall {
+                type_id,
+                start,
+                end,
+                base_level,
+                ..
+            } if *base_level == level => {
+                let Ok(ElementData::WallType { thickness, .. }) = doc.data(*type_id) else {
+                    continue;
+                };
+                let len = start.dist(*end);
+                if len < 1.0 {
+                    continue;
+                }
+                let d = end.sub(*start).norm();
+                if d.dot(u).abs() > 0.02 {
+                    continue; // Doesn't cross the dimension.
+                }
+                let h = thickness / 2.0;
+                let along = p.sub(*start).dot(d);
+                let side = p.sub(*start).dot(d.perp());
+                if along < -h - slop || along > len + h + slop {
+                    continue;
+                }
+                let dev = [-h, 0.0, h]
+                    .iter()
+                    .map(|f| (side - f).abs())
+                    .fold(f64::INFINITY, f64::min);
+                if dev <= slop && best.as_ref().is_none_or(|b| dev < b.0) {
+                    best = Some((
+                        dev,
+                        Anchor::Wall {
+                            wall: e.id,
+                            t: along / len,
+                            side,
+                        },
+                    ));
+                }
+            }
+            ElementData::Grid { start, end, .. } => {
+                let d = end.sub(*start).norm();
+                let (t, dist) = project_to_segment(p, *start, *end);
+                if d.dot(u).abs() <= 0.02
+                    && dist <= slop
+                    && best.as_ref().is_none_or(|b| dist < b.0)
+                {
+                    best = Some((dist, Anchor::Grid { grid: e.id, t }));
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some((_, a)) = best {
+        return Some(a);
+    }
+    // At a wall's end (its end face), the end follows the wall.
+    match crate::ops::anchor_at(doc, view, p) {
+        Some(Anchor::Wall { wall, t, side }) => {
+            let (len, h) = match (doc.data(wall).ok()?, ()) {
+                (
+                    ElementData::Wall {
+                        start,
+                        end,
+                        type_id,
+                        ..
+                    },
+                    (),
+                ) => (
+                    start.dist(*end),
+                    match doc.data(*type_id).ok()? {
+                        ElementData::WallType { thickness, .. } => thickness / 2.0,
+                        _ => 0.0,
+                    },
+                ),
+                _ => return None,
+            };
+            let along = t * len;
+            (along <= h + slop || along >= len - h - slop).then_some(Anchor::Wall { wall, t, side })
+        }
+        other => other,
+    }
+}
+
+/// Align (AL), as Revit's: moves the element `target` is on (a wall or grid) square to
+/// itself so that line lies on `reference`. The lines must be parallel.
+pub fn align(doc: &mut Document, reference: &Reference, target: &Reference) -> CoreResult<()> {
+    let (Some(dr), Some(dt)) = (reference.dir, target.dir) else {
+        return Err(CoreError::Invalid(
+            "pick lines: wall faces, centerlines or grids".into(),
+        ));
+    };
+    let id = match target.anchor {
+        Some(Anchor::Wall { wall, .. }) => wall,
+        Some(Anchor::Grid { grid, .. }) => grid,
+        None => {
+            return Err(CoreError::Invalid(
+                "pick a line on the element to align".into(),
+            ))
+        }
+    };
+    if anchored_to(&reference.anchor, id) {
+        return Err(CoreError::Invalid(
+            "pick a line on another element to align to the reference".into(),
+        ));
+    }
+    if dr.cross(dt).abs() > 0.0175 {
+        return Err(CoreError::Invalid("those lines aren't parallel".into()));
+    }
+    let n = dr.perp();
+    let delta = n.scale(reference.at.sub(target.at).dot(n));
+    crate::modify::move_elements(doc, &[id], delta)
 }
 
 /// A wall's centerline or a grid's line, for the temporary and permanent dimensions that
@@ -942,5 +1082,95 @@ mod tests {
         )
         .unwrap();
         assert!(set_dimension_segment(&mut doc, other, d, 0, 5.0 * ft).is_err());
+    }
+
+    #[test]
+    fn align_moves_the_second_picks_element_onto_the_reference() {
+        let (mut doc, plan, w1, w2) = plan_with_walls();
+        let ft = MM_PER_FT;
+        let h = 4.0 * 25.4;
+        // Align defaults to faces: wall 1's east face (x = h), wall 2's west face.
+        let reference = references_at(
+            &doc,
+            plan,
+            Pt::new(h - 3.0, 3000.0),
+            20.0,
+            Prefer::WallFaces,
+        )[0]
+        .clone();
+        let target = references_at(
+            &doc,
+            plan,
+            Pt::new(20.0 * ft - h + 3.0, 3000.0),
+            20.0,
+            Prefer::WallFaces,
+        )[0]
+        .clone();
+        assert!(reference.label.contains("face") && target.label.contains("face"));
+        align(&mut doc, &reference, &target).unwrap();
+        // Wall 2's west face now lies on wall 1's east face: centerlines 2h apart.
+        let (a2, _) = line_of(&doc, w2).unwrap();
+        assert!((a2.x - 2.0 * h).abs() < 1e-6, "{a2:?}");
+        assert!(
+            line_of(&doc, w1).unwrap().0.x.abs() < 1e-9,
+            "the reference stays"
+        );
+        // Its own lines can't be the target.
+        let again = references_at(
+            &doc,
+            plan,
+            Pt::new(-h + 3.0, 3000.0),
+            20.0,
+            Prefer::WallFaces,
+        )[0]
+        .clone();
+        assert!(align(&mut doc, &reference, &again).is_err());
+    }
+
+    #[test]
+    fn a_dimension_point_follows_the_wall_that_crosses_it() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = ops::first_of(&doc, Category::WallType).unwrap();
+        let ft = MM_PER_FT;
+        // A north wall and an interior wall meeting it in a T at x = 16'.
+        let north = ops::create_wall(
+            &mut doc,
+            wt,
+            l1,
+            Pt::new(0.0, 30.0 * ft),
+            Pt::new(40.0 * ft, 30.0 * ft),
+        )
+        .unwrap();
+        let inner = ops::create_wall(
+            &mut doc,
+            wt,
+            l1,
+            Pt::new(16.0 * ft, 0.0),
+            Pt::new(16.0 * ft, 30.0 * ft),
+        )
+        .unwrap();
+        let plan = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1))
+            .unwrap()
+            .id;
+        // A two-point dimension from the north wall's start to the T.
+        let d = ops::create_dimension(
+            &mut doc,
+            plan,
+            Pt::new(0.0, 30.0 * ft),
+            Pt::new(16.0 * ft, 30.0 * ft),
+            900.0,
+        )
+        .unwrap();
+        // The T end follows the interior wall (which crosses the dimension), not the north wall.
+        let anchors = string_anchors(doc.data(d).unwrap());
+        assert!(anchored_to(&anchors[1], inner), "{anchors:?}");
+        // Stretching the north wall doesn't slide it.
+        crate::edit::drag_handle(&mut doc, north, "end", Pt::new(50.0 * ft, 30.0 * ft)).unwrap();
+        let (pts, u) = string_points(&doc, doc.data(d).unwrap()).unwrap();
+        assert!((segments(&pts, u)[0] - 16.0 * ft).abs() < 1e-6, "{pts:?}");
     }
 }

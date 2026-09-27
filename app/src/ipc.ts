@@ -231,6 +231,9 @@ export const ipc = {
   flipSelection: (ids: ElementId[]): S => invoke("flip_selection", { ids }),
   refLine: (view: ElementId, point: Pt, tol: number, skip: ElementId | null) =>
     invoke<RefLine | null>("ref_line", { view, point, tol, skip }),
+  /** Align by picked references (ADR-042). */
+  alignReferences: (reference: Reference, target: Reference): S =>
+    invoke("align_references", { reference, target }),
   align: (view: ElementId, reference: Pt, target: Pt, tol: number): S =>
     invoke("align", { view, reference, target, tol }),
   // Roofs, stairs and project parameters (ADR-018).

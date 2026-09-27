@@ -337,6 +337,20 @@ pub fn ref_line(
     ))
 }
 
+/// Align (AL) by picked references (ADR-042): moves the wall or grid `target` is on onto
+/// `reference`.
+#[tauri::command]
+pub fn align_references(
+    reference: studio_core::dimension::Reference,
+    target: studio_core::dimension::Reference,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        s.edit(|d| studio_core::dimension::align(d, &reference, &target))
+    })
+}
+
 /// Align: moves the element whose line is at `target` onto the reference line at `reference`.
 #[tauri::command]
 pub fn align(

@@ -110,6 +110,7 @@ pub fn run() -> anyhow::Result<()> {
             editing::flip_selection,
             editing::ref_line,
             editing::align,
+            editing::align_references,
             editing::create_roof,
             editing::create_stair,
             structure::create_column,

@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Dimension points follow the crossing wall; Align picks faces, centerlines and grids with
+  Tab (ADR-042).
+
 - Typed dimensions move the selection (ADR-041): a selected wall or grid shows its distances
   to parallel walls and grids, and the permanent dimensions ending on it become typeable.
 

@@ -125,6 +125,8 @@ export interface ToolOptions {
   cameraHeight: string;
   /** Dimensions: the wall line picked from inside a wall (Revit's Prefer, ADR-040). */
   dimPrefer: Prefer;
+  /** Align: the same, defaulting to wall faces (ADR-042). */
+  alignPrefer: Prefer;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -301,6 +303,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     arrayCount: 3,
     offsetDistance: "2'-0\"",
     dimPrefer: "WallCenterlines",
+    alignPrefer: "WallFaces",
     wallLocation: "Centerline",
     stairShape: "straight",
     cameraHeight: "5' 6\"",
@@ -485,3 +488,6 @@ export function styleOf(
 
 /** The dimension tools (ADR-040). */
 export const DIMENSION_TOOLS: Tool[] = ["dimension", "dimensionLinear", "dimensionAngular"];
+
+/** Tools that pick references (faces, centerlines, grids) with Tab to cycle (ADR-040/042). */
+export const REFERENCE_TOOLS: Tool[] = [...DIMENSION_TOOLS, "align"];

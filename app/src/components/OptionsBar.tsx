@@ -228,6 +228,25 @@ export function OptionsBar() {
         <span className="ob-hint">Tab cycles the references under the cursor</span>
       </>
     );
+  else if (tool === "align")
+    body = (
+      <>
+        <label className="ob-field">
+          Prefer
+          <select
+            aria-label="Prefer"
+            value={o.alignPrefer}
+            onChange={(e) => set("alignPrefer", e.target.value as Prefer)}
+          >
+            <option value="WallFaces">Wall faces</option>
+            <option value="WallCenterlines">Wall centerlines</option>
+            <option value="CenterOfCore">Center of core</option>
+            <option value="FacesOfCore">Faces of core</option>
+          </select>
+        </label>
+        <span className="ob-hint">Tab cycles the references under the cursor</span>
+      </>
+    );
   else if (tool === "dimensionLinear")
     body = <span className="ob-hint">Tab cycles the references under the cursor</span>;
   else if (tool === "offset")

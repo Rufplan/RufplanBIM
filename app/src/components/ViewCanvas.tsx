@@ -15,7 +15,13 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { drawOptions, editBoundary, filletRadius } from "../sketch";
-import { DIMENSION_TOOLS, SELECTION_TOOLS, useAppStore, type ActiveViewport } from "../store";
+import {
+  DIMENSION_TOOLS,
+  REFERENCE_TOOLS,
+  SELECTION_TOOLS,
+  useAppStore,
+  type ActiveViewport,
+} from "../store";
 import type { Reference } from "../bindings/Reference";
 import {
   THEME,
@@ -50,6 +56,13 @@ import {
 
 // Cameras survive tab switches.
 const cameras = new Map<string, Camera>();
+
+/** The wall or grid a reference is on (null for a loose point). */
+function elementOf(r: Reference): string | null {
+  const a = r.anchor;
+  if (!a) return null;
+  return "Wall" in a ? a.Wall.wall : a.Grid.grid;
+}
 
 /** View types that can be activated on a sheet and drawn in (ADR-039). */
 const ACTIVATABLE = ["Plan", "CeilingPlan", "Elevation", "Section"];
@@ -337,7 +350,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         s.tool === "room" ||
         s.tool === "offset" ||
         (DIMENSION_TOOLS.includes(s.tool) && dimRefs.current.length >= 2);
-      if (DIMENSION_TOOLS.includes(s.tool)) {
+      if (REFERENCE_TOOLS.includes(s.tool)) {
         // Picked references in cyan; the one under the cursor bolder (Revit's highlight).
         const hovered = dimCands.current[dimIndex.current];
         const mark = (r: Reference, width: number) => {
@@ -729,8 +742,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const dimensionHover = useLatest(async (raw: Pt, tol: number) => {
     const s = useAppStore.getState();
     const tool = s.tool;
-    if (!DIMENSION_TOOLS.includes(tool)) return;
-    const angular = tool === "dimensionAngular";
+    if (!REFERENCE_TOOLS.includes(tool)) return;
+    const align = tool === "align";
+    const angular = tool === "dimensionAngular" || align;
     const placing = dimRefs.current.length >= 2;
     let cands: Reference[] = [];
     if (!(angular && placing)) {
@@ -739,9 +753,24 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       const snapped =
         sn && sn.kind !== "None" && sn.kind !== "Nearest" && sn.kind !== "Angle" ? sn.pt : null;
       cands = await ipc
-        .dimensionReferences(view.id, raw, tol, s.options.dimPrefer, snapped)
+        .dimensionReferences(
+          view.id,
+          raw,
+          tol,
+          align ? s.options.alignPrefer : s.options.dimPrefer,
+          snapped,
+        )
         .catch(() => []);
       if (angular) cands = cands.filter((c) => c.dir);
+      // Align's second pick: a parallel line on another element.
+      const first = dimRefs.current[0];
+      if (align && first?.dir) {
+        const d = first.dir;
+        const on = (r: Reference) => JSON.stringify(elementOf(r));
+        cands = cands.filter(
+          (c) => c.dir && Math.abs(c.dir.x * d.y - c.dir.y * d.x) < 0.0175 && on(c) !== on(first),
+        );
+      }
     }
     const same =
       cands.length === dimCands.current.length &&
@@ -749,7 +778,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     dimCands.current = cands;
     if (!same) dimIndex.current = 0;
     const refs = dimRefs.current;
-    if (placing) {
+    if (placing && !align) {
       const d = angular
         ? await ipc.angularPreview(view.id, refs[0]!, refs[1]!, raw).catch(() => null)
         : await ipc
@@ -831,7 +860,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   useEffect(() => {
     const onCancel = () => {
       const s = useAppStore.getState();
-      if (DIMENSION_TOOLS.includes(s.tool) && dimRefs.current.length > 0) {
+      if (REFERENCE_TOOLS.includes(s.tool) && dimRefs.current.length > 0) {
         dimRefs.current = [];
         preview.current = null;
         s.setPrompt(promptFor(s.tool, 0, view.viewType));
@@ -1110,6 +1139,28 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
    * with enough picked, places the dimension there. */
   async function dimensionClick(raw: Pt) {
     const s = useAppStore.getState();
+    if (s.tool === "align") {
+      // Revit's Align: the reference, then the line to move onto it.
+      const cand = dimCands.current[dimIndex.current];
+      const first = dimRefs.current[0];
+      if (!cand?.dir) {
+        s.setError(
+          first
+            ? "Pick a line parallel to the reference on the element to move."
+            : "Pick a wall face, a wall centerline or a grid.",
+        );
+        return;
+      }
+      if (!first) dimRefs.current = [cand];
+      else {
+        dimRefs.current = [];
+        dimCands.current = [];
+        await apply(() => ipc.alignReferences(first, cand));
+      }
+      s.setPrompt(promptFor(s.tool, dimRefs.current.length, view.viewType));
+      redraw();
+      return;
+    }
     const angular = s.tool === "dimensionAngular";
     const refs = dimRefs.current;
     const cand = dimCands.current[dimIndex.current];
@@ -1262,20 +1313,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       return;
     }
     if (s.tool === "align") {
-      if (!refLine.current) {
-        refLine.current = await ipc.refLine(view.id, raw, tol, null);
-        if (!refLine.current) s.setError("Click on a wall face, a wall centerline or a grid.");
-      } else {
-        const reference = refLine.current;
-        const refPt = {
-          x: (reference.a.x + reference.b.x) / 2,
-          y: (reference.a.y + reference.b.y) / 2,
-        };
-        refLine.current = null;
-        await apply(() => ipc.align(view.id, refPt, raw, tol));
-      }
-      s.setPrompt(promptFor(s.tool, refLine.current ? 1 : 0, view.viewType));
-      redraw();
+      await dimensionClick(raw);
       return;
     }
     if (s.tool === "trim" || s.tool === "split") {
@@ -1541,7 +1579,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             s.tool === "offset"
           )
             previewAt(p, 12 / cam.current.zoom);
-          else if (DIMENSION_TOOLS.includes(s.tool)) dimensionHover(p, 12 / cam.current.zoom);
+          else if (REFERENCE_TOOLS.includes(s.tool)) dimensionHover(p, 12 / cam.current.zoom);
           else if (toolAllowed(s.tool, view.viewType)) snapAt(p, 12 / cam.current.zoom);
         }}
         onMouseUp={(e) => {

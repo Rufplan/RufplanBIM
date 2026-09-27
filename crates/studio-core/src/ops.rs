@@ -255,7 +255,11 @@ pub fn create_dimension(
     if a.dist(b) < 1.0 {
         return Err(CoreError::Invalid("pick two different points".into()));
     }
-    let (a_ref, b_ref) = (anchor_at(doc, view, a), anchor_at(doc, view, b));
+    let u = b.sub(a).norm();
+    let (a_ref, b_ref) = (
+        crate::dimension::anchor_across(doc, view, a, u),
+        crate::dimension::anchor_across(doc, view, b, u),
+    );
     doc.transact("Place dimension", |tx| {
         Ok(tx.insert(ElementData::Dimension {
             view,

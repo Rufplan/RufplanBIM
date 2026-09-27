@@ -1368,3 +1368,35 @@ numbering and then it updates per that dimension number you entered, just how Re
   - Moving a door or window by a permanent dimension.
   - Temporary dimensions to wall faces (Revit's Temporary Dimension settings).
   - Dragging a temporary dimension's witness line to another reference.
+
+## ADR-042 Dimension points follow the crossing wall; Revit's Align — Accepted (2026-09-26)
+Owner requests (2026-09-26):
+1. "the dimension should only increase or decrease on the side of the dimension string the
+   wall is on. right now it shifts the whole dimension over".
+2. "the align tool … should act more like Revit's align tool and default to selecting to the
+   face of something or the gridline … right now it has like a nearest point".
+
+- **Cause of 1.** A dimension point (as the sample house's two-point dimensions have, and as a
+  snapped point in a string does) was attached by `anchor_at` to whichever wall line it sat
+  on, stored as a fraction along that wall. At a corner or a T that was often the wall
+  running *along* the dimension. Moving or stretching that wall slid the point, so the
+  dimension's other end moved too.
+- **Fix: `dimension::anchor_across`.** A point now follows the wall line (face or
+  centerline) or grid that crosses the dimension there, as Revit's references do.
+  - Failing that, it follows a wall end it sits at.
+  - Failing both, it stays put.
+  - Two-point dimensions (`ops::create_dimension`) and the points of Aligned and Linear
+    strings attach this way.
+  - Typing a segment now moves only the selected wall's end of it.
+  - Checked on the sample house: each wall's typed segment changes on its side only.
+  - Dimensions already saved in a project keep their old attachment. Redraw one if it still
+    shifts.
+- **Align (AL)** now picks references as the dimension tools do (`references_at`):
+  - Wall faces, centerlines and core lines, and grid lines, highlighted in cyan under the
+    cursor, with Tab to cycle. The Nearest-point snap marker is gone.
+  - Its **Prefer** option defaults to **Wall faces**.
+  - The second pick offers only lines parallel to the reference on another element. The
+    element moves so that line lies on the reference (`dimension::align`,
+    `align_references`).
+- **Not yet** (Revit has these): Align's lock padlock, Multiple Alignment, and aligning doors,
+  windows or text.
