@@ -1,5 +1,6 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import type { AppState } from "../ipc";
+import type { Standards } from "../bindings/Standards";
 
 export interface FakeBackend {
   calls: { cmd: string; args: unknown }[];
@@ -22,6 +23,41 @@ export interface FakeBackend {
   plans: unknown;
   /** Categories to report for selected ids (anything else is a view). */
   properties?: Record<string, { category: string }>;
+  /** The project's drawing-set standards (ADR-047). */
+  standards: Standards;
+}
+
+/** Two categories of the default standards, one item open in each. */
+export function fakeStandards(library = "Rufplan Default (NCS 6)"): Standards {
+  return {
+    library,
+    categories: [
+      {
+        id: "sheet",
+        label: "Sheet Setup",
+        short: "Sheet Setup",
+        group: "SHEETS",
+        applies: ["Sheets", "Title Blocks"],
+        items: [
+          {
+            name: "Sheet size",
+            value: library.startsWith("Res") ? "ARCH C" : "ARCH D",
+            options: ["ARCH C", "ARCH D"],
+            done: true,
+          },
+          { name: "Revision block", value: "", options: [], done: false },
+        ],
+      },
+      {
+        id: "dim",
+        label: "Dimensions",
+        short: "Dims",
+        group: "ANNOTATION",
+        applies: ["Dimensions"],
+        items: [{ name: "Wall dimension to", value: "", options: [], done: false }],
+      },
+    ],
+  };
 }
 
 const ids = {
@@ -305,6 +341,7 @@ export function installFakeBackend(): FakeBackend {
     claudeKey: false,
     generated: null,
     plans: null,
+    standards: fakeStandards(),
   };
 
   mockIPC(
@@ -398,6 +435,26 @@ export function installFakeBackend(): FakeBackend {
               { x: -23000, y: 23000 },
             ],
           };
+        case "standards_get":
+          return fake.standards;
+        case "standards_libraries":
+          return ["Rufplan Default (NCS 6)", "Residential", "Preservation"];
+        case "standards_set": {
+          const cat = fake.standards.categories.find((c) => c.id === a.category)!;
+          const item = cat.items[a.index as number]!;
+          if (a.value !== null) {
+            item.value = a.value as string;
+            if (item.value) item.done = true;
+          }
+          if (a.done !== null) item.done = a.done as boolean;
+          fake.standards = structuredClone(fake.standards);
+          if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+          return fake.state;
+        }
+        case "standards_load_library":
+          fake.standards = fakeStandards(a.name as string);
+          if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+          return fake.state;
         case "site_keys":
           return { googleKey: fake.googleKey, regrid: fake.regrid };
         case "site_set_keys":

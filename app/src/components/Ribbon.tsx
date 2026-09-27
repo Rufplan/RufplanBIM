@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   apply,
   deleteSelection,
@@ -15,6 +15,7 @@ import { activeViewInfo, styleOf, useAppStore, type Tool } from "../store";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
+import { StandardsRibbon } from "./Standards";
 import { runAction, openPicker, startTool } from "../actions";
 
 const TEMP_LABELS = {
@@ -86,6 +87,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 type Tab =
+  | "Standards"
   | "Site"
   | "Architecture"
   | "Materials"
@@ -97,6 +99,7 @@ type Tab =
   | "Manage"
   | "Rufplan";
 const TABS: Tab[] = [
+  "Standards",
   "Site",
   "Architecture",
   "Materials",
@@ -110,7 +113,8 @@ const TABS: Tab[] = [
 ];
 
 export function Ribbon() {
-  const [tab, setTab] = useState<Tab>("Architecture");
+  const tab = useAppStore((s) => s.ribbonTab) as Tab;
+  const setTab = useAppStore((s) => s.setRibbonTab);
   const hasSelection = useAppStore((s) => s.selection.length > 0);
   const app = useAppStore((s) => s.app);
   const openView = useAppStore((s) => s.openView);
@@ -185,9 +189,13 @@ export function Ribbon() {
         ))}
       </div>
       <div className="rb-body">
-        <Group title="Select">
-          <ToolButton tool="select" label="Modify" icon={Icons.select} keys="MD / Esc" />
-        </Group>
+        {tab === "Standards" ? (
+          <StandardsRibbon />
+        ) : (
+          <Group title="Select">
+            <ToolButton tool="select" label="Modify" icon={Icons.select} keys="MD / Esc" />
+          </Group>
+        )}
         {tab === "Architecture" && (
           <>
             <Group title="Generate">
@@ -512,18 +520,20 @@ export function Ribbon() {
             </Group>
           </>
         )}
-        <Group title="Move">
-          <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
-          <button
-            className="rb-btn"
-            onClick={() => void deleteSelection()}
-            disabled={!hasSelection}
-            title="Delete (Del)"
-          >
-            {Icons.del}
-            <span>Delete</span>
-          </button>
-        </Group>
+        {tab !== "Standards" && (
+          <Group title="Move">
+            <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
+            <button
+              className="rb-btn"
+              onClick={() => void deleteSelection()}
+              disabled={!hasSelection}
+              title="Delete (Del)"
+            >
+              {Icons.del}
+              <span>Delete</span>
+            </button>
+          </Group>
+        )}
         {tab === "Annotate" && (
           <Group title="Annotate">
             <ToolButton tool="dimension" label="Aligned" icon={Icons.dimension} keys="DI" />

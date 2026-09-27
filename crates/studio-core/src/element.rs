@@ -82,6 +82,8 @@ pub enum Category {
     ElevationMarker,
     ElevationMarkerType,
     Site,
+    /// The project's drawing-set standards (ADR-047).
+    Standards,
 }
 
 impl Category {
@@ -123,6 +125,7 @@ impl Category {
             Category::ElevationMarker => "ElevationMarker",
             Category::ElevationMarkerType => "ElevationMarkerType",
             Category::Site => "Site",
+            Category::Standards => "Standards",
         }
     }
 }
@@ -1059,6 +1062,8 @@ pub enum ElementData {
         #[serde(default)]
         topo: Option<crate::site::Topo>,
     },
+    /// The project's drawing-set standards (ADR-047): one, made on the first edit.
+    Standards(crate::standards::Standards),
     /// An elevation mark family type (ADR-022): interior or building, and its symbol.
     ElevationMarkerType {
         name: String,
@@ -1133,6 +1138,7 @@ impl ElementData {
             ElementData::ElevationMarker { .. } => Category::ElevationMarker,
             ElementData::ElevationMarkerType { .. } => Category::ElevationMarkerType,
             ElementData::Site { .. } => Category::Site,
+            ElementData::Standards(_) => Category::Standards,
         }
     }
 
@@ -1262,6 +1268,7 @@ impl ElementData {
             | ElementData::Material { name, .. }
             | ElementData::ElevationMarkerType { name, .. } => name.clone(),
             ElementData::RoomSeparator { .. } => "Room Separator".into(),
+            ElementData::Standards(_) => "Drawing Set Standards".into(),
             ElementData::Site { address, .. } => {
                 if address.is_empty() {
                     "Site".into()

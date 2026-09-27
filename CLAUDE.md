@@ -133,6 +133,8 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Standards tab (ADR-047): studio-core `standards` (14 categories, 90 items, libraries),
+  app `standards_cmds`, components/Standards.tsx; the first ribbon tab.
 - Section box caps (ADR-044): studio-geom `mesh_section`, `even_odd_in_rect`; studio-views
   `caps::section_caps`; View3D `buildCaps` / `applyCaps`.
 - Dimensions (ADR-040): studio-core `dimension` (references, strings, linear, angular);
@@ -159,4 +161,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-26
+- Last updated: 2026-09-27

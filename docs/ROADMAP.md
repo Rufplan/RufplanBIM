@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Standards tab (ADR-047): the office drawing-set standards as a checklist saved in the project.
+
 - Site plan contours labeled like a survey, and a Grids toggle on site plans (ADR-046).
 
 - Terrain as a toposolid (ADR-045): earth depth, 3D contours with labels, interval control.

@@ -1505,3 +1505,37 @@ also make a toggle to turn on and off the gridlines in the site plan".
   gridlines in that view. It is the same as unchecking Grids in Visibility/Graphics, so it is
   saved with the view and can be undone.
 - **Not yet:** Revit's Label Contours tool (a label where you pick, several along a contour).
+
+## ADR-047 Standards tab — Accepted (2026-09-27)
+Owner request (2026-09-27): "create a standards tab at the beginning of the tabs and
+reference these documents to start" (handoff: README, `Rufplan Standards Tab.dc.html`, whose
+seed has 14 categories and 90 standards).
+
+- **What it is.** The office's drawing-set standards (sheet setup, symbols, tags, text,
+  linework, material graphics, phasing, dimensioning, numbering, schedules, keynotes, scales,
+  BIM, issuance). Each standard has an office value and a status (defined or open), so the tab
+  is also a checklist of how complete the set is.
+- **Saved in the project** (owner's choice). One `Standards` element (`ElementData::Standards`,
+  category Standards) holds the library name and the categories. It is created on the first
+  edit; until then the default is shown.
+  - Every edit is a transaction, so it can be undone.
+  - This adds an element kind to the .rfproj; older files open unchanged.
+- **Libraries** (owner's choice: derive from the default). There are three: "Rufplan Default
+  (NCS 6)", "Residential" (ARCH C sheets, 1/4" plans…) and "Preservation" (historic fabric,
+  SOI treatments, HSR/SHPO issues…). The last two are the default with values changed.
+  Loading one replaces the project's standards and can be undone.
+- **UI**, following the handoff:
+  - "Standards" is the first ribbon tab, with a button per category grouped as SHEETS,
+    ANNOTATION, GRAPHICS, DATA, VIEWS and OUTPUT, and the LIBRARY group's Office Standard
+    select.
+  - The tab replaces the Project Browser, views and Properties with:
+    - the Standards Browser (counts per category, SET COMPLETE);
+    - the category's checklist (ALL / UNDEFINED filter; the checkbox toggles defined);
+    - Properties (preset select plus a value box; a non-empty value defines the standard; a
+      Status select; APPLIES TO).
+  - The status bar shows "N of M standards defined".
+  - Starting a tool (a shortcut such as WA) goes back to Architecture, since tools need the
+    views.
+  - A different project opens on Architecture.
+- **Not yet:** standards don't drive anything. For example, Sheet Size doesn't yet set new
+  sheets' title blocks. Office libraries can't be saved from a project to reuse.

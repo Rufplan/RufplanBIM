@@ -31,6 +31,7 @@ import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
 import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
+import type { Standards } from "./bindings/Standards";
 import type { Reference } from "./bindings/Reference";
 import type { Prefer } from "./bindings/Prefer";
 import type { DimKind } from "./bindings/DimKind";
@@ -322,6 +323,13 @@ export const ipc = {
     invoke("set_category_visible", { view, categories, visible }),
   unhideAll: (view: ElementId): S => invoke("unhide_all", { view }),
   viewCategories: (view: ElementId) => invoke<[ElementId, Category][]>("view_categories", { view }),
+  // Standards (ADR-047).
+  standardsGet: () => invoke<Standards>("standards_get"),
+  standardsLibraries: () => invoke<string[]>("standards_libraries"),
+  /** A value (a non-empty one marks the standard defined) and/or its status. */
+  standardsSet: (category: string, index: number, value: string | null, done: boolean | null): S =>
+    invoke("standards_set", { category, index, value, done }),
+  standardsLoadLibrary: (name: string): S => invoke("standards_load_library", { name }),
   // Site (ADR-023).
   siteKeys: () => invoke<SiteKeys>("site_keys"),
   siteSetKeys: (google: string | null, regrid: string | null) =>

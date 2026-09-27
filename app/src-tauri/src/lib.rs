@@ -15,6 +15,7 @@ mod sheetset_cmds;
 mod shortcut_cmds;
 mod site_cmds;
 mod sketching;
+mod standards_cmds;
 mod structure;
 mod window_cmds;
 
@@ -167,6 +168,10 @@ pub fn run() -> anyhow::Result<()> {
             render_cmds::set_camera_pose,
             render_cmds::sun_position,
             render_cmds::save_render,
+            standards_cmds::standards_get,
+            standards_cmds::standards_libraries,
+            standards_cmds::standards_set,
+            standards_cmds::standards_load_library,
             sketching::sketch_begin,
             sketching::sketch_draw,
             sketching::sketch_pick_walls,

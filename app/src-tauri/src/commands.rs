@@ -55,7 +55,7 @@ impl From<studio_core::CoreError> for CommandError {
 }
 
 type CommandResult<T> = Result<T, CommandError>;
-type StateResult = CommandResult<Option<AppState>>;
+pub(crate) type StateResult = CommandResult<Option<AppState>>;
 
 /// Today's date as YYYY-MM-DD (UTC), for title blocks.
 pub(crate) fn today() -> String {
@@ -118,7 +118,7 @@ pub(crate) fn finish(window: &WebviewWindow, session: &Session) -> StateResult {
 }
 
 /// Applies an edit and returns the new state.
-fn edit<T>(
+pub(crate) fn edit<T>(
     window: &WebviewWindow,
     state: &State<'_, SessionState>,
     f: impl FnOnce(&mut Session) -> anyhow::Result<T>,

@@ -20,6 +20,7 @@ pub mod params;
 pub mod plans;
 pub mod site;
 pub mod sketch;
+pub mod standards;
 pub mod structure;
 pub mod units;
 pub mod visibility;

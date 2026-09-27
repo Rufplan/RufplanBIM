@@ -2101,6 +2101,8 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         }
         ElementData::Material { .. } => crate::material::properties(doc, id, &mut props),
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
+        // Edited on the Standards tab (ADR-047).
+        ElementData::Standards(_) => {}
         ElementData::ElevationMarkerType {
             name,
             interior,
@@ -2734,7 +2736,8 @@ pub fn set_property(
         | ElementData::RoomSeparator { .. }
         | ElementData::ElevationMarker { .. }
         | ElementData::ElevationMarkerType { .. }
-        | ElementData::Site { .. } => return Err(unknown()),
+        | ElementData::Site { .. }
+        | ElementData::Standards(_) => return Err(unknown()),
     }
     let label = format!("Change {}", key.replace('_', " "));
     doc.transact(&label, |tx| {

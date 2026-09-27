@@ -25,6 +25,12 @@ import { IfcReport } from "./components/IfcReport";
 import { ProjectBrowser } from "./components/ProjectBrowser";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { StatusBar, Workspace } from "./components/Workspace";
+import {
+  StandardsBrowser,
+  StandardsProperties,
+  StandardsStatus,
+  StandardsView,
+} from "./components/Standards";
 import { RufplanDialog } from "./components/RufplanDialog";
 import { ParamsDialog } from "./components/ParamsDialog";
 import logo from "./assets/rufplan-logo-white.svg";
@@ -103,6 +109,8 @@ export function App() {
   const setError = useAppStore((s) => s.setError);
   const keys = useRef("");
   const propsHidden = useAppStore((s) => s.propsHidden);
+  // The Standards tab replaces the browser, views and properties (ADR-047).
+  const standards = useAppStore((s) => s.ribbonTab === "Standards" && !s.app?.sketch);
   const tool = useAppStore((s) => s.tool);
 
   useEffect(() => {
@@ -226,14 +234,27 @@ export function App() {
       {app ? (
         <>
           <Ribbon />
-          <OptionsBar />
-          <div className={`main${tool === "paint" ? " painting" : ""}`}>
-            <ProjectBrowser />
-            <Workspace />
-            <PaintChip />
-            {!propsHidden && <PropertiesPanel />}
-          </div>
-          <StatusBar />
+          {standards ? (
+            <>
+              <div className="main std-main">
+                <StandardsBrowser />
+                <StandardsView />
+                <StandardsProperties />
+              </div>
+              <StandardsStatus />
+            </>
+          ) : (
+            <>
+              <OptionsBar />
+              <div className={`main${tool === "paint" ? " painting" : ""}`}>
+                <ProjectBrowser />
+                <Workspace />
+                <PaintChip />
+                {!propsHidden && <PropertiesPanel />}
+              </div>
+              <StatusBar />
+            </>
+          )}
         </>
       ) : (
         <Welcome />

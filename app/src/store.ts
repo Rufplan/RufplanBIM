@@ -4,6 +4,7 @@ import type { SnapKind } from "./bindings/SnapKind";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { VisualStyle } from "./render/visualStyle";
 import type { Prefer } from "./bindings/Prefer";
+import type { Standards } from "./bindings/Standards";
 
 export type PickerCategory = "Door" | "Window";
 
@@ -253,6 +254,18 @@ interface UiState {
   level3d: ElementId | null;
   setLevel3d: (id: ElementId | null) => void;
 
+  /** The ribbon tab shown; Standards replaces the workspace (ADR-047). */
+  ribbonTab: string;
+  setRibbonTab: (tab: string) => void;
+  /** The project's drawing-set standards (ADR-047). */
+  standards: Standards | null;
+  setStandards: (s: Standards | null) => void;
+  standardsUi: { category: string; item: number; filter: "all" | "open" };
+  setStandardsUi: (patch: Partial<UiState["standardsUi"]>) => void;
+  /** Values being typed, not saved yet, by "category:index". */
+  standardsPending: Record<string, string>;
+  setStandardsPending: (key: string, value: string | null) => void;
+
   /** `fresh` = a different project was just created or opened. */
   setApp: (app: AppState | null, fresh?: boolean) => void;
   setError: (error: string | null) => void;
@@ -327,6 +340,20 @@ export const useAppStore = create<UiState>((set, get) => ({
   setSketchUi: (patch) => set((s) => ({ sketchUi: { ...s.sketchUi, ...patch } })),
   elevationType: null,
   setElevationType: (elevationType) => set({ elevationType }),
+  ribbonTab: "Architecture",
+  setRibbonTab: (ribbonTab) => set({ ribbonTab }),
+  standards: null,
+  setStandards: (standards) => set({ standards }),
+  standardsUi: { category: "sheet", item: 0, filter: "all" },
+  setStandardsUi: (patch) => set((s) => ({ standardsUi: { ...s.standardsUi, ...patch } })),
+  standardsPending: {},
+  setStandardsPending: (key, value) =>
+    set((s) => {
+      const next = { ...s.standardsPending };
+      if (value === null) delete next[key];
+      else next[key] = value;
+      return { standardsPending: next };
+    }),
   lastTool: null,
   snapOverride: null,
   setSnapOverride: (snapOverride) => set({ snapOverride }),
@@ -392,6 +419,8 @@ export const useAppStore = create<UiState>((set, get) => ({
       tool,
       sketchUi: { ...s.sketchUi, sel: s.sketchUi.sel.filter((i) => i < curves) },
       selection: sameProject && !app.sketch ? s.selection : [],
+      // A different project opens on Architecture with its own standards.
+      ...(sameProject ? {} : { ribbonTab: "Architecture", standards: null, standardsPending: {} }),
       toolTypes: {
         wall: firstId(app.wallTypes, s.toolTypes.wall),
         floor: firstId(app.floorTypes, s.toolTypes.floor),
@@ -456,6 +485,10 @@ export const useAppStore = create<UiState>((set, get) => ({
       tool,
       lastTool: tool === "select" || tool === "sketch" ? get().lastTool : tool,
       selection: tool === "select" || SELECTION_TOOLS.includes(tool) ? get().selection : [],
+      // A tool (from a shortcut) needs the views, which the Standards tab hides.
+      ...(tool !== "select" && get().ribbonTab === "Standards"
+        ? { ribbonTab: "Architecture" }
+        : {}),
     }),
   setToolType: (kind, id) => set((s) => ({ toolTypes: { ...s.toolTypes, [kind]: id } })),
   setPrompt: (prompt) => set({ prompt }),
