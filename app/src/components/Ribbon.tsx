@@ -97,24 +97,30 @@ type Tab =
   | "Standards"
   | "Site"
   | "Architecture"
+  | "Openings"
+  | "Lighting"
   | "Materials"
   | "Rendering"
   | "Structure"
   | "Modify"
   | "Annotate"
   | "View"
+  | "Sheets"
   | "Manage"
   | "Rufplan";
 const TABS: Tab[] = [
   "Standards",
   "Site",
   "Architecture",
+  "Openings",
+  "Lighting",
   "Materials",
   "Rendering",
   "Structure",
   "Modify",
   "Annotate",
   "View",
+  "Sheets",
   "Manage",
   "Rufplan",
 ];
@@ -231,26 +237,6 @@ export function Ribbon() {
             </Group>
             <Group title="Build">
               <ToolButton tool="wall" label="Wall" icon={Icons.wall} keys="WA" />
-              <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
-              <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
-              <button
-                className="rb-btn"
-                onClick={() => void openPicker("Door", "library")}
-                disabled={!app}
-                title="Door Library: single and double swing, French, entry with sidelites, sliding glass, pocket, barn, bifold, folding glass wall, storefront and garage doors"
-              >
-                {Icons.door}
-                <span>Load Doors</span>
-              </button>
-              <button
-                className="rb-btn"
-                onClick={() => void openPicker("Window", "library")}
-                disabled={!app}
-                title="Window Library: double-hung, casement, slider, bay, storefront and other US window types at standard or custom sizes"
-              >
-                {Icons.window}
-                <span>Load Windows</span>
-              </button>
               {sketchButton("Floor", "Floor", Icons.floorAuto, "SB")}
               <ToolButton
                 tool="ceilingAuto"
@@ -291,6 +277,34 @@ export function Ribbon() {
                 icon={Icons.separator}
                 keys="RS — open plans"
               />
+            </Group>
+          </>
+        )}
+        {tab === "Openings" && (
+          <>
+            <Group title="Door">
+              <ToolButton tool="door" label="Door" icon={Icons.door} keys="DR" />
+              <button
+                className="rb-btn"
+                onClick={() => void openPicker("Door", "library")}
+                disabled={!app}
+                title="Door Library: single and double swing, French, entry with sidelites, sliding glass, pocket, barn, bifold, folding glass wall, storefront and garage doors"
+              >
+                {Icons.door}
+                <span>Load Doors</span>
+              </button>
+            </Group>
+            <Group title="Window">
+              <ToolButton tool="window" label="Window" icon={Icons.window} keys="WN" />
+              <button
+                className="rb-btn"
+                onClick={() => void openPicker("Window", "library")}
+                disabled={!app}
+                title="Window Library: double-hung, casement, slider, bay, storefront and other US window types at standard or custom sizes"
+              >
+                {Icons.window}
+                <span>Load Windows</span>
+              </button>
             </Group>
           </>
         )}
@@ -679,16 +693,11 @@ export function Ribbon() {
                   </button>
                 ))}
             </Group>
-            <Group title="Sheets">
-              <button
-                className="rb-btn"
-                onClick={() => setUi({ viewDialog: "sheetSets" })}
-                disabled={!app}
-                title="Sheet Sets: each phase's deliverables (SD, DD, Permit, Bid…) and their sheets for the building type, created and exported"
-              >
-                {Icons.issue}
-                <span>Sheet Sets</span>
-              </button>
+          </>
+        )}
+        {tab === "Sheets" && (
+          <>
+            <Group title="Sheet Composition">
               <button className="rb-btn" onClick={() => void newSheet()} title="New ARCH D sheet">
                 {Icons.sheet}
                 <span>New Sheet</span>
@@ -712,6 +721,28 @@ export function Ribbon() {
                   ))}
                 </select>
               </label>
+              <ToolButton tool="keyPlan" label="Key Plan" icon={Icons.keyPlan} keys="on sheets" />
+            </Group>
+            <Group title="Sets">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "sheetSets" })}
+                disabled={!app}
+                title="Sheet Sets: each phase's deliverables (SD, DD, Permit, Bid…) and their sheets for the building type, created and exported"
+              >
+                {Icons.issue}
+                <span>Sheet Sets</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void issueSet()}
+                title="Issue the current design stage's sheet set: record it and export the PDF"
+              >
+                {Icons.issue}
+                <span>Issue Set</span>
+              </button>
+            </Group>
+            <Group title="Export">
               <button
                 className="rb-btn"
                 onClick={() => void exportPdf()}
@@ -727,14 +758,6 @@ export function Ribbon() {
               >
                 {Icons.ifc}
                 <span>Export IFC</span>
-              </button>
-              <button
-                className="rb-btn"
-                onClick={() => void issueSet()}
-                title="Issue the current design stage's sheet set: record it and export the PDF"
-              >
-                {Icons.issue}
-                <span>Issue Set</span>
               </button>
             </Group>
           </>

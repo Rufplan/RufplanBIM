@@ -60,7 +60,12 @@ describe("App", () => {
     await screen.findByRole("toolbar", { name: "Tools" });
     expect(screen.queryByRole("button", { name: "New Sheet" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "View" }));
+    // Sheets have their own tab.
+    expect(screen.queryByRole("button", { name: "New Sheet" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Sheets" }));
     expect(screen.getByRole("button", { name: "New Sheet" })).toBeInTheDocument();
+    for (const name of ["Sheet Sets", "Issue Set", "Export PDF", "Export IFC", "Key Plan"])
+      expect(screen.getByRole("button", { name: new RegExp(name) })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Wall" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Annotate" }));
     // Revit's dimension tools (ADR-040).

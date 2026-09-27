@@ -28,7 +28,8 @@ async function openProject() {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "New Project" }));
   await screen.findByRole("toolbar", { name: "Tools" });
-  await userEvent.click(screen.getByRole("tab", { name: "Architecture" }));
+  // Doors and windows are on the Openings tab.
+  await userEvent.click(screen.getByRole("tab", { name: "Openings" }));
 }
 
 const calls = (cmd: string) =>
@@ -105,8 +106,8 @@ describe("Door and window type pickers (ADR-031, ADR-033)", () => {
     const win = "00000000-0000-7000-8000-00000000f001";
     fake.properties = { [win]: { category: "Window" } };
     useAppStore.getState().select([win]);
-    // Selecting opens Modify | Windows; the Window tool is still on Architecture.
-    await userEvent.click(await screen.findByRole("tab", { name: "Architecture" }));
+    // Selecting opens Modify | Windows; the Window tool is still on Openings.
+    await userEvent.click(await screen.findByRole("tab", { name: "Openings" }));
     await userEvent.click(screen.getByRole("button", { name: "Window" }));
     const dialog = await screen.findByRole("dialog", { name: "Window Types" });
     expect(within(dialog).getByText("Changing 1 selected window")).toBeTruthy();

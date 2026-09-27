@@ -36,7 +36,14 @@ describe("Materials tab and Material Browser (ADR-029)", () => {
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(1, 5)).toEqual(["Site", "Architecture", "Materials", "Rendering"]);
+    expect(tabs.slice(1, 7)).toEqual([
+      "Site",
+      "Architecture",
+      "Openings",
+      "Lighting",
+      "Materials",
+      "Rendering",
+    ]);
     await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
     for (const name of ["Material Browser", "New Material", "Duplicate", "Paint"])
       expect(screen.getByRole("button", { name })).toBeTruthy();

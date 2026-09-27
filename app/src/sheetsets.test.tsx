@@ -29,7 +29,7 @@ describe("Sheet Sets (ADR-032)", () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "New Project" }));
     await screen.findByRole("toolbar", { name: "Tools" });
-    await userEvent.click(screen.getByRole("tab", { name: "View" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Sheets" }));
     await userEvent.click(screen.getByRole("button", { name: "Sheet Sets" }));
     const dialog = await screen.findByRole("dialog", { name: "Sheet Sets" });
     // Every phase by default: the sheet index and the CD deliverables.
