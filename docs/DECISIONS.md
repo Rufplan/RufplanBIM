@@ -1400,3 +1400,22 @@ Owner requests (2026-09-26):
     `align_references`).
 - **Not yet** (Revit has these): Align's lock padlock, Multiple Alignment, and aligning doors,
   windows or text.
+
+## ADR-043 3D zooms toward the cursor — Accepted (2026-09-26)
+Owner request (2026-09-26): "when you zoom in within the 3D view it just zooms from the center
+point of the screen … update so it zooms from where your cursor is pointing or what's
+selected".
+
+- **Zoom toward the cursor.** OrbitControls' `zoomToCursor` is on, so the wheel zooms toward
+  the cursor rather than the middle of the screen.
+- **At the right depth.** On its own, zoomToCursor zooms at the depth of the orbit center,
+  which crawls toward far objects and overshoots near ones. So before each wheel step (a
+  capture-phase listener that runs before OrbitControls'), the orbit center slides along the
+  line of sight to the depth of the model under the cursor (`pivotAt`).
+  - The view doesn't move; the zoom heads straight at what is pointed at.
+  - Geometry outside an active section box is ignored.
+- **The selection.** With nothing under the cursor, the selection's center sets the depth.
+- **Orbiting.** Pressing to orbit sets the orbit depth the same way, so the model turns about
+  what is under the cursor.
+- **Not yet** (Revit has this): Revit orbits exactly about the selected element, even off the
+  line of sight. OrbitControls can only orbit about a point on it.

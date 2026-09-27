@@ -90,3 +90,29 @@ describe("editing in 3D and the ground grid (ADR-022)", () => {
     expect(prompt3d("move", 1)).toContain("end point");
   });
 });
+
+describe("zooming and orbiting about the cursor (ADR-043)", () => {
+  it("moves the orbit center along the line of sight to the pointed-at depth", async () => {
+    const { pivotAt } = await import("./components/View3D");
+    const camera = new THREE.PerspectiveCamera(40, 1.5, 50, 1e7);
+    camera.up.set(0, 0, 1);
+    camera.position.set(-10000, -10000, 8000);
+    camera.lookAt(0, 0, 0);
+    camera.updateMatrixWorld();
+    // A point off to the side, 5 m nearer than the old center.
+    const fwd = camera.getWorldDirection(new THREE.Vector3());
+    const old = camera.position.distanceTo(new THREE.Vector3());
+    const side = new THREE.Vector3(0, 0, 1).cross(fwd).normalize();
+    const point = camera.position
+      .clone()
+      .addScaledVector(fwd, old - 5000)
+      .addScaledVector(side, 3000);
+    const c = pivotAt(camera, point)!;
+    // On the line of sight (the view doesn't turn), at the point's depth.
+    const along = c.clone().sub(camera.position);
+    expect(along.clone().normalize().dot(fwd)).toBeCloseTo(1, 9);
+    expect(along.length()).toBeCloseTo(old - 5000, 6);
+    // Nothing behind the camera.
+    expect(pivotAt(camera, camera.position.clone().addScaledVector(fwd, -1000))).toBeNull();
+  });
+});

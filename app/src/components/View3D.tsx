@@ -80,6 +80,19 @@ export function meshColor(m: Mesh): number {
   return categoryColor(m);
 }
 
+/** The orbit center for a view that should zoom and orbit about `point` (ADR-043): on the
+ * camera's line of sight (so the view doesn't move) at `point`'s depth. Null when the point
+ * is behind or at the camera. */
+export function pivotAt(
+  camera: THREE.PerspectiveCamera,
+  point: THREE.Vector3,
+): THREE.Vector3 | null {
+  const fwd = camera.getWorldDirection(new THREE.Vector3());
+  const depth = point.clone().sub(camera.position).dot(fwd);
+  if (!(depth > camera.near * 4)) return null;
+  return camera.position.clone().addScaledVector(fwd, depth);
+}
+
 /** The six planes keeping what's inside a section box (three.js clips negative distances). */
 export function boxPlanes(b: SectionBox | null): THREE.Plane[] {
   if (!b) return [];
@@ -296,6 +309,8 @@ export function View3D({ view }: { view: ViewInfo }) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.screenSpacePanning = true;
+    // The wheel zooms toward the cursor (ADR-043); see `retarget` for the depth.
+    controls.zoomToCursor = true;
     const group = new THREE.Group();
     scene.add(group);
     const boxGroup = new THREE.Group();
@@ -407,6 +422,38 @@ export function View3D({ view }: { view: ViewInfo }) {
       if (!hit) return null;
       const u = hit.object.userData as { el: string; category: string; level: string | null };
       return { ...u, point: hit.point };
+    };
+    // Zoom and orbit about what's under the cursor, else the selection (ADR-043): the orbit
+    // center slides along the view line to that depth, so the view doesn't jump and the zoom
+    // heads at what's pointed at instead of the middle of the screen.
+    const retarget = (e: MouseEvent) => {
+      const box = boxRef.current;
+      const inBox = (q: THREE.Vector3) =>
+        !box ||
+        (q.x >= box.min[0]! &&
+          q.x <= box.max[0]! &&
+          q.y >= box.min[1]! &&
+          q.y <= box.max[1]! &&
+          q.z >= box.min[2]! &&
+          q.z <= box.max[2]!);
+      const meshes = group.children.filter((c) => c instanceof THREE.Mesh && c.visible);
+      let point: THREE.Vector3 | null =
+        rayAt(e as PointerEvent)
+          .intersectObjects(meshes, false)
+          .find((h) => inBox(h.point))?.point ?? null;
+      if (!point) {
+        const sel = new Set(useAppStore.getState().selection);
+        const b = new THREE.Box3();
+        for (const c of meshes) if (sel.has(c.userData.el as string)) b.expandByObject(c);
+        if (!b.isEmpty()) point = b.getCenter(new THREE.Vector3());
+      }
+      if (!point) return;
+      const next = pivotAt(camera, point);
+      if (next) controls.target.copy(next);
+    };
+    const onWheelFirst = (e: WheelEvent) => retarget(e);
+    const onOrbitStart = (e: PointerEvent) => {
+      if (e.button === 0 && useAppStore.getState().tool === "select") retarget(e);
     };
     // The work plane of the level picked in the options bar.
     const planeHit = (e: PointerEvent) => {
@@ -991,6 +1038,9 @@ export function View3D({ view }: { view: ViewInfo }) {
       if (u && (u.category === "Floor" || u.category === "Ceiling")) void editBoundary(u.el);
     };
     renderer.domElement.addEventListener("dblclick", onDouble);
+    // Before OrbitControls' own handlers (capture), so they zoom and orbit about the new center.
+    renderer.domElement.addEventListener("wheel", onWheelFirst, { capture: true, passive: true });
+    renderer.domElement.addEventListener("pointerdown", onOrbitStart, { capture: true });
     renderer.domElement.addEventListener("pointerdown", onDown);
     renderer.domElement.addEventListener("pointermove", onMove);
     renderer.domElement.addEventListener("pointerup", onUp);
@@ -1005,6 +1055,8 @@ export function View3D({ view }: { view: ViewInfo }) {
       setCube(null);
       cube.dispose();
       renderer.domElement.removeEventListener("dblclick", onDouble);
+      renderer.domElement.removeEventListener("wheel", onWheelFirst, { capture: true });
+      renderer.domElement.removeEventListener("pointerdown", onOrbitStart, { capture: true });
       unsubTool();
       unsubSketch();
       cancelAnimationFrame(raf);

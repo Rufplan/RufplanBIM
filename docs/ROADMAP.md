@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- 3D zooms toward the cursor and orbits about what's under it (ADR-043).
+
 - Dimension points follow the crossing wall; Align picks faces, centerlines and grids with
   Tab (ADR-042).
 
