@@ -1207,6 +1207,24 @@ pub(crate) fn filled_arrow(c: Pt, r: f64, look: Pt) -> Vec<Pt> {
     out
 }
 
+/// Revit's elevation mark pointer: a right-angled triangle (sides at 45°) pointing `look`,
+/// its point 1.95 radii from the center and its base 0.45 radii out, 3 radii long, so the body
+/// drawn over it leaves two black wings and the point.
+pub(crate) fn mark_arrow(c: Pt, r: f64, look: Pt) -> [Pt; 3] {
+    let base = c.add(look.scale(r * 0.45));
+    let side = look.perp().scale(r * 1.5);
+    [c.add(look.scale(r * 1.95)), base.add(side), base.sub(side)]
+}
+
+/// How far a mark's pointer reaches from its center, in radii.
+fn mark_reach(style: studio_core::MarkStyle) -> f64 {
+    match style {
+        studio_core::MarkStyle::CircleArrow => 1.95,
+        studio_core::MarkStyle::CircleHalf => 1.55,
+        studio_core::MarkStyle::Diamond => std::f64::consts::SQRT_2,
+    }
+}
+
 /// Revit's elevation mark: a round body with a filled arrow pointer for each view (the
 /// pointer is the view: double-click it to open). One view shows its detail number over
 /// its sheet number; several show each detail number by its pointer.
@@ -1224,12 +1242,12 @@ pub(crate) fn elevation_mark(
     let angle = |v: Pt| v.y.atan2(v.x);
     match style {
         MarkStyle::CircleArrow => {
-            // Each pointer is Revit's Filled Arrow: tangent to the body, a right-angled
-            // point on the side it looks (four of them square the body, as an interior mark).
+            // Each pointer is Revit's Filled Arrow: a right-angled triangle behind the body,
+            // its point toward the view about two radii out, its base just inside the circle.
             for (view, look) in pointers {
                 b.fill(
                     Some(*view),
-                    vec![ring(&filled_arrow(c, r, *look))],
+                    vec![ring(&mark_arrow(c, r, *look))],
                     FillKind::Ink,
                 );
             }
@@ -1323,14 +1341,23 @@ pub(crate) fn elevation_mark(
             }
         }
         _ => {
+            // Revit's interior mark: the sheet number in the body, each view's number
+            // outside, just beyond its point.
+            let sheet = pointers
+                .iter()
+                .find_map(|(v, _)| view_ref(doc, *v).map(|r| r.1))
+                .unwrap_or_else(|| "—".into());
+            b.text(body, c, sheet, rp * 0.4, Anchor::Center);
+            let reach = r * mark_reach(style) + b.paper(rp * 0.4);
             for (view, look) in pointers {
                 let label = view_ref(doc, *view).map_or_else(|| "—".into(), |r| r.0);
-                let at = c
-                    .add(look.scale(r * if ink_half { 0.5 } else { 0.42 }))
-                    .sub(Pt::new(0.0, b.paper(0.7)));
-                if !ink_half {
-                    b.text(Some(*view), at, label, rp * 0.4, Anchor::Center);
-                }
+                b.text(
+                    Some(*view),
+                    c.add(look.scale(reach)),
+                    label,
+                    rp * 0.45,
+                    Anchor::Center,
+                );
             }
         }
     }
@@ -4038,6 +4065,17 @@ mod tests {
         )
         .unwrap();
         (doc, l1, roof, stair)
+    }
+
+    #[test]
+    fn elevation_pointer_is_a_right_angled_point_behind_the_body() {
+        let (c, r) = (Pt::new(0.0, 0.0), 100.0);
+        let [tip, a, b] = mark_arrow(c, r, Pt::new(-1.0, 0.0));
+        // Its point 1.95 radii out; its base 0.45 radii out, 3 radii long.
+        assert!((tip.x + 195.0).abs() < 1e-9 && tip.y.abs() < 1e-9);
+        assert!((a.x + 45.0).abs() < 1e-9 && (b.x + 45.0).abs() < 1e-9);
+        assert!((a.dist(b) - 300.0).abs() < 1e-9);
+        assert!(a.sub(tip).dot(b.sub(tip)).abs() < 1e-6, "a right angle");
     }
 
     #[test]

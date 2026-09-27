@@ -1761,3 +1761,10 @@ default ones".
   - The tail is a filled 3/32" x 3/8" bar on the view's side at the far end.
   - The line is unchanged: dash-dot, with heavy ends.
 - The other mark types (Circle Half, Diamond; ADR-022) are unchanged.
+
+Amended (2026-09-27, the owner's screenshot): the elevation mark pointer is now a right-angled
+triangle behind the body (`mark_arrow`). Its point is 1.95 radii out and its base 0.45 radii
+out, 3 radii long, so the circle drawn over it leaves two black wings and the point, as in
+the owner's reference. Marks with several views (interior elevations) put the sheet number in
+the circle and each view number outside, just beyond its point, as Revit does. Section heads
+keep the tangent Filled Arrow.
