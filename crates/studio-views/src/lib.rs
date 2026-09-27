@@ -1245,14 +1245,17 @@ pub(crate) fn elevation_mark(
     let angle = |v: Pt| v.y.atan2(v.x);
     match style {
         MarkStyle::CircleArrow => {
-            // Each pointer is Revit's Filled Arrow: a right-angled triangle behind the body,
-            // its point toward the view about two radii out, its base just inside the circle.
+            // One view: the large right-angled point behind the body (the building mark in
+            // the owner's reference). Several (an interior mark): small tangent points, so
+            // four of them square the body into Revit's diamond.
+            let single = pointers.len() == 1;
             for (view, look) in pointers {
-                b.fill(
-                    Some(*view),
-                    vec![ring(&mark_arrow(c, r, *look))],
-                    FillKind::Ink,
-                );
+                let shape = if single {
+                    mark_arrow(c, r, *look).to_vec()
+                } else {
+                    filled_arrow(c, r, *look)
+                };
+                b.fill(Some(*view), vec![ring(&shape)], FillKind::Ink);
             }
             b.fill(body, vec![ring(&arc(c, r, 0.0, TAU))], FillKind::Paper);
             b.circle(body, c, rp, 2, false);
@@ -1324,7 +1327,7 @@ pub(crate) fn elevation_mark(
                     body,
                     &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
                     false,
-                    1,
+                    2,
                     Dash::Solid,
                 );
                 b.text(
@@ -1351,7 +1354,12 @@ pub(crate) fn elevation_mark(
                 .find_map(|(v, _)| view_ref(doc, *v).map(|r| r.1))
                 .unwrap_or_else(|| "—".into());
             b.text(body, c, sheet, rp * 0.4, Anchor::Center);
-            let reach = r * mark_reach(style) + b.paper(rp * 0.4);
+            // Several views: CircleArrow draws tangent points, which reach r·√2.
+            let reach = if style == studio_core::MarkStyle::CircleArrow {
+                r * std::f64::consts::SQRT_2
+            } else {
+                r * mark_reach(style)
+            } + b.paper(rp * 0.4);
             for (view, look) in pointers {
                 let label = view_ref(doc, *view).map_or_else(|| "—".into(), |r| r.0);
                 b.text(
@@ -4240,6 +4248,52 @@ mod tests {
             (s.pt.x - 3000.0).abs() < 1e-6 && (s.pt.y + 2000.0).abs() < 1e-6,
             "{s:?}"
         );
+    }
+
+    #[test]
+    fn a_mark_with_several_views_draws_small_tangent_points() {
+        let doc = Document::new();
+        let mut b = Builder::new(1.0);
+        let (v1, v2) = (ElementId::new(), ElementId::new());
+        let c = Pt::new(0.0, 0.0);
+        let looks = [(v1, Pt::new(0.0, 1.0)), (v2, Pt::new(1.0, 0.0))];
+        elevation_mark(
+            &doc,
+            &mut b,
+            None,
+            c,
+            &looks,
+            (studio_core::MarkStyle::CircleArrow, 4.0),
+        );
+        let tips: Vec<[f64; 2]> = b
+            .items
+            .iter()
+            .filter(|i| i.el == Some(v1) || i.el == Some(v2))
+            .filter_map(|i| match &i.prim {
+                Prim::Fill { rings, .. } => Some(rings[0][0]),
+                _ => None,
+            })
+            .collect();
+        // Each point is r·√2 out (the tangent Filled Arrow), not the single-view 1.95 r.
+        for t in &tips {
+            assert!((Pt::new(t[0], t[1]).len() - 4.0 * std::f64::consts::SQRT_2).abs() < 1e-9);
+        }
+        assert_eq!(tips.len(), 2);
+        // One view: the large point.
+        let mut b = Builder::new(1.0);
+        elevation_mark(
+            &doc,
+            &mut b,
+            None,
+            c,
+            &looks[..1],
+            (studio_core::MarkStyle::CircleArrow, 4.0),
+        );
+        let tip = b.items.iter().find_map(|i| match &i.prim {
+            Prim::Fill { rings, .. } if i.el == Some(v1) => Some(rings[0][0]),
+            _ => None,
+        });
+        assert!((tip.unwrap()[1] - 4.0 * 1.95).abs() < 1e-9);
     }
 
     #[test]

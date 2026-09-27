@@ -1801,3 +1801,9 @@ approved the two new element kinds (older files open unchanged).
   - Pick Lines;
   - model lines on vertical work planes (in elevations);
   - Revit's halftone for \<Beyond\>.
+
+Amended again (2026-09-27): the large point is for a mark with one view (the owner's building
+elevation reference). A mark with several views (interior elevations, or a building mark with
+more views checked) draws the small tangent Filled Arrows again, so four of them square the
+circle into Revit's diamond, with the sheet number in the circle and each view number outside
+by its point. The divider line in a one-view mark is as heavy as the circle.
