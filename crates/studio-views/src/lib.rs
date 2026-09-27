@@ -901,7 +901,12 @@ fn section_markers(doc: &Document, b: &mut Builder) {
         let el = Some(v.id);
         let d = end.sub(*start).norm();
         let look = d.perp();
-        let r = b.paper(5.0);
+        // Revit's Section Head - Filled: a 1/2" bubble split by a line, the detail number
+        // over the sheet number, with a Filled Arrow toward the view; the line runs from the
+        // bubble to Section Tail - Filled, a 3/32" x 3/8" bar on the view's side.
+        let rp = 6.35;
+        let r = b.paper(rp);
+        let c = start.sub(d.scale(r));
         b.line(el, &[*start, *end], false, 1, Dash::Center);
         let seg = b.paper(8.0);
         b.line(
@@ -912,23 +917,46 @@ fn section_markers(doc: &Document, b: &mut Builder) {
             Dash::Solid,
         );
         b.line(el, &[*end, end.sub(d.scale(seg))], false, 5, Dash::Solid);
-        let c = start.sub(d.scale(r));
-        b.circle(el, c, 5.0, 2, false);
-        let tip = c.add(look.scale(r * 1.8));
+        b.fill(el, vec![ring(&filled_arrow(c, r, look))], FillKind::Ink);
         b.fill(
             el,
-            vec![ring(&[tip, c.add(d.scale(r)), c.sub(d.scale(r))])],
-            FillKind::Ink,
+            vec![ring(&arc(c, r, 0.0, std::f64::consts::TAU))],
+            FillKind::Paper,
         );
-        b.circle(el, c, 5.0, 2, false);
-        let label: String = name.chars().filter(|ch| ch.is_ascii_digit()).collect();
+        b.circle(el, c, rp, 2, false);
+        b.line(
+            el,
+            &[c.sub(Pt::new(r, 0.0)), c.add(Pt::new(r, 0.0))],
+            false,
+            1,
+            Dash::Solid,
+        );
+        let (detail, sheet) = view_ref(doc, v.id).unwrap_or_else(|| {
+            let n: String = name.chars().filter(|ch| ch.is_ascii_digit()).collect();
+            (if n.is_empty() { "—".into() } else { n }, "—".into())
+        });
         b.text(
             el,
-            c,
-            if label.is_empty() { "S".into() } else { label },
-            3.4,
+            c.add(Pt::new(0.0, r * 0.42)),
+            detail,
+            rp * 0.49,
             Anchor::Center,
         );
+        b.text(
+            el,
+            c.sub(Pt::new(0.0, r * 0.58)),
+            sheet,
+            rp * 0.4,
+            Anchor::Center,
+        );
+        let (len, w) = (b.paper(9.525), b.paper(2.38));
+        let tail = [
+            *end,
+            end.add(look.scale(len)),
+            end.add(look.scale(len)).sub(d.scale(w)),
+            end.sub(d.scale(w)),
+        ];
+        b.fill(el, vec![ring(&tail)], FillKind::Ink);
     }
 }
 
@@ -1167,6 +1195,18 @@ pub(crate) fn view_ref(doc: &Document, view: ElementId) -> Option<(String, Strin
     Some((n.to_string(), number))
 }
 
+/// Revit's "Filled Arrow" pointer: two lines tangent to a round body of radius `r` at `c`,
+/// meeting at a right angle on the side it looks, filled between them and the body.
+pub(crate) fn filled_arrow(c: Pt, r: f64, look: Pt) -> Vec<Pt> {
+    use std::f64::consts::FRAC_PI_4;
+    let a = look.y.atan2(look.x);
+    // Tangents from a tip r·√2 away touch the body 45° either side of the look direction.
+    let tip = c.add(look.scale(r * std::f64::consts::SQRT_2));
+    let mut out = vec![tip];
+    out.extend(arc(c, r, a + FRAC_PI_4, -2.0 * FRAC_PI_4));
+    out
+}
+
 /// Revit's elevation mark: a round body with a filled arrow pointer for each view (the
 /// pointer is the view: double-click it to open). One view shows its detail number over
 /// its sheet number; several show each detail number by its pointer.
@@ -1184,14 +1224,12 @@ pub(crate) fn elevation_mark(
     let angle = |v: Pt| v.y.atan2(v.x);
     match style {
         MarkStyle::CircleArrow => {
-            // Each pointer is a filled arrowhead outside the body, on the side it looks.
+            // Each pointer is Revit's Filled Arrow: tangent to the body, a right-angled
+            // point on the side it looks (four of them square the body, as an interior mark).
             for (view, look) in pointers {
-                let side = look.perp().scale(r * 0.7);
-                let base = c.add(look.scale(r * 0.7));
-                let tip = c.add(look.scale(r * 1.8));
                 b.fill(
                     Some(*view),
-                    vec![ring(&[tip, base.add(side), base.sub(side)])],
+                    vec![ring(&filled_arrow(c, r, *look))],
                     FillKind::Ink,
                 );
             }
@@ -4000,6 +4038,19 @@ mod tests {
         )
         .unwrap();
         (doc, l1, roof, stair)
+    }
+
+    #[test]
+    fn revit_filled_arrow_is_tangent_with_a_right_angled_tip() {
+        let (c, r) = (Pt::new(0.0, 0.0), 100.0);
+        let pts = filled_arrow(c, r, Pt::new(0.0, -1.0));
+        let tip = pts[0];
+        assert!((tip.x).abs() < 1e-9 && (tip.y + r * std::f64::consts::SQRT_2).abs() < 1e-9);
+        let (a, b) = (pts[1], pts[pts.len() - 1]);
+        // Both ends are on the body, and the sides from the tip meet at 90° and touch it.
+        assert!((a.len() - r).abs() < 1e-9 && (b.len() - r).abs() < 1e-9);
+        assert!(a.sub(tip).dot(b.sub(tip)).abs() < 1e-6);
+        assert!(a.sub(tip).dot(a.sub(c)).abs() < 1e-6, "tangent");
     }
 
     #[test]

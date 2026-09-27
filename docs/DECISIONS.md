@@ -1744,3 +1744,20 @@ and approved saving them (a new optional field on views; older files open unchan
   shifts with its right end.
 - **Not yet:** Revit's 3D extents (dragging every parallel view at once), a bubble at the
   left end, a "reset to 3D extents" command, and the same grips for grids in elevations.
+
+## ADR-053 Revit's default elevation and section marks — Accepted (2026-09-27)
+Owner request (2026-09-27): "make the default elevation and section markers look like Revit's
+default ones".
+
+- **Filled Arrow** (`filled_arrow`). Revit's default pointer, now used for both marks, is
+  two lines tangent to the round body meeting at a right angle on the side it looks, filled
+  between them and the body. Before, it was a small triangle that didn't meet the circle.
+  Four of them (an interior mark with four views) square the body into Revit's diamond.
+- **Elevation marks** (the default Circle / Filled Arrow type). The body is split by a line,
+  with the detail number over the sheet number, as before, with the new pointer.
+- **Section marks** (Revit's Section Head - Filled and Section Tail - Filled).
+  - The head is a 1/2" bubble split by a line, with the detail number over the sheet number
+    ("—" until the section is placed on a sheet) and a Filled Arrow toward the view.
+  - The tail is a filled 3/32" x 3/8" bar on the view's side at the far end.
+  - The line is unchanged: dash-dot, with heavy ends.
+- The other mark types (Circle Half, Diamond; ADR-022) are unchanged.
