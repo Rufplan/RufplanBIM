@@ -240,6 +240,29 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     out.dims.extend(permanent_values(doc, view, scale, *id));
                 }
             }
+            // A level's ends in an elevation or section (ADR-052). The key carries the view
+            // and where the other end is, since this view's ends are both kept once dragged.
+            ElementData::Level { elevation, .. } if !plan => {
+                let Some(dl) = crate::display_list_shared(doc, view) else {
+                    continue;
+                };
+                let Some((_, x0, x1)) = crate::level_line(&dl.items, *id) else {
+                    continue;
+                };
+                let (l, r) = (Pt::new(x0, *elevation), Pt::new(x1, *elevation));
+                out.grips.push(Grip {
+                    id: *id,
+                    key: format!("level_end:{view}:left:{x1}"),
+                    at: l,
+                    anchor: Some(r),
+                });
+                out.grips.push(Grip {
+                    id: *id,
+                    key: format!("level_end:{view}:right:{x0}"),
+                    at: r,
+                    anchor: Some(l),
+                });
+            }
             ElementData::Grid { start, end, .. } if plan => {
                 for (key, at, anchor) in [("start", *start, *end), ("end", *end, *start)] {
                     out.grips.push(Grip {

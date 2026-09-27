@@ -810,6 +810,49 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                 })
             })
         }
+        (ElementData::Level { .. }, k) if k.starts_with("level_end:") => {
+            let parts: Vec<&str> = k.split(':').collect();
+            let [_, view, side, other] = parts[..] else {
+                return Err(bad());
+            };
+            let view: ElementId = view.parse().map_err(|_| bad())?;
+            let other: f64 = other.parse().map_err(|_| bad())?;
+            // At least a foot of line; the dragged end moves along the view only.
+            let min = 304.8;
+            let (left, right) = match side {
+                "left" => (to.x.min(other - min), other),
+                "right" => (other, to.x.max(other + min)),
+                _ => return Err(bad()),
+            };
+            doc.transact("Drag level end", |tx| {
+                if !matches!(
+                    tx.data(view)?,
+                    ElementData::View {
+                        kind: ViewKind::Elevation { .. }
+                            | ViewKind::Section { .. }
+                            | ViewKind::MarkerElevation { .. },
+                        ..
+                    }
+                ) {
+                    return Err(CoreError::Invalid(
+                        "level ends drag in elevations and sections".into(),
+                    ));
+                }
+                tx.modify(view, |d| {
+                    if let ElementData::View { level_ends, .. } = d {
+                        let ends = crate::element::LevelEnds {
+                            level: id,
+                            left: Some(left),
+                            right: Some(right),
+                        };
+                        match level_ends.iter_mut().find(|e| e.level == id) {
+                            Some(e) => *e = ends,
+                            None => level_ends.push(ends),
+                        }
+                    }
+                })
+            })
+        }
         (ElementData::AngularDimension { .. }, "arc") => doc.transact("Move dimension arc", |tx| {
             tx.modify(id, |d| {
                 if let ElementData::AngularDimension { at, .. } = d {

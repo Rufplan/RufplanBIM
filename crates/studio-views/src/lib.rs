@@ -339,6 +339,9 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
     annotations(doc, &mut b, view);
+    if let Ok(ElementData::View { level_ends, .. }) = doc.data(view) {
+        apply_level_ends(&mut b.items, level_ends);
+    }
     callout_markers(doc, &mut b, view);
     camera_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
@@ -1077,6 +1080,62 @@ pub(crate) fn level_head(b: &mut Builder, el: ElementId, end: Pt, name: &str, el
         2.4,
         Anchor::Right,
     );
+}
+
+/// A level's line in an elevation or section: its longest horizontal center line, as
+/// (item index, left x, right x).
+pub(crate) fn level_line(items: &[Item], level: ElementId) -> Option<(usize, f64, f64)> {
+    items
+        .iter()
+        .enumerate()
+        .filter(|(_, it)| it.el == Some(level))
+        .filter_map(|(i, it)| match &it.prim {
+            Prim::Line {
+                pts,
+                dash: Dash::Center,
+                ..
+            } if pts.len() == 2 && (pts[0][1] - pts[1][1]).abs() < 1e-6 => {
+                Some((i, pts[0][0].min(pts[1][0]), pts[0][0].max(pts[1][0])))
+            }
+            _ => None,
+        })
+        .max_by(|a, b| (a.2 - a.1).total_cmp(&(b.2 - b.1)))
+}
+
+/// Levels whose ends were dragged in this view (ADR-052): the line runs between them and the
+/// head (everything else drawn for the level) moves with the right end.
+fn apply_level_ends(items: &mut [Item], ends: &[studio_core::LevelEnds]) {
+    for e in ends {
+        let Some((line, x0, x1)) = level_line(items, e.level) else {
+            continue;
+        };
+        let left = e.left.unwrap_or(x0);
+        let right = e.right.unwrap_or(x1).max(left + 1.0);
+        let dx = right - x1;
+        for (i, it) in items.iter_mut().enumerate() {
+            if it.el != Some(e.level) {
+                continue;
+            }
+            if i == line {
+                if let Prim::Line { pts, .. } = &mut it.prim {
+                    let (a, b) = if pts[0][0] <= pts[1][0] {
+                        (0, 1)
+                    } else {
+                        (1, 0)
+                    };
+                    pts[a][0] = left;
+                    pts[b][0] = right;
+                }
+                continue;
+            }
+            match &mut it.prim {
+                Prim::Line { pts, .. } => pts.iter_mut().for_each(|p| p[0] += dx),
+                Prim::Fill { rings, .. } => rings.iter_mut().flatten().for_each(|p| p[0] += dx),
+                Prim::Text { at, .. } => at[0] += dx,
+                Prim::Circle { c, .. } => c[0] += dx,
+            }
+        }
+    }
 }
 
 /// Feet-inches with spaced dash, as Revit prints levels: 10' - 0".
@@ -3941,6 +4000,79 @@ mod tests {
         )
         .unwrap();
         (doc, l1, roof, stair)
+    }
+
+    #[test]
+    fn level_ends_drag_in_one_elevation_like_revit_2d_extents() {
+        let (mut doc, _, _, _) = roofed_house();
+        let south = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::South
+                }
+            )
+        });
+        let north = view_where(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: Compass::North
+                }
+            )
+        });
+        let l2 = doc.levels()[1].0;
+        let line = |doc: &Document, v| {
+            let dl = display_list(doc, v).unwrap();
+            let (_, x0, x1) = level_line(&dl.items, l2).unwrap();
+            let name_x = dl
+                .items
+                .iter()
+                .find_map(|i| match &i.prim {
+                    Prim::Text { text, at, .. } if i.el == Some(l2) && text == "Level 2" => {
+                        Some(at[0])
+                    }
+                    _ => None,
+                })
+                .unwrap();
+            (x0, x1, name_x)
+        };
+        let (x0, x1, name) = line(&doc, south);
+        let north_before = line(&doc, north);
+        // A selected level has a grip at each end.
+        let h = handles::handles(&doc, south, &[l2]);
+        let keys: Vec<&str> = h.grips.iter().map(|g| g.key.as_str()).collect();
+        assert_eq!(keys.len(), 2);
+        assert!(keys[0].starts_with("level_end:") && keys[0].contains(":left:"));
+        assert!((h.grips[0].at.x - x0).abs() < 1e-6 && (h.grips[1].at.x - x1).abs() < 1e-6);
+        // Pull the right end 10' in: the line ends there and the head follows.
+        let right = h.grips[1].clone();
+        let to = Pt::new(x1 - 3048.0, 999.0);
+        studio_core::edit::drag_handle(&mut doc, l2, &right.key, to).unwrap();
+        let (a0, a1, name2) = line(&doc, south);
+        assert!(
+            (a0 - x0).abs() < 1e-6 && (a1 - (x1 - 3048.0)).abs() < 1e-6,
+            "{a0} {a1}"
+        );
+        assert!((name2 - (name - 3048.0)).abs() < 1e-6);
+        // Then the left end 5' in; the right end stays.
+        let h = handles::handles(&doc, south, &[l2]);
+        studio_core::edit::drag_handle(&mut doc, l2, &h.grips[0].key, Pt::new(x0 + 1524.0, 0.0))
+            .unwrap();
+        let (b0, b1, _) = line(&doc, south);
+        assert!((b0 - (x0 + 1524.0)).abs() < 1e-6 && (b1 - a1).abs() < 1e-6);
+        // Never shorter than a foot; other views keep their own ends.
+        let h = handles::handles(&doc, south, &[l2]);
+        studio_core::edit::drag_handle(&mut doc, l2, &h.grips[1].key, Pt::new(b0 - 5000.0, 0.0))
+            .unwrap();
+        let (c0, c1, _) = line(&doc, south);
+        assert!((c1 - c0 - 304.8).abs() < 1e-6, "{c0} {c1} {b0} {b1}");
+        assert_eq!(line(&doc, north), north_before);
+        // Each drag is one undo.
+        doc.undo().unwrap();
+        doc.undo().unwrap();
+        doc.undo().unwrap();
+        assert_eq!(line(&doc, south), (x0, x1, name));
     }
 
     fn view_where(doc: &Document, f: impl Fn(&ViewKind) -> bool) -> ElementId {

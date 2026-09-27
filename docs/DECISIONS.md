@@ -1726,3 +1726,21 @@ adding new items, annotating, etc."
   - operations the app has no tool for (curtain walls, furniture, sketch arcs);
   - editing sketches point by point;
   - a follow-up conversation (each prompt is one plan).
+
+## ADR-052 Level ends in elevations and sections — Accepted (2026-09-27)
+Owner request (2026-09-27): "in elevations and sections … have a handle to drag the levels left
+and right, similar to how Revit does them". The owner chose per-view ends (Revit's 2D extents)
+and approved saving them (a new optional field on views; older files open unchanged).
+
+- **Grips.** Select a level in an elevation, section or interior elevation to show a grip at
+  each end of its line. Dragging one moves that end along the view; the level's head (target,
+  name and elevation) goes with the right end. A line is never shorter than 1'-0". Each drag
+  is one undo.
+- **Per view.** The ends are kept on the view (`View.level_ends`). Other elevations and
+  sections, and levels you haven't dragged, span the view as before. Once one end of a level
+  is dragged, both of its ends are fixed in that view.
+- **How it's drawn.** The view is generated as before; then each dragged level's line
+  (its horizontal center line) takes the stored ends, and the rest of what's drawn for it
+  shifts with its right end.
+- **Not yet:** Revit's 3D extents (dragging every parallel view at once), a bubble at the
+  left end, a "reset to 3D extents" command, and the same grips for grids in elevations.

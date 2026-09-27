@@ -33,10 +33,10 @@ pub mod windows;
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};
 pub use element::{
     Anchor, BeamShape, Category, ColumnShape, Compass, CropBox, CutPattern, DimKind, DimRef,
-    DoorFamily, Element, ElementData, ElementId, FloorSlope, LayerFunction, LocationLine,
-    MarkStyle, RufplanLink, ScheduleKind, SectionBox, SheetSize, SlabBound, SlopeFormat,
-    StageChange, StairShape, SurfacePattern, ViewKind, WallFunction, WallLayer, WallTop,
-    WindowFamily,
+    DoorFamily, Element, ElementData, ElementId, FloorSlope, LayerFunction, LevelEnds,
+    LocationLine, MarkStyle, RufplanLink, ScheduleKind, SectionBox, SheetSize, SlabBound,
+    SlopeFormat, StageChange, StairShape, SurfacePattern, ViewKind, WallFunction, WallLayer,
+    WallTop, WindowFamily,
 };
 pub use params::{ParamDef, ParamKind, ParamScope, ParamValue};
 

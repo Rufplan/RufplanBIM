@@ -327,6 +327,15 @@ impl SurfacePattern {
     }
 }
 
+/// Where a level's line starts and ends in one elevation or section (ADR-052), along the
+/// view (its x, mm). None: that end where the view puts it.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
+pub struct LevelEnds {
+    pub level: ElementId,
+    pub left: Option<f64>,
+    pub right: Option<f64>,
+}
+
 /// A floor's slope (ADR-049), like Revit's slope arrow: it falls `rise` per unit of run
 /// toward plan direction `dir` (radians, counter-clockwise from east), and its top is at the
 /// level plus offset along its highest edge. A rise of 0 is a flat floor.
@@ -827,6 +836,10 @@ pub enum ElementData {
         /// Camera views (ADR-027): the perspective eye and target.
         #[serde(default)]
         camera: Option<crate::camera::ViewCamera>,
+        /// Elevations and sections (ADR-052): levels whose ends were dragged in this view
+        /// (Revit's 2D extents). Levels not listed span the view.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        level_ends: Vec<LevelEnds>,
     },
     ProjectInfo {
         name: String,
@@ -1459,6 +1472,7 @@ impl ElementData {
             hidden: vec![],
             hidden_categories: vec![],
             camera: None,
+            level_ends: vec![],
         }
     }
 
