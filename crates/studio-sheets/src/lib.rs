@@ -8,8 +8,8 @@ pub mod sheet;
 pub use pdf::export_pdf;
 pub use schedule::{schedule, Table};
 pub use sheet::{
-    drag_title, move_title, sheet_display_list, sheet_display_list_shared, sheet_handles,
-    title_line,
+    drag_title, drag_title_start, move_title, sheet_display_list, sheet_display_list_shared,
+    sheet_handles, title_line,
 };
 
 /// Version of this crate, from Cargo metadata.
@@ -64,10 +64,19 @@ mod tests {
             fitted > sheet::MIN_TITLE_LENGTH && fitted < 120.0,
             "{fitted}"
         );
-        let grips = sheet_handles(&doc, sheet, &[vp]).grips;
-        assert_eq!(grips.len(), 1);
-        assert_eq!(grips[0].key, "title_end");
-        assert!(grips[0].at.dist(b) < 1e-9);
+        // A grip at each end of the rule, and the title itself to drag.
+        let h = sheet_handles(&doc, sheet, &[vp]);
+        let keys: Vec<&str> = h.grips.iter().map(|g| g.key.as_str()).collect();
+        assert_eq!(keys, ["title_start", "title_end"]);
+        assert!(h.grips[0].at.dist(a) < 1e-9 && h.grips[1].at.dist(b) < 1e-9);
+        assert_eq!(h.areas.len(), 1);
+        let area = &h.areas[0];
+        assert_eq!(area.key, "title_move");
+        assert!(
+            area.min.x < a.x - 8.0 && area.max.x >= b.x - 1e-9,
+            "covers the bubble and rule"
+        );
+        assert!(area.min.y < a.y && area.max.y > a.y);
         // Dragged 150 mm out: the rule is that long on the sheet (and in the PDF).
         drag_title(&mut doc, vp, Pt::new(a.x + 150.0, a.y + 20.0)).unwrap();
         let (a2, b2) = title_line(&doc, vp).unwrap();
@@ -98,6 +107,15 @@ mod tests {
         assert!(
             a6.dist(a5) < 1e-9 && (b6.x - a6.x - 100.0).abs() < 1e-9 && (b6.y - a5.y).abs() < 1e-9
         );
+        // The left end stretches too: the rule starts further left and ends where it did.
+        drag_title_start(&mut doc, vp, Pt::new(a6.x - 40.0, a6.y + 99.0)).unwrap();
+        let (a7, b7) = title_line(&doc, vp).unwrap();
+        assert!((a7.x - (a6.x - 40.0)).abs() < 1e-9 && (a7.y - a6.y).abs() < 1e-9);
+        assert!(b7.dist(b6) < 1e-9);
+        // ...and not past the least length.
+        drag_title_start(&mut doc, vp, Pt::new(b7.x + 50.0, a7.y)).unwrap();
+        let (a8, b8) = title_line(&doc, vp).unwrap();
+        assert!((b8.x - a8.x - sheet::MIN_TITLE_LENGTH).abs() < 1e-9 && b8.dist(b7) < 1e-9);
     }
 
     fn schedule_view(doc: &Document, name: &str) -> ElementId {

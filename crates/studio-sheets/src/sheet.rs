@@ -357,8 +357,9 @@ pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
     ))
 }
 
-/// Grips on a sheet for the selected viewports: the end of each title's rule, to stretch it
-/// left and right, or with Shift to move the title (ADR-039).
+/// Handles on a sheet for the selected viewports (ADR-039): a grip at each end of the
+/// title's rule, to stretch it left or right (with Shift, to move the title), and the title
+/// itself, to drag into place.
 pub fn sheet_handles(
     doc: &Document,
     sheet: ElementId,
@@ -371,9 +372,24 @@ pub fn sheet_handles(
         if let (true, Some((a, b))) = (on_sheet, title_line(doc, *id)) {
             out.grips.push(studio_views::handles::Grip {
                 id: *id,
+                key: "title_start".into(),
+                at: a,
+                anchor: Some(b),
+            });
+            out.grips.push(studio_views::handles::Grip {
+                id: *id,
                 key: "title_end".into(),
                 at: b,
                 anchor: Some(a),
+            });
+            // The bubble, name and scale: from the bubble's left to the rule's end.
+            let left = a.x - 2.0 - 2.0 * TITLE_BUBBLE;
+            out.areas.push(studio_views::handles::DragArea {
+                id: *id,
+                key: "title_move".into(),
+                min: Pt::new(left, a.y - 6.5),
+                max: Pt::new(b.x, a.y + 7.5),
+                at: b,
             });
         }
     }
@@ -395,7 +411,33 @@ pub fn drag_title(doc: &mut Document, viewport: ElementId, to: Pt) -> studio_cor
     })
 }
 
-/// Moves a viewport's title (Shift + drag of its grip) so its rule ends at `to`, keeping its
+/// Stretches a viewport's title rule from its left end: the rule starts at `to` (paper mm,
+/// its x only) and still ends where it did; the bubble, name and scale move with the start.
+pub fn drag_title_start(
+    doc: &mut Document,
+    viewport: ElementId,
+    to: Pt,
+) -> studio_core::CoreResult<()> {
+    let (a, b) = title_line(doc, viewport)
+        .ok_or_else(|| studio_core::CoreError::Invalid("that view has no title".into()))?;
+    let len = (b.x - to.x).max(MIN_TITLE_LENGTH);
+    let dx = (b.x - len) - a.x;
+    doc.transact("Stretch view title", |tx| {
+        tx.modify(viewport, |d| {
+            if let ElementData::Viewport {
+                title_length,
+                title_offset,
+                ..
+            } = d
+            {
+                *title_length = Some(len);
+                *title_offset = Some(title_offset.unwrap_or_default().add(Pt::new(dx, 0.0)));
+            }
+        })
+    })
+}
+
+/// Moves a viewport's title (dragging the title, or Shift + drag of a grip) so its rule ends at `to`, keeping its
 /// length.
 pub fn move_title(doc: &mut Document, viewport: ElementId, to: Pt) -> studio_core::CoreResult<()> {
     let (_, end) = title_line(doc, viewport)

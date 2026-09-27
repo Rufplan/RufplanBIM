@@ -1267,9 +1267,13 @@ The owner approved the file-format change for (2).
   - Viewports without a length, including every file saved before, keep the rule fitted to
     the title.
   - The field is optional in the file (`serde(default)`, skipped when unset).
-  - Dragging the grip stretches the rule left and right only. With Shift held, the drag moves
-    the whole title (bubble, name, rule) freely and keeps its length. That position is
-    `Viewport.title_offset`, paper mm from its place under the view, also optional.
+  - A grip sits at each end of the rule. Either one stretches the rule left or right only;
+    the left grip carries the bubble, name and scale with the rule's start. With Shift held,
+    a grip moves the whole title instead.
+  - With the viewport selected, dragging the title itself (its bubble, name or rule) moves it
+    anywhere on the sheet, keeping its length. A dashed outline shows where it goes.
+  - Its position is `Viewport.title_offset`, paper mm from its place under the view, also
+    optional.
 - **Verified:**
   - A headless render of the sample house's A1.0: the activated Level 1 plan sits exactly where
     the sheet drew it, and the Level 2 plan and title block are faded.

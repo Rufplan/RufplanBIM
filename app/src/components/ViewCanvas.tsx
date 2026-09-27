@@ -167,6 +167,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   // Grips and temporary dimensions of the selection, and a grip being dragged.
   const handles = useRef<Handles | null>(null);
   const hoverGrip = useRef<number | null>(null);
+  // A view title being dragged into place (ADR-039): the area, where the drag began, and
+  // where the area's point goes.
+  const areaDrag = useRef<{ index: number; from: Pt; to: Pt | null } | null>(null);
   // A view title's grip stretches left and right, or moves the title with Shift (ADR-039).
   const gripDrag = useRef<{ index: number; to: Pt | null; shift?: boolean } | null>(null);
   // Align's reference line and Trim's first wall.
@@ -288,6 +291,20 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       if (s.tool === "select" && hd) {
         drawTempDims(ctx, cam.current, w, h, gripDrag.current ? [] : hd.dims);
         drawGrips(ctx, cam.current, w, h, hd.grips, hoverGrip.current);
+        const ad = areaDrag.current;
+        const area = ad?.to ? (hd.areas ?? [])[ad.index] : undefined;
+        if (ad?.to && area) {
+          const dx = ad.to.x - area.at.x;
+          const dy = ad.to.y - area.at.y;
+          const [x0, y0] = toScreen(cam.current, w, h, area.min.x + dx, area.max.y + dy);
+          const [x1, y1] = toScreen(cam.current, w, h, area.max.x + dx, area.min.y + dy);
+          ctx.save();
+          ctx.setLineDash([4, 3]);
+          ctx.strokeStyle = THEME.cyan;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+          ctx.restore();
+        }
         const g = gripDrag.current;
         const grip = g ? hd.grips[g.index] : undefined;
         if (g?.to && grip) {
@@ -296,7 +313,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             cam.current,
             w,
             h,
-            grip.anchor && !(grip.key === "title_end" && g.shift) ? [grip.anchor] : [],
+            grip.anchor && !(grip.key.startsWith("title_") && g.shift) ? [grip.anchor] : [],
             g.to,
             snapRef.current?.kind ?? null,
             snapRef.current?.label ?? null,
@@ -557,7 +574,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const snapAt = useLatest(async (p: Pt, tol: number) => {
     const g = gripDrag.current;
     const grip = g ? handles.current?.grips[g.index] : undefined;
-    const title = grip?.key === "title_end";
+    const title = grip?.key === "title_start" || grip?.key === "title_end";
     const from = grip
       ? title && g?.shift
         ? null
@@ -1297,6 +1314,13 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           if (e.button === 0) {
             const g = gripAt(x, y);
             if (g !== null) gripDrag.current = { index: g, to: null };
+            else if (cam.current && useAppStore.getState().tool === "select") {
+              const p = modelAt(x, y);
+              const i = (handles.current?.areas ?? []).findIndex(
+                (a) => p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
+              );
+              if (i >= 0) areaDrag.current = { index: i, from: p, to: null };
+            }
             const v = sketchGripAt(x, y);
             if (v) vertexDrag.current = { from: v, to: null };
           }
@@ -1358,6 +1382,22 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             }
             return;
           }
+          const ad = areaDrag.current;
+          const area = ad ? handles.current?.areas[ad.index] : undefined;
+          if (ad && area) {
+            if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
+            if (d?.moved)
+              ad.to = { x: area.at.x + p.x - ad.from.x, y: area.at.y + p.y - ad.from.y };
+            redraw();
+            return;
+          }
+          if (s.tool === "select" && canvasRef.current) {
+            // The title of a selected view drags as a whole.
+            const over = (handles.current?.areas ?? []).some(
+              (a) => p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
+            );
+            canvasRef.current.style.cursor = over ? "move" : "";
+          }
           if (gripDrag.current) {
             gripDrag.current.shift = e.shiftKey;
             if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
@@ -1412,14 +1452,30 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             else redraw();
             if (d?.moved) return;
           }
+          const ad = areaDrag.current;
+          if (ad) {
+            areaDrag.current = null;
+            const area = handles.current?.areas[ad.index];
+            if (area && ad.to && d?.moved) {
+              void apply(() => ipc.dragHandle(area.id, area.key, ad.to!));
+              redraw();
+              return;
+            }
+            redraw();
+          }
           const g = gripDrag.current;
           if (g) {
             gripDrag.current = null;
             const grip = handles.current?.grips[g.index];
             snapRef.current = null;
             if (grip && g.to && d?.moved) {
-              const key = grip.key === "title_end" && e.shiftKey ? "title_move" : grip.key;
-              void apply(() => ipc.dragHandle(grip.id, key, g.to!));
+              // Shift moves the whole title: sent as where its rule's end goes.
+              const move = grip.key.startsWith("title_") && e.shiftKey;
+              const to =
+                move && grip.key === "title_start" && grip.anchor
+                  ? { x: g.to.x + grip.anchor.x - grip.at.x, y: g.to.y + grip.anchor.y - grip.at.y }
+                  : g.to;
+              void apply(() => ipc.dragHandle(grip.id, move ? "title_move" : grip.key, to));
             }
             redraw();
             return;

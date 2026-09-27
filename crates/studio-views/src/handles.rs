@@ -35,11 +35,25 @@ pub struct TempDim {
     pub items: Vec<Item>,
 }
 
+/// An area that drags as a whole (a view title on a sheet, ADR-039): pressing inside it
+/// and dragging calls `drag_handle(id, key, at + the drag)`.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct DragArea {
+    pub id: ElementId,
+    pub key: String,
+    pub min: Pt,
+    pub max: Pt,
+    /// The point the drag moves (sent moved by the drag).
+    pub at: Pt,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, TS)]
 #[ts(export)]
 pub struct Handles {
     pub grips: Vec<Grip>,
     pub dims: Vec<TempDim>,
+    pub areas: Vec<DragArea>,
 }
 
 fn view_of(doc: &Document, view: ElementId) -> Option<(&ViewKind, f64)> {
