@@ -122,4 +122,21 @@ describe("Wall Opening (ADR-058)", () => {
     await waitFor(() => expect(argsOf("sketch_begin")).toHaveLength(1));
     expect(argsOf("sketch_begin")[0]).toMatchObject({ kind: "WallOpening", target: "o1" });
   });
+
+  it("lighting fixtures go in from an elevation too (ADR-059)", async () => {
+    const canvas = await openElevation();
+    act(() => {
+      useAppStore.getState().setToolType("light", "00000000-0000-7000-8000-000000000043");
+      useAppStore.getState().setTool("light");
+    });
+    fireEvent.mouseDown(canvas, { button: 0, clientX: 400, clientY: 300 });
+    fireEvent.mouseUp(canvas, { button: 0, clientX: 400, clientY: 300 });
+    await waitFor(() => expect(argsOf("create_lighting_fixture")).toHaveLength(1));
+    // The elevation works out the level and height from the click.
+    expect(argsOf("create_lighting_fixture")[0]).toMatchObject({
+      view: FAKE_IDS.north,
+      level: null,
+      elevation: null,
+    });
+  });
 });

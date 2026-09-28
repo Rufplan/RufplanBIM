@@ -566,6 +566,10 @@ pub fn dimension_references(
     let session = lock(&state)?;
     let doc = session.doc()?;
     let mut refs = studio_core::dimension::references_at(doc, view, cursor, tol, prefer);
+    // Elevations and sections: the model edges drawn there (ADR-059).
+    if refs.is_empty() {
+        refs = studio_views::view_refs::references(doc, view, cursor, tol);
+    }
     // A snapped point (an endpoint, intersection…) comes first when it's nearer than any line.
     if let Some(p) = snapped {
         let point = studio_core::dimension::Reference::point(doc, view, p);

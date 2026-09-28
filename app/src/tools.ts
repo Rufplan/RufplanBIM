@@ -120,8 +120,11 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "wallOpening") return view === "Elevation" || view === "Section";
   if (tool === "sketch" && useAppStore.getState().app?.sketch?.wall)
     return view === "Elevation" || view === "Section";
-  if (tool === "sketch" || tool === "elevation" || tool === "light")
-    return view === "Plan" || view === "CeilingPlan";
+  // Doors, windows and lighting fixtures also go in from elevations and sections, on the
+  // wall face clicked (ADR-059).
+  if (tool === "door" || tool === "window" || tool === "light")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
+  if (tool === "sketch" || tool === "elevation") return view === "Plan" || view === "CeilingPlan";
   if (tool === "tag") return view === "Plan";
   if (tool === "matchType" || tool === "mirrorPick")
     return view === "Plan" || view === "CeilingPlan";
@@ -150,7 +153,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   }
   // Angular dimensions measure between walls or grids (ADR-040).
-  if (tool === "dimensionAngular") return view === "Plan" || view === "CeilingPlan";
+  if (tool === "dimensionAngular")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   if (tool === "grid") return view === "Plan" || view === "CeilingPlan";
   return view === "Plan" || view === "CeilingPlan";
 }
@@ -164,7 +168,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     if (tool === "callout") return "Open a plan, elevation or section to draw a callout.";
     if (tool === "dimension" || tool === "dimensionLinear" || tool === "text")
       return "Open a plan, elevation or section to annotate.";
-    if (tool === "dimensionAngular") return "Open a plan to dimension an angle.";
+    if (tool === "dimensionAngular")
+      return "Open a plan, elevation or section to dimension an angle.";
     if (tool === "keyPlan") return "Open a sheet to place a key plan.";
     if (tool === "detailLine")
       return "Open a plan, elevation, section or sheet to draw detail lines.";
@@ -217,6 +222,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     case "wallOpening":
       return "Click the wall to cut the opening in. You'll sketch its shape on the wall's face: rectangles, circles, polygons, arcs or lines.";
     case "light":
+      if (view === "Elevation" || view === "Section")
+        return "Click a wall's face to place the fixture there (wall fixtures at the height clicked); in a section, click anywhere on the cut.";
       return "Click to place the lighting fixture: ceiling fixtures go at the ceiling, wall fixtures on the nearest wall's face, lamps and site lights on the floor or ground.";
     case "beam":
       return n === 0
@@ -271,7 +278,9 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Click at the height for the new level.";
     case "door":
     case "window":
-      return `Hover over a wall and click to place the ${tool}. The side of the wall you point at sets which way it faces.`;
+      return view === "Elevation" || view === "Section"
+        ? `Hover over a wall's face and click to place the ${tool}; it faces you, at its type's sill.`
+        : `Hover over a wall and click to place the ${tool}. The side of the wall you point at sets which way it faces.`;
     case "room":
       return "Hover inside an area enclosed by walls and click to place a room.";
     case "move":

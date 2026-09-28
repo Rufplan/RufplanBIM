@@ -2033,3 +2033,36 @@ view's, or the wall's own in 3D) onto the wall, mirroring arcs for a view seen f
 - material takeoffs don't subtract the holes;
 - elevations don't show what's seen through a hole;
 - Revit's other openings: shaft, vertical, dormer, by face (floors and roofs).
+
+## ADR-059 Doors, windows, fixtures and dimensions in elevations and sections — Accepted (2026-09-27)
+Owner request (2026-09-27): "make sure you can place light fixtures, doors and windows in
+elevations and sections, as well as dimension in elevations and sections".
+
+**Doors and windows.** Door and Window work in elevations and sections, as in Revit:
+- hover a wall's face (one not seen edge-on) and the opening goes where the view's line of
+  sight meets that wall, facing the viewer, at its type's sill;
+- the preview is its outline with the spacing to the wall ends; like plans, it snaps to the
+  wall's center, keeps whole inches, and refuses overlaps (`opening_preview_in_view`,
+  `view_refs::model_point`).
+
+**Lighting fixtures.** Lighting Fixture works there too:
+- click a wall's face (or, in a section, anywhere on the cut plane);
+- its level is the one at or below the click;
+- wall fixtures go on that face at the height clicked; ceiling, pendant, floor and site
+  fixtures at their usual height over that point.
+
+**Dimensions.** Elevations and sections now have Revit's references and snaps. They come
+from the model edges the view draws (`view_refs`):
+- **References:** levels, grids, wall and roof outlines, doors' and windows' heads, sills
+  and jambs, floor and ceiling lines, and fixtures. Levels and grids win ties with the edges
+  on them, and Tab reaches the others.
+- **Snaps:** those edges' ends, midpoints and crossings, then the nearest point on one.
+  Without a snap, the height rounds to the inch as before.
+- **Kinds:** aligned, linear and angular dimensions all work there.
+- **Not associative:** these dimensions measure where the references were when placed.
+  Plans' wall and grid references still follow the model.
+
+**Not yet:**
+- dimensions that follow levels and openings in elevations (that needs new reference
+  anchors in the file format);
+- placing doors and windows in walls seen at an angle.

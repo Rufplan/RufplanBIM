@@ -116,9 +116,30 @@ pub fn create_lighting_fixture(
     state: State<'_, SessionState>,
 ) -> StateResult {
     edit_state(&window, &state, |s| {
-        let level = match level {
-            Some(l) => l,
-            None => s.view_level(view)?,
+        // In an elevation or section (ADR-059): on the wall face clicked, or a section's
+        // cut plane; at the height clicked for wall fixtures, else at the type's own.
+        let (level, at, elevation) = match level {
+            Some(l) => (l, at, elevation),
+            None if studio_views::view_frame(s.doc()?, view).is_some() => {
+                let doc = s.doc()?;
+                let (p, z, _) = studio_views::view_refs::model_point(doc, view, at, 10.0)
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("click a wall (or, in a section, anywhere on the cut) to place the fixture")
+                    })?;
+                let levels = doc.levels();
+                let (lid, _, lz) = levels
+                    .iter()
+                    .filter(|(_, _, e)| *e <= z + 1.0)
+                    .max_by(|a, b| a.2.total_cmp(&b.2))
+                    .or(levels.first())
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("the project has no levels"))?;
+                let wall_mounted = type_id
+                    .and_then(|t| lighting::spec_of(doc, t))
+                    .is_some_and(|sp| sp.mount == lighting::LightMount::Wall);
+                (lid, p, if wall_mounted { Some(z - lz) } else { None })
+            }
+            None => (s.view_level(view)?, at, elevation),
         };
         let t = type_id
             .or_else(|| {

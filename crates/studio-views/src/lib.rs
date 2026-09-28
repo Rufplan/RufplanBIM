@@ -25,6 +25,7 @@ pub mod standards_preview;
 pub mod symbols;
 pub mod terrain;
 pub mod thumbs;
+pub mod view_refs;
 pub mod windows;
 pub use handles::{
     align_delta, handles, offset_preview, ref_line, Grip, Handles, OffsetPreview, RefLine, TempDim,
@@ -2601,6 +2602,10 @@ pub fn opening_preview(
     p: Pt,
     tol: f64,
 ) -> Option<OpeningPreview> {
+    // Elevations and sections (ADR-059): on the wall face under the cursor.
+    if view_frame(doc, view).is_some() {
+        return opening_preview_in_view(doc, view, type_id, p, tol);
+    }
     let ElementData::View {
         kind: ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level },
         scale,
@@ -2700,6 +2705,91 @@ pub fn opening_preview(
         flip_facing,
         valid,
         label,
+        items: b.items,
+    })
+}
+
+/// Where along a wall `len` long a `width` opening centered at `at` goes: at the wall's
+/// center when near it, else with a whole number of inches to the wall's start.
+fn opening_offset(at: f64, len: f64, width: f64, tol: f64) -> f64 {
+    let hw = width / 2.0;
+    let offset = at.clamp(hw, len - hw);
+    if (offset - len / 2.0).abs() < tol {
+        return len / 2.0;
+    }
+    let left = ((offset - hw) / MM_PER_IN).round() * MM_PER_IN;
+    (left + hw).clamp(hw, len - hw)
+}
+
+/// A door or window placed in an elevation or section (ADR-059): in the wall whose face is
+/// under the cursor, where the view's line of sight meets it, facing the viewer, at its
+/// type's sill. The preview is its outline in the view.
+fn opening_preview_in_view(
+    doc: &Document,
+    view: ElementId,
+    type_id: ElementId,
+    p: Pt,
+    tol: f64,
+) -> Option<OpeningPreview> {
+    let (origin, right, look) = view_frame(doc, view)?;
+    let (_, _, Some((host, t))) = view_refs::model_point(doc, view, p, tol)? else {
+        return None;
+    };
+    let (width, height, sill) = match doc.data(type_id).ok()? {
+        ElementData::DoorType { width, height, .. } => (*width, *height, 0.0),
+        ElementData::WindowType {
+            width,
+            height,
+            sill,
+            ..
+        } => (*width, *height, *sill),
+        _ => return None,
+    };
+    let ElementData::View { scale, .. } = doc.data(view).ok()? else {
+        return None;
+    };
+    let model = regenerate(doc);
+    let wall = model.walls.iter().find(|w| w.id == host)?;
+    let len = wall.start.dist(wall.end);
+    if len < width {
+        return None;
+    }
+    let hw = width / 2.0;
+    let offset = opening_offset(t * len, len, width, tol);
+    let dir = wall.dir();
+    // Facing the viewer: the side the elevation looks from.
+    let flip_facing = look.dot(dir.perp()) > 0.0;
+    let valid = !model
+        .openings
+        .iter()
+        .any(|o| o.host == wall.id && offset - hw < o.t1 - 0.5 && offset + hw > o.t0 + 0.5);
+    let u_of = |q: Pt| q.sub(origin).dot(right);
+    let (u0, u1) = (
+        u_of(wall.start.add(dir.scale(offset - hw))),
+        u_of(wall.start.add(dir.scale(offset + hw))),
+    );
+    let (z0, z1) = (wall.z0 + sill, wall.z0 + sill + height);
+    let mut b = Builder::new(f64::from(*scale));
+    let ring = [
+        Pt::new(u0, z0),
+        Pt::new(u1, z0),
+        Pt::new(u1, z1),
+        Pt::new(u0, z1),
+    ];
+    b.line(None, &ring, true, 2, Dash::Solid);
+    // Its center lines, so it reads as the opening to come.
+    b.line(None, &[ring[0], ring[2]], false, 1, Dash::Dashed);
+    b.line(None, &[ring[1], ring[3]], false, 1, Dash::Dashed);
+    Some(OpeningPreview {
+        host: wall.id,
+        offset,
+        flip_facing,
+        valid,
+        label: format!(
+            "{}  ◂▸  {}",
+            format_ft_in(offset - hw),
+            format_ft_in(len - offset - hw)
+        ),
         items: b.items,
     })
 }
@@ -4108,6 +4198,42 @@ mod tests {
         };
         assert!(cut_at(z0 + 500.0) && cut_at(z0 + 2300.0));
         assert!(!cut_at(z0 + 1500.0), "the section passes through the hole");
+    }
+
+    #[test]
+    fn doors_and_windows_place_on_a_wall_face_in_an_elevation() {
+        let (doc, south, _, _) = with_openings();
+        let elev = view(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: studio_core::Compass::South
+                }
+            )
+        });
+        let wt = doc
+            .of(Category::WindowType)
+            .find(|e| e.data.name().starts_with("Casement"))
+            .unwrap()
+            .id;
+        let w0 = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|w| w.id == south)
+            .unwrap()
+            .clone();
+        // The South elevation looks north: display x is east (the wall's u), y the height.
+        let pv = opening_preview(&doc, elev, wt, Pt::new(5500.0, w0.z0 + 1200.0), 20.0).unwrap();
+        assert_eq!(pv.host, south);
+        assert!((pv.offset - 5500.0).abs() < MM_PER_IN);
+        assert!(pv.valid);
+        // Facing the viewer, on the south side: the wall's right, so flipped.
+        assert_eq!(pv.flip_facing, w0.dir().perp().dot(Pt::new(0.0, 1.0)) > 0.0);
+        // Over the door: not valid.
+        let over = opening_preview(&doc, elev, wt, Pt::new(3000.0, w0.z0 + 1200.0), 20.0).unwrap();
+        assert!(!over.valid);
+        // Off the wall: nothing.
+        assert!(opening_preview(&doc, elev, wt, Pt::new(5500.0, w0.z1 + 3000.0), 20.0).is_none());
     }
 
     #[test]

@@ -50,7 +50,11 @@ describe("tools", () => {
     expect(toolAllowed("level", "Elevation")).toBe(true);
     expect(toolAllowed("level", "Plan")).toBe(false);
     expect(toolAllowed("door", "Plan")).toBe(true);
-    expect(toolAllowed("window", "Elevation")).toBe(false);
+    // Doors, windows and fixtures go on wall faces in elevations and sections (ADR-059).
+    for (const tool of ["door", "window", "light", "dimensionAngular"] as const)
+      for (const v of ["Elevation", "Section"] as const) expect(toolAllowed(tool, v)).toBe(true);
+    expect(toolAllowed("window", "Sheet")).toBe(false);
+    expect(promptFor("window", 0, "Elevation")).toMatch(/faces you/);
     expect(toolAllowed("room", "Plan")).toBe(true);
     expect(toolAllowed("room", "CeilingPlan")).toBe(false);
     expect(promptFor("move", 1, "Plan")).toMatch(/destination/i);

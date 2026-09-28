@@ -66,7 +66,19 @@ pub fn snap_only(
         };
     }
     if !is_plan {
-        // Elevations and sections: round the height to the nearest inch.
+        // Elevations and sections (ADR-059): the model's drawn edges' ends, midpoints and
+        // crossings, then the nearest point on one.
+        let hit = crate::view_refs::snaps(doc, view, p, tol)
+            .into_iter()
+            .find(|(k, _)| only.is_none_or(|o| o == *k));
+        if let Some((kind, q)) = hit {
+            return SnapResult {
+                pt: q,
+                kind,
+                label: Some(format_ft_in(q.y)),
+            };
+        }
+        // Else round the height to the nearest inch.
         let z = (p.y / MM_PER_IN).round() * MM_PER_IN;
         return SnapResult {
             pt: Pt::new(p.x, z),

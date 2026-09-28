@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Elevations and sections (ADR-059): studio-views `view_refs` (segments, snaps, references,
+  model_point); `opening_preview` there places on the wall face; `create_lighting_fixture` works
+  out level and height from the click.
 - Wall openings (ADR-058): studio-core `wall_opening` (WallFrame, finish, rings); SketchKind
   WallOpening with a wall work plane (app `sketching::WallPlane`); studio-regen `WallSolid.holes`;
   studio-views `edges::wall_with_holes` / `hole_cuts_at`, `view_frame`; tool wallOpening (Openings tab).
