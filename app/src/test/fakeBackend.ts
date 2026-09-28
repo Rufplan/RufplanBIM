@@ -933,6 +933,15 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "select_all_instances":
           return ["w1", "w2", "w3"];
+        // Box selection and Filter: two walls and a door in the box.
+        case "pick_in_rect":
+          return ["w1", "w2", "d1"];
+        case "element_categories": {
+          const known: Record<string, string> = { w1: "Wall", w2: "Wall", w3: "Wall", d1: "Door" };
+          return (a.ids as string[])
+            .map((id) => [id, fake.properties?.[id]?.category ?? known[id]])
+            .filter((x) => x[1]);
+        }
         case "selection_categories": {
           // From the categories the test gave, else the view's (w… walls, d… doors).
           const known: Record<string, string> = { w1: "Wall", w2: "Wall", w3: "Wall", d1: "Door" };

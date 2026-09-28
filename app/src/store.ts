@@ -303,6 +303,7 @@ interface UiState {
     | "sunSettings"
     | "artificialLights"
     | "ground"
+    | "filter"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */

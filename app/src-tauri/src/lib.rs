@@ -71,6 +71,8 @@ pub fn run() -> anyhow::Result<()> {
             commands::site_terrain,
             commands::pick,
             commands::pick_cycle,
+            commands::pick_in_rect,
+            commands::element_categories,
             commands::grip_snap,
             commands::pick_candidates,
             commands::snap,

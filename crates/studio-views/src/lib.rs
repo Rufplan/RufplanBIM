@@ -3203,6 +3203,100 @@ pub fn pick_all(dl: &DisplayList, p: Pt, tol: f64) -> Vec<ElementId> {
     hits.into_iter().map(|h| h.2).collect()
 }
 
+/// Whether segment a-b touches the rectangle [x0, x1] × [y0, y1] (Liang–Barsky).
+fn segment_hits_rect(a: [f64; 2], b: [f64; 2], x0: f64, y0: f64, x1: f64, y1: f64) -> bool {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let (mut t0, mut t1) = (0.0f64, 1.0f64);
+    for (p, q) in [
+        (-dx, a[0] - x0),
+        (dx, x1 - a[0]),
+        (-dy, a[1] - y0),
+        (dy, y1 - a[1]),
+    ] {
+        if p == 0.0 {
+            if q < 0.0 {
+                return false;
+            }
+        } else {
+            let r = q / p;
+            if p < 0.0 {
+                t0 = t0.max(r);
+            } else {
+                t1 = t1.min(r);
+            }
+            if t0 > t1 {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Revit's box selection in a view: a window (dragged left to right) takes the elements
+/// drawn entirely inside the box; a crossing (right to left) also takes those it touches.
+/// `exclude` is the view's own id (its crop region).
+pub fn pick_in_rect(
+    dl: &DisplayList,
+    a: Pt,
+    b: Pt,
+    crossing: bool,
+    exclude: Option<ElementId>,
+) -> Vec<ElementId> {
+    let (x0, y0, x1, y1) = (a.x.min(b.x), a.y.min(b.y), a.x.max(b.x), a.y.max(b.y));
+    let inside = |p: [f64; 2]| p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1;
+    let seg = |p: [f64; 2], q: [f64; 2]| segment_hits_rect(p, q, x0, y0, x1, y1);
+    // Per element: every part inside so far, and any part touching.
+    let mut order: Vec<ElementId> = vec![];
+    let mut state: std::collections::HashMap<ElementId, (bool, bool)> = Default::default();
+    for it in &dl.items {
+        let Some(el) = it.el else { continue };
+        if Some(el) == exclude {
+            continue;
+        }
+        let (all, any) = match &it.prim {
+            Prim::Line { pts, closed, .. } => {
+                let n = pts.len();
+                let segs = if *closed { n } else { n.saturating_sub(1) };
+                let touches =
+                    (n == 1 && inside(pts[0])) || (0..segs).any(|i| seg(pts[i], pts[(i + 1) % n]));
+                (pts.iter().all(|p| inside(*p)), touches)
+            }
+            Prim::Fill { rings, .. } => {
+                let outer = rings.first().cloned().unwrap_or_default();
+                let n = outer.len();
+                let ring: Vec<Pt> = outer.iter().map(|p| Pt::new(p[0], p[1])).collect();
+                // Touching: an edge crosses the box, or the box sits inside the area.
+                let touches = (0..n).any(|i| seg(outer[i], outer[(i + 1) % n]))
+                    || (n >= 3 && point_in_ring(Pt::new(x0, y0), &ring));
+                (outer.iter().all(|p| inside(*p)), touches)
+            }
+            Prim::Text { at, .. } => (inside(*at), inside(*at)),
+            Prim::Circle { c, r, .. } => {
+                let all = c[0] - r >= x0 && c[0] + r <= x1 && c[1] - r >= y0 && c[1] + r <= y1;
+                let (nx, ny) = (c[0].clamp(x0, x1), c[1].clamp(y0, y1));
+                (all, (nx - c[0]).hypot(ny - c[1]) <= *r)
+            }
+        };
+        let e = state.entry(el).or_insert_with(|| {
+            order.push(el);
+            (true, false)
+        });
+        e.0 &= all;
+        e.1 |= any;
+    }
+    order
+        .into_iter()
+        .filter(|el| {
+            let (all, any) = state[el];
+            if crossing {
+                any || all
+            } else {
+                all
+            }
+        })
+        .collect()
+}
+
 /// One step of Revit's Tab selection: the elements it would select and the status bar's
 /// name for them.
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -3593,6 +3687,58 @@ pub fn crate_version() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn box_selection_takes_whole_elements_in_a_window_and_touched_ones_crossing() {
+        let (inside, across, apart, room, view) = (
+            ElementId::new(),
+            ElementId::new(),
+            ElementId::new(),
+            ElementId::new(),
+            ElementId::new(),
+        );
+        let line = |el, a: [f64; 2], b: [f64; 2]| Item {
+            el: Some(el),
+            prim: Prim::Line {
+                pts: vec![a, b],
+                closed: false,
+                w: 2,
+                dash: Dash::Solid,
+            },
+        };
+        let dl = DisplayList {
+            view_type: ViewType::Plan,
+            scale: 96,
+            bounds: [0.0, 0.0, 100.0, 100.0],
+            items: vec![
+                line(inside, [10.0, 10.0], [20.0, 20.0]),
+                // Two parts: one inside, one reaching out of the box.
+                line(across, [30.0, 30.0], [40.0, 30.0]),
+                line(across, [40.0, 30.0], [80.0, 30.0]),
+                line(apart, [70.0, 70.0], [90.0, 90.0]),
+                // A room around everything: touched by any box inside it.
+                Item {
+                    el: Some(room),
+                    prim: Prim::Fill {
+                        rings: vec![vec![
+                            [-5.0, -5.0],
+                            [105.0, -5.0],
+                            [105.0, 105.0],
+                            [-5.0, 105.0],
+                        ]],
+                        fill: FillKind::Room,
+                    },
+                },
+                line(view, [0.0, 0.0], [1.0, 1.0]),
+            ],
+        };
+        let (a, b) = (Pt::new(0.0, 0.0), Pt::new(50.0, 50.0));
+        assert_eq!(pick_in_rect(&dl, a, b, false, Some(view)), vec![inside]);
+        assert_eq!(
+            pick_in_rect(&dl, b, a, true, Some(view)),
+            vec![inside, across, room]
+        );
+    }
     use studio_core::ops;
     use studio_core::units::MM_PER_FT;
     use studio_core::Compass;

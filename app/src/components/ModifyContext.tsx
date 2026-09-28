@@ -45,7 +45,15 @@ const PLURAL: Partial<Record<Category, string>> = {
   DetailLine: "Lines",
   ModelLine: "Lines",
   Site: "Toposolid",
+  Planting: "Planting",
+  GroundRegion: "Ground Regions",
+  GrassPatch: "Painted Grass",
 };
+
+/** A category's name in the Filter dialog: Revit's plural, else its words spaced out. */
+export function categoryLabel(c: Category): string {
+  return PLURAL[c] ?? c.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
 
 /** Model categories, which Paint and Hide Category apply to. */
 const MODEL: Category[] = [
@@ -237,6 +245,16 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
   const [lineStyle, setStyle] = useState<LineStyle | "">("");
   return (
     <>
+      {selection.length > 1 && (
+        <Group title="Selection">
+          <Btn
+            label="Filter"
+            icon={Icons.filter}
+            title="Filter: keep only some of the selected categories (Revit's)"
+            onClick={() => useAppStore.getState().setUi({ viewDialog: "filter" })}
+          />
+        </Group>
+      )}
       <Group title="View">
         <Btn
           small

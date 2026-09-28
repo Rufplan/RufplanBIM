@@ -81,10 +81,24 @@ export function StatusBar() {
   const prompt = useAppStore((s) => (s.tool === "select" && s.hoverLabel) || s.prompt);
   const cursor = useAppStore((s) => s.cursor);
   const view = useAppStore(activeViewInfo);
+  const selected = useAppStore((s) => s.selection.length);
   return (
     <footer className="statusbar">
       <span className="status-prompt">{prompt}</span>
       <span className="status-cursor">{cursor}</span>
+      {selected > 0 && (
+        <button
+          className="status-filter"
+          title="Filter the selection by category"
+          aria-label={`Filter the selection (${selected} selected)`}
+          onClick={() => useAppStore.getState().setUi({ viewDialog: "filter" })}
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
+            <path d="M3 4h18l-7 8.5V19l-4 2v-8.5z" fill="currentColor" />
+          </svg>
+          {selected}
+        </button>
+      )}
       {view && <span className="status-scale">{view.scaleLabel}</span>}
     </footer>
   );

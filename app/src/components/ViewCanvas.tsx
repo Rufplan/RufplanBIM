@@ -41,6 +41,7 @@ import {
   drawCameraGhost,
   drawImageUnder,
   drawZoomBox,
+  drawSelectBox,
   fit,
   tempDimBox,
   toModel,
@@ -217,6 +218,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   // Pan/zoom history (ZP) and a Zoom Region (ZR) drag in progress.
   const camHistory = useRef<Camera[]>([]);
   const lastPush = useRef(0);
+  // Box selection being dragged (screen px).
+  const boxSel = useRef<{ from: [number, number]; to: [number, number] } | null>(null);
   const zoomRegion = useRef<{
     armed: boolean;
     from: [number, number] | null;
@@ -290,6 +293,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       if (th) drawTempFrame(ctx, w, h);
       const zr = zoomRegion.current;
       if (zr.from && zr.to) drawZoomBox(ctx, zr.from, zr.to);
+      const bs = boxSel.current;
+      if (bs) drawSelectBox(ctx, bs.from, bs.to);
       if (sk && sk.view === view.id) {
         const sel = new Set(s.sketchUi.sel);
         const grips: Pt[] = [];
@@ -1285,6 +1290,23 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     redraw();
   }
 
+  /** Revit's box selection: a window selects what's wholly inside, a crossing what the box
+   * touches; Ctrl adds to the selection, Shift takes away. */
+  async function boxSelect(
+    bs: { from: [number, number]; to: [number, number] },
+    add: boolean,
+    remove: boolean,
+  ) {
+    const a = modelAt(bs.from[0], bs.from[1]);
+    const b = modelAt(bs.to[0], bs.to[1]);
+    const crossing = bs.to[0] < bs.from[0];
+    const ids = await ipc.pickInRect(view.id, a, b, crossing).catch(() => [] as string[]);
+    const s = useAppStore.getState();
+    const cur = s.selection;
+    s.select(
+      add ? [...new Set([...cur, ...ids])] : remove ? cur.filter((i) => !ids.includes(i)) : ids,
+    );
+  }
   async function click(sx: number, sy: number, shift: boolean) {
     const s = useAppStore.getState();
     if (!cam.current) return;
@@ -1663,6 +1685,23 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             return;
           }
           const d = drag.current;
+          // Box selection (Revit's): dragging from empty space in the Modify tool.
+          if (
+            d &&
+            d.button === 0 &&
+            useAppStore.getState().tool === "select" &&
+            !gripDrag.current &&
+            !areaDrag.current &&
+            !vertexDrag.current &&
+            cam.current
+          ) {
+            if (Math.abs(sx - d.x) + Math.abs(sy - d.y) > 4) d.moved = true;
+            if (d.moved) {
+              boxSel.current = { from: [d.x, d.y], to: [sx, sy] };
+              redraw();
+              return;
+            }
+          }
           if (d && (d.button === 1 || d.button === 2) && cam.current) {
             const dx = sx - d.x;
             const dy = sy - d.y;
@@ -1779,6 +1818,13 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           }
           const d = drag.current;
           drag.current = null;
+          const bs = boxSel.current;
+          if (bs) {
+            boxSel.current = null;
+            redraw();
+            if (cam.current) void boxSelect(bs, e.ctrlKey || e.metaKey, e.shiftKey);
+            return;
+          }
           const vd = vertexDrag.current;
           if (vd) {
             vertexDrag.current = null;

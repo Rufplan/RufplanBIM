@@ -264,6 +264,37 @@ pub fn pick(
     Ok(dl.and_then(|dl| studio_views::pick(&dl, point, tol)))
 }
 
+/// Revit's box selection: a window (every part inside) or a crossing (any part touching)
+/// from `a` to `b` (display-list mm).
+#[tauri::command]
+pub fn pick_in_rect(
+    view: ElementId,
+    a: Pt,
+    b: Pt,
+    crossing: bool,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<ElementId>> {
+    let session = lock(&state)?;
+    let dl = any_display_list(session.doc()?, view);
+    Ok(dl
+        .map(|dl| studio_views::pick_in_rect(&dl, a, b, crossing, Some(view)))
+        .unwrap_or_default())
+}
+
+/// Each element's category (Revit's Filter dialog counts them).
+#[tauri::command]
+pub fn element_categories(
+    ids: Vec<ElementId>,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<(ElementId, studio_core::Category)>> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    Ok(ids
+        .into_iter()
+        .filter_map(|id| Some((id, doc.data(id).ok()?.category())))
+        .collect())
+}
+
 /// Revit's Tab selection (ADR-056): what's under the cursor, in the order Tab steps
 /// through it, walls followed by their chain.
 #[tauri::command]

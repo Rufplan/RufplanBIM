@@ -2425,3 +2425,20 @@ as a "D5 colour" option (on by default).
 **Zooming into a render.** The Render dialog's preview zooms: the wheel zooms toward the
 cursor, dragging pans, and double-click fits the image back. Fit, 100% (actual pixels), + and −
 sit at its corner with the zoom level. Past 200% the pixels show crisp rather than blurred.
+
+## ADR-066 Box selection and the Filter dialog, after Revit — Accepted (2026-09-28)
+Owner request (2026-09-28): "in plans, elevations and most other views allow dragging the mouse
+to select a bunch of objects at once, then a filter pop-up to filter the objects you want
+selected, similar to how Revit has it".
+
+- **Box selection.** In any 2D view or sheet, with the Modify tool, dragging from empty space
+  draws Revit's box (studio-views `pick_in_rect`, over the view's display list):
+  - **Window** (left to right, solid line): the elements drawn wholly inside.
+  - **Crossing** (right to left, dashed): also every element the box touches.
+  - **Modifiers:** Ctrl adds to the selection and Shift takes away, as in Revit.
+  - The view's own crop region is never selected.
+- **Filter.** Revit's Filter dialog lists the selection's categories with their counts, with
+  Check All, Check None and the total, and keeps only the categories left checked. It opens
+  from Modify | Multi-Select > Selection > Filter, or from the status bar's funnel, which
+  shows how many elements are selected. A new command, `element_categories`, gives each
+  element's category.

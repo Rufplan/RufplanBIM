@@ -348,6 +348,11 @@ export const ipc = {
   gripSnap: (id: ElementId, key: string, point: Pt, tol: number) =>
     invoke<SnapResult | null>("grip_snap", { id, key, point, tol }),
   pickCandidates: (ids: ElementId[]) => invoke<PickCandidate[]>("pick_candidates", { ids }),
+  /** Revit's box selection: a window (all inside) or a crossing (touching). */
+  pickInRect: (view: ElementId, a: Pt, b: Pt, crossing: boolean) =>
+    invoke<ElementId[]>("pick_in_rect", { view, a, b, crossing }),
+  elementCategories: (ids: ElementId[]) =>
+    invoke<[ElementId, Category][]>("element_categories", { ids }),
   // Lighting (ADR-057).
   lightingLibrary: () => invoke<LightLibrary>("lighting_library"),
   loadLightingTypes: (names: string[]) => invoke<LoadedWindows>("load_lighting_types", { names }),

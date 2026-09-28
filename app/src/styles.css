@@ -3703,3 +3703,69 @@ button:disabled {
   font-size: 12px;
   padding: 2px 4px;
 }
+
+/* ---------- Revit's Filter dialog ---------- */
+.modal.filter-dialog {
+  width: min(420px, 94vw);
+}
+.filter-dialog h2 {
+  margin: 0 0 10px;
+}
+.filter-head,
+.filter-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 60px;
+  align-items: center;
+  gap: 6px;
+}
+.filter-head {
+  grid-template-columns: 1fr 60px;
+  padding: 4px 8px 4px 36px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.filter-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-top: 0;
+}
+.filter-row {
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.filter-row:hover {
+  background: var(--light);
+}
+.filter-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.filter-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  gap: 8px;
+}
+.filter-checks {
+  display: flex;
+  gap: 6px;
+}
+.filter-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.status-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.status-filter:hover {
+  color: var(--cyan);
+}

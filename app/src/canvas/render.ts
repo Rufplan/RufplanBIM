@@ -496,6 +496,30 @@ export function drawTempFrame(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.restore();
 }
 
+/** Revit's selection box: a window (dragged left to right) drawn solid, a crossing (right
+ * to left) dashed. */
+export function drawSelectBox(
+  ctx: CanvasRenderingContext2D,
+  a: [number, number],
+  b: [number, number],
+) {
+  const crossing = b[0] < a[0];
+  const [x, y, w, h] = [
+    Math.min(a[0], b[0]),
+    Math.min(a[1], b[1]),
+    Math.abs(b[0] - a[0]),
+    Math.abs(b[1] - a[1]),
+  ];
+  ctx.save();
+  ctx.fillStyle = crossing ? "rgba(62, 207, 247, 0.06)" : "rgba(62, 207, 247, 0.1)";
+  ctx.fillRect(x, y, w, h);
+  ctx.setLineDash(crossing ? [5, 4] : []);
+  ctx.strokeStyle = THEME.cyan;
+  ctx.lineWidth = 1.25;
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
 /** Zoom region rubber band. */
 export function drawZoomBox(
   ctx: CanvasRenderingContext2D,

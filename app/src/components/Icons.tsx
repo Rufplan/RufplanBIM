@@ -16,6 +16,11 @@ const I = ({ children }: { children: ReactNode }) => (
 );
 
 export const Icons = {
+  filter: (
+    <I>
+      <path d="M3 4h18l-7 8.5V19l-4 2v-8.5z" fill="currentColor" fillOpacity="0.2" />
+    </I>
+  ),
   tree: (
     <I>
       <path d="M12 21v-7M12 16l-3-2.5M12 14.5l3-2" />

@@ -133,6 +133,8 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Box selection and Filter (ADR-066): studio-views `pick_in_rect`; app `pick_in_rect`,
+  `element_categories`; ViewCanvas `boxSelect`; components/FilterDialog.tsx; status-bar funnel.
 - D5 look (ADR-065): studio-core `grass` (GrassKind, GrassSpec, GrassPatch paint/erase); studio-views
   `plants::grass_patch_mesh`; app `planting_cmds` grass_*; render/grass.ts (D5 kinds, patches,
   camera-following field); sky.ts `clouds`; View3D Grass Brush and D5 grade pass.

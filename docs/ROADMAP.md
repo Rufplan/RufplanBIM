@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Revit box selection (window and crossing) and the Filter dialog (ADR-066).
 - D5 look: D5 grass kinds, the Grass Brush, a cloudy default sky and D5 colour (ADR-065).
 - Vegetation tab: Enscape-style Asset Library of 183 species with seasons, 3D grass, base ground and ground regions (ADR-064).
 - Enscape-style live Realistic view, sun panel, Walk and Fly; Render glare and vignette (ADR-063).
