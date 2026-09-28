@@ -2168,3 +2168,48 @@ the roof, and the exposure is true.
 
 **Previews.** The 32 new or changed presets' cubes were path-traced like the others, from 1K
 versions of the sets, by a throwaway page in headless Edge.
+
+## ADR-062 A V-Ray-quality Realistic view; archviz-grade wood sidings — Accepted (2026-09-28)
+Owner request (2026-09-28): "make the realistic view in 3D view look extremely realistic, like
+V-Ray quality, and update all the wood siding materials to look like they were rendered by
+MIR, Boundary, Squint Opera or another high-end rendering company".
+
+**Realistic view, V-Ray's interactive render.**
+- **Still frames.** When the camera rests (0.65 s) with nothing selected and the Modify tool
+  active, the view is path-traced in place, refining sample by sample. It uses the Render
+  pipeline (`realScene`):
+  - the project's materials and generated textures;
+  - the site's physical sky and sun from Sun Settings;
+  - at night, the lit fixtures.
+  A chip reads "Refining… n%", and at 512 samples the frame is denoised.
+- **Moving the camera.** Orbiting, a selection, a tool or a model change hands back to the
+  live view at once.
+- **One tracer** (`pathtrace.Refiner`) keeps its scene. Its BVH is rebuilt only when the
+  model or the sun changes; otherwise only its camera moves.
+- **Not refined:** sketch mode and a section box (the tracer has no clipping). Nor is the
+  ViewCube's corner, which stays live.
+- **The live (raster) Realistic view** also gets closer:
+  - the physical sky from Sun Settings lights it and shows behind it (turned into the z-up
+    world), without its sun disk;
+  - the sun is a shadow-casting light at the sky model's sun-to-sky ratio, in the sun's
+    colour, with 4096 px soft shadows;
+  - GTAO ambient occlusion through a multisampled composer;
+  - ACES tone mapping.
+- **Exposure.** Daylight renders at 0.85, night at 12.
+
+**Wood sidings.** The generator (`texgen`) was refined against high-end archviz stills:
+- **Cedar colour.** Each board draws from a real western red cedar palette (honey, salmon,
+  amber, chocolate, occasional sapwood), pulled toward the lot's mean so a wall reads as one
+  lot of wood rather than a patchwork. The tones are deeper and more saturated.
+- **Grain.** Asymmetric growth rings (earlywood fading into latewood that stops sharply),
+  more fibre and streak contrast, and latewood a touch glossier than earlywood.
+- **Board shape.** A slight cup across each board.
+- **Shadow lines.** Deeper and wider under every course.
+- **Joints and nails.** End grain beside butt joints. Stainless nail heads every 16",
+  painted over on painted boards, with rust tears on weathered ones.
+- **Weathering.** Drip staining along the lower edges of weathered boards.
+- **Boards.** 8' long between joints on bevel siding.
+- **Exact tiling.** Every board, course, panel, cell and saw-mark index is wrapped to the
+  tile, so every set now repeats exactly. A test checks samples a tile apart in x, y and
+  both.
+- **Previews.** The 17 siding previews were re-rendered.

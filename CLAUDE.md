@@ -133,6 +133,8 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Realistic view (ADR-062): pathtrace `Refiner` (persistent tracer), render/realScene.ts;
+  View3D refines the still frame, GTAO composer, physical sky and sun from Sun Settings.
 - Generated materials (ADR-061): studio-views `texgen` (KINDS, generate); studio-core library
   Siding category and `gen:` roofing presets; app `material_cmds::generated_map` (4096 px PNG
   cache); pathtrace `textureSizeFor`; boxUv maps sloped faces along the slope.

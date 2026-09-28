@@ -576,6 +576,109 @@ export class RenderJob {
   }
 }
 
+/** V-Ray's interactive render for the Realistic 3D view (ADR-062): one path tracer that
+ * keeps its scene (its BVH is built once per model) and only moves its camera, refining
+ * the still frame sample by sample and denoising it at the end. */
+export class Refiner {
+  readonly canvas: HTMLCanvasElement;
+  private renderer: THREE.WebGLRenderer;
+  private tracer: WebGLPathTracer;
+  private raf = 0;
+  private running = false;
+  private scene: THREE.Scene | null = null;
+
+  constructor() {
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      alpha: false,
+      preserveDrawingBuffer: true,
+    });
+    this.renderer.setPixelRatio(1);
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.canvas = this.renderer.domElement;
+    this.tracer = new WebGLPathTracer(this.renderer);
+    this.tracer.bounces = 6;
+    this.tracer.transmissiveBounces = 8;
+    this.tracer.filterGlossyFactor = 0.5;
+    this.tracer.multipleImportanceSampling = true;
+    this.tracer.minSamples = 1;
+    this.tracer.renderDelay = 0;
+    this.tracer.fadeDuration = 0;
+    this.tracer.dynamicLowRes = false;
+    this.tracer.rasterizeScene = false;
+    this.tracer.tiles.set(2, 2);
+  }
+
+  setSize(width: number, height: number) {
+    this.renderer.setSize(Math.max(1, width), Math.max(1, height), false);
+    this.tracer.reset();
+  }
+
+  setExposure(exposure: number) {
+    this.renderer.toneMappingExposure = exposure;
+  }
+
+  /** The scene it traces (built again only when this is a new scene). */
+  setScene(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+    if (this.scene === scene) {
+      this.tracer.setCamera(camera);
+      return;
+    }
+    this.tracer.textureSize.setScalar(textureSizeFor(scene));
+    this.tracer.setScene(scene, camera);
+    this.scene = scene;
+  }
+
+  /** Refines until `target` samples, then denoises; `onProgress` hears each sample. */
+  run(target: number, onProgress: (samples: number, done: boolean) => void) {
+    this.stop();
+    this.running = true;
+    const loop = () => {
+      if (!this.running) return;
+      this.tracer.renderSample();
+      const n = Math.floor(this.tracer.samples);
+      if (n >= target) {
+        this.running = false;
+        this.denoise();
+        onProgress(n, true);
+        return;
+      }
+      onProgress(n, false);
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  stop() {
+    this.running = false;
+    cancelAnimationFrame(this.raf);
+  }
+
+  private denoise() {
+    const mat = new DenoiseMaterial({
+      map: this.tracer.target.texture,
+      blending: THREE.NoBlending,
+      premultipliedAlpha: true,
+    });
+    mat.sigma = 5;
+    mat.threshold = 0.06;
+    mat.kSigma = 1.1;
+    const quad = new FullScreenQuad(mat);
+    this.renderer.setRenderTarget(null);
+    quad.render(this.renderer);
+    quad.dispose();
+    mat.dispose();
+  }
+
+  dispose() {
+    this.stop();
+    this.tracer.dispose();
+    this.renderer.dispose();
+    this.canvas.remove();
+  }
+}
+
 /** Draws the render over its backdrop. */
 export function composite(
   display: HTMLCanvasElement,

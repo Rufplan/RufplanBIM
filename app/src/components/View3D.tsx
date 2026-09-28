@@ -35,6 +35,11 @@ import {
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import type { Refiner } from "../render/pathtrace";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { Cap } from "../bindings/Cap";
 import type { Terrain } from "../bindings/Terrain";
@@ -157,6 +162,12 @@ interface Three {
   ground: THREE.Mesh;
   sky: THREE.Texture | null;
   env: THREE.Texture | null;
+  /** Realistic's sun from Sun Settings (ADR-062): toward it, its strength and colour. */
+  sunDir?: THREE.Vector3;
+  sunIntensity?: number;
+  sunColor?: THREE.Color;
+  /** Realistic's ambient occlusion and antialiasing (made on first use). */
+  composer?: EffectComposer | null;
 }
 
 /** Wireframe and six face handles of the section box. */
@@ -396,6 +407,107 @@ export function View3D({ view }: { view: ViewInfo }) {
       },
       home: () => savedHome(view.id),
     });
+    // ---- Realistic: the still frame path-traced, as V-Ray's interactive render (ADR-062) ----
+    let refiner: Refiner | null = null;
+    let refineScene: { key: string; scene: THREE.Scene; exposure: number } | null = null;
+    let idle = 0;
+    let generation = 0;
+    const chip = document.createElement("div");
+    chip.className = "refine-chip";
+    chip.hidden = true;
+    wrap.appendChild(chip);
+    const wantRefine = () => {
+      const s = useAppStore.getState();
+      return (
+        styleOf(s, view.id) === "realistic" &&
+        s.selection.length === 0 &&
+        s.tool === "select" &&
+        !s.app?.sketch &&
+        !boxRef.current &&
+        !s.tempHide[view.id] &&
+        !document.hidden
+      );
+    };
+    const stopRefine = () => {
+      window.clearTimeout(idle);
+      generation++;
+      refiner?.stop();
+      if (refiner) refiner.canvas.style.opacity = "0";
+      chip.hidden = true;
+    };
+    const startRefine = async () => {
+      if (!wantRefine()) return;
+      const mine = ++generation;
+      const s = useAppStore.getState();
+      const key = `${s.app?.revision}:${JSON.stringify(s.app?.sun)}`;
+      const pt = await import("../render/pathtrace");
+      if (mine !== generation) return;
+      if (!refiner) {
+        try {
+          refiner = new pt.Refiner();
+        } catch {
+          return; // No WebGL for the tracer.
+        }
+        const c = refiner.canvas;
+        c.className = "refine-canvas";
+        wrap.appendChild(c);
+      }
+      const r = wrap.getBoundingClientRect();
+      const w = Math.round(r.width);
+      const h = Math.round(r.height);
+      if (w < 2 || h < 2) return;
+      refiner.setSize(w, h);
+      if (!refineScene || refineScene.key !== key) {
+        chip.textContent = "Preparing realistic render…";
+        chip.hidden = false;
+        const { realScene } = await import("../render/realScene");
+        const built = await realScene(view.id).catch(() => null);
+        if (mine !== generation || !built) return;
+        refineScene = { key, ...built };
+      }
+      const cam = pt.cameraFor(
+        { eye: camera.position.toArray(), target: controls.target.toArray(), fov: camera.fov },
+        w / h,
+      );
+      refiner.setExposure(refineScene.exposure);
+      refiner.setScene(refineScene.scene, cam);
+      const target = 512;
+      refiner.run(target, (n, done) => {
+        if (mine !== generation) return;
+        // Shown once a few samples have landed, so it never flashes noise.
+        if (n >= 3 && refiner) refiner.canvas.style.opacity = "1";
+        chip.hidden = false;
+        chip.textContent = done
+          ? "Realistic render"
+          : `Refining… ${Math.round((n / target) * 100)}%`;
+      });
+    };
+    const scheduleRefine = () => {
+      stopRefine();
+      if (!wantRefine()) return;
+      idle = window.setTimeout(() => void startRefine(), 650);
+    };
+    controls.addEventListener("start", stopRefine);
+    controls.addEventListener("change", scheduleRefine);
+    // Anything that changes what's shown: the model, the style, the selection, the tool.
+    let refineKey = "";
+    const unsubscribeRefine = useAppStore.subscribe((s) => {
+      const k = [
+        styleOf(s, view.id),
+        s.app?.revision,
+        JSON.stringify(s.app?.sun),
+        s.selection.length,
+        s.tool,
+        !!s.app?.sketch,
+        !!s.tempHide[view.id],
+      ].join("|");
+      if (k !== refineKey) {
+        refineKey = k;
+        scheduleRefine();
+      }
+    });
+    const onVisibility = () => scheduleRefine();
+    document.addEventListener("visibilitychange", onVisibility);
     const stopTurn = () => cube.stop();
     controls.addEventListener("start", stopTurn);
     const onFit = () => cube.fit();
@@ -403,10 +515,35 @@ export function View3D({ view }: { view: ViewInfo }) {
     setCube(cube);
 
     let raf = 0;
+    // Realistic renders through ambient occlusion (GTAO), multisampled, then tone mapped.
+    const composer = () => {
+      const t = three.current;
+      if (!t) return null;
+      if (t.composer === undefined) {
+        const r = wrap.getBoundingClientRect();
+        const target = new THREE.WebGLRenderTarget(r.width, r.height, {
+          samples: 4,
+          type: THREE.HalfFloatType,
+        });
+        const c = new EffectComposer(renderer, target);
+        c.addPass(new RenderPass(scene, camera));
+        const ao = new GTAOPass(scene, camera, r.width, r.height);
+        // Model units are mm: contact shadow within about 2'.
+        ao.updateGtaoMaterial({ radius: 600, distanceExponent: 1.4, thickness: 300, scale: 1 });
+        ao.blendIntensity = 0.85;
+        c.addPass(ao);
+        c.addPass(new OutputPass());
+        t.composer = c;
+      }
+      return t.composer;
+    };
     const loop = () => {
       cube.step();
       controls.update();
-      renderer.render(scene, camera);
+      const realistic = styleOf(useAppStore.getState(), view.id) === "realistic";
+      const c = realistic && !boxRef.current ? composer() : null;
+      if (c) c.render();
+      else renderer.render(scene, camera);
       cube.render(renderer);
       raf = requestAnimationFrame(loop);
     };
@@ -414,8 +551,10 @@ export function View3D({ view }: { view: ViewInfo }) {
     const ro = new ResizeObserver(() => {
       const r = wrap.getBoundingClientRect();
       renderer.setSize(r.width, r.height);
+      three.current?.composer?.setSize(r.width, r.height);
       camera.aspect = r.width / Math.max(r.height, 1);
       camera.updateProjectionMatrix();
+      scheduleRefine();
     });
     ro.observe(wrap);
 
@@ -1233,6 +1372,12 @@ export function View3D({ view }: { view: ViewInfo }) {
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("select-tab", onTabEvent);
       window.removeEventListener("orient-to-sketch", onOrient);
+      unsubscribeRefine();
+      document.removeEventListener("visibilitychange", onVisibility);
+      stopRefine();
+      refiner?.dispose();
+      chip.remove();
+      three.current?.composer?.dispose();
       renderer.domElement.removeEventListener("pointerleave", onLeave);
       window.clearTimeout(saveTimer);
       controls.removeEventListener("change", onCameraChange);
@@ -1397,6 +1542,54 @@ export function View3D({ view }: { view: ViewInfo }) {
     applyScene(t, visualStyle);
     applyCaps(t, visualStyle, litOf(useAppStore.getState()));
   }, [temp, visualStyle, revision, sketchTarget, meshRev]);
+
+  // Realistic's sky and sun from the project's Sun Settings and site (ADR-062): a physical
+  // sky for the light and background, without its sun disk, which the shadow-casting sun
+  // light carries at the sky model's sun-to-sky ratio.
+  const sunKey = useAppStore(
+    (s) => JSON.stringify(s.app?.sun ?? null) + (s.app?.site ? "site" : ""),
+  );
+  useEffect(() => {
+    if (visualStyle !== "realistic") return;
+    let live = true;
+    void (async () => {
+      const [{ physicalSky, sunColor }, { horizontalIrradiance, toYUp }] = await Promise.all([
+        import("../render/sky"),
+        import("../render/pathtrace"),
+      ]);
+      const sun = await ipc.sunNow().catch(() => null);
+      const t = three.current;
+      if (!live || !t) return;
+      const alt = sun ? sun.altitude : 35;
+      const dirZ = sun && sun.altitude > 0 ? sun.dir : [0.45, -0.55, 0.7];
+      const sky = physicalSky({
+        sunDir: toYUp(dirZ),
+        altitude: Math.max(alt, 2),
+        sunToSky: 0,
+        width: 1024,
+        height: 512,
+      });
+      sky.mapping = THREE.EquirectangularReflectionMapping;
+      sky.needsUpdate = true;
+      const pmrem = new THREE.PMREMGenerator(t.renderer);
+      const env = pmrem.fromEquirectangular(sky).texture;
+      pmrem.dispose();
+      t.env?.dispose();
+      if (t.sky && t.sky !== sky) t.sky.dispose();
+      t.env = env;
+      t.sky = sky;
+      const irr = horizontalIrradiance(sky);
+      const ratio = 6 * Math.min(1, Math.max(0.15, (Math.max(alt, 2) + 2) / 20));
+      t.sunDir = new THREE.Vector3(dirZ[0], dirZ[1], dirZ[2]);
+      t.sunIntensity = ratio * irr;
+      const c = sunColor(Math.max(alt, 2));
+      t.sunColor = new THREE.Color().setRGB(c[0], c[1], c[2], THREE.LinearSRGBColorSpace);
+      applyScene(t, "realistic");
+    })();
+    return () => {
+      live = false;
+    };
+  }, [visualStyle, sunKey]);
 
   // Realistic: the project's materials with their textures, loaded when first shown.
   useEffect(() => {
@@ -1693,12 +1886,23 @@ function applyScene(t: Three, style: VisualStyle) {
     pmrem.dispose();
   }
   if (realistic && !t.sky) t.sky = skyTexture();
+  // The physical sky (y-up) turned into this z-up world (ADR-062).
+  const physical = !!t.sunIntensity;
   t.scene.environment = realistic ? t.env : null;
   t.scene.background = realistic ? t.sky : null;
-  t.scene.environmentIntensity = 0.45;
-  t.hemi.intensity = realistic ? 0.35 : 2.2;
-  t.sun.intensity = realistic ? 3.2 : 1.4;
+  t.scene.environmentRotation.set(physical ? Math.PI / 2 : 0, 0, 0);
+  t.scene.backgroundRotation.set(physical ? Math.PI / 2 : 0, 0, 0);
+  t.scene.environmentIntensity = physical ? 1 : 0.45;
+  t.hemi.intensity = realistic ? (physical ? 0 : 0.35) : 2.2;
+  t.sun.intensity = realistic ? (t.sunIntensity ?? 3.2) : 1.4;
+  t.sun.color.copy(realistic && t.sunColor ? t.sunColor : new THREE.Color(0xffffff));
   t.sun.castShadow = realistic;
+  const shadowSize = realistic ? 4096 : 2048;
+  if (t.sun.shadow.mapSize.x !== shadowSize) {
+    t.sun.shadow.mapSize.set(shadowSize, shadowSize);
+    t.sun.shadow.map?.dispose();
+    t.sun.shadow.map = null;
+  }
   const box = new THREE.Box3().setFromObject(t.group);
   const hasSite = t.group.children.some((c) => c.userData.category === "Site");
   if (!box.isEmpty()) {
@@ -1707,7 +1911,9 @@ function applyScene(t: Three, style: VisualStyle) {
     // The sun from the southeast, high, its shadows falling to the northwest across the
     // model and the ground (Shaded keeps its light from the southwest).
     const dir = (
-      realistic ? new THREE.Vector3(0.7, -0.9, 1.1) : new THREE.Vector3(-0.6, -1, 1.4)
+      realistic
+        ? (t.sunDir?.clone() ?? new THREE.Vector3(0.7, -0.9, 1.1))
+        : new THREE.Vector3(-0.6, -1, 1.4)
     ).normalize();
     t.sun.position.copy(c).addScaledVector(dir, r * 3);
     t.sun.target.position.copy(c);

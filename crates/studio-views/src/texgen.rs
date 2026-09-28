@@ -189,16 +189,31 @@ struct Species {
     rough: f64,
     /// Silvered: grey, with dark streaks along the grain.
     weathered: bool,
+    /// Board colours to pick from (earlywood, latewood); empty uses `early` and `late`.
+    palette: &'static [[[u8; 3]; 2]],
 }
+
+/// Western red cedar heartwood as it's milled (ADR-062): honey, salmon, amber and
+/// chocolate boards, and now and then pale sapwood.
+const CEDAR_TONES: &[[[u8; 3]; 2]] = &[
+    [[198, 134, 86], [136, 80, 46]],
+    [[190, 122, 86], [128, 70, 46]],
+    [[178, 108, 62], [118, 62, 34]],
+    [[192, 130, 82], [134, 80, 46]],
+    [[146, 86, 54], [96, 50, 30]],
+    [[172, 106, 68], [112, 60, 38]],
+    [[214, 176, 128], [170, 126, 84]],
+];
 
 const CEDAR: Species = Species {
     early: [200, 146, 100],
     late: [146, 92, 58],
     ring: 3.2,
-    spread: 0.22,
+    spread: 0.12,
     knots: 0.35,
     rough: 0.72,
     weathered: false,
+    palette: CEDAR_TONES,
 };
 const WEATHERED: Species = Species {
     early: [168, 164, 156],
@@ -208,6 +223,7 @@ const WEATHERED: Species = Species {
     knots: 0.35,
     rough: 0.9,
     weathered: true,
+    palette: CEDAR_TONES,
 };
 const THERMO_ASH: Species = Species {
     early: [132, 86, 54],
@@ -217,6 +233,7 @@ const THERMO_ASH: Species = Species {
     knots: 0.05,
     rough: 0.6,
     weathered: false,
+    palette: &[],
 };
 const IPE: Species = Species {
     early: [124, 78, 50],
@@ -226,6 +243,7 @@ const IPE: Species = Species {
     knots: 0.0,
     rough: 0.55,
     weathered: false,
+    palette: &[],
 };
 const ACCOYA: Species = Species {
     early: [214, 188, 148],
@@ -235,6 +253,7 @@ const ACCOYA: Species = Species {
     knots: 0.0,
     rough: 0.7,
     weathered: false,
+    palette: &[],
 };
 /// Semitransparent brown stain over cedar.
 const STAINED: Species = Species {
@@ -245,6 +264,7 @@ const STAINED: Species = Species {
     knots: 0.3,
     rough: 0.65,
     weathered: false,
+    palette: &[],
 };
 
 /// Wood at `along` (mm, with the grain) and `across` (mm) on board `seed`, tile-periodic.
@@ -257,9 +277,9 @@ fn wood(sp: &Species, along: f64, across: f64, seed: u32, tile: f64) -> Px {
     let warp = fbm(u, v, cells(220.0), cells(90.0), 3, seed) * 2.6
         + fbm(u, v, cells(60.0), cells(14.0), 2, seed ^ 99) * 0.45;
     let phase = v * rings_per_tile as f64 + warp + hash(seed as i64, 7, 3) * 10.0;
-    let band = 0.5 + 0.5 * (phase * std::f64::consts::TAU).sin();
-    // Thin, darker latewood lines.
-    let late = smoothstep(0.72, 0.97, band);
+    // Earlywood fades into latewood, which stops sharply at the next ring.
+    let band = phase.rem_euclid(1.0);
+    let late = smoothstep(0.62, 0.9, band) * (1.0 - smoothstep(0.955, 0.995, band));
     // Fibres: long fine streaks along the grain, and the open pores.
     let fibre = fbm(u, v, cells(70.0), cells(0.7), 2, seed ^ 7);
     let streak = fbm(u, v, cells(400.0), cells(4.0), 2, seed ^ 19);
@@ -268,15 +288,40 @@ fn wood(sp: &Species, along: f64, across: f64, seed: u32, tile: f64) -> Px {
     let drift = fbm(u, v, cells(600.0), cells(150.0), 2, seed ^ 23) - 0.5;
     let tone = 1.0 + (hash(seed as i64, 1, 11) - 0.5) * 2.0 * sp.spread + drift * 0.18;
     let warmth = (hash(seed as i64, 2, 13) - 0.5) * sp.spread;
-    let mut c = lerp3(
-        lin(sp.early),
-        lin(sp.late),
-        late * 0.85 + (1.0 - streak) * 0.2,
-    );
+    let (early, latec) = if sp.palette.is_empty() {
+        (sp.early, sp.late)
+    } else {
+        // Pale sapwood only now and then.
+        let k = hash(seed as i64, 6, 5);
+        let n = sp.palette.len();
+        let i = if k > 0.985 {
+            n - 1
+        } else {
+            ((k / 0.985) * (n - 1) as f64) as usize
+        };
+        (sp.palette[i][0], sp.palette[i][1])
+    };
+    // Boards differ, but as one lot of wood: each pick pulled toward the lot's mean.
+    let (mut e, mut l) = (lin(early), lin(latec));
+    if !sp.palette.is_empty() {
+        let mix = if sp.weathered { 0.8 } else { 0.62 };
+        let n = sp.palette.len() as f64;
+        let mean = |k: usize| -> [f64; 3] {
+            let s = sp.palette.iter().fold([0.0; 3], |a, p| {
+                let c = lin(p[k]);
+                [a[0] + c[0], a[1] + c[1], a[2] + c[2]]
+            });
+            scale3(s, 1.0 / n)
+        };
+        e = lerp3(e, mean(0), mix);
+        l = lerp3(l, mean(1), mix);
+    }
+    let mut c = lerp3(e, l, late + (1.0 - streak) * 0.3);
     c = [c[0] * (1.0 + warmth), c[1], c[2] * (1.0 - warmth)];
-    c = scale3(c, tone * (0.88 + 0.24 * fibre) * (0.95 + 0.1 * pores));
+    c = scale3(c, tone * (0.84 + 0.32 * fibre) * (0.94 + 0.12 * pores));
     let mut h = -0.12 * late + 0.06 * fibre - 0.04 * (pores - 0.5);
-    let mut r = sp.rough + 0.06 * (fibre - 0.5);
+    // Latewood is denser and a little glossier; open pores catch less light.
+    let mut r = sp.rough - 0.08 * late + 0.06 * (fibre - 0.5) + 0.05 * (pores - 0.5);
     // Knots: dark ovals, the grain bending round them.
     if sp.knots > 0.0 {
         let per = (tile / 1000.0 * sp.knots).round().max(1.0) as i64;
@@ -308,6 +353,10 @@ fn wood(sp: &Species, along: f64, across: f64, seed: u32, tile: f64) -> Px {
         let g = (c[0] + c[1] + c[2]) / 3.0;
         c = lerp3(c, [g; 3], 0.8);
         c = scale3(c, 0.8 + 0.35 * streak);
+        // Water runs off each board's lower edge: a darker band there, blotched.
+        let edge = (-(across.rem_euclid(tile)).min(60.0) / 18.0).exp();
+        let blot = fbm(u, v, cells(80.0), cells(20.0), 2, seed ^ 77);
+        c = scale3(c, 1.0 - 0.22 * edge * (0.6 + 0.8 * blot));
         h += 0.08 * (fibre - 0.5);
         r = 0.9;
     }
@@ -329,6 +378,13 @@ fn painted(base: Px, paint: [f64; 3]) -> Px {
 fn cell(x: f64, w: f64) -> (i64, f64) {
     let i = (x / w).floor();
     (i as i64, x - i * w)
+}
+
+/// Like [`cell`], the index wrapped to the repeats in a tile, so what it seeds (a board's
+/// tone, a course's joints) is the same a tile over.
+fn cellw(x: f64, w: f64, tile: f64) -> (i64, f64) {
+    let (i, t) = cell(x, w);
+    (i.rem_euclid((tile / w).round().max(1.0) as i64), t)
 }
 
 /// Board end joints along a course: `n` staggered joints per tile, the board index and
@@ -354,20 +410,52 @@ fn lap(
     board: impl Fn(f64, f64, u32) -> Px,
     joints_per_tile: i64,
 ) -> Px {
-    let (course, dy) = cell(y, exposure);
+    let (course, dy) = cellw(y, exposure, tile);
     let t = dy / exposure;
     let (b, jd) = joints(x, course, joints_per_tile, tile, 41);
     let mut p = board(x, dy, b as u32);
     p.h += profile(t);
+    // Each board cups a little across its width.
+    p.h += 0.7 * (2.0 * t - 1.0).powi(2);
     // The shadow cast by the course above on this board's top.
-    let shade = 1.0 - 0.55 * (-(1.0 - t) * exposure / 7.0).exp();
+    let shade = 1.0 - 0.72 * (-(1.0 - t) * exposure / 10.0).exp();
     p.c = scale3(p.c, shade);
-    // Butt joints: a hairline.
+    // Butt joints: a hairline, the end grain darker and rougher beside it.
     if jd < 1.2 {
         p.c = scale3(p.c, 0.35);
         p.h -= 1.0;
+    } else if jd < 3.0 {
+        p.c = scale3(p.c, 0.8);
+        p.r = (p.r + 0.1).min(1.0);
     }
+    nail(&mut p, x, dy, course, tile, 22.0);
     p
+}
+
+/// A siding nail's head 1" above the butt, every 16" (on the studs), a little off line:
+/// stainless, catching the light; painted over on painted boards, weeping a rust tear on
+/// weathered ones (`p` tells which by its roughness).
+fn nail(p: &mut Px, x: f64, dy: f64, course: i64, tile: f64, above: f64) {
+    let step = 16.0 * IN;
+    let (k, _) = cell(x, step);
+    let n = (tile / step).round() as i64;
+    let jitter = (hash(k.rem_euclid(n), course, 211) - 0.5) * 18.0;
+    let cx = (k as f64 + 0.5) * step + jitter;
+    let cy = above + (hash(k.rem_euclid(n), course, 223) - 0.5) * 5.0;
+    let d = ((x - cx).powi(2) + (dy - cy).powi(2)).sqrt();
+    if d < 2.4 {
+        let dome = (1.0 - (d / 2.4).powi(2)).max(0.0);
+        p.h += 0.6 * dome;
+        if p.r > 0.58 {
+            // Bare wood: a stainless head.
+            p.c = scale3(lin([150, 150, 152]), 0.75 + 0.35 * dome);
+            p.r = 0.3;
+        }
+    } else if p.r > 0.85 && (x - cx).abs() < 1.6 && dy < cy && dy > cy - 40.0 {
+        // Weathered: a faint tear stain below the head.
+        let k = 1.0 - (cy - dy) / 40.0;
+        p.c = scale3(p.c, 1.0 - 0.25 * k);
+    }
 }
 
 fn bevel_profile(t: f64) -> f64 {
@@ -383,11 +471,6 @@ fn dutch_profile(t: f64) -> f64 {
         let s = (t - 0.62) / 0.38;
         6.0 + 2.3 - 8.0 * (s * std::f64::consts::PI).sin() * 0.6
     }
-}
-
-/// Vertical boards `w` wide: (board index, x within it).
-fn vboards(x: f64, w: f64) -> (i64, f64) {
-    cell(x, w)
 }
 
 fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
@@ -406,12 +489,12 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
                 6.0 * IN,
                 bevel_profile,
                 |a, c, s| wood(&sp, a, c, s, tile),
-                2,
+                1,
             )
         }
         "shiplap8" => {
             let e = 8.0 * IN;
-            let (course, dy) = cell(y, e);
+            let (course, dy) = cellw(y, e, tile);
             let (b, jd) = joints(x, course, 1, tile, 43);
             let mut p = painted(wood(&CEDAR, x, dy, b as u32, tile), paint);
             // The 3/8" gap under each board, in shadow.
@@ -424,6 +507,7 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
             if jd < 1.0 {
                 p.c = scale3(p.c, 0.5);
             }
+            nail(&mut p, x, dy, course, tile, 30.0);
             p
         }
         "dutch-lap6" => lap(
@@ -437,13 +521,17 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         ),
         "board-batten12" | "board-batten-cedar" => {
             let w = 12.0 * IN;
-            let (b, dx) = vboards(x, w);
+            let (b, dx) = cellw(x, w, tile);
             let cedar = kind == "board-batten-cedar";
             // Battens 2-1/2" wide over each joint, standing 3/4" proud.
             let from_joint = dx.min(w - dx);
             let batten_half = 1.25 * IN;
             let (mut p, on_batten) = if from_joint < batten_half {
-                let bi = if dx < w / 2.0 { b } else { b + 1 };
+                let bi = if dx < w / 2.0 {
+                    b
+                } else {
+                    (b + 1).rem_euclid((tile / w).round() as i64)
+                };
                 (wood(&CEDAR, y, from_joint, 1000 + bi as u32, tile), true)
             } else {
                 (wood(&CEDAR, y, dx, b as u32, tile), false)
@@ -464,7 +552,7 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         }
         "cedar-vertical-tg" | "shou-sugi-ban" => {
             let w = 6.0 * IN;
-            let (b, dx) = vboards(x, w);
+            let (b, dx) = cellw(x, w, tile);
             let mut p = if kind == "shou-sugi-ban" {
                 charred(x, y, dx, b, tile)
             } else {
@@ -484,7 +572,7 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         }
         "thermo-ash" => {
             let e = 6.0 * IN;
-            let (course, dy) = cell(y, e);
+            let (course, dy) = cellw(y, e, tile);
             let (b, jd) = joints(x, course, 2, tile, 47);
             let mut p = wood(&THERMO_ASH, x, dy, b as u32, tile);
             v_groove(&mut p, dy.min(e - dy));
@@ -503,7 +591,7 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         }
         "channel-rustic" => {
             let e = 8.0 * IN;
-            let (course, dy) = cell(y, e);
+            let (course, dy) = cellw(y, e, tile);
             let (b, jd) = joints(x, course, 1, tile, 53);
             let mut p = wood(&STAINED, x, dy, b as u32, tile);
             // The 1/2" channel along each board's bottom.
@@ -520,7 +608,7 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         "ipe-rainscreen" => {
             // 5-5/8" boards, 3/8" open joints over a black membrane.
             let e = 6.0 * IN;
-            let (course, dy) = cell(y, e);
+            let (course, dy) = cellw(y, e, tile);
             let gap = 0.375 * IN;
             if dy < gap {
                 return membrane(x, y, tile);
@@ -539,7 +627,7 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         }
         "accoya-slats" => {
             let w = 2.0 * IN;
-            let (b, dx) = vboards(x, w);
+            let (b, dx) = cellw(x, w, tile);
             let slat = 1.5 * IN;
             if dx > slat {
                 return membrane(x, y, tile);
@@ -583,12 +671,14 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
                 knots: 0.6,
                 rough: 0.9,
                 weathered: false,
+                palette: &[],
             };
             let mut p = wood(&sp, x, dy, b as u32, tile);
             // Saw marks, worn edges and the odd nail hole.
             let saw = 0.5
                 + 0.5
-                    * ((x / 9.0 + fbm(x / tile, y / tile, 7, 7, 2, 71) * 3.0)
+                    * ((x / (tile / (tile / 9.0).round())
+                        + fbm(x / tile, y / tile, 7, 7, 2, 71) * 3.0)
                         * std::f64::consts::TAU)
                         .sin();
             p.h += 0.15 * saw;
@@ -641,13 +731,13 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
         "flat-concrete-tile" => {
             let e = 13.0 * IN;
             let wdt = tile / 3.0;
-            let (course, dy) = cell(y, e);
+            let (course, dy) = cellw(y, e, tile);
             let off = if course.rem_euclid(2) == 1 {
                 wdt / 2.0
             } else {
                 0.0
             };
-            let (ti, dx) = cell(x + off, wdt);
+            let (ti, dx) = cellw(x + off, wdt, tile);
             let u = (x / tile, y / tile);
             let g = fbm(u.0, u.1, 60, 60, 3, 83);
             let tone = 0.9 + 0.2 * hash(ti, course, 89);
@@ -694,7 +784,8 @@ fn membrane(x: f64, y: f64, tile: f64) -> Px {
 fn charred(x: f64, y: f64, dx: f64, b: i64, tile: f64) -> Px {
     let base = wood(&CEDAR, y, dx, b as u32, tile);
     // Alligator scales: cells stretched along the grain.
-    let (cw, ch) = (9.0, 26.0);
+    // Cell sizes that divide the tile, so the crazing repeats with it.
+    let (cw, ch) = (tile / (tile / 9.0).round(), tile / (tile / 26.0).round());
     let (gx, gy) = ((x / cw).floor(), (y / ch).floor());
     let mut d1 = f64::MAX;
     let mut d2 = f64::MAX;
@@ -726,7 +817,7 @@ fn charred(x: f64, y: f64, dx: f64, b: i64, tile: f64) -> Px {
 /// Cedar shingles: 6" courses of random widths, keyways between, shadows under the butts.
 fn shingles(x: f64, y: f64, tile: f64, sp: &Species) -> Px {
     let e = 6.0 * IN;
-    let (course, dy) = cell(y, e);
+    let (course, dy) = cellw(y, e, tile);
     // Widths 3"–10" along the course, chosen so the course repeats across the tile.
     let n = 18;
     let mut edges = vec![0.0];
@@ -758,7 +849,7 @@ fn shingles(x: f64, y: f64, tile: f64, sp: &Species) -> Px {
 /// shadow line under each course, and multicoloured granules.
 fn asphalt(x: f64, y: f64, tile: f64, kind: &str) -> Px {
     let e = 5.625 * IN;
-    let (course, dy) = cell(y, e);
+    let (course, dy) = cellw(y, e, tile);
     let t = dy / e;
     let palette: &[[u8; 3]] = match kind {
         "asphalt-black" => &[[26, 26, 28], [40, 40, 42], [18, 18, 20], [60, 60, 62]],
@@ -794,7 +885,7 @@ fn asphalt(x: f64, y: f64, tile: f64, kind: &str) -> Px {
     let tab_bottom = 0.08 + hash(tab as i64, 3, 131) * 0.28;
     let on_tab = t > tab_bottom;
     // Granules: ~1 mm grains of the palette.
-    let g = 1.1;
+    let g = tile / (tile / 1.1).round();
     let (gi, gj) = ((x / g).floor() as i64, (y / g).floor() as i64);
     let n = (tile / g).round() as i64;
     let pick = hash(gi.rem_euclid(n), gj.rem_euclid(n), 137);
@@ -832,7 +923,7 @@ fn asphalt(x: f64, y: f64, tile: f64, kind: &str) -> Px {
 /// Standing seam: panels `w` wide with a 1" seam standing 1-1/2", light striations in the
 /// pans, faint oil-canning, and for bare Galvalume its spangle.
 fn seam(x: f64, y: f64, tile: f64, w: f64, bare: bool) -> Px {
-    let (panel, dx) = cell(x, w);
+    let (panel, dx) = cellw(x, w, tile);
     let from = dx.min(w - dx);
     let u = (x / tile, y / tile);
     // Oil canning: a slow ripple in each pan.
@@ -856,7 +947,7 @@ fn seam(x: f64, y: f64, tile: f64, w: f64, bare: bool) -> Px {
     let mut r = 0.5;
     if bare {
         // Galvalume spangle: crystals a few mm across, each a slightly different sheen.
-        let cs = 6.0;
+        let cs = tile / (tile / 6.0).round();
         let (gi, gj) = ((x / cs).floor() as i64, (y / cs).floor() as i64);
         let n = (tile / cs).round() as i64;
         let sp = hash(gi.rem_euclid(n), gj.rem_euclid(n), 157);
@@ -868,7 +959,7 @@ fn seam(x: f64, y: f64, tile: f64, w: f64, bare: bool) -> Px {
 
 /// River rock ballast: rounded stones 3/4"–1-1/2".
 fn ballast(x: f64, y: f64, tile: f64) -> Px {
-    let cs = 28.0;
+    let cs = tile / (tile / 28.0).round();
     let n = (tile / cs).round() as i64;
     let (gx, gy) = ((x / cs).floor() as i64, (y / cs).floor() as i64);
     let mut best = (f64::MAX, 0i64, 0i64, 0.0);
@@ -1056,25 +1147,18 @@ mod tests {
                 .sum::<f64>()
                 / (128.0 * 128.0);
             assert!(blue > 180.0, "{kind}: {blue}");
-            // The first and last columns differ no more than neighbouring columns do (it
-            // wraps), on average.
-            let col_diff = |a: usize, b: usize| -> f64 {
-                (0..128)
-                    .map(|r| {
-                        (0..3)
-                            .map(|k| {
-                                (f64::from(g.color[(r * 128 + a) * 3 + k])
-                                    - f64::from(g.color[(r * 128 + b) * 3 + k]))
-                                .abs()
-                            })
-                            .sum::<f64>()
-                    })
-                    .sum::<f64>()
-                    / 128.0
-            };
-            let wrap = col_diff(127, 0);
-            let inner = (1..127).map(|c| col_diff(c - 1, c)).sum::<f64>() / 126.0;
-            assert!(wrap <= inner * 3.0 + 12.0, "{kind}: wrap {wrap} vs {inner}");
+            // It repeats exactly: every sample equals the one a tile over, either way.
+            let tile = tile_of(kind).unwrap();
+            for k in 0..200 {
+                let (x, y) = (hash(k, 1, 997) * tile, hash(k, 2, 991) * tile);
+                let a = sample(kind, x, y, tile);
+                for (bx, by) in [(x + tile, y), (x, y + tile), (x - tile, y - tile)] {
+                    let b = sample(kind, bx, by, tile);
+                    let d =
+                        (0..3).map(|i| (a.c[i] - b.c[i]).abs()).sum::<f64>() + (a.h - b.h).abs();
+                    assert!(d < 1e-6, "{kind} at ({x:.1}, {y:.1}): {d}");
+                }
+            }
         }
     }
 
@@ -1100,8 +1184,14 @@ mod tests {
         let tile = tile_of("cedar-bevel").unwrap();
         let lum = |p: Px| p.c[0] + p.c[1] + p.c[2];
         let e = 6.0 * IN;
-        let under = lum(sample("cedar-bevel", 300.0, 3.0 * e - 2.0, tile));
-        let mid = lum(sample("cedar-bevel", 300.0, 2.0 * e + e / 2.0, tile));
+        // Along the course, on average (joints and nails aside).
+        let avg = |y: f64| {
+            (0..48)
+                .map(|k| lum(sample("cedar-bevel", 25.0 + k as f64 * 50.0, y, tile)))
+                .sum::<f64>()
+                / 48.0
+        };
+        let (under, mid) = (avg(3.0 * e - 2.0), avg(2.0 * e + e / 2.0));
         assert!(under < mid * 0.8);
         // A standing seam stands above its pan.
         let st = tile_of("seam16").unwrap();

@@ -212,3 +212,22 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
     expect(POINT_TOOLS).toContain("camera");
   });
 });
+
+describe("render texture size (ADR-061, ADR-062)", () => {
+  it("packs textures as large as about 512 MB allows", async () => {
+    const { textureSizeFor } = await import("./render/pathtrace");
+    const sceneWith = (n: number) => {
+      const s = new THREE.Scene();
+      for (let i = 0; i < n; i++) {
+        const t = new THREE.Texture();
+        s.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshPhysicalMaterial({ map: t })));
+      }
+      return s;
+    };
+    // 4096² RGBA is 64 MB a texture: eight fit; then 2048 (32 of them); then 1024.
+    expect(textureSizeFor(sceneWith(3))).toBe(4096);
+    expect(textureSizeFor(sceneWith(8))).toBe(4096);
+    expect(textureSizeFor(sceneWith(9))).toBe(2048);
+    expect(textureSizeFor(sceneWith(40))).toBe(1024);
+  });
+});
