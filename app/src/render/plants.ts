@@ -35,6 +35,21 @@ export const sourceKey = (s: PlantSource) => ("Type" in s ? `t:${s.Type}` : `p:$
 
 const srgbToLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
 
+/** Vertex colours as RGBA. The path tracer gives meshes without colours RGBA white and
+ * merges every mesh into one: RGB ones among them misalign every later mesh's colours,
+ * texture coordinates and materials (ADR-064: leafless trees, flat bark). */
+export function rgba(rgb: ArrayLike<number>): THREE.BufferAttribute {
+  const n = rgb.length / 3;
+  const out = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    out[i * 4] = rgb[i * 3]!;
+    out[i * 4 + 1] = rgb[i * 3 + 1]!;
+    out[i * 4 + 2] = rgb[i * 3 + 2]!;
+    out[i * 4 + 3] = 1;
+  }
+  return new THREE.BufferAttribute(out, 4);
+}
+
 /** A part's geometry; `srgb` colours (the solid parts') are made linear for three. */
 export function partGeometry(p: PlantPart, srgb = false): THREE.BufferGeometry | null {
   if (p.indices.length === 0) return null;
@@ -43,7 +58,7 @@ export function partGeometry(p: PlantPart, srgb = false): THREE.BufferGeometry |
   g.setAttribute("normal", new THREE.Float32BufferAttribute(p.normals, 3));
   g.setAttribute("uv", new THREE.Float32BufferAttribute(p.uvs, 2));
   const colors = srgb ? p.colors.map(srgbToLinear) : p.colors;
-  g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  g.setAttribute("color", rgba(colors));
   g.setIndex(p.indices);
   g.computeBoundingSphere();
   return g;
@@ -309,20 +324,31 @@ export function plantMeshesYUp(
       const merged = pieces.length === 1 ? pieces[0]! : mergeGeometries(pieces, false);
       if (pieces.length > 1) for (const p of pieces) p.dispose();
       if (!merged) continue;
-      // The path tracer shades the crown itself: keep half the baked occlusion, or crowns
-      // go near-black (the solid parts' colours are their own and stay).
+      // The path tracer shades the crown itself (its dense self-shadowing is real), so
+      // the baked occlusion mostly goes; and foliage gets a leaf's real albedo, or dark
+      // crowns (spruces, cypresses) render near-black. Solid parts keep their colours.
+      let m = mat;
       if (mat !== a.materials.solid) {
         const c = merged.getAttribute("color");
         for (let i = 0; i < c.count; i++)
-          c.setXYZ(i, 0.5 + 0.5 * c.getX(i), 0.5 + 0.5 * c.getY(i), 0.5 + 0.5 * c.getZ(i));
+          c.setXYZ(i, 0.8 + 0.2 * c.getX(i), 0.8 + 0.2 * c.getY(i), 0.8 + 0.2 * c.getZ(i));
       }
-      const mesh = new THREE.Mesh(merged, mat);
+      if (mat === a.materials.leaves) {
+        const leaves = (mat as THREE.MeshPhysicalMaterial).clone();
+        leaves.color.setScalar(RENDER_LEAF_GAIN);
+        m = leaves;
+      }
+      const mesh = new THREE.Mesh(merged, m);
       mesh.userData.plant = true;
       out.push(mesh);
     }
   }
   return out;
 }
+
+/** Foliage albedo in renders relative to the live view: path-traced crowns shade
+ * themselves darker than raster ones. */
+export const RENDER_LEAF_GAIN = 1.45;
 
 /** Loads every instance's assets (grouped by type and variant) for a view or a render. */
 export async function loadPlantEntries(

@@ -6,7 +6,7 @@
 // texture carries on beyond. Renders take the field around their camera, merged.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { wind } from "./plants";
+import { rgba, wind } from "./plants";
 
 export interface GrassSettings {
   height: number;
@@ -84,7 +84,7 @@ export function clumpGeometry(blades = 12, radius = 1.1, seed = 1): THREE.Buffer
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
-  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute("color", rgba(col));
   g.setIndex(idx);
   g.normalizeNormals();
   return g;
@@ -102,8 +102,7 @@ export function coneGeometry(): THREE.BufferGeometry {
   g.rotateX(Math.PI / 2);
   g.translate(0, -40, 18);
   const n = g.getAttribute("position").count;
-  const c = new Float32Array(n * 3).fill(1);
-  g.setAttribute("color", new THREE.BufferAttribute(c, 3));
+  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(n * 4).fill(1), 4));
   return g;
 }
 
@@ -185,7 +184,9 @@ export function scatter(
 /** Grass clumps per square metre at full density, and the most drawn at once. */
 export const CLUMPS_PER_M2 = 90;
 export const LIVE_BUDGET = 45_000;
-export const RENDER_BUDGET = 70_000;
+// Renders merge every clump into the path tracer's scene: about 100 vertices each, four
+// float attributes a vertex. More than this crowds out the rest of the scene on the GPU.
+export const RENDER_BUDGET = 40_000;
 /** The most clumps a field holds (it thins out beyond, in proportion). */
 const FIELD_MAX = 900_000;
 

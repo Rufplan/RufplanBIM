@@ -208,6 +208,10 @@ describe("plants and grass in 3D (ADR-064)", () => {
     )!;
     expect(g.getIndex()!.count).toBe(3);
     expect(g.getAttribute("color").getX(0)).toBeCloseTo(0.214, 3);
+    // RGBA, as the path tracer gives meshes without colours: RGB would misalign its merge.
+    expect(g.getAttribute("color").itemSize).toBe(4);
+    expect(g.getAttribute("color").getW(0)).toBe(1);
+    expect(clumpGeometry().getAttribute("color").itemSize).toBe(4);
     expect(
       partGeometry({ positions: [], normals: [], uvs: [], colors: [], indices: [] }),
     ).toBeNull();

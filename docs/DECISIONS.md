@@ -2344,6 +2344,12 @@ The Asset Library window (components/AssetLibrary.tsx) follows Enscape's:
     path tracer shades the crown itself.
   - Columnar conifers (cypress, arborvitae) grow by space colonization with foliage along
     their branches, not by whorls.
+  - Plant and grass vertex colours are RGBA. The path tracer merges every mesh into one and
+    gives meshes without colours RGBA white, so RGB colours among them misaligned every
+    later mesh's colours, texture coordinates and materials. Depending on the random merge
+    order, trees rendered leafless with flat bark.
+  - Foliage renders with a leaf's real albedo (the live view's colour times 1.45) and only a
+    fifth of the baked crown shading, since the path tracer shades crowns itself.
 - **Ground:** the base ground's material covers the topography (unless it shows satellite
   imagery), or the ground around the model. Ground regions sit 30 mm above it.
 - **Enscape's Grass material type** (`Appearance.grass`: height, height variation; the Type
