@@ -19,7 +19,10 @@ export interface TextureSet {
 const photoSets = new Map<string, Promise<TextureSet>>();
 
 async function imageTexture(bytes: ArrayBuffer | Blob, srgb: boolean): Promise<THREE.Texture> {
-  const blob = bytes instanceof Blob ? bytes : new Blob([bytes], { type: "image/jpeg" });
+  // Generated sets (ADR-061) are PNG; photo sets JPEG.
+  const png = !(bytes instanceof Blob) && new Uint8Array(bytes, 0, 1)[0] === 0x89;
+  const blob =
+    bytes instanceof Blob ? bytes : new Blob([bytes], { type: png ? "image/png" : "image/jpeg" });
   const url = URL.createObjectURL(blob);
   try {
     const img = new Image();
@@ -440,7 +443,24 @@ export function boxUv(geo: THREE.BufferGeometry, scale: number, aspect = 1) {
       let u: number;
       let v: number;
       let t: [number, number, number];
-      if (ay >= ax && ay >= az) {
+      if (ay >= ax && ay >= az && ay < 0.999) {
+        // Sloped roofs (ADR-061): along the contour and up the slope, at true size, so
+        // shingle courses run level and standing seams run down the slope, whichever way
+        // the roof faces.
+        const hx = nrm.z;
+        const hz = -nrm.x;
+        const hl = Math.hypot(hx, hz);
+        const h = [hx / hl, 0, hz / hl] as const;
+        // Up the slope: normal × contour.
+        const s = [
+          nrm.y * h[2] - nrm.z * h[1],
+          nrm.z * h[0] - nrm.x * h[2],
+          nrm.x * h[1] - nrm.y * h[0],
+        ] as const;
+        u = p.x * h[0] + p.z * h[2];
+        v = p.x * s[0] + p.y * s[1] + p.z * s[2];
+        t = [h[0], 0, h[2]];
+      } else if (ay >= ax && ay >= az) {
         // Floors and ceilings: plan x across, north up.
         u = p.x;
         v = -p.z;

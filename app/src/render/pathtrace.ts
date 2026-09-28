@@ -405,6 +405,21 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
   return scene;
 }
 
+/** The path tracer packs every texture into one array at a single size (ADR-061): as
+ * large as the scene's textures can have within about 512 MB of GPU memory, from 4096 (a
+ * few materials, the generated sidings and roofs at full resolution) down to 1024. */
+export function textureSizeFor(scene: THREE.Scene): number {
+  const maps = new Set<THREE.Texture>();
+  scene.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.MeshPhysicalMaterial | undefined;
+    if (!m) return;
+    for (const t of [m.map, m.normalMap, m.roughnessMap]) if (t) maps.add(t);
+  });
+  const budget = 512 * 1024 * 1024;
+  for (const size of [4096, 2048]) if (maps.size * size * size * 4 <= budget) return size;
+  return 1024;
+}
+
 export function cameraFor(pose: CameraPose, aspect: number): THREE.PerspectiveCamera {
   const cam = new THREE.PerspectiveCamera(pose.fov, aspect, 50, 2e7);
   cam.position.copy(toYUp(pose.eye));
@@ -511,6 +526,7 @@ export class RenderJob {
     // worker, which the app's content policy keeps out).
     await new Promise((ok) => setTimeout(ok, 30));
     if (this.stopped) return;
+    this.tracer.textureSize.setScalar(textureSizeFor(scene));
     this.tracer.setScene(scene, camera);
     this.started = performance.now();
     const loop = () => {

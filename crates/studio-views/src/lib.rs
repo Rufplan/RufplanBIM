@@ -24,6 +24,7 @@ pub mod snap;
 pub mod standards_preview;
 pub mod symbols;
 pub mod terrain;
+pub mod texgen;
 pub mod thumbs;
 pub mod view_refs;
 pub mod windows;

@@ -12,4 +12,8 @@ The app downloads their 2K maps on first use and caches them on the computer. Th
 procedural textures (tile, CMU, carpet, marble veining, brushed metal) are generated in
 `src/render/materials.ts`.
 
+The wood sidings and modern roofing (ADR-061) are generated in Rust (`studio-views` `texgen`):
+the app makes them at 4096 px on first use and caches them as PNG. Their previews here were
+rendered the same way from 1K versions of those sets.
+
 To re-render after changing presets, run the thumbnail tool described in ADR-029.

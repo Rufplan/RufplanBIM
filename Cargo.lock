@@ -3641,6 +3641,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "keyring",
+ "png 0.18.1",
  "serde",
  "serde_json",
  "studio-core",

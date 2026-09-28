@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Generated materials (ADR-061): studio-views `texgen` (KINDS, generate); studio-core library
+  Siding category and `gen:` roofing presets; app `material_cmds::generated_map` (4096 px PNG
+  cache); pathtrace `textureSizeFor`; boxUv maps sloped faces along the slope.
 - Grids, frames and tags (ADR-060): studio-views `handles::grip_snap` (grid ends), tag drag
   areas (key `tag`), `view_refs::room_in_view` / `room_tag_base`; studio-core
   `visibility::tag_room_in_view`; door and window jambs (and casings) in plan symbols.

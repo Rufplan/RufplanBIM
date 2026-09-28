@@ -98,13 +98,23 @@ pub async fn material_texture(
     map: TextureMap,
     app: tauri::AppHandle,
 ) -> CommandResult<tauri::ipc::Response> {
-    let url = library::texture_url(&set, map)
-        .ok_or_else(|| anyhow::anyhow!("{set} is not a library texture"))?;
     let cache = app
         .path()
         .app_local_data_dir()
         .map_err(anyhow::Error::from)?
         .join("textures");
+    // Generated sets (ADR-061): made here at 4096 px on first use, then kept as PNG.
+    if let Some(kind) = set.strip_prefix("gen:") {
+        let kind = kind.to_owned();
+        let bytes = tauri::async_runtime::spawn_blocking(move || {
+            generated_map(&cache.join("generated"), &kind, map, GEN_SIZE)
+        })
+        .await
+        .map_err(anyhow::Error::from)??;
+        return Ok(tauri::ipc::Response::new(bytes));
+    }
+    let url = library::texture_url(&set, map)
+        .ok_or_else(|| anyhow::anyhow!("{set} is not a library texture"))?;
     let bytes = tauri::async_runtime::spawn_blocking(move || {
         studio_sync::textures::texture_map(&studio_sync::UreqHttp::default(), &cache, &set, &url)
     })
@@ -112,4 +122,91 @@ pub async fn material_texture(
     .map_err(anyhow::Error::from)?
     .map_err(anyhow::Error::from)?;
     Ok(tauri::ipc::Response::new(bytes))
+}
+
+/// Generated textures' resolution (ADR-061).
+const GEN_SIZE: usize = 4096;
+
+/// One at a time: a render asks for a set's three maps at once, and it's made once.
+static GENERATING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn map_name(map: TextureMap) -> &'static str {
+    match map {
+        TextureMap::Color => "color",
+        TextureMap::Normal => "normal",
+        TextureMap::Roughness => "rough",
+    }
+}
+
+/// A generated set's map as PNG bytes, from `dir` or made and written there first (all
+/// three maps, each written whole under a temporary name, then renamed).
+pub(crate) fn generated_map(
+    dir: &std::path::Path,
+    kind: &str,
+    map: TextureMap,
+    size: usize,
+) -> anyhow::Result<Vec<u8>> {
+    if studio_views::texgen::tile_of(kind).is_none() {
+        anyhow::bail!("no generated texture {kind}");
+    }
+    let path = |m: TextureMap| dir.join(format!("{kind}-{size}-{}.png", map_name(m)));
+    let _lock = GENERATING
+        .lock()
+        .map_err(|_| anyhow::anyhow!("texture generation failed"))?;
+    if let Ok(b) = std::fs::read(path(map)) {
+        return Ok(b);
+    }
+    let g = studio_views::texgen::generate(kind, size)
+        .ok_or_else(|| anyhow::anyhow!("no generated texture {kind}"))?;
+    std::fs::create_dir_all(dir)?;
+    let mut wanted = vec![];
+    for (m, data) in [
+        (TextureMap::Color, &g.color),
+        (TextureMap::Normal, &g.normal),
+        (TextureMap::Roughness, &g.rough),
+    ] {
+        let bytes = encode_png(size, data)?;
+        let tmp = path(m).with_extension("part");
+        std::fs::write(&tmp, &bytes)?;
+        std::fs::rename(&tmp, path(m))?;
+        if m == map {
+            wanted = bytes;
+        }
+    }
+    Ok(wanted)
+}
+
+fn encode_png(size: usize, rgb: &[u8]) -> anyhow::Result<Vec<u8>> {
+    let mut out = vec![];
+    let mut enc = png::Encoder::new(&mut out, size as u32, size as u32);
+    enc.set_color(png::ColorType::Rgb);
+    enc.set_depth(png::BitDepth::Eight);
+    enc.set_compression(png::Compression::Fast);
+    let mut w = enc.write_header()?;
+    w.write_image_data(rgb)?;
+    w.finish()?;
+    Ok(out)
+}
+
+#[cfg(test)]
+mod gen_tests {
+    use super::*;
+
+    #[test]
+    fn a_generated_set_is_made_once_and_cached_as_png() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = generated_map(dir.path(), "seam16", TextureMap::Normal, 64).unwrap();
+        assert_eq!(&a[..8], b"\x89PNG\r\n\x1a\n");
+        // All three maps were written.
+        for m in ["color", "normal", "rough"] {
+            assert!(
+                dir.path().join(format!("seam16-64-{m}.png")).exists(),
+                "{m}"
+            );
+        }
+        // The next ask reads the file back.
+        let b = generated_map(dir.path(), "seam16", TextureMap::Normal, 64).unwrap();
+        assert_eq!(a, b);
+        assert!(generated_map(dir.path(), "../etc", TextureMap::Color, 64).is_err());
+    }
 }

@@ -136,6 +136,7 @@ pub struct Preset {
 /// Library categories, in the browser's order.
 pub const CATEGORIES: &[&str] = &[
     "Wood",
+    "Siding",
     "Stone",
     "Tile",
     "Masonry",
@@ -251,6 +252,14 @@ impl P {
 
 use Tier::{HighEnd as HI, MidRange as MID, Typical as TYP};
 
+// Generated textures' tile sizes (studio-views `texgen::KINDS`), mm.
+const FT4: f64 = 48.0 * 25.4;
+const FT8: f64 = 96.0 * 25.4;
+const FT9: f64 = 108.0 * 25.4;
+const FT10: f64 = 120.0 * 25.4;
+const SHINGLE_TILE: f64 = 45.0 * 25.4;
+const CONCRETE_TILE: f64 = 52.0 * 25.4;
+
 const PRESETS: &[P] = &[
     // Wood
     p("wood-white-oak-floor", "White Oak Plank Flooring, Matte", "Wood", HI)
@@ -283,6 +292,58 @@ const PRESETS: &[P] = &[
     p("wood-weathered-siding", "Weathered Cedar Siding", "Wood", MID).sec("R")
         .d("Silvered cedar boards: modern farmhouse and coastal cladding.")
         .c([130, 128, 122]).cut(CutPattern::None, "lap6").tex("wood_planks_grey", 1500.0).r(0.85),
+    // Siding (ADR-061): generated at 4096 px, seamless over an 8' tile (0.6 mm a pixel).
+    p("siding-cedar-bevel", "Cedar Bevel Siding, Natural", "Siding", HI).sec("R")
+        .d("Clear western red cedar bevel lap, 6\" exposure, clear oil finish: modern and craftsman homes.")
+        .c([178, 122, 80]).cut(CutPattern::None, "lap6").tex("gen:cedar-bevel", FT8).r(0.75),
+    p("siding-cedar-bevel-weathered", "Cedar Bevel Siding, Weathered Silver", "Siding", MID).sec("R")
+        .d("Cedar bevel lap left to silver: coastal and shingle-style homes.")
+        .c([142, 138, 130]).cut(CutPattern::None, "lap6").tex("gen:cedar-bevel-weathered", FT8).r(0.9),
+    p("siding-shiplap-white", "Shiplap Siding, Painted White", "Siding", MID).sec("RM")
+        .d("8\" shiplap with its shadow gap, painted white: modern farmhouse and coastal.")
+        .c([236, 234, 228]).cut(CutPattern::None, "lap8").tex("gen:shiplap8", FT8).r(0.6).painted(),
+    p("siding-shiplap-black", "Shiplap Siding, Painted Black", "Siding", MID).sec("RM")
+        .d("8\" shiplap painted matte black: modern and Scandinavian-style exteriors.")
+        .c([38, 39, 41]).cut(CutPattern::None, "lap8").tex("gen:shiplap8", FT8).r(0.65).painted(),
+    p("siding-dutch-lap-sage", "Dutch Lap Siding, Sage Green", "Siding", TYP).sec("R")
+        .d("6\" Dutch lap with its cove shadow, painted sage: traditional and cottage homes.")
+        .c([132, 146, 122]).cut(CutPattern::None, "lap6").tex("gen:dutch-lap6", FT8).r(0.6).painted(),
+    p("siding-board-batten-black", "Board and Batten, Matte Black", "Siding", MID).sec("RH")
+        .d("12\" boards with 2-1/2\" battens, painted matte black: modern farmhouse.")
+        .c([36, 37, 39]).cut(CutPattern::None, "batten12").tex("gen:board-batten12", FT8).r(0.65).painted(),
+    p("siding-board-batten-white", "Board and Batten, White", "Siding", MID).sec("R")
+        .d("12\" boards with 2-1/2\" battens, painted white: farmhouse and barn-style homes.")
+        .c([234, 232, 226]).cut(CutPattern::None, "batten12").tex("gen:board-batten12", FT8).r(0.6).painted(),
+    p("siding-board-batten-cedar", "Board and Batten, Natural Cedar", "Siding", HI).sec("R")
+        .d("Cedar boards and battens, oiled: mountain and modern rustic homes.")
+        .c([176, 120, 80]).cut(CutPattern::None, "batten12").tex("gen:board-batten-cedar", FT8).r(0.75),
+    p("siding-cedar-vertical", "Vertical Tongue and Groove Cedar", "Siding", HI).sec("RH")
+        .d("6\" V-groove cedar run vertically, clear finish: modern accent walls and soffits.")
+        .c([180, 124, 82]).cut(CutPattern::None, "vert6").tex("gen:cedar-vertical-tg", FT8).r(0.7),
+    p("siding-thermo-ash", "Thermally Modified Ash, Horizontal", "Siding", HI).sec("RH")
+        .d("6\" thermo-ash tongue and groove, dark brown: contemporary homes and boutique hotels.")
+        .c([110, 70, 44]).cut(CutPattern::None, "lap6").tex("gen:thermo-ash", FT8).r(0.6),
+    p("siding-shou-sugi-ban", "Shou Sugi Ban (Charred Cedar)", "Siding", HI).sec("RH")
+        .d("Charred cedar boards, vertical, the alligator char left on: modern and Japanese-inspired homes.")
+        .c([26, 25, 24]).cut(CutPattern::None, "vert6").tex("gen:shou-sugi-ban", FT8).r(0.8),
+    p("siding-cedar-shingles", "Cedar Shingles, Natural", "Siding", HI).sec("R")
+        .d("Random-width cedar shingles, 6\" exposure: shingle-style, coastal and craftsman.")
+        .c([176, 120, 80]).cut(CutPattern::None, "lap6").tex("gen:cedar-shingles", FT8).r(0.8),
+    p("siding-cedar-shingles-weathered", "Cedar Shingles, Weathered Gray", "Siding", MID).sec("R")
+        .d("Cedar shingles gone silver: New England and coastal homes.")
+        .c([150, 146, 138]).cut(CutPattern::None, "lap6").tex("gen:cedar-shingles-weathered", FT8).r(0.9),
+    p("siding-channel-rustic", "Channel Rustic Siding, Walnut Stain", "Siding", MID).sec("R")
+        .d("8\" channel rustic with a semitransparent walnut stain: mountain and ranch homes.")
+        .c([104, 64, 38]).cut(CutPattern::None, "lap8").tex("gen:channel-rustic", FT8).r(0.65),
+    p("siding-ipe-rainscreen", "Ipe Open-Joint Rainscreen", "Siding", HI).sec("RHM")
+        .d("5-5/8\" ipe boards with 3/8\" open joints over a black membrane: high-end modern.")
+        .c([104, 64, 40]).cut(CutPattern::None, "lap6").tex("gen:ipe-rainscreen", FT8).r(0.55),
+    p("siding-accoya-slats", "Accoya Slat Rainscreen", "Siding", HI).sec("RHM")
+        .d("1-1/2\" vertical Accoya slats with 1/2\" gaps over black: modern facades and screens.")
+        .c([196, 168, 124]).cut(CutPattern::None, "vert2").tex("gen:accoya-slats", FT8).r(0.7),
+    p("siding-barn-wood", "Reclaimed Barn Wood", "Siding", MID).sec("RH")
+        .d("Random-width reclaimed boards, weathered browns and grays: rustic modern and hospitality.")
+        .c([122, 110, 96]).cut(CutPattern::None, "lap6").tex("gen:barn-wood", FT8).r(0.9),
     p("wood-plywood", "Birch Plywood", "Wood", TYP).sec("RM")
         .d("Clear-coated birch ply: casework, feature walls and ceilings.")
         .c([214, 190, 140]).tex("plywood", 500.0).r(0.6),
@@ -429,7 +490,7 @@ const PRESETS: &[P] = &[
         .c([130, 70, 40]).tex("rust_coarse_01", 2200.0).metal(0.2).r(0.85),
     p("metal-standing-seam", "Standing Seam Metal, Charcoal", "Metal", MID).sec("RM")
         .d("18\" standing seam panels, charcoal Kynar finish: roofs and siding.")
-        .c([74, 77, 82]).tex("proc:seam", 457.2).metal(0.7).r(0.35),
+        .c([74, 77, 82]).cut(CutPattern::None, "seam18").tex("gen:seam18", FT9).metal(0.15).r(0.45).painted(),
     // Glass
     p("glass-clear", "Clear Glass", "Glass", TYP)
         .d("Clear float glass: windows, doors and partitions.")
@@ -468,7 +529,47 @@ const PRESETS: &[P] = &[
     // Roofing
     p("roof-asphalt-shingle", "Architectural Asphalt Shingles, Charcoal", "Roofing", TYP).sec("RM")
         .d("Laminated asphalt shingles: the standard pitched roof.")
-        .c([80, 84, 90]).cut(CutPattern::None, "shingle5").tex("grey_roof_01", 2000.0).r(0.9),
+        .c([66, 68, 72]).cut(CutPattern::None, "asphalt").tex("gen:asphalt-charcoal", SHINGLE_TILE).r(0.95),
+    // Modern roofing (ADR-061): generated at 4096 px.
+    p("roof-asphalt-black", "Architectural Asphalt Shingles, Black", "Roofing", TYP).sec("RM")
+        .d("Laminated shingles in a deep black blend: modern farmhouse roofs.")
+        .c([34, 34, 36]).cut(CutPattern::None, "asphalt").tex("gen:asphalt-black", SHINGLE_TILE).r(0.95),
+    p("roof-asphalt-weathered-wood", "Architectural Asphalt Shingles, Weathered Wood", "Roofing", TYP).sec("RM")
+        .d("Laminated shingles in a brown-gray blend: traditional and transitional homes.")
+        .c([96, 86, 72]).cut(CutPattern::None, "asphalt").tex("gen:asphalt-weathered-wood", SHINGLE_TILE).r(0.95),
+    p("roof-asphalt-pewter", "Architectural Asphalt Shingles, Pewter Gray", "Roofing", TYP).sec("RM")
+        .d("Laminated shingles in a light gray blend: coastal and contemporary homes.")
+        .c([108, 108, 106]).cut(CutPattern::None, "asphalt").tex("gen:asphalt-pewter", SHINGLE_TILE).r(0.95),
+    p("roof-seam-black", "Standing Seam, Matte Black 16\"", "Roofing", MID).sec("RH")
+        .d("16\" snap-lock standing seam, matte black Kynar, striated pans: the modern house roof.")
+        .c([30, 31, 33]).cut(CutPattern::None, "seam16").tex("gen:seam16", FT8).metal(0.15).r(0.55).painted(),
+    p("roof-seam-charcoal", "Standing Seam, Charcoal 18\"", "Roofing", MID).sec("RHM")
+        .d("18\" mechanically seamed panels, charcoal Kynar: modern and commercial roofs.")
+        .c([64, 66, 70]).cut(CutPattern::None, "seam18").tex("gen:seam18", FT9).metal(0.15).r(0.45).painted(),
+    p("roof-seam-bronze", "Standing Seam, Dark Bronze 16\"", "Roofing", MID).sec("RH")
+        .d("16\" standing seam in dark bronze: modern prairie and mountain homes.")
+        .c([58, 48, 40]).cut(CutPattern::None, "seam16").tex("gen:seam16", FT8).metal(0.15).r(0.5).painted(),
+    p("roof-seam-white", "Standing Seam, Bright White 18\"", "Roofing", MID).sec("R")
+        .d("18\" standing seam in bright white: modern farmhouse and coastal roofs.")
+        .c([236, 236, 232]).cut(CutPattern::None, "seam18").tex("gen:seam18", FT9).metal(0.1).r(0.45).painted(),
+    p("roof-seam-galvalume", "Standing Seam, Bare Galvalume 16\"", "Roofing", MID).sec("RH")
+        .d("Unpainted Galvalume with its spangle: industrial-modern and farmhouse roofs.")
+        .c([184, 188, 190]).cut(CutPattern::None, "seam16").tex("gen:galvalume16", FT8).metal(0.9).r(0.35),
+    p("roof-seam-zinc", "Standing Seam, Pre-Weathered Zinc 18\"", "Roofing", HI).sec("RH")
+        .d("Pre-weathered blue-gray zinc: high-end modern roofs and wall cladding.")
+        .c([118, 124, 128]).cut(CutPattern::None, "seam18").tex("gen:seam18", FT9).metal(0.6).r(0.5).painted(),
+    p("roof-epdm-black", "EPDM Membrane, Black", "Roofing", TYP).sec("RHM")
+        .d("Black EPDM rubber with taped lap seams: low-slope modern roofs.")
+        .c([30, 30, 32]).tex("gen:epdm", FT10).r(0.8),
+    p("roof-ballast", "Ballasted Roof, River Rock", "Roofing", MID).sec("HM")
+        .d("River rock ballast over a single-ply membrane: flat modern roofs.")
+        .c([128, 120, 108]).tex("gen:ballast", FT4).r(0.85),
+    p("roof-sedum", "Green Roof, Sedum", "Roofing", HI).sec("RHM")
+        .d("Extensive sedum mat, greens with red tips: flat modern roofs and amenity decks.")
+        .c([104, 128, 66]).tex("gen:sedum", FT4).r(0.8).sheen(0.2),
+    p("roof-flat-concrete-tile", "Flat Concrete Tile, Charcoal", "Roofing", MID).sec("R")
+        .d("Low-profile flat concrete tiles, 13\" courses: contemporary pitched roofs.")
+        .c([72, 74, 78]).cut(CutPattern::None, "tile13").tex("gen:flat-concrete-tile", CONCRETE_TILE).r(0.8).painted(),
     p("roof-cedar-shake", "Cedar Shake Roof", "Roofing", HI).sec("R")
         .d("Split cedar shakes: craftsman, shingle-style and coastal homes.")
         .c([140, 110, 80]).tex("roof_09", 1500.0).r(0.85),
@@ -703,7 +804,8 @@ mod tests {
         // Every photo texture is downloadable; procedural ones aren't fetched.
         for p in &lib {
             match p.appearance.texture.as_deref() {
-                Some(t) if t.starts_with("proc:") => {
+                // Procedural and generated (ADR-061) ones aren't fetched.
+                Some(t) if t.starts_with("proc:") || t.starts_with("gen:") => {
                     assert!(texture_url(t, TextureMap::Color).is_none())
                 }
                 Some(t) => {

@@ -281,6 +281,7 @@ impl SurfacePattern {
     /// Built-in patterns as (id, label, pattern), for the material's properties.
     pub fn presets() -> Vec<(&'static str, &'static str, SurfacePattern)> {
         const IN: f64 = 25.4;
+        const VERTICAL: f64 = 100_000.0;
         vec![
             ("none", "None", SurfacePattern::None),
             (
@@ -297,6 +298,60 @@ impl SurfacePattern {
                 "shingle5",
                 "Shingle Courses 5\"",
                 SurfacePattern::Lap { spacing: 5.0 * IN },
+            ),
+            (
+                "asphalt",
+                "Shingle Courses 5-5/8\"",
+                SurfacePattern::Lap {
+                    spacing: 5.625 * IN,
+                },
+            ),
+            (
+                "tile13",
+                "Roof Tile Courses 13\"",
+                SurfacePattern::Lap { spacing: 13.0 * IN },
+            ),
+            // Vertical boards and seams (ADR-061): grid columns whose rows are too tall to
+            // meet.
+            (
+                "vert2",
+                "Vertical Slats 2\"",
+                SurfacePattern::Grid {
+                    width: 2.0 * IN,
+                    height: VERTICAL,
+                },
+            ),
+            (
+                "vert6",
+                "Vertical Boards 6\"",
+                SurfacePattern::Grid {
+                    width: 6.0 * IN,
+                    height: VERTICAL,
+                },
+            ),
+            (
+                "batten12",
+                "Board and Batten 12\"",
+                SurfacePattern::Grid {
+                    width: 12.0 * IN,
+                    height: VERTICAL,
+                },
+            ),
+            (
+                "seam16",
+                "Standing Seam 16\"",
+                SurfacePattern::Grid {
+                    width: 16.0 * IN,
+                    height: VERTICAL,
+                },
+            ),
+            (
+                "seam18",
+                "Standing Seam 18\"",
+                SurfacePattern::Grid {
+                    width: 18.0 * IN,
+                    height: VERTICAL,
+                },
             ),
             (
                 "brick",

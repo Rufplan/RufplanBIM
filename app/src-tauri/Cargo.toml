@@ -29,6 +29,7 @@ studio-sheets.workspace = true
 keyring = "4.2.0"
 tauri-plugin-opener = "2"
 studio-sync = { version = "0.0.1", path = "../../crates/studio-sync" }
+png = "0.18"
 
 [lints]
 workspace = true

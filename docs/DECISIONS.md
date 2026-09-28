@@ -2095,3 +2095,76 @@ element (`drag_handle` key `tag`), one undo step. Move still works too.
 - its tag goes where it was clicked, stored as an offset from a spot over the room's point,
   4'-0" above its level (`view_refs::room_tag_base`), so it follows the room;
 - one tag per room per view.
+
+## ADR-061 High-resolution wood sidings and modern roofing — Accepted (2026-09-27)
+Owner request (2026-09-27): "come up with a bunch of different exterior wood siding materials
+at extremely high resolution; do the same for roof materials, specifically for a modern
+house, including a better asphalt shingle and standing seam".
+
+**Generated textures** (`studio_views::texgen`). The textures are made in Rust, not
+downloaded: 26 kinds, each a seamless colour, OpenGL normal and roughness set.
+- **Resolution.** The app makes them at 4096 px. On an 8' tile that is 0.6 mm a pixel; a
+  45" shingle tile is 0.28 mm.
+- **Seamless.** Noise lattices, courses, boards, panels and joints all divide each tile, so
+  it repeats exactly. They are generated on every core, about 1.5 s a set.
+- **Wood.** Each board has its own grain: growth rings bending into flat-sawn cathedrals,
+  fine fibres and pores, a tone that drifts along its length, and knots where the species
+  has them. Weathered boards go silver with water streaks. Charred cedar crazes into
+  alligator scales.
+- **Board geometry** is in the relief and the shading:
+  - bevel and Dutch lap tapers, with the shadow under each butt;
+  - shiplap and channel gaps, V-grooves;
+  - battens standing 3/4" proud;
+  - open rainscreen joints over a black membrane;
+  - staggered butt joints.
+- **Asphalt shingles.** 5-5/8" courses of laminated random-width tabs showing the darker
+  layer below (the dragon teeth), with the shadow line and multicoloured ~1 mm granules.
+- **Standing seam.** 1-1/2" rounded seams, striated pans, slight oil-canning, and bare
+  Galvalume's spangle.
+
+**Presets.** A new **Siding** category holds 16 presets:
+- natural cedar bevel, and weathered silver bevel;
+- shiplap in white and in black;
+- Dutch lap in sage;
+- board and batten in black, white and natural cedar;
+- vertical tongue and groove cedar;
+- horizontal thermally modified ash;
+- shou sugi ban;
+- cedar shingles, natural and weathered;
+- channel rustic in a walnut stain;
+- ipe open-joint rainscreen;
+- Accoya slat rainscreen;
+- reclaimed barn wood.
+
+**Roofing** gains:
+- architectural shingles in black, weathered wood and pewter;
+- standing seam in matte black 16", charcoal 18", dark bronze 16", bright white 18", bare
+  Galvalume 16" and pre-weathered zinc 18";
+- black EPDM with taped laps, river rock ballast, a sedum green roof, and flat charcoal
+  concrete tile.
+
+The existing "Architectural Asphalt Shingles, Charcoal" and "Standing Seam Metal, Charcoal"
+keep their ids and now use the new sets. Painted ones (shiplap, Dutch lap, painted board and
+batten, painted standing seam, concrete tile) take the relief and gloss from the set and the
+colour from the material, so their colour can be changed. New surface patterns for
+elevations:
+- 5-5/8" shingle courses and 13" tile courses;
+- 2" and 6" vertical boards, 12" board and batten, and 16" and 18" standing seam.
+The vertical ones are grid columns with rows too tall to meet, so the file format doesn't
+change.
+
+**Loading.**
+- `material_texture` serves `gen:` sets by making all three maps once, one set at a time,
+  and caching them as PNG under the app's data folder (`textures/generated`). The page tells
+  PNG from JPEG by its first byte.
+- The path tracer packs all textures at one size. It now picks the largest that fits about
+  512 MB (4096, 2048 or 1024 px, `textureSizeFor`), so a render with a few generated
+  materials uses them at full resolution.
+
+**Roof mapping.** Real-world box mapping projected sloped faces in plan, so courses always
+ran east-west and seams north-south. Sloped faces now map along their contour and up their
+slope at true length, whichever way they face: shingle courses run level, seams run down
+the roof, and the exposure is true.
+
+**Previews.** The 32 new or changed presets' cubes were path-traced like the others, from 1K
+versions of the sets, by a throwaway page in headless Edge.

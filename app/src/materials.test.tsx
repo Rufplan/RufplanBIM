@@ -128,6 +128,24 @@ describe("Materials tab and Material Browser (ADR-029)", () => {
     const w = wall.getAttribute("uv");
     expect([w.getX(2), w.getY(2)]).toEqual([1, 4]);
     expect(wall.getAttribute("tangent").getX(0)).toBe(1);
+    // A sloped roof (ADR-061) maps along its contour and up its slope at true length,
+    // whichever way it faces: an east-facing 6/12 slope, y-up, rising to the west.
+    const rise = 0.5;
+    const len = Math.hypot(1000, 1000 * rise);
+    const roof = new THREE.BufferGeometry();
+    roof.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([1000, 0, 0, 1000, 0, -1000, 0, 1000 * rise, 0], 3),
+    );
+    boxUv(roof, 1000);
+    const r = roof.getAttribute("uv");
+    // Along the eave (north-south here): u moves, v stays (courses run level).
+    expect(Math.abs(r.getX(1) - r.getX(0))).toBeCloseTo(1, 9);
+    expect(r.getY(1)).toBeCloseTo(r.getY(0), 9);
+    // Up to the ridge: v grows by the slope's true length.
+    expect(r.getY(2) - r.getY(0)).toBeCloseTo(len / 1000, 6);
+    const tan = roof.getAttribute("tangent");
+    expect(Math.abs(tan.getZ(0))).toBeCloseTo(1, 9);
     // Hexagon tiles hold whole rows.
     expect(HEX_H).toBe(Math.round(7 * Math.sqrt(3) * (1024 / 12)));
   });
