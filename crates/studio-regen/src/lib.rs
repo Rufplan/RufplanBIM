@@ -56,6 +56,9 @@ pub struct WallSolid {
     pub surfaces: (SurfacePattern, SurfacePattern),
     /// Shaded color (the exterior finish's material), if the type has layers.
     pub color: Option<[u8; 3]>,
+    /// Sketched wall openings (ADR-058): each hole as (opening, ring of (u along the
+    /// location line, absolute z)), counter-clockwise.
+    pub holes: Vec<(ElementId, Vec<Pt>)>,
 }
 
 /// Hatched bands of a layer build-up `width` thick, as offsets from its center, from each
@@ -651,6 +654,17 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 hatches: w.hatches.clone(),
                 surfaces: w.surfaces,
                 color: w.color,
+                holes: studio_core::wall_opening::openings_in(doc, w.id)
+                    .into_iter()
+                    .flat_map(|(id, rings)| {
+                        rings.into_iter().map(move |r| {
+                            (
+                                id,
+                                r.into_iter().map(|p| Pt::new(p.x, p.y + w.z0)).collect(),
+                            )
+                        })
+                    })
+                    .collect(),
             }
         })
         .collect();

@@ -14,7 +14,7 @@ import {
   type ViewInfo,
 } from "../ipc";
 import { apply } from "../fileActions";
-import { drawOptions, editBoundary, filletRadius } from "../sketch";
+import { drawOptions, editBoundary, filletRadius, startWallOpening } from "../sketch";
 import { lineOptions } from "../lines";
 import {
   DIMENSION_TOOLS,
@@ -1480,6 +1480,17 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       await apply(() => ipc.createColumn(view.id, s.toolTypes.column, p));
       return;
     }
+    if (s.tool === "wallOpening") {
+      // Pick the wall; its face toward the view is the sketch's work plane (ADR-058).
+      const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
+      const cats = id ? await ipc.selectionCategories([id]) : [];
+      if (!id || !cats.includes("Wall")) {
+        s.setError("Click a wall to cut the opening in.");
+        return;
+      }
+      await startWallOpening(id);
+      return;
+    }
     if (s.tool === "light") {
       await apply(() => ipc.createLightingFixture(view.id, s.toolTypes.light, p));
       return;
@@ -1553,7 +1564,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     else if (!target) {
       // Double-clicking a floor or ceiling edits its boundary, as in Revit.
       const sheet = await ipc.properties(id).catch(() => null);
-      if (sheet && (sheet.category === "Floor" || sheet.category === "Ceiling"))
+      if (
+        sheet &&
+        (sheet.category === "Floor" ||
+          sheet.category === "Ceiling" ||
+          sheet.category === "WallOpening")
+      )
         await editBoundary(id);
     }
   }

@@ -605,13 +605,22 @@ fn plan(
         .filter(|w| w.z0 <= cut && w.z1 > cut)
         .collect();
     // Only the wall material at the cut height: door and window openings become gaps.
-    let cut_pieces: Vec<(ElementId, &studio_geom::Poly)> = cut_walls
+    // Sketched wall openings (ADR-058) crossing the cut are gaps too.
+    let cut_pieces: Vec<(ElementId, studio_geom::Poly)> = cut_walls
         .iter()
         .flat_map(|w| {
+            let holes = edges::hole_cuts_at(w, cut);
             w.pieces
                 .iter()
                 .filter(|p| p.z0 <= cut && p.z1 > cut)
-                .map(move |p| (w.id, &p.base))
+                .flat_map(move |p| {
+                    if holes.is_empty() {
+                        vec![p.base.clone()]
+                    } else {
+                        studio_geom::difference(&p.base, &holes)
+                    }
+                })
+                .map(move |p| (w.id, p))
         })
         .collect();
     // Compound layers show at 1/4" = 1'-0" and larger (Revit's medium detail), on a
@@ -660,7 +669,7 @@ fn plan(
     let merged = studio_geom::union_all(
         &cut_pieces
             .iter()
-            .map(|(_, p)| (*p).clone())
+            .map(|(_, p)| p.clone())
             .chain(joined.iter().map(|c| c.base.clone()))
             .collect::<Vec<_>>(),
     );
@@ -1373,6 +1382,35 @@ fn placed_elevation_marks(doc: &Document, b: &mut Builder, level: ElementId) {
 /// An interior elevation's cut: through the marker, as wide as its room plus a foot each
 /// side (so the side walls show cut), to the far wall; and its crop, floor to the level
 /// above.
+/// An elevation or section's frame in plan (ADR-058): the origin and right direction of its
+/// display x (x = (p - origin)·right, y = z), and the way it looks. None for other views.
+pub fn view_frame(doc: &Document, view: ElementId) -> Option<(Pt, Pt, Pt)> {
+    let ElementData::View { kind, .. } = doc.data(view).ok()? else {
+        return None;
+    };
+    let (origin, look) = match kind {
+        ViewKind::Elevation { facing } => (Pt::default(), facing.look().scale(-1.0)),
+        ViewKind::Section { start, end, .. } => (*start, end.sub(*start).norm().perp()),
+        ViewKind::MarkerElevation { marker, facing } => {
+            let look = facing.look();
+            match doc.data(*marker) {
+                Ok(ElementData::ElevationMarker {
+                    level,
+                    at,
+                    interior: true,
+                    ..
+                }) => {
+                    let model = regenerate(doc);
+                    (interior_cut(doc, &model, *level, *at, look).0.origin, look)
+                }
+                _ => (Pt::default(), look),
+            }
+        }
+        _ => return None,
+    };
+    Some((origin, Pt::new(look.y, -look.x), look))
+}
+
 fn interior_cut(
     doc: &Document,
     model: &Model,
@@ -1643,12 +1681,39 @@ fn projected(
             }
             Seen::Cut => {
                 let c = cut.map_or(Pt::default(), |c| c.origin);
-                let top = studio_geom::line_intersection(w.start, w.dir(), c, right)
-                    .map_or(w.z1, |x| w.top_at(x));
+                let at = studio_geom::line_intersection(w.start, w.dir(), c, right);
+                let top = at.map_or(w.z1, |x| w.top_at(x));
+                // Sketched openings (ADR-058) the cut passes through: gaps in its height.
+                let gaps: Vec<(f64, f64)> = at
+                    .map(|x| {
+                        let t = x.sub(w.start).dot(w.dir());
+                        w.holes
+                            .iter()
+                            .flat_map(|(_, r)| {
+                                let turned: Vec<Pt> = r.iter().map(|p| Pt::new(p.y, p.x)).collect();
+                                edges::hole_spans(&turned, t)
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
                 for p in &w.pieces {
                     if let Some((u0, u1)) = cut_interval(&p.base.outer) {
                         let z1 = if p.z1 >= w.z1 - 0.5 { top } else { p.z1 };
-                        cut_rects.push((w.id, u0, u1, p.z0, z1));
+                        let mut z = p.z0;
+                        let mut spans = gaps.clone();
+                        spans.sort_by(|a, b| a.0.total_cmp(&b.0));
+                        for (g0, g1) in spans {
+                            if g1 <= z || g0 >= z1 {
+                                continue;
+                            }
+                            if g0 > z + 0.5 {
+                                cut_rects.push((w.id, u0, u1, z, g0));
+                            }
+                            z = z.max(g1);
+                        }
+                        if z1 > z + 0.5 {
+                            cut_rects.push((w.id, u0, u1, z, z1));
+                        }
                     }
                 }
             }
@@ -1686,6 +1751,46 @@ fn projected(
         };
         f.detail = Some((o.kind, mirrored, o.flip_hand));
         faces.push(f);
+    }
+    // Sketched wall openings (ADR-058): each hole drawn over its wall, as a door opening is.
+    for w in &model.walls {
+        if w.holes.is_empty() || seen(&w.footprint.outer) != Seen::Beyond {
+            continue;
+        }
+        let host_near = w
+            .footprint
+            .outer
+            .iter()
+            .map(|p| depth_of(*p))
+            .fold(f64::INFINITY, f64::min);
+        let d = w.dir();
+        for (id, ring) in &w.holes {
+            let poly: Vec<Pt> = ring
+                .iter()
+                .map(|p| Pt::new(u_of(w.start.add(d.scale(p.x))), p.y.clamp(w.z0, w.z1)))
+                .collect();
+            if studio_geom::signed_area(&poly).abs() < 1.0 {
+                continue; // Seen edge-on.
+            }
+            let pts: Vec<Pt> = ring.iter().map(|p| w.start.add(d.scale(p.x))).collect();
+            let mut f = face(
+                *id,
+                &pts,
+                ring.iter()
+                    .map(|p| p.y)
+                    .fold(f64::INFINITY, f64::min)
+                    .max(w.z0),
+                ring.iter()
+                    .map(|p| p.y)
+                    .fold(f64::NEG_INFINITY, f64::max)
+                    .min(w.z1),
+                FillKind::Paper,
+            );
+            f.near = host_near - 0.5;
+            f.mid = f.near;
+            f.poly = Some(poly);
+            faces.push(f);
+        }
     }
     for (slabs, fill) in [
         (&model.floors, FillKind::Slab),
@@ -3039,12 +3144,37 @@ pub fn view_categories(doc: &Document, view: ElementId) -> Vec<(ElementId, Categ
 pub fn meshes(doc: &Document) -> Vec<Mesh> {
     let m = regenerate(doc);
     let mut out = vec![];
+    // Sketched wall openings' reveals (ADR-058), dressed like their wall below.
+    let mut reveals: Vec<(ElementId, Mesh)> = vec![];
     for w in &m.walls {
-        let positions = edges::wall_triangles(w);
         let hosted: Vec<&OpeningSolid> = m.openings.iter().filter(|o| o.host == w.id).collect();
+        let mut lines = edges::wall_edges(w, &hosted);
+        let positions = if w.holes.is_empty() {
+            edges::wall_triangles(w)
+        } else {
+            let h = edges::wall_with_holes(w, &hosted);
+            lines.extend(edges::hole_edges(w));
+            for (id, tris) in h.reveals {
+                reveals.push((
+                    w.id,
+                    Mesh {
+                        glow: None,
+                        edges: vec![],
+                        el: id,
+                        category: Category::Wall,
+                        exterior: w.exterior,
+                        color: w.color,
+                        material: None,
+                        level: Some(w.level),
+                        positions: tris,
+                    },
+                ));
+            }
+            h.wall
+        };
         out.push(Mesh {
             glow: None,
-            edges: edges::wall_edges(w, &hosted),
+            edges: lines,
             el: w.id,
             category: Category::Wall,
             exterior: w.exterior,
@@ -3270,6 +3400,13 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         } else {
             mesh.material = studio_core::library::finish_of(doc, mesh.el);
         }
+    }
+    for (wall, mut r) in reveals {
+        if let Some(w) = out.iter().find(|m| m.el == wall) {
+            r.color = w.color;
+            r.material = w.material;
+        }
+        out.push(r);
     }
     lighting::meshes(doc, &mut out);
     out
@@ -3826,6 +3963,151 @@ mod tests {
         let w = ops::create_window(&mut doc, wn, south, 8000.0, false).unwrap();
         let _ = l1;
         (doc, south, d, w)
+    }
+
+    /// The south wall with a 16" round opening sketched 5'-0" up at 5.5 m (ADR-058).
+    fn with_round_opening() -> (Document, ElementId, ElementId) {
+        let (mut doc, south, _, _) = with_openings();
+        let curves = studio_core::sketch::draw(
+            studio_core::sketch::DrawTool::Circle,
+            &[Pt::new(5500.0, 1500.0), Pt::new(5900.0, 1500.0)],
+            &studio_core::sketch::DrawOptions::default(),
+        )
+        .unwrap();
+        let o = studio_core::wall_opening::finish(&mut doc, None, south, &curves).unwrap();
+        (doc, south, o)
+    }
+
+    #[test]
+    fn a_sketched_opening_cuts_through_the_wall_in_3d() {
+        let (doc, south, o) = with_round_opening();
+        let m = meshes(&doc);
+        let z0 = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|w| w.id == south)
+            .unwrap()
+            .z0;
+        let wall = m.iter().find(|x| x.el == south).unwrap();
+        // No face triangle covers the hole's middle.
+        let (cx, cz) = (5500.0f32, (z0 + 1500.0) as f32);
+        let covers = wall.positions.as_chunks::<9>().0.iter().any(|t| {
+            let (a, b, c) = ((t[0], t[2]), (t[3], t[5]), (t[6], t[8]));
+            let same_y = (t[1] - t[4]).abs() < 0.01 && (t[4] - t[7]).abs() < 0.01;
+            let s =
+                |p: (f32, f32), q: (f32, f32)| (q.0 - p.0) * (cz - p.1) - (q.1 - p.1) * (cx - p.0);
+            let (d1, d2, d3) = (s(a, b), s(b, c), s(c, a));
+            same_y
+                && ((d1 >= 0.0 && d2 >= 0.0 && d3 >= 0.0) || (d1 <= 0.0 && d2 <= 0.0 && d3 <= 0.0))
+                && (d1.abs() + d2.abs() + d3.abs()) > 1e-3
+        });
+        assert!(!covers, "the hole is open");
+        // Its reveals are the opening's own mesh, one quad per edge of the circle.
+        let r = m.iter().find(|x| x.el == o).unwrap();
+        assert_eq!(r.category, Category::Wall);
+        assert_eq!(r.positions.len() % 18, 0);
+        assert!(r.positions.len() / 18 >= 70);
+        // Every reveal faces the hole's axis.
+        for t in r.positions.as_chunks::<9>().0 {
+            let p = |k: usize| {
+                [
+                    f64::from(t[k * 3]),
+                    f64::from(t[k * 3 + 1]),
+                    f64::from(t[k * 3 + 2]),
+                ]
+            };
+            let (a, b, c) = (p(0), p(1), p(2));
+            let u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+            let v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+            let n = [
+                u[1] * v[2] - u[2] * v[1],
+                u[2] * v[0] - u[0] * v[2],
+                u[0] * v[1] - u[1] * v[0],
+            ];
+            let to_axis = [5500.0 - a[0], 0.0, z0 + 1500.0 - a[2]];
+            assert!(
+                n[0] * to_axis[0] + n[2] * to_axis[2] > 0.0,
+                "faces into the hole"
+            );
+        }
+        assert!(
+            wall.edges.len()
+                > edges::wall_edges(
+                    regenerate(&doc)
+                        .walls
+                        .iter()
+                        .find(|w| w.id == south)
+                        .unwrap(),
+                    &[]
+                )
+                .len()
+        );
+    }
+
+    #[test]
+    fn a_sketched_opening_is_a_gap_in_plan_a_face_in_elevation_and_in_section() {
+        let (mut doc, south, o) = with_round_opening();
+        // Plan: cut at 4', through the circle (4'-1" to 6'-3"... its middle is 5'-0").
+        let plan = view(&doc, |k| matches!(k, ViewKind::FloorPlan { .. }));
+        let dl = display_list(&doc, plan).unwrap();
+        let wall_fills: Vec<Vec<Pt>> = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(south))
+            .filter_map(|i| match &i.prim {
+                Prim::Fill { rings, .. } => {
+                    Some(rings[0].iter().map(|p| Pt::new(p[0], p[1])).collect())
+                }
+                _ => None,
+            })
+            .collect();
+        assert!(!wall_fills.is_empty());
+        assert!(
+            wall_fills
+                .iter()
+                .all(|r| !point_in_ring(Pt::new(5500.0, 0.0), r)),
+            "a gap"
+        );
+        assert!(wall_fills
+            .iter()
+            .any(|r| point_in_ring(Pt::new(5000.0, 0.0), r)));
+        // Elevation: the opening's own face, round.
+        let south_elev = view(&doc, |k| {
+            matches!(
+                k,
+                ViewKind::Elevation {
+                    facing: studio_core::Compass::South
+                }
+            )
+        });
+        let dl = display_list(&doc, south_elev).unwrap();
+        let face = dl.items.iter().find_map(|i| match &i.prim {
+            Prim::Fill {
+                rings,
+                fill: FillKind::Paper,
+            } if i.el == Some(o) => Some(rings[0].len()),
+            _ => None,
+        });
+        assert!(face.unwrap() > 20);
+        // A section through the hole: the cut wall stops below it and starts again above.
+        let sec = ops::create_section(&mut doc, Pt::new(5500.0, 2000.0), Pt::new(5500.0, -2000.0))
+            .unwrap();
+        let dl = display_list(&doc, sec).unwrap();
+        let z0 = regenerate(&doc)
+            .walls
+            .iter()
+            .find(|w| w.id == south)
+            .unwrap()
+            .z0;
+        let cut_at = |z: f64| {
+            dl.items.iter().any(|i| {
+                i.el == Some(south)
+                    && matches!(&i.prim, Prim::Fill { rings, fill: FillKind::Poche | FillKind::PocheLight }
+                        if point_in_ring(Pt::new(rings[0].iter().map(|p| p[0]).sum::<f64>() / rings[0].len() as f64, z), &rings[0].iter().map(|p| Pt::new(p[0], p[1])).collect::<Vec<_>>()))
+            })
+        };
+        assert!(cut_at(z0 + 500.0) && cut_at(z0 + 2300.0));
+        assert!(!cut_at(z0 + 1500.0), "the section passes through the hole");
     }
 
     #[test]

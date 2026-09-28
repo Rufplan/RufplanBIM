@@ -232,6 +232,12 @@ export const Icons = {
       <path d="M5 11v8h14v-8" />
     </I>
   ),
+  wallOpening: (
+    <I>
+      <path d="M3 5h18v14H3z" fill="currentColor" fillOpacity="0.85" />
+      <path d="M9 17v-5a3 3 0 0 1 6 0v5z" fill="#fff" stroke="#fff" />
+    </I>
+  ),
   light: (
     <I>
       <path d="M12 2v5" />

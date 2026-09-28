@@ -30,6 +30,7 @@ pub mod structure;
 pub mod symbols;
 pub mod units;
 pub mod visibility;
+pub mod wall_opening;
 pub mod windows;
 
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};

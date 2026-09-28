@@ -313,6 +313,14 @@ export function Ribbon() {
                 <span>Load Windows</span>
               </button>
             </Group>
+            <Group title="Opening">
+              <ToolButton
+                tool="wallOpening"
+                label="Wall Opening"
+                icon={Icons.wallOpening}
+                keys="any shape, in an elevation, section or 3D"
+              />
+            </Group>
           </>
         )}
         {tab === "Lighting" && (

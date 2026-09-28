@@ -8,7 +8,13 @@ import type { SectionBox } from "../bindings/SectionBox";
 import { apply } from "../fileActions";
 import { errorMessage, ipc, type Mesh, type Pt, type ViewInfo } from "../ipc";
 import { siteImagery, uvAt, type Imagery } from "../imagery";
-import { drawOptions, editBoundary, filletRadius } from "../sketch";
+import {
+  drawOptions,
+  editBoundary,
+  filletRadius,
+  editWallOpening,
+  startWallOpening,
+} from "../sketch";
 import { litOf, styleOf, useAppStore } from "../store";
 import { samePt, sketchPrompt } from "../tools";
 import { savedHome, ViewCube } from "../render/viewCube";
@@ -520,12 +526,24 @@ export function View3D({ view }: { view: ViewInfo }) {
     let skPts: Pt[] = [];
     let skFirst: { i: number; at: Pt } | null = null;
     let skPreview: Pt[][] = [];
-    let skCursor: THREE.Vector3 | null = null;
+    let skCursor: Pt | null = null;
     let vertexDrag: { from: Pt; to: Pt | null } | null = null;
-    const skLine = (pts: Pt[], z: number, color: number, opacity = 1) => {
-      const geo = new THREE.BufferGeometry().setFromPoints(
-        pts.map((q) => new THREE.Vector3(q.x, q.y, z)),
+    /** A sketch point in 3D: on the level's work plane, or on the wall face of a wall
+     * opening's sketch (ADR-058), nudged 5 mm toward the viewer. */
+    const toWorld = (q: Pt): THREE.Vector3 => {
+      const sk = useAppStore.getState().app?.sketch;
+      const w = sk?.wall;
+      if (!w) return new THREE.Vector3(q.x, q.y, (sk?.elevation ?? 0) + 5);
+      const f = w.frame;
+      const off = f.half + 5;
+      return new THREE.Vector3(
+        f.start.x + f.dir.x * q.x + f.normal.x * off,
+        f.start.y + f.dir.y * q.x + f.normal.y * off,
+        f.base_z + q.y,
       );
+    };
+    const skLine = (pts: Pt[], color: number, opacity = 1) => {
+      const geo = new THREE.BufferGeometry().setFromPoints(pts.map(toWorld));
       const line = new THREE.Line(
         geo,
         new THREE.LineBasicMaterial({
@@ -561,7 +579,6 @@ export function View3D({ view }: { view: ViewInfo }) {
       const s = useAppStore.getState();
       const sk = s.app?.sketch;
       if (!sk) return;
-      const z = sk.elevation + 5;
       const sel = new Set(s.sketchUi.sel);
       const bad = new Set(sk.bad);
       const vd = vertexDrag;
@@ -569,17 +586,16 @@ export function View3D({ view }: { view: ViewInfo }) {
         const pts = vd?.to
           ? c.pts.map((q) => (Math.hypot(q.x - vd.from.x, q.y - vd.from.y) < 1 ? vd.to! : q))
           : c.pts;
-        skLine(pts, z, bad.has(i) ? 0xe0261d : sel.has(i) ? 0x3ecff7 : 0xc832b4);
+        skLine(pts, bad.has(i) ? 0xe0261d : sel.has(i) ? 0x3ecff7 : 0xc832b4);
       });
-      for (const pl of skPreview) skLine(pl, z, 0x3ecff7, 0.85);
+      for (const pl of skPreview) skLine(pl, 0x3ecff7, 0.85);
       if (skCursor) {
-        const r = Math.max(60, camera.position.distanceTo(skCursor) * 0.006);
+        const r = Math.max(60, camera.position.distanceTo(toWorld(skCursor)) * 0.006);
         skLine(
           [
             { x: skCursor.x - r, y: skCursor.y },
             { x: skCursor.x + r, y: skCursor.y },
           ],
-          z,
           0x3ecff7,
         );
         skLine(
@@ -587,13 +603,12 @@ export function View3D({ view }: { view: ViewInfo }) {
             { x: skCursor.x, y: skCursor.y - r },
             { x: skCursor.x, y: skCursor.y + r },
           ],
-          z,
           0x3ecff7,
         );
-        if (skPts.length) skLine([skPts[skPts.length - 1]!, skCursor], z, 0x3ecff7, 0.5);
+        if (skPts.length) skLine([skPts[skPts.length - 1]!, skCursor], 0x3ecff7, 0.5);
       }
       for (const g of sketchGrips()) {
-        const at = new THREE.Vector3(g.x, g.y, z);
+        const at = toWorld(g);
         const grip = new THREE.Mesh(
           new THREE.SphereGeometry(Math.max(40, camera.position.distanceTo(at) * 0.005), 12, 8),
           new THREE.MeshBasicMaterial({ color: 0x3ecff7, depthTest: false }),
@@ -604,12 +619,27 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
     };
     /** Where a ray meets the sketch's work plane. */
-    const sketchPlaneHit = (e: PointerEvent) => {
+    const sketchPlaneHit = (e: PointerEvent): { pt: Pt; q: THREE.Vector3 } | null => {
       const sk = useAppStore.getState().app?.sketch;
       if (!sk) return null;
       const q = new THREE.Vector3();
+      const w = sk.wall;
+      if (w) {
+        // A wall opening's sketch: the wall face, in the wall's (u, z).
+        const f = w.frame;
+        const n = new THREE.Vector3(f.normal.x, f.normal.y, 0);
+        const on = new THREE.Vector3(
+          f.start.x + f.normal.x * f.half,
+          f.start.y + f.normal.y * f.half,
+          f.base_z,
+        );
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(n, on);
+        if (!rayAt(e).ray.intersectPlane(plane, q)) return null;
+        const u = (q.x - f.start.x) * f.dir.x + (q.y - f.start.y) * f.dir.y;
+        return { pt: { x: u, y: q.z - f.base_z }, q };
+      }
       const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -sk.elevation);
-      return rayAt(e).ray.intersectPlane(plane, q) ? q : null;
+      return rayAt(e).ray.intersectPlane(plane, q) ? { pt: { x: q.x, y: q.y }, q } : null;
     };
     /** Pick Walls / Pick Lines: the wall face under the cursor (nudged off it, so the side is
      * clear), else the work plane. */
@@ -622,8 +652,8 @@ export function View3D({ view }: { view: ViewInfo }) {
         const n = h.face.normal;
         return { at: { x: h.point.x + n.x * 5, y: h.point.y + n.y * 5 }, q: h.point };
       }
-      const q = sketchPlaneHit(e);
-      return q ? { at: { x: q.x, y: q.y }, q } : null;
+      const hp = sketchPlaneHit(e);
+      return hp ? { at: hp.pt, q: hp.q } : null;
     };
     /** The selected line end under the cursor (within 8 px), to drag. */
     const gripAt3d = (e: PointerEvent): Pt | null => {
@@ -631,7 +661,7 @@ export function View3D({ view }: { view: ViewInfo }) {
       if (!sk) return null;
       const r = renderer.domElement.getBoundingClientRect();
       for (const g of sketchGrips()) {
-        const v = new THREE.Vector3(g.x, g.y, sk.elevation).project(camera);
+        const v = toWorld(g).project(camera);
         const sx = ((v.x + 1) / 2) * r.width + r.left;
         const sy = ((1 - v.y) / 2) * r.height + r.top;
         if (Math.hypot(sx - e.clientX, sy - e.clientY) <= 8) return g;
@@ -645,8 +675,8 @@ export function View3D({ view }: { view: ViewInfo }) {
       const ui = s.sketchUi;
       const m = ui.mode;
       if (vertexDrag) {
-        const q = sketchPlaneHit(e);
-        if (q) vertexDrag.to = (await ipc.snap(sk.view, { x: q.x, y: q.y }, null, snapTol(q))).pt;
+        const h = sketchPlaneHit(e);
+        if (h) vertexDrag.to = (await ipc.snap(sk.view, h.pt, null, snapTol(h.q))).pt;
         drawSketch3d();
         return;
       }
@@ -665,11 +695,12 @@ export function View3D({ view }: { view: ViewInfo }) {
             ui.core,
           );
       } else if (m !== "Modify" && m !== "Trim" && m !== "FilletArc") {
-        const q = sketchPlaneHit(e);
-        if (q) {
+        const h = sketchPlaneHit(e);
+        if (h) {
+          const q = h.q;
           const from = skPts[skPts.length - 1] ?? null;
-          const sn = await ipc.snap(sk.view, { x: q.x, y: q.y }, from, snapTol(q));
-          skCursor = new THREE.Vector3(sn.pt.x, sn.pt.y, sk.elevation);
+          const sn = await ipc.snap(sk.view, h.pt, from, snapTol(q));
+          skCursor = sn.pt;
           s.setCursor(sn.label ?? "");
           if (skPts.length)
             skPreview = await ipc.sketchPreview(
@@ -704,10 +735,10 @@ export function View3D({ view }: { view: ViewInfo }) {
         }
         return;
       }
-      const q = sketchPlaneHit(e);
-      if (!q) return;
-      const raw = { x: q.x, y: q.y };
-      const tol = snapTol(q);
+      const h = sketchPlaneHit(e);
+      if (!h) return;
+      const raw = h.pt;
+      const tol = snapTol(h.q);
       if (m === "Modify") {
         const i = await ipc.sketchHit(raw, tol);
         const shift = e.shiftKey;
@@ -748,6 +779,29 @@ export function View3D({ view }: { view: ViewInfo }) {
       s.setPrompt(prompt3d("sketch", skFirst ? 1 : skPts.length));
       drawSketch3d();
     };
+    /** Orient to the work plane: look square at a wall opening's face (ADR-058), from as
+     * far as the camera is now, centered on the sketch (or the wall). */
+    const orientToSketch = () => {
+      const w = useAppStore.getState().app?.sketch?.wall;
+      if (!w) return;
+      const f = w.frame;
+      const pts = useAppStore.getState().app?.sketch?.curves.flatMap((c) => c.pts) ?? [];
+      const mid =
+        pts.length > 0
+          ? {
+              x: pts.reduce((a, p) => a + p.x, 0) / pts.length,
+              y: pts.reduce((a, p) => a + p.y, 0) / pts.length,
+            }
+          : { x: f.length / 2, y: f.height / 2 };
+      const target = toWorld(mid);
+      const dist = Math.max(camera.position.distanceTo(controls.target), f.length * 0.9, 4000);
+      camera.position.set(target.x + f.normal.x * dist, target.y + f.normal.y * dist, target.z);
+      controls.target.copy(target);
+      camera.lookAt(target);
+      controls.update();
+    };
+    const onOrient = () => orientToSketch();
+    window.addEventListener("orient-to-sketch", onOrient);
     const cancelSketch3d = () => {
       const s = useAppStore.getState();
       // Esc ends the current chain, then returns to Modify; it never leaves sketch mode.
@@ -896,6 +950,20 @@ export function View3D({ view }: { view: ViewInfo }) {
           ipc.createOpening(typeId, pv.preview.host, pv.preview.offset, pv.preview.flipFacing),
         );
         clearGhost();
+      } else if (tool === "wallOpening") {
+        // Revit's work plane: the face picked (ADR-058). The view turns to face it.
+        const hit = rayAt(e).intersectObjects(
+          group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+          false,
+        )[0];
+        const el = hit?.object.userData.el as string | undefined;
+        const cats = el ? await ipc.selectionCategories([el]) : [];
+        const n = hit?.face?.normal;
+        if (!el || !n || !cats.includes("Wall") || Math.abs(n.z) > 0.5) {
+          s.setError("Click the face of a wall to cut the opening in.");
+          return;
+        }
+        if (await startWallOpening(el, { x: n.x, y: n.y })) orientToSketch();
       } else if (tool === "light") {
         // On the face clicked, as Revit hosts fixtures: under a ceiling at its height, on a
         // wall at the height clicked; on a floor or the ground at the type's own height.
@@ -1142,6 +1210,14 @@ export function View3D({ view }: { view: ViewInfo }) {
       )[0];
       const u = h?.object.userData as { el: string; category: string } | undefined;
       if (u && (u.category === "Floor" || u.category === "Ceiling")) void editBoundary(u.el);
+      else if (u && u.category === "Wall") {
+        // A wall opening's reveal (ADR-058): Edit Sketch on the face toward the camera.
+        void ipc.selectionCategories([u.el]).then((c) => {
+          if (!c.includes("WallOpening")) return;
+          const d = camera.getWorldDirection(new THREE.Vector3());
+          void editWallOpening(u.el, { x: -d.x, y: -d.y }).then((ok) => ok && orientToSketch());
+        });
+      }
     };
     renderer.domElement.addEventListener("dblclick", onDouble);
     // Before OrbitControls' own handlers (capture), so they zoom and orbit about the new center.
@@ -1156,6 +1232,7 @@ export function View3D({ view }: { view: ViewInfo }) {
     return () => {
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("select-tab", onTabEvent);
+      window.removeEventListener("orient-to-sketch", onOrient);
       renderer.domElement.removeEventListener("pointerleave", onLeave);
       window.clearTimeout(saveTimer);
       controls.removeEventListener("change", onCameraChange);

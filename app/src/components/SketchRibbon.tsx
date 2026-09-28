@@ -7,7 +7,7 @@ import {
   finishSketchMode,
   flipSketchSelection,
 } from "../sketch";
-import { useAppStore, type SketchMode } from "../store";
+import { activeViewInfo, useAppStore, type SketchMode } from "../store";
 import { Icons } from "./Icons";
 
 // Revit's contextual tab in sketch mode (ADR-021): Mode (Finish / Cancel), Draw (the
@@ -140,11 +140,19 @@ export function SketchRibbon() {
   const sketch = useAppStore((s) => s.app?.sketch ?? null);
   const ui = useAppStore((s) => s.sketchUi);
   const setUi = useAppStore((s) => s.setSketchUi);
+  const in3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
   if (!sketch) return null;
+  // A wall opening's sketch is on a wall face (ADR-058): no Pick Walls, Pick Lines or Flip.
+  const onWall = !!sketch.wall;
   const what = sketch.kind === "Floor" ? "Floor" : "Ceiling";
-  const title = sketch.target
-    ? `Modify | ${what}s > Edit Boundary`
-    : `Modify | Create ${what} Boundary`;
+  const title = onWall
+    ? sketch.target
+      ? "Modify | Wall Openings > Edit Sketch"
+      : "Modify | Create Wall Opening Sketch"
+    : sketch.target
+      ? `Modify | ${what}s > Edit Boundary`
+      : `Modify | Create ${what} Boundary`;
+  const draw = onWall ? DRAW.filter(([m]) => m !== "PickWalls" && m !== "PickLines") : DRAW;
   const mode = (m: SketchMode, label: string, icon: ReactNode) => (
     <button
       key={m}
@@ -203,22 +211,39 @@ export function SketchRibbon() {
         </div>
         <div className="rb-group">
           <div className="rb-items rb-draw">
-            {DRAW.map(([m, label, icon]) => mode(m, label, icon))}
+            {draw.map(([m, label, icon]) => mode(m, label, icon))}
           </div>
-          <div className="rb-title">Draw — Boundary Line</div>
+          <div className="rb-title">{onWall ? "Draw — Opening" : "Draw — Boundary Line"}</div>
         </div>
+        {onWall && in3d && (
+          <div className="rb-group">
+            <div className="rb-items">
+              <button
+                className="rb-btn"
+                onClick={() => window.dispatchEvent(new Event("orient-to-sketch"))}
+                title="Orient to Plane: look square at the wall face being sketched on"
+              >
+                {Icons.wallOpening}
+                <span>Orient to Plane</span>
+              </button>
+            </div>
+            <div className="rb-title">Work Plane</div>
+          </div>
+        )}
         <div className="rb-group">
           <div className="rb-items">
             {mode("Trim", "Trim/Extend to Corner", TRIM)}
-            <button
-              className="rb-btn"
-              onClick={flipSketchSelection}
-              disabled={ui.sel.length === 0}
-              title="Flip picked wall lines to the other face (Space)"
-            >
-              {Icons.flip}
-              <span>Flip</span>
-            </button>
+            {!onWall && (
+              <button
+                className="rb-btn"
+                onClick={flipSketchSelection}
+                disabled={ui.sel.length === 0}
+                title="Flip picked wall lines to the other face (Space)"
+              >
+                {Icons.flip}
+                <span>Flip</span>
+              </button>
+            )}
             <button
               className="rb-btn"
               onClick={deleteSketchSelection}

@@ -2,9 +2,10 @@
 import type { ElementId } from "./ElementId";
 import type { SketchItem } from "./SketchItem";
 import type { SketchKind } from "./SketchKind";
+import type { WallPlane } from "./WallPlane";
 
 export type SketchInfo = { kind: SketchKind, view: ElementId, level: ElementId, 
 /**
  * Height of the work plane the sketch is drawn on in 3D (mm).
  */
-elevation: number, target: ElementId | null, typeId: ElementId, curves: Array<SketchItem>, bad: Array<number>, error: string | null, canUndo: boolean, canRedo: boolean, };
+elevation: number, target: ElementId | null, typeId: ElementId, curves: Array<SketchItem>, bad: Array<number>, error: string | null, canUndo: boolean, canRedo: boolean, wall: WallPlane | null, };

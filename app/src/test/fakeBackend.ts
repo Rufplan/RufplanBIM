@@ -552,9 +552,29 @@ export function installFakeBackend(): FakeBackend {
             fake.state = {
               ...fake.state,
               sketch: {
-                kind: a.kind as "Floor" | "Ceiling",
-                // From 3D, the sketch goes through the level's plan (ADR-025).
-                view: a.view === ids.v3d ? ids.plan1 : (a.view as string),
+                kind: a.kind as "Floor" | "Ceiling" | "WallOpening",
+                // From 3D, the sketch goes through the level's plan (ADR-025); a wall
+                // opening's stays in its view, on the wall's face (ADR-058).
+                view:
+                  a.view === ids.v3d && a.kind !== "WallOpening" ? ids.plan1 : (a.view as string),
+                wall:
+                  a.kind === "WallOpening"
+                    ? {
+                        frame: {
+                          wall: (a.host as string | null) ?? "w1",
+                          start: { x: 0, y: 0 },
+                          dir: { x: 1, y: 0 },
+                          normal: { x: 0, y: -1 },
+                          half: 100,
+                          base_z: 0,
+                          length: 6000,
+                          height: 3000,
+                        },
+                        a: 0,
+                        s: 1,
+                        zOff: 0,
+                      }
+                    : null,
                 level: (a.level as string | null) ?? ids.l1,
                 elevation: 0,
                 target: (a.target as string | null) ?? null,

@@ -1984,3 +1984,52 @@ The new tabs hold:
 - fixtures in sections and elevations;
 - Edit Model operations for fixtures;
 - lights in the 3D view's Realistic style (only renders light the scene).
+
+## ADR-058 Wall Opening of any shape — Accepted (2026-09-27)
+Owner request (2026-09-27): "make an opening tool that allows you to create a hole of any shape
+within a wall, and place this tool under Openings, similar to how Revit does. Also allow
+sketching the opening in 3D, aligned to the surface you're cutting beforehand."
+Owner decisions (2026-09-27):
+- A new Wall Opening element (older files open unchanged).
+- In 3D, after the face is picked, the view turns to look square at it.
+
+**Tool.** It is Openings > Opening > **Wall Opening**, as Revit's.
+- In an elevation or section, click the wall; the face toward the view is the work plane.
+  The wall must be square to the view.
+- In 3D, click the wall's face; that face is the work plane (Revit's Set Work Plane > Pick a
+  plane), and the view swings to face it. **Orient to Plane** on the sketch tab brings it
+  back after orbiting.
+- Then it's Revit's sketch mode on that plane, starting with Rectangle:
+  - the tools are Line (with chain), Rectangle, the polygons, Circle, both arcs, Fillet Arc,
+    Trim/Extend, Delete and Undo;
+  - Pick Walls, Pick Lines and Flip are left out;
+  - Finish checks Revit's loop rules and adds that loops can't nest and the sketch must cut
+    the wall.
+- Each loop is its own hole, so one opening can have several.
+- To change one, double-click it (in an elevation, its face; in 3D, its reveal) or use the
+  contextual tab's Edit Sketch.
+
+**Element.** `WallOpening { host, sketch }`: the loops in the wall's frame, u along the
+location line from its start and z up from its base. So the opening moves and stretches with
+its wall, and is deleted with it. Its properties are read-only: Host, Width, Height, Base
+Offset (bottom), Area and Holes. The app's `WallPlane` maps the sketch's coordinates (the
+view's, or the wall's own in 3D) onto the wall, mirroring arcs for a view seen from behind.
+
+**Drawing.** `WallSolid.holes` carries each hole as (opening, ring in (u, absolute z)).
+- **3D.** A wall with holes keeps its pieces' tops, ends and door and window reveals. Its two
+  long faces are rebuilt as regions minus every hole and door or window, then triangulated
+  (`edges::wall_with_holes`). Each hole's reveals are the opening's own mesh, shaded like
+  the wall, so a click selects the opening. Its outline is drawn on both faces.
+- **Plans.** Where a hole crosses the cut plane, its span is cut out of the wall's poché and
+  layer lines (`hole_cuts_at`).
+- **Elevations.** The hole is its own face over the wall, as door openings are.
+- **Sections.** Through a hole, the cut wall stops below it and starts again above it.
+- **IFC.** Each hole is an IfcOpeningElement voiding the wall: its profile on a plane just
+  outside the face, extruded through it.
+
+**Not yet:**
+- openings in walls seen at an angle in elevations (use 3D);
+- holes that reach a wall's top or end still leave that edge closed;
+- material takeoffs don't subtract the holes;
+- elevations don't show what's seen through a hole;
+- Revit's other openings: shaft, vertical, dormer, by face (floors and roofs).

@@ -2,7 +2,7 @@
 // sketch lives in Rust; these wrap the IPC calls with the UI's settings.
 import type { DrawOptions } from "./bindings/DrawOptions";
 import { apply } from "./fileActions";
-import { ipc, type ElementId } from "./ipc";
+import { ipc, type ElementId, type Pt } from "./ipc";
 import { activeViewInfo, useAppStore } from "./store";
 
 /** Floor (SB) or Sketch Ceiling (CS): enters sketch mode for a new one on this plan. */
@@ -22,12 +22,37 @@ export async function startSketch(kind: "Floor" | "Ceiling") {
   await apply(() => ipc.sketchBegin(v.id, kind, null, type, level));
 }
 
-/** Edit Boundary of a floor or ceiling (also on double-click). */
+/** Wall Opening (ADR-058): sketch a hole of any shape on `wall`'s face, the one facing
+ * the elevation or section (or, in 3D, the one `toward` points out of). Revit starts
+ * with the Rectangle tool. */
+export async function startWallOpening(wall: ElementId, toward: Pt | null = null) {
+  const s = useAppStore.getState();
+  const v = activeViewInfo(s);
+  if (!v) return false;
+  s.setSketchUi({ mode: "Rectangle", sel: [], tab: false });
+  return apply(() => ipc.sketchBegin(v.id, "WallOpening", null, null, null, wall, toward));
+}
+
+/** Edit Sketch of a wall opening (ADR-058). */
+export async function editWallOpening(id: ElementId, toward: Pt | null = null) {
+  const s = useAppStore.getState();
+  const v = activeViewInfo(s);
+  if (!v) return false;
+  s.setSketchUi({ mode: "Modify", sel: [], tab: false });
+  return apply(() => ipc.sketchBegin(v.id, "WallOpening", id, null, null, null, toward));
+}
+
+/** Edit Boundary of a floor or ceiling, or Edit Sketch of a wall opening (also on
+ * double-click). */
 export async function editBoundary(id: ElementId) {
   const s = useAppStore.getState();
   const v = activeViewInfo(s);
   try {
     const sheet = await ipc.properties(id);
+    if (sheet.category === "WallOpening") {
+      await editWallOpening(id);
+      return;
+    }
     if (sheet.category !== "Floor" && sheet.category !== "Ceiling") {
       s.setError("Select a floor or ceiling to edit its boundary.");
       return;

@@ -91,7 +91,8 @@ export function PropertiesPanel() {
   const sheet = loaded && loaded.id === target ? loaded : null;
 
   // While a placement tool is active, the panel shows which type it will place (like Revit).
-  const sketching = app?.sketch ?? null;
+  // A wall opening's sketch has no type (ADR-058).
+  const sketching = app?.sketch && !app.sketch.wall ? app.sketch : null;
   const toolKind: keyof typeof toolTypes | null = sketching
     ? sketching.kind === "Floor"
       ? "floor"

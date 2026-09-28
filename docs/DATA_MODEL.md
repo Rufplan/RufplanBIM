@@ -34,6 +34,7 @@ struct ParamDef { key: String, label: String, kind: ParamKind, group: ParamGroup
 | Annotation | view_id + kind: Tag(target_id, tag_family), Dimension(refs), Text, DetailLine, Symbol |
 | Sheet | number, name, title block type, viewports[], issue data, stage_ids[] (deliverable sets it belongs to) |
 | Material | name, cut pattern, surface pattern, color |
+| WallOpening | host wall_id; sketch loops (lines and arcs) in the wall's frame: x along the location line from its start, y up from its base (ADR-058) |
 | LightingFixtureType | name; spec: family (body), mount (ceiling, pendant, wall, floor, ground), width/depth/height, suspension, default mounting height, lumens, watts, color temperature (K), light source shape and distribution, spot beam (ADR-057) |
 | LightingFixture | type_id, level, point, elevation from level, rotation, on, dimming (ADR-057) |
 | ProjectInfo | project name, number, address, client, issue date, current_stage_id, stage_history[] (from, to, at, note), sun settings (Still date and time, or Lighting azimuth and altitude; ADR-057) |

@@ -222,10 +222,16 @@ fn pieces_at_cut(w: &WallSolid, cut: f64) -> impl Iterator<Item = &Vec<Pt>> {
 /// Wall layers at detail scales: finish layers wrap around free ends and opening jambs,
 /// and hatched layers get their cut pattern.
 pub(crate) fn wall_layer_detail(b: &mut Builder, walls: &[&WallSolid], cut: f64) {
+    // Sketched wall openings (ADR-058) cut gaps through the layers too.
+    let holes: Vec<Vec<studio_geom::Poly>> = walls
+        .iter()
+        .map(|w| crate::edges::hole_cuts_at(w, cut))
+        .collect();
     let solid_at = |p: Pt| {
-        walls
-            .iter()
-            .any(|w| pieces_at_cut(w, cut).any(|r| studio_geom::point_in_ring(p, r)))
+        walls.iter().zip(&holes).any(|(w, hs)| {
+            pieces_at_cut(w, cut).any(|r| studio_geom::point_in_ring(p, r))
+                && !hs.iter().any(|h| h.contains(p))
+        })
     };
     for w in walls.iter().filter(|w| !w.layers.is_empty()) {
         let el = Some(w.id);

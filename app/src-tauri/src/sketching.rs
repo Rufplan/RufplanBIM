@@ -3,7 +3,8 @@
 
 use serde::Serialize;
 use studio_core::sketch::{self, DrawOptions, DrawTool, SketchCurve, SketchKind};
-use studio_core::{Category, Document, ElementData, ElementId};
+use studio_core::wall_opening::{self, WallFrame};
+use studio_core::{Category, Document, ElementData, ElementId, ViewKind};
 use studio_geom::Pt;
 use tauri::{State, WebviewWindow};
 use ts_rs::TS;
@@ -34,6 +35,35 @@ pub struct SketchSession {
     /// Curves the last Finish complained about, and why.
     pub bad: Vec<usize>,
     pub error: Option<String>,
+    /// A wall opening's work plane: the wall face it's sketched on (ADR-058).
+    pub wall: Option<WallPlane>,
+}
+
+/// A wall face as the sketch's work plane (ADR-058), and how the sketch's coordinates map
+/// onto it: in an elevation or section they are the view's (x across, y the elevation),
+/// with the wall's u = `a` + `s`·x and z = y − `z_off`; in 3D they are the wall's own
+/// (u, z) (a = 0, s = 1, z_off = 0).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct WallPlane {
+    pub frame: WallFrame,
+    pub a: f64,
+    pub s: f64,
+    pub z_off: f64,
+}
+
+impl WallPlane {
+    /// A curve in the sketch's coordinates, in the wall's (u, z).
+    pub fn onto_wall(&self, c: &SketchCurve) -> SketchCurve {
+        let (a, s, z) = (self.a, self.s, self.z_off);
+        c.mapped(&|p| Pt::new(a + s * p.x, p.y - z), s < 0.0)
+    }
+    /// A curve in the wall's (u, z), in the sketch's coordinates.
+    pub fn off_wall(&self, c: &SketchCurve) -> SketchCurve {
+        let (a, s, z) = (self.a, self.s, self.z_off);
+        c.mapped(&|p| Pt::new((p.x - a) * s, p.y + z), s < 0.0)
+    }
 }
 
 /// A sketch curve as drawn: its points, and whether it's locked to a wall.
@@ -62,6 +92,7 @@ pub struct SketchInfo {
     pub error: Option<String>,
     pub can_undo: bool,
     pub can_redo: bool,
+    pub wall: Option<WallPlane>,
 }
 
 impl SketchSession {
@@ -86,6 +117,7 @@ impl SketchSession {
             error: self.error.clone(),
             can_undo: !self.undo.is_empty(),
             can_redo: !self.redo.is_empty(),
+            wall: self.wall,
         }
     }
 }
@@ -116,6 +148,7 @@ fn default_type(doc: &Document, kind: SketchKind) -> Option<ElementId> {
     let cat = match kind {
         SketchKind::Floor => Category::FloorType,
         SketchKind::Ceiling => Category::CeilingType,
+        SketchKind::WallOpening => return None,
     };
     studio_core::ops::first_of(doc, cat)
 }
@@ -131,10 +164,17 @@ pub fn sketch_begin(
     target: Option<ElementId>,
     type_id: Option<ElementId>,
     level: Option<ElementId>,
+    host: Option<ElementId>,
+    toward: Option<Pt>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
     let mut session = lock(&state)?;
+    if kind == SketchKind::WallOpening {
+        let sk = wall_sketch(&session, view, target, host, toward)?;
+        session.set_sketch(Some(sk));
+        return finish(&window, &session);
+    }
     let doc = session.doc()?;
     let (level, curves, type_id) = match target {
         Some(id) => {
@@ -187,8 +227,80 @@ pub fn sketch_begin(
         redo: vec![],
         bad: vec![],
         error: None,
+        wall: None,
     }));
     finish(&window, &session)
+}
+
+/// A wall opening's sketch (ADR-058): on the face of `host` toward the viewer of an
+/// elevation or section, or toward `toward` (the picked face's normal) in 3D; or the
+/// sketch of the opening `target` to edit.
+fn wall_sketch(
+    session: &Session,
+    view: ElementId,
+    target: Option<ElementId>,
+    host: Option<ElementId>,
+    toward: Option<Pt>,
+) -> anyhow::Result<SketchSession> {
+    let doc = session.doc()?;
+    let (host, existing) = match target {
+        Some(id) => wall_opening::curves_of(doc, id)?,
+        None => (
+            host.ok_or_else(|| anyhow::anyhow!("click the wall to cut the opening in"))?,
+            vec![],
+        ),
+    };
+    let in_3d = matches!(
+        doc.data(view)?,
+        ElementData::View {
+            kind: ViewKind::ThreeD,
+            ..
+        }
+    );
+    let plane = if in_3d {
+        let frame = wall_opening::frame(doc, host, toward.unwrap_or(Pt::new(0.0, -1.0)))?;
+        WallPlane {
+            frame,
+            a: 0.0,
+            s: 1.0,
+            z_off: 0.0,
+        }
+    } else {
+        let (origin, right, look) = studio_views::view_frame(doc, view).ok_or_else(|| {
+            anyhow::anyhow!("sketch a wall opening in an elevation, a section or a 3D view")
+        })?;
+        let frame = wall_opening::frame(doc, host, look.scale(-1.0))?;
+        let s = right.dot(frame.dir);
+        if s.abs() < 0.999 {
+            anyhow::bail!(
+                "That wall isn't square to this view. Sketch its opening in an elevation or section facing it, or in 3D."
+            );
+        }
+        WallPlane {
+            frame,
+            a: origin.sub(frame.start).dot(frame.dir),
+            s: s.signum(),
+            z_off: frame.base_z,
+        }
+    };
+    let level = match doc.data(host)? {
+        ElementData::Wall { base_level, .. } => *base_level,
+        _ => anyhow::bail!("pick a wall"),
+    };
+    Ok(SketchSession {
+        kind: SketchKind::WallOpening,
+        view,
+        level,
+        target,
+        type_id: host,
+        elevation: plane.frame.base_z,
+        curves: existing.iter().map(|c| plane.off_wall(c)).collect(),
+        undo: vec![],
+        redo: vec![],
+        bad: vec![],
+        error: None,
+        wall: Some(plane),
+    })
 }
 
 /// Adds curves from a draw tool's clicks. Chained lines with a radius round the corner
@@ -229,9 +341,17 @@ pub fn sketch_pick_walls(
 ) -> StateResult {
     // A floor reaches the outside of its exterior walls by default; a ceiling takes the
     // face on the cursor's side.
-    let floor = lock(&state)?
-        .sketch()
-        .is_some_and(|s| s.kind == SketchKind::Floor);
+    let (floor, on_wall) = {
+        let s = lock(&state)?;
+        let sk = s.sketch();
+        (
+            sk.is_some_and(|s| s.kind == SketchKind::Floor),
+            sk.is_some_and(|s| s.wall.is_some()),
+        )
+    };
+    if on_wall {
+        return Err(anyhow::anyhow!("Pick Walls draws floor and ceiling boundaries").into());
+    }
     sketch_edit(&window, &state, |doc, curves, level| {
         let w = sketch::wall_at(doc, level, cursor, tol)
             .ok_or_else(|| anyhow::anyhow!("click a wall on this level"))?;
@@ -395,9 +515,15 @@ pub fn sketch_finish(window: WebviewWindow, state: State<'_, SessionState>) -> S
         return finish(&window, &session);
     };
     let result = session.edit(|d| {
-        Ok(sketch::finish(
-            d, sk.kind, sk.target, sk.type_id, sk.level, &sk.curves,
-        ))
+        Ok(match sk.wall {
+            // A wall opening (ADR-058): the sketch onto its wall.
+            Some(plane) => {
+                let curves: Vec<SketchCurve> =
+                    sk.curves.iter().map(|c| plane.onto_wall(c)).collect();
+                wall_opening::finish(d, sk.target, plane.frame.wall, &curves)
+            }
+            None => sketch::finish(d, sk.kind, sk.target, sk.type_id, sk.level, &sk.curves),
+        })
     })?;
     match result {
         Ok(_) => session.set_sketch(None),
@@ -482,4 +608,53 @@ pub fn sketch_snap(session: &Session, p: Pt, tol: f64) -> Option<Pt> {
         .into_iter()
         .filter(|q| q.dist(p) <= tol)
         .min_by(|a, b| a.dist(p).total_cmp(&b.dist(p)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_wall_plane_maps_a_mirrored_view_onto_the_wall_and_back() {
+        let frame = WallFrame {
+            wall: ElementId::new(),
+            start: Pt::new(1000.0, 0.0),
+            dir: Pt::new(1.0, 0.0),
+            normal: Pt::new(0.0, 1.0),
+            half: 100.0,
+            base_z: 3000.0,
+            length: 6000.0,
+            height: 3000.0,
+        };
+        // Seen from the north the view's x runs west: u = 5000 − x, and y is the elevation.
+        let plane = WallPlane {
+            frame,
+            a: 5000.0,
+            s: -1.0,
+            z_off: 3000.0,
+        };
+        let arc = SketchCurve::Arc {
+            center: Pt::new(2000.0, 4000.0),
+            radius: 300.0,
+            start: 0.0,
+            sweep: std::f64::consts::FRAC_PI_2,
+        };
+        let on_wall = plane.onto_wall(&arc);
+        let SketchCurve::Arc {
+            center,
+            start,
+            sweep,
+            ..
+        } = on_wall
+        else {
+            unreachable!()
+        };
+        assert!(center.dist(Pt::new(3000.0, 1000.0)) < 1e-9);
+        // Mirrored: the same arc, swept the other way from the mirrored start.
+        assert!((sweep + std::f64::consts::FRAC_PI_2).abs() < 1e-9);
+        assert!((start - std::f64::consts::PI).abs() < 1e-9);
+        let back = plane.off_wall(&on_wall);
+        let (a, b) = (arc.points(), back.points());
+        assert!(a.iter().zip(&b).all(|(p, q)| p.dist(*q) < 1e-6));
+    }
 }

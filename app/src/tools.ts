@@ -80,6 +80,7 @@ export const TOOLS_3D: Tool[] = [
   "roof",
   "column",
   "light",
+  "wallOpening",
   "room",
   // Boundary sketches on the level's work plane, and moving or copying the selection (ADR-025).
   "sketch",
@@ -115,6 +116,10 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
     tool === "roomSeparator"
   )
     return view === "Plan";
+  // Wall openings are sketched on a wall's face, in an elevation or section (ADR-058).
+  if (tool === "wallOpening") return view === "Elevation" || view === "Section";
+  if (tool === "sketch" && useAppStore.getState().app?.sketch?.wall)
+    return view === "Elevation" || view === "Section";
   if (tool === "sketch" || tool === "elevation" || tool === "light")
     return view === "Plan" || view === "CeilingPlan";
   if (tool === "tag") return view === "Plan";
@@ -209,6 +214,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
         : "Click toward where the stair climbs to the level above.";
     case "column":
       return "Click to place a column; it snaps to grid intersections. Columns rise to the level above.";
+    case "wallOpening":
+      return "Click the wall to cut the opening in. You'll sketch its shape on the wall's face: rectangles, circles, polygons, arcs or lines.";
     case "light":
       return "Click to place the lighting fixture: ceiling fixtures go at the ceiling, wall fixtures on the nearest wall's face, lamps and site lights on the floor or ground.";
     case "beam":

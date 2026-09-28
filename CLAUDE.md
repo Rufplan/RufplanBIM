@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Wall openings (ADR-058): studio-core `wall_opening` (WallFrame, finish, rings); SketchKind
+  WallOpening with a wall work plane (app `sketching::WallPlane`); studio-regen `WallSolid.holes`;
+  studio-views `edges::wall_with_holes` / `hole_cuts_at`, `view_frame`; tool wallOpening (Openings tab).
 - Lighting (ADR-057): studio-core `lighting` (FixtureSpec, catalog, create_fixture, on_wall,
   set_lights, SunSettings, project_sun_now); studio-views `lighting` (plan symbols, meshes with
   `Mesh.glow`, thumb, lights); app `lighting_cmds`; components/LightPicker.tsx and

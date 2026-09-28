@@ -38,6 +38,7 @@ export type Tool =
   | "stair"
   | "column"
   | "light"
+  | "wallOpening"
   | "beam"
   | "railing"
   | "roomSeparator"
@@ -87,6 +88,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   stair: "Stair",
   column: "Column",
   light: "Lighting Fixture",
+  wallOpening: "Wall Opening",
   beam: "Beam",
   railing: "Railing",
   roomSeparator: "Room Separator",

@@ -2111,6 +2111,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::LightingFixture { .. } | ElementData::LightingFixtureType { .. } => {
             crate::lighting::properties(doc, id, &mut props)
         }
+        ElementData::WallOpening { .. } => crate::wall_opening::properties(doc, id, &mut props),
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2772,7 +2773,8 @@ pub fn set_property(
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }
         | ElementData::LightingFixture { .. }
-        | ElementData::LightingFixtureType { .. } => return Err(unknown()),
+        | ElementData::LightingFixtureType { .. }
+        | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..
         } => crate::slope::set_spot(format, triangle, key, value)?,

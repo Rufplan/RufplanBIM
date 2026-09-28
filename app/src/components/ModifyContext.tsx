@@ -27,6 +27,7 @@ const PLURAL: Partial<Record<Category, string>> = {
   Beam: "Structural Framing",
   Railing: "Railings",
   LightingFixture: "Lighting Fixtures",
+  WallOpening: "Wall Openings",
   Level: "Levels",
   Grid: "Grids",
   Dimension: "Dimensions",
@@ -317,6 +318,17 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
             icon={Icons.flip}
             title="Flip the walls' orientation (Space)"
             onClick={() => void apply(() => ipc.flipSelection(selection))}
+          />
+        </Group>
+      )}
+      {has("WallOpening") && (
+        <Group title="Mode">
+          <Btn
+            label="Edit Sketch"
+            icon={Icons.wallOpening}
+            title="Edit the opening's sketch on its wall (or double-click it)"
+            onClick={() => selection[0] && void editBoundary(selection[0])}
+            disabled={!one}
           />
         </Group>
       )}

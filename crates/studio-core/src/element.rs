@@ -96,6 +96,8 @@ pub enum Category {
     /// Lighting fixtures (ADR-057).
     LightingFixtureType,
     LightingFixture,
+    /// Wall openings (ADR-058).
+    WallOpening,
 }
 
 impl Category {
@@ -147,6 +149,7 @@ impl Category {
             Category::ModelLine => "ModelLine",
             Category::LightingFixtureType => "LightingFixtureType",
             Category::LightingFixture => "LightingFixture",
+            Category::WallOpening => "WallOpening",
         }
     }
 }
@@ -1175,6 +1178,12 @@ pub enum ElementData {
         #[serde(default)]
         style: crate::lines::LineStyle,
     },
+    /// A hole of any shape cut through `host` (ADR-058): its sketch's loops in the wall's
+    /// frame (x along the location line from the start, y up from the base).
+    WallOpening {
+        host: ElementId,
+        sketch: Vec<Vec<crate::sketch::SketchCurve>>,
+    },
     /// A lighting fixture type (ADR-057): its body and Revit photometrics.
     LightingFixtureType {
         name: String,
@@ -1296,6 +1305,7 @@ impl ElementData {
             ElementData::ModelLine { .. } => Category::ModelLine,
             ElementData::LightingFixtureType { .. } => Category::LightingFixtureType,
             ElementData::LightingFixture { .. } => Category::LightingFixture,
+            ElementData::WallOpening { .. } => Category::WallOpening,
         }
     }
 
@@ -1381,6 +1391,7 @@ impl ElementData {
                 ..
             } => vec![*base_level, *top_level],
             ElementData::LightingFixture { type_id, level, .. } => vec![*type_id, *level],
+            ElementData::WallOpening { host, .. } => vec![*host],
             ElementData::Dimension { view, .. }
             | ElementData::AngularDimension { view, .. }
             | ElementData::TextNote { view, .. }
@@ -1467,6 +1478,7 @@ impl ElementData {
             ElementData::ModelLine { style, .. } => format!("Model Line: {}", style.label()),
             ElementData::LightingFixtureType { name, .. } => name.clone(),
             ElementData::LightingFixture { .. } => "Lighting Fixture".into(),
+            ElementData::WallOpening { .. } => "Wall Opening".into(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),

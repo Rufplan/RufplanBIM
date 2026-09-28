@@ -291,6 +291,8 @@ pub struct IfcSummary {
     pub railings: usize,
     /// Lighting fixtures (ADR-057).
     pub lights: usize,
+    /// Sketched wall openings' holes (ADR-058).
+    pub wall_openings: usize,
 }
 
 /// Writes the model as an IFC4 STEP file. `timestamp` is ISO 8601 (for the header).
@@ -483,6 +485,38 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
             s(&ifc_guid(derived(wall.id.0, "pset-rel")))
         ));
 
+        // Sketched wall openings (ADR-058): each hole's profile, on a plane just outside the
+        // wall's face (local x along the wall, y up), extruded through it.
+        for (k, (id, ring)) in wall.holes.iter().enumerate() {
+            let (d, nrm) = (wall.dir(), wall.dir().perp());
+            let half = wall.thickness / 2.0 + 10.0;
+            let o = wall.start.add(nrm.scale(half));
+            let prof: Vec<Pt> = ring.iter().map(|p| Pt::new(p.x, p.y - wall.z0)).collect();
+            let profile = w.profile(&Poly::simple(prof));
+            let origin = w.point3(o.x, o.y, wall.z0 - elev);
+            let axis = w.add(format!("IFCDIRECTION(({},{},0.))", r(-nrm.x), r(-nrm.y)));
+            let refd = w.add(format!("IFCDIRECTION(({},{},0.))", r(d.x), r(d.y)));
+            let pos = w.add(format!("IFCAXIS2PLACEMENT3D(#{origin},#{axis},#{refd})"));
+            let up = w.add("IFCDIRECTION((0.,0.,1.))".into());
+            let solid = w.add(format!(
+                "IFCEXTRUDEDAREASOLID(#{profile},#{pos},#{up},{})",
+                r(2.0 * half)
+            ));
+            let rep = w.add(format!(
+                "IFCSHAPEREPRESENTATION(#{body},'Body','SweptSolid',(#{solid}))"
+            ));
+            let shape = w.add(format!("IFCPRODUCTDEFINITIONSHAPE($,$,(#{rep}))"));
+            let oplace = w.placement(Some(place), 0.0);
+            let opening = w.add(format!(
+                "IFCOPENINGELEMENT({},$,'Wall Opening',$,$,#{oplace},#{shape},$,.OPENING.)",
+                s(&ifc_guid(derived(id.0, &format!("hole{k}"))))
+            ));
+            w.add(format!(
+                "IFCRELVOIDSELEMENT({},$,$,$,#{e},#{opening})",
+                s(&ifc_guid(derived(id.0, &format!("hole-voids{k}"))))
+            ));
+            summary.wall_openings += 1;
+        }
         for o in model.openings.iter().filter(|o| o.host == wall.id) {
             // Opening box: the opening's width, a little deeper than the wall.
             let n = o.dir.perp().scale(o.half_thickness + 10.0);
@@ -1084,6 +1118,19 @@ mod tests {
             vec![Pt::new(1600.0, 1000.0), Pt::new(1600.0, 5000.0)],
         )
         .unwrap();
+        // A round wall opening (ADR-058).
+        let south = doc
+            .of(Category::Wall)
+            .find(|e| matches!(&e.data, ElementData::Wall { start, end, .. } if start.y.abs() < 1.0 && end.y.abs() < 1.0))
+            .unwrap()
+            .id;
+        let circle = studio_core::sketch::draw(
+            studio_core::sketch::DrawTool::Circle,
+            &[Pt::new(1500.0, 1500.0), Pt::new(1800.0, 1500.0)],
+            &studio_core::sketch::DrawOptions::default(),
+        )
+        .unwrap();
+        studio_core::wall_opening::finish(&mut doc, None, south, &circle).unwrap();
         // A downlight and an exit sign (ADR-057).
         for (name, at) in [
             ("6\" LED Downlight", Pt::new(2000.0, 2000.0)),
@@ -1110,6 +1157,7 @@ mod tests {
                 beams: 1,
                 railings: 2,
                 lights: 2,
+                wall_openings: 1,
             }
         );
         assert!(ifc.contains(".DIRECTIONSOURCE.)") && ifc.contains(".SECURITYLIGHTING.)"));

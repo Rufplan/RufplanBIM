@@ -290,7 +290,9 @@ export const ipc = {
     target: ElementId | null,
     typeId: ElementId | null,
     level: ElementId | null = null,
-  ): S => invoke("sketch_begin", { view, kind, target, typeId, level }),
+    host: ElementId | null = null,
+    toward: Pt | null = null,
+  ): S => invoke("sketch_begin", { view, kind, target, typeId, level, host, toward }),
   sketchDraw: (tool: DrawTool, pts: Pt[], options: DrawOptions): S =>
     invoke("sketch_draw", { tool, pts, options }),
   sketchPickWalls: (cursor: Pt, tol: number, chain: boolean, core: boolean, offset: number): S =>
