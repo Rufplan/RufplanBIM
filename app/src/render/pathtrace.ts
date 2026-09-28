@@ -278,7 +278,8 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
   const groundColor = () =>
     new THREE.Color().setRGB(...GROUND_ALBEDO[o.ground], THREE.LinearSRGBColorSpace);
   for (const m of meshes) {
-    if (m.positions.length === 0) continue;
+    // Plantings' proxies are for the working views; renders get the full models (ADR-064).
+    if (m.positions.length === 0 || m.category === "Planting") continue;
     const p = m.positions;
     const out = new Float32Array(p.length);
     for (let i = 0; i < p.length; i += 3) {

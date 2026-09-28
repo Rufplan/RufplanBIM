@@ -2340,6 +2340,10 @@ The Asset Library window (components/AssetLibrary.tsx) follows Enscape's:
   - Foliage is on layer 1, which ambient occlusion doesn't see, because its normal pass can't
     cut leaves out of their cards.
   - The proxy stays pickable and shows only while selected.
+  - Renders leave the proxies out. They keep half the baked crown occlusion, since the
+    path tracer shades the crown itself.
+  - Columnar conifers (cypress, arborvitae) grow by space colonization with foliage along
+    their branches, not by whorls.
 - **Ground:** the base ground's material covers the topography (unless it shows satellite
   imagery), or the ground around the model. Ground regions sit 30 mm above it.
 - **Enscape's Grass material type** (`Appearance.grass`: height, height variation; the Type

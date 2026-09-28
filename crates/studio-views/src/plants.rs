@@ -324,7 +324,8 @@ fn colonize(spec: &PlantSpec, env: &Envelope, rng: &mut Rng) -> Skeleton {
     use std::collections::HashMap;
     let h = spec.height;
     let big = h.max(spec.spread);
-    let step = (big / 42.0).clamp(45.0, 420.0);
+    // Narrow crowns need finer steps, or the trunk alone uses up their attraction points.
+    let step = (big / 42.0).min(spec.spread / 7.0).clamp(45.0, 420.0);
     let reach = step * 7.0;
     let kill = step * 1.7;
     // Attraction points, as many as the crown's volume holds at this scale.
@@ -790,10 +791,20 @@ fn leaf_cards(
     // Enough cards to clothe the crown's surface about twice over.
     let crown_h = (env.z1 - env.z0).max(size);
     let surface = std::f64::consts::PI * 2.0 * env.r.max(size) * crown_h * 0.9;
-    let want = (surface / (size * size) * 3.3 * spec.density.max(0.25)).clamp(40.0, 6500.0);
+    // A narrow conifer's sprays shrink to its column (below), so it needs more of them.
+    let each = if conifer {
+        size.min(env.r * 0.9).max(size * 0.3)
+    } else {
+        size
+    };
+    let want = (surface / (each * each) * 3.3 * spec.density.max(0.25)).clamp(40.0, 6500.0);
     // Conifer sprays and shrubs pack their cards closer: they read as solid masses.
     let want = if conifer {
-        want * 1.8
+        want * if spec.foliage == Foliage::Scale {
+            2.4
+        } else {
+            1.8
+        }
     } else if !spec.group.is_tree() {
         want * 2.4
     } else {
@@ -1489,14 +1500,20 @@ pub fn model(spec: &PlantSpec, variant: u32) -> PlantModel {
         _ => {
             let env = Envelope::new(spec, &mut rng);
             let whorls = spec.group == PlantGroup::Conifer
-                && matches!(
-                    spec.form,
-                    CrownForm::Pyramidal | CrownForm::Conical | CrownForm::Columnar
-                );
+                && matches!(spec.form, CrownForm::Pyramidal | CrownForm::Conical);
             let sk = if whorls {
                 whorled(spec, &env, &mut rng)
             } else {
-                colonize(spec, &env, &mut rng)
+                let mut sk = colonize(spec, &env, &mut rng);
+                // Columnar conifers (cypress, arborvitae) are clothed to the ground: foliage
+                // all along their branches, not just at the tips.
+                if matches!(spec.foliage, Foliage::Needle | Foliage::Scale) {
+                    let thin = spec.caliper / 2.0 * 0.4;
+                    for nd in &mut sk.nodes {
+                        nd.leafy_along |= nd.r < thin;
+                    }
+                }
+                sk
             };
             bark_tubes(&sk, &mut m.bark, &env, [1.0, 1.0, 1.0]);
             if spec.leafy() {

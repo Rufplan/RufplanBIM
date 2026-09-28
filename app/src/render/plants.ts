@@ -309,6 +309,13 @@ export function plantMeshesYUp(
       const merged = pieces.length === 1 ? pieces[0]! : mergeGeometries(pieces, false);
       if (pieces.length > 1) for (const p of pieces) p.dispose();
       if (!merged) continue;
+      // The path tracer shades the crown itself: keep half the baked occlusion, or crowns
+      // go near-black (the solid parts' colours are their own and stay).
+      if (mat !== a.materials.solid) {
+        const c = merged.getAttribute("color");
+        for (let i = 0; i < c.count; i++)
+          c.setXYZ(i, 0.5 + 0.5 * c.getX(i), 0.5 + 0.5 * c.getY(i), 0.5 + 0.5 * c.getZ(i));
+      }
       const mesh = new THREE.Mesh(merged, mat);
       mesh.userData.plant = true;
       out.push(mesh);

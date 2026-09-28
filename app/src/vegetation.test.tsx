@@ -10,6 +10,7 @@ import { installFakeBackend, type FakeBackend } from "./test/fakeBackend";
 import { clumpGeometry, coverMask, GrassField, rng } from "./render/grass";
 import { instanceMatrix, partGeometry } from "./render/plants";
 import { formatFeet } from "./components/assetFormat";
+import { buildScene } from "./render/pathtrace";
 
 let fake: FakeBackend;
 
@@ -171,6 +172,29 @@ describe("the Vegetation tab and Enscape's Asset Library (ADR-064)", () => {
 });
 
 describe("plants and grass in 3D (ADR-064)", () => {
+  it("renders leave the working views' proxies out (the full models go in)", () => {
+    const tri = [0, 0, 0, 1000, 0, 0, 0, 1000, 0];
+    const mesh = (category: string) => ({
+      el: category,
+      category,
+      exterior: false,
+      color: null,
+      material: null,
+      level: null,
+      positions: tri,
+      edges: [],
+    });
+    const scene = buildScene([mesh("Planting"), mesh("Floor")] as never, {
+      environment: new THREE.DataTexture(new Float32Array(4), 1, 1),
+      rotation: 0,
+      ground: "grass",
+      imagery: null,
+      groundZ: 0,
+    });
+    // The floor and the ground plane; no proxy.
+    expect(scene.children.filter((c) => c instanceof THREE.Mesh)).toHaveLength(2);
+  });
+
   it("a plant part becomes indexed geometry; solid colours turn linear", () => {
     const g = partGeometry(
       {
