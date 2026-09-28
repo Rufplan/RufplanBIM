@@ -86,7 +86,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const [view3, setView3] = useState({ z: 1, x: 0, y: 0 });
   const pan = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   useEffect(() => {
-    const c = display.current;
+    const c = stage.current?.querySelector("canvas");
     if (c) {
       c.style.transform = `translate(${view3.x}px, ${view3.y}px) scale(${view3.z})`;
       // Close up, show the pixels rather than blur them.
@@ -104,7 +104,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const zoomTo = (z: number) => zoomAt(z / view3.z);
   /** The zoom that shows the render pixel for pixel. */
   const actual = () => {
-    const c = display.current;
+    const c = stage.current?.querySelector("canvas");
     return c && c.offsetWidth ? Math.max(1, c.width / c.offsetWidth) : 1;
   };
   const onWheel = (e: React.WheelEvent) => {
