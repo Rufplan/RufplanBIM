@@ -135,3 +135,31 @@ describe("D5's Grass Brush (ADR-065)", () => {
     expect(screen.getByRole("button", { name: /Grass Brush/ })).toBeInTheDocument();
   });
 });
+
+describe("zooming into a render", () => {
+  it("zooms in and out with the buttons and fits again", async () => {
+    const { appState } = await import("./test/fakeBackend");
+    const { ViewDialogs } = await import("./components/ViewDialogs");
+    const { runAction } = await import("./actions");
+    const { within } = await import("@testing-library/react");
+    const app = appState(null);
+    const v3d = app.views.find((v) => v.viewType === "ThreeD")!;
+    useAppStore.setState({ app, activeView: v3d.id, openViews: [v3d.id] });
+    render(<ViewDialogs />);
+    await runAction("render");
+    const dialog = await screen.findByRole("dialog", { name: "Render" });
+    const level = within(dialog).getByLabelText("Zoom level");
+    expect(level).toHaveTextContent("100%");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zoom in" }));
+    expect(level).toHaveTextContent("150%");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zoom in" }));
+    expect(level).toHaveTextContent("225%");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zoom out" }));
+    expect(level).toHaveTextContent("150%");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Fit" }));
+    expect(level).toHaveTextContent("100%");
+    // Never smaller than fitted.
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zoom out" }));
+    expect(level).toHaveTextContent("100%");
+  });
+});

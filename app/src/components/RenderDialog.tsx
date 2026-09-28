@@ -81,6 +81,53 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
+  // Zoom and pan the render (the wheel zooms toward the cursor; drag pans; double-click
+  // fits). z 1 is fitted to the stage; x, y the offset in screen px.
+  const [view3, setView3] = useState({ z: 1, x: 0, y: 0 });
+  const pan = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  useEffect(() => {
+    const c = display.current;
+    if (c) {
+      c.style.transform = `translate(${view3.x}px, ${view3.y}px) scale(${view3.z})`;
+      // Close up, show the pixels rather than blur them.
+      c.style.imageRendering = view3.z > 2 ? "pixelated" : "auto";
+    }
+  });
+  /** Zooms by `k` keeping the stage point (mx, my) (from its centre) still. */
+  const zoomAt = (k: number, mx = 0, my = 0) =>
+    setView3((v) => {
+      const z = Math.min(16, Math.max(1, v.z * k));
+      const f = z / v.z;
+      return z === 1 ? { z, x: 0, y: 0 } : { z, x: mx - (mx - v.x) * f, y: my - (my - v.y) * f };
+    });
+  const zoomBy = (k: number) => zoomAt(k);
+  const zoomTo = (z: number) => zoomAt(z / view3.z);
+  /** The zoom that shows the render pixel for pixel. */
+  const actual = () => {
+    const c = display.current;
+    return c && c.offsetWidth ? Math.max(1, c.width / c.offsetWidth) : 1;
+  };
+  const onWheel = (e: React.WheelEvent) => {
+    const r = stage.current?.getBoundingClientRect();
+    if (!r) return;
+    zoomAt(
+      Math.exp(-e.deltaY * 0.0015),
+      e.clientX - (r.left + r.width / 2),
+      e.clientY - (r.top + r.height / 2),
+    );
+  };
+  const onPanStart = (e: React.PointerEvent) => {
+    if (e.button !== 0 || view3.z === 1) return;
+    pan.current = { x: e.clientX, y: e.clientY, ox: view3.x, oy: view3.y };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPanMove = (e: React.PointerEvent) => {
+    const p = pan.current;
+    if (p) setView3((v) => ({ ...v, x: p.ox + e.clientX - p.x, y: p.oy + e.clientY - p.y }));
+  };
+  const onPanEnd = () => {
+    pan.current = null;
+  };
   const job = useRef<RenderJob | null>(null);
   const display = useRef<HTMLCanvasElement | null>(null);
   const backdrop = useRef<HTMLCanvasElement | null>(null);
@@ -305,6 +352,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       shown.height = h;
       display.current = shown;
       stage.current?.replaceChildren(shown);
+      setView3({ z: 1, x: 0, y: 0 });
       let last = 0;
       const show = () => composite(shown, backdrop.current, j.canvas);
       cut.current = () => pt.cutout(j.canvas, scene, camera);
@@ -631,10 +679,39 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </div>
-        <div className="render-stage" ref={stage}>
-          <div className="render-empty">
-            Path-traced from this view&apos;s camera. The image sharpens as samples add up; stop
-            whenever it looks good.
+        <div className="render-stage-wrap">
+          <div
+            className={`render-stage${view3.z !== 1 ? " zoomed" : ""}`}
+            ref={stage}
+            onWheel={onWheel}
+            onPointerDown={onPanStart}
+            onPointerMove={onPanMove}
+            onPointerUp={onPanEnd}
+            onPointerCancel={onPanEnd}
+            onDoubleClick={() => setView3({ z: 1, x: 0, y: 0 })}
+          >
+            <div className="render-empty">
+              Path-traced from this view&apos;s camera. The image sharpens as samples add up; stop
+              whenever it looks good.
+            </div>
+          </div>
+          <div className="render-zoom" role="toolbar" aria-label="Zoom">
+            <button aria-label="Zoom out" onClick={() => zoomBy(1 / 1.5)}>
+              −
+            </button>
+            <button
+              onClick={() => setView3({ z: 1, x: 0, y: 0 })}
+              title="Fit the image (double-click)"
+            >
+              Fit
+            </button>
+            <button onClick={() => zoomTo(actual())} title="Actual pixels">
+              100%
+            </button>
+            <button aria-label="Zoom in" onClick={() => zoomBy(1.5)}>
+              +
+            </button>
+            <span aria-label="Zoom level">{Math.round(view3.z * 100)}%</span>
           </div>
         </div>
       </div>

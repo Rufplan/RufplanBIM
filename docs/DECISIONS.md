@@ -2421,3 +2421,7 @@ Densities are per kind.
 **Colour.** D5's slightly richer, punchier images come from 1.14 saturation and 1.06 contrast
 after tone mapping. The live view applies them as a final shader pass, and renders apply them
 as a "D5 colour" option (on by default).
+
+**Zooming into a render.** The Render dialog's preview zooms: the wheel zooms toward the
+cursor, dragging pans, and double-click fits the image back. Fit, 100% (actual pixels), + and −
+sit at its corner with the zoom level. Past 200% the pixels show crisp rather than blurred.
