@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import type { NavMode } from "./render/navigate";
+import type { SunSettings } from "./bindings/SunSettings";
 import type { AppState, CloudStatus, ElementId, Pt } from "./ipc";
 import type { SnapKind } from "./bindings/SnapKind";
 import type { ImportReport } from "./bindings/ImportReport";
@@ -301,6 +303,15 @@ interface UiState {
   setSiteDialog: (d: "find" | "keys" | null) => void;
   /** 3D view: the ground plane's cyan grid is shown. */
   grid3d: boolean;
+  /** Enscape-style navigation in 3D (ADR-063). */
+  nav3d: NavMode;
+  setNav3d: (nav3d: NavMode) => void;
+  /** Sun settings being tried in the 3D view's sun panel, before they're saved. */
+  sunPreview: SunSettings | null;
+  setSunPreview: (sunPreview: SunSettings | null) => void;
+  /** The Realistic 3D view's exposure (this session). */
+  exposure3d: number;
+  setExposure3d: (exposure3d: number) => void;
   setGrid3d: (on: boolean) => void;
   /** 3D terrain (ADR-045): the ground as a block of earth, its contours, their labels. */
   terrain: { solid: boolean; contours: boolean; labels: boolean };
@@ -464,6 +475,12 @@ export const useAppStore = create<UiState>((set, get) => ({
   siteDialog: null,
   setSiteDialog: (siteDialog) => set({ siteDialog }),
   grid3d: true,
+  nav3d: "orbit",
+  setNav3d: (nav3d) => set({ nav3d }),
+  sunPreview: null,
+  setSunPreview: (sunPreview) => set({ sunPreview }),
+  exposure3d: 1,
+  setExposure3d: (exposure3d) => set({ exposure3d }),
   setGrid3d: (grid3d) => set({ grid3d }),
   terrain: { solid: true, contours: true, labels: true },
   setTerrain: (patch) => set((s) => ({ terrain: { ...s.terrain, ...patch } })),

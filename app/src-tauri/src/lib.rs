@@ -168,6 +168,7 @@ pub fn run() -> anyhow::Result<()> {
             lighting_cmds::lights,
             lighting_cmds::set_sun_settings,
             lighting_cmds::sun_now,
+            lighting_cmds::sun_for,
             shortcut_cmds::tag_elements,
             shortcut_cmds::tag_room_in_view,
             shortcut_cmds::tag_element,

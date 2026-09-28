@@ -3202,36 +3202,92 @@ button:disabled {
   overflow-y: auto;
 }
 
-/* ---------- Realistic view's interactive render (ADR-062) ---------- */
-.refine-canvas {
+/* ---------- 3D view's sun and navigation (ADR-063) ---------- */
+.view3d-top {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  /* The ViewCube's corner stays the live view's. */
-  clip-path: polygon(
-    0 0,
-    calc(100% - 142px) 0,
-    calc(100% - 142px) 142px,
-    100% 142px,
-    100% 100%,
-    0 100%
-  );
-}
-.refine-chip {
-  position: absolute;
+  top: 10px;
   left: 10px;
-  bottom: 10px;
-  z-index: 2;
-  pointer-events: none;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: calc(100% - 170px);
+}
+.sun3d-toggle,
+.nav3d button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-display);
+  font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  cursor: pointer;
+}
+.sun3d-toggle svg {
+  color: #e8a33a;
+}
+.sun3d.open .sun3d-toggle,
+.nav3d button.on {
+  background: var(--ink);
   color: var(--white);
-  background: rgba(10, 10, 10, 0.55);
+}
+.sun3d-panel {
+  margin-top: 4px;
+  width: 290px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sun3d-row {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.sun3d-row > span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.sun3d-row b {
+  font-weight: 600;
+  min-width: 58px;
+  text-align: right;
+}
+.sun3d-row input[type="number"] {
+  width: 56px;
+}
+.sun3d-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.nav3d {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+.nav3d button + button {
+  border-left: 0;
+}
+.nav3d-keys {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.8);
   padding: 3px 8px;
 }

@@ -32,7 +32,7 @@ async function imageTexture(bytes: ArrayBuffer | Blob, srgb: boolean): Promise<T
     t.wrapS = THREE.RepeatWrapping;
     t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-    t.anisotropy = 8;
+    t.anisotropy = 16;
     t.needsUpdate = true;
     return t;
   } finally {
@@ -303,7 +303,7 @@ function canvasTexture(data: Uint8ClampedArray, srgb: boolean, h = SIZE): THREE.
   t.wrapS = THREE.RepeatWrapping;
   t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
   return t;
 }
 

@@ -64,7 +64,10 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const [lighting, setLighting] = useState<Lighting>("sunsky");
   const [rotation, setRotation] = useState(0);
   const [exposure, setExposure] = useState(1);
-  const [tone, setTone] = useState<"contrast" | "filmic">("contrast");
+  // Corona's and V-Ray's look (ADR-063): filmic highlights, a touch of glare and vignette.
+  const [tone, setTone] = useState<"contrast" | "filmic">("filmic");
+  const [glare, setGlare] = useState(true);
+  const [vignette, setVignette] = useState(true);
   const [denoise, setDenoise] = useState(true);
   const [withBackground, setWithBackground] = useState(true);
   const [sun, setSun] = useState<SunPosition | null>(null);
@@ -216,6 +219,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       finish.current = () => {
         if (denoise) j.denoise();
         show();
+        if (glare || vignette)
+          pt.lensEffects(shown, { glare: glare ? 0.35 : 0, vignette: vignette ? 0.22 : 0 });
       };
       await j.start(scene, camera, samples, (n, secs, phase) => {
         setProgress(n / samples);
@@ -470,6 +475,24 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 disabled={running}
               />
               Denoise when finished
+            </label>
+            <label className="ob-check">
+              <input
+                type="checkbox"
+                checked={glare}
+                onChange={(e) => setGlare(e.target.checked)}
+                disabled={running}
+              />
+              Lens glare
+            </label>
+            <label className="ob-check">
+              <input
+                type="checkbox"
+                checked={vignette}
+                onChange={(e) => setVignette(e.target.checked)}
+                disabled={running}
+              />
+              Vignette
             </label>
             {satellite && <p className="muted">The satellite image drapes the ground.</p>}
             {bg.source && <p className="muted render-credit">Background: {bg.source}</p>}

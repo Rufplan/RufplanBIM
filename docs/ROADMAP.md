@@ -85,7 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
-- Realistic 3D view refined by the path tracer; archviz-grade wood sidings (ADR-062).
+- Enscape-style live Realistic view, sun panel, Walk and Fly; Render glare and vignette (ADR-063).
+- Archviz-grade wood sidings (ADR-062; its auto-refine was replaced by ADR-063).
 - High-resolution wood sidings and modern roofing, slope-aligned roof mapping (ADR-061).
 - Grid ends snap to grids, frames in plan, draggable tags, room tags in sections (ADR-060).
 - Doors, windows, fixtures and dimensions in elevations and sections (ADR-059).

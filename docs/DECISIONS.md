@@ -2213,3 +2213,51 @@ MIR, Boundary, Squint Opera or another high-end rendering company".
   tile, so every set now repeats exactly. A test checks samples a tile apart in x, y and
   both.
 - **Previews.** The 17 siding previews were re-rendered.
+
+## ADR-063 An Enscape-style live view; Walk and Fly; V-Ray and Corona finishing on Render — Accepted (2026-09-28)
+Owner request (2026-09-28): "I don't like the rendering after the camera stops, I would rather
+it renders only when I press Render. This is to zoom around the 3D model while seeing realistic
+materials — like Enscape, D5, Twinmotion or Lumion for the materials and sun settings. Then for
+rendering make it V-Ray, Corona or Chaos Vantage quality … add a sun setting in the 3D view's
+top-left corner", and "create Enscape's walk / fly mode buttons, only in the 3D view".
+
+**Auto-refine removed.** ADR-062's still-frame path tracing (`pathtrace.Refiner`,
+`render/realScene.ts`) is gone. The Realistic view is always the live raster view, and path
+tracing happens only through Render (RR).
+
+**The live Realistic view, Enscape and D5's real-time look.**
+- **Light.** The physical sky from the sun lights the view and shows behind it. The sun is a
+  shadow-casting light at the sky model's sun-to-sky ratio and in the sun's colour.
+- **Post-processing.** GTAO ambient occlusion and a light bloom on true highlights only
+  (threshold above white, so sky and pale surfaces don't haze), through a multisampled
+  half-float composer.
+- **Auto exposure.** The sun's and sky's light on level ground maps to a steady brightness
+  at any hour. The sun panel's Exposure (0.3–2.5) scales it, and ACES tone mapping finishes it.
+- **Night.** When the sun is down, the sky dims and the view's lit fixtures (up to 48) become
+  point and spot lights.
+- **Shadows.** three r186 dropped PCFSoftShadowMap, so the sun uses PCF with a blur radius
+  and 4096 px maps.
+- **Textures** use 16× anisotropic filtering (clamped to the GPU's limit), so siding and
+  seams stay sharp at grazing angles.
+
+**Sun panel (top left of the 3D view).** A chip shows the time and date or the azimuth and
+altitude. It opens to the time of day (4 am–10 pm in quarter hours), the month and day, a
+Lighting study's azimuth and altitude, Exposure, and the Sun Settings presets. Dragging
+previews at once on a coarser sky. After 700 ms without a change, it saves to Sun Settings
+as one undoable change. A new `sun_for` command gives the sun's position for unsaved settings.
+
+**Walk and Fly (Enscape's navigation).** Orbit, Walk and Fly buttons sit under the sun chip.
+- **Moving.** W A S D moves (and the arrow keys); in Fly, Q and E go down and up. Dragging
+  looks around, Shift triples the speed, and the wheel scales it.
+- **Switching.** Space swaps Walk and Fly, and Esc returns to Orbit.
+- **Walk** keeps the eyes 1650 mm above the floor under it. It climbs steps up to 450 mm
+  at once and eases down to lower floors. It slides along walls, keeping 350 mm clear;
+  doors let it through.
+- **Where the rules live.** The navigation is `render/navigate.ts`, which is pure and
+  tested. The view supplies the ground and the walls by raycasting.
+
+**Render, V-Ray and Corona's finish.** Filmic tone mapping is the default, and two new options
+are on by default:
+- **Lens glare:** the brightest highlights (sun glints, fixtures, sky through glass)
+  bloom tight and wide;
+- **Vignette:** a soft darkening toward the corners.

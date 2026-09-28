@@ -355,6 +355,7 @@ export const ipc = {
   lights: (view: ElementId | null) => invoke<LightInfo[]>("lights", { view }),
   setSunSettings: (settings: SunSettings): S => invoke("set_sun_settings", { settings }),
   sunNow: () => invoke<SunPosition>("sun_now"),
+  sunFor: (settings: SunSettings) => invoke<SunPosition>("sun_for", { settings }),
   selectionCategories: (ids: ElementId[]) => invoke<Category[]>("selection_categories", { ids }),
   hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
   setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>

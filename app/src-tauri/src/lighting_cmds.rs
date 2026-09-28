@@ -196,6 +196,16 @@ pub fn set_sun_settings(
     })
 }
 
+/// The sun for sun settings not yet saved (the 3D view's sun panel).
+#[tauri::command]
+pub fn sun_for(
+    settings: SunSettings,
+    state: State<'_, SessionState>,
+) -> CommandResult<SunPosition> {
+    let s = lock(&state)?;
+    Ok(lighting::sun_for(s.doc()?, &settings))
+}
+
 /// The sun for the project's Sun Settings.
 #[tauri::command]
 pub fn sun_now(state: State<'_, SessionState>) -> CommandResult<SunPosition> {

@@ -903,6 +903,7 @@ export function installFakeBackend(): FakeBackend {
         case "set_sun_settings":
         case "create_lighting_fixture":
           return fake.state;
+        case "sun_for":
         case "sun_now":
           return { dir: [0.5, -0.5, 0.7], altitude: 35, azimuth: 225 };
         case "pick_cycle":

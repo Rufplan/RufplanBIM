@@ -1443,7 +1443,13 @@ pub fn set_sun_settings(doc: &mut Document, s: SunSettings) -> CoreResult<()> {
 /// The sun for the project's settings: the site's sun at the date and time (Still), or
 /// the given azimuth and altitude turned into the project (Lighting).
 pub fn project_sun_now(doc: &Document) -> SunPosition {
-    let s = sun_settings(doc);
+    sun_for(doc, &sun_settings(doc))
+}
+
+/// The sun for sun settings `s` at this project's site (the 3D view's sun panel previews
+/// with it before saving, ADR-063).
+pub fn sun_for(doc: &Document, s: &SunSettings) -> SunPosition {
+    let s = *s;
     match s.mode {
         SunMode::Still => project_sun(doc, s.month, s.day, s.hour),
         SunMode::Lighting => {

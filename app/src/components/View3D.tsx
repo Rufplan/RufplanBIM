@@ -39,7 +39,10 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
-import type { Refiner } from "../render/pathtrace";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { fromLook, look, lookDir, navStep, type NavState } from "../render/navigate";
+import { NavBar, SunPanel } from "./View3DPanels";
+import type { LightInfo } from "../bindings/LightInfo";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { Cap } from "../bindings/Cap";
 import type { Terrain } from "../bindings/Terrain";
@@ -166,8 +169,14 @@ interface Three {
   sunDir?: THREE.Vector3;
   sunIntensity?: number;
   sunColor?: THREE.Color;
-  /** Realistic's ambient occlusion and antialiasing (made on first use). */
+  /** Realistic's ambient occlusion, bloom and antialiasing (made on first use). */
   composer?: EffectComposer | null;
+  /** The building's lit fixtures, after dark (ADR-063). */
+  fixtures?: THREE.Group;
+  /** After dark: the exposure raised for the fixtures. */
+  night?: boolean;
+  /** Enscape's auto exposure: scales the sun and sky's light to a steady brightness. */
+  autoExposure?: number;
 }
 
 /** Wireframe and six face handles of the section box. */
@@ -292,6 +301,9 @@ export function prompt3d(tool: string, n = 0): string {
 }
 
 /** 3D view. Geometry comes from Rust as triangle soup in mm, z-up. */
+/** Auto exposure's target: the light on level ground, sun and sky, that maps to exposure 1. */
+const AUTO_EXPOSURE = 5.5;
+
 export function View3D({ view }: { view: ViewInfo }) {
   const revision = useAppStore((s) => s.app?.revision ?? 0);
   const selection = useAppStore((s) => s.selection);
@@ -323,8 +335,9 @@ export function View3D({ view }: { view: ViewInfo }) {
     sun.position.set(-0.6, -1, 1.4);
     scene.add(sun, sun.target);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    Object.assign(sun.shadow, { bias: -0.0005, normalBias: 20 });
+    // three r186 dropped PCFSoftShadowMap: PCF with a blur radius gives the soft sun edge.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    Object.assign(sun.shadow, { bias: -0.0005, normalBias: 20, radius: 3, blurSamples: 12 });
     sun.shadow.mapSize.set(2048, 2048);
     // Realistic's ground: a matte lawn under the model when there's no topography.
     const ground = new THREE.Mesh(
@@ -407,107 +420,6 @@ export function View3D({ view }: { view: ViewInfo }) {
       },
       home: () => savedHome(view.id),
     });
-    // ---- Realistic: the still frame path-traced, as V-Ray's interactive render (ADR-062) ----
-    let refiner: Refiner | null = null;
-    let refineScene: { key: string; scene: THREE.Scene; exposure: number } | null = null;
-    let idle = 0;
-    let generation = 0;
-    const chip = document.createElement("div");
-    chip.className = "refine-chip";
-    chip.hidden = true;
-    wrap.appendChild(chip);
-    const wantRefine = () => {
-      const s = useAppStore.getState();
-      return (
-        styleOf(s, view.id) === "realistic" &&
-        s.selection.length === 0 &&
-        s.tool === "select" &&
-        !s.app?.sketch &&
-        !boxRef.current &&
-        !s.tempHide[view.id] &&
-        !document.hidden
-      );
-    };
-    const stopRefine = () => {
-      window.clearTimeout(idle);
-      generation++;
-      refiner?.stop();
-      if (refiner) refiner.canvas.style.opacity = "0";
-      chip.hidden = true;
-    };
-    const startRefine = async () => {
-      if (!wantRefine()) return;
-      const mine = ++generation;
-      const s = useAppStore.getState();
-      const key = `${s.app?.revision}:${JSON.stringify(s.app?.sun)}`;
-      const pt = await import("../render/pathtrace");
-      if (mine !== generation) return;
-      if (!refiner) {
-        try {
-          refiner = new pt.Refiner();
-        } catch {
-          return; // No WebGL for the tracer.
-        }
-        const c = refiner.canvas;
-        c.className = "refine-canvas";
-        wrap.appendChild(c);
-      }
-      const r = wrap.getBoundingClientRect();
-      const w = Math.round(r.width);
-      const h = Math.round(r.height);
-      if (w < 2 || h < 2) return;
-      refiner.setSize(w, h);
-      if (!refineScene || refineScene.key !== key) {
-        chip.textContent = "Preparing realistic render…";
-        chip.hidden = false;
-        const { realScene } = await import("../render/realScene");
-        const built = await realScene(view.id).catch(() => null);
-        if (mine !== generation || !built) return;
-        refineScene = { key, ...built };
-      }
-      const cam = pt.cameraFor(
-        { eye: camera.position.toArray(), target: controls.target.toArray(), fov: camera.fov },
-        w / h,
-      );
-      refiner.setExposure(refineScene.exposure);
-      refiner.setScene(refineScene.scene, cam);
-      const target = 512;
-      refiner.run(target, (n, done) => {
-        if (mine !== generation) return;
-        // Shown once a few samples have landed, so it never flashes noise.
-        if (n >= 3 && refiner) refiner.canvas.style.opacity = "1";
-        chip.hidden = false;
-        chip.textContent = done
-          ? "Realistic render"
-          : `Refining… ${Math.round((n / target) * 100)}%`;
-      });
-    };
-    const scheduleRefine = () => {
-      stopRefine();
-      if (!wantRefine()) return;
-      idle = window.setTimeout(() => void startRefine(), 650);
-    };
-    controls.addEventListener("start", stopRefine);
-    controls.addEventListener("change", scheduleRefine);
-    // Anything that changes what's shown: the model, the style, the selection, the tool.
-    let refineKey = "";
-    const unsubscribeRefine = useAppStore.subscribe((s) => {
-      const k = [
-        styleOf(s, view.id),
-        s.app?.revision,
-        JSON.stringify(s.app?.sun),
-        s.selection.length,
-        s.tool,
-        !!s.app?.sketch,
-        !!s.tempHide[view.id],
-      ].join("|");
-      if (k !== refineKey) {
-        refineKey = k;
-        scheduleRefine();
-      }
-    });
-    const onVisibility = () => scheduleRefine();
-    document.addEventListener("visibilitychange", onVisibility);
     const stopTurn = () => cube.stop();
     controls.addEventListener("start", stopTurn);
     const onFit = () => cube.fit();
@@ -532,15 +444,152 @@ export function View3D({ view }: { view: ViewInfo }) {
         ao.updateGtaoMaterial({ radius: 600, distanceExponent: 1.4, thickness: 300, scale: 1 });
         ao.blendIntensity = 0.85;
         c.addPass(ao);
+        // A soft bloom on the brightest light: sun glints, lit lenses (Enscape's).
+        c.addPass(new UnrealBloomPass(new THREE.Vector2(r.width, r.height), 0.12, 0.5, 6));
         c.addPass(new OutputPass());
         t.composer = c;
       }
       return t.composer;
     };
+    // ---- Enscape's Walk and Fly (ADR-063) ----
+    let nav: NavState | null = null;
+    let navLast = performance.now();
+    let navSpeed = 1;
+    const keys = new Set<string>();
+    const solids = () =>
+      [...group.children, ...terrainGroup.children].filter(
+        (c): c is THREE.Mesh => c instanceof THREE.Mesh && c.visible,
+      );
+    const world = {
+      ground: (x: number, y: number, z: number) => {
+        const ray = new THREE.Raycaster(
+          new THREE.Vector3(x, y, z),
+          new THREE.Vector3(0, 0, -1),
+          0,
+          1e6,
+        );
+        const hit = ray
+          .intersectObjects([...solids(), ground], false)
+          .find((h) => h.object.visible);
+        if (hit) return hit.point.z;
+        const levels = useAppStore.getState().app?.levelElevations ?? [0];
+        return Math.min(0, ...levels);
+      },
+      blocked: (a: [number, number, number], b: [number, number, number]) => {
+        const from = new THREE.Vector3(...a);
+        const to = new THREE.Vector3(...b);
+        const len = from.distanceTo(to);
+        if (len < 1) return false;
+        const ray = new THREE.Raycaster(from, to.sub(from).normalize(), 0, len);
+        // Doors swing open as you walk through, as Enscape's do.
+        return ray
+          .intersectObjects(solids(), false)
+          .some((h) => h.object.userData.category !== "Door");
+      },
+    };
+    const typing = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      return (
+        !!el && (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA")
+      );
+    };
+    const NAV_KEYS = [
+      "w",
+      "a",
+      "s",
+      "d",
+      "q",
+      "e",
+      "arrowup",
+      "arrowdown",
+      "arrowleft",
+      "arrowright",
+      "shift",
+    ];
+    const onNavKey = (e: KeyboardEvent) => {
+      const s = useAppStore.getState();
+      if (s.nav3d === "orbit" || typing(e) || s.activeView !== view.id) return;
+      const k = e.key.toLowerCase();
+      if (e.type === "keydown" && k === " ") {
+        s.setNav3d(s.nav3d === "walk" ? "fly" : "walk");
+      } else if (e.type === "keydown" && k === "escape") {
+        s.setNav3d("orbit");
+      } else if (NAV_KEYS.includes(k)) {
+        if (e.type === "keydown") keys.add(k);
+        else keys.delete(k);
+      } else return;
+      // The view has the keys: no two-letter shortcuts while walking.
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    window.addEventListener("keydown", onNavKey, { capture: true });
+    window.addEventListener("keyup", onNavKey, { capture: true });
+    const onBlur = () => keys.clear();
+    window.addEventListener("blur", onBlur);
+    // Dragging looks around.
+    const onNavLook = (e: PointerEvent) => {
+      if (!nav || !(e.buttons & 1)) return;
+      nav = look(nav, e.movementX, e.movementY);
+    };
+    renderer.domElement.addEventListener("pointermove", onNavLook);
+    const onNavWheel = (e: WheelEvent) => {
+      if (!nav) return;
+      navSpeed = Math.min(20, Math.max(0.1, navSpeed * (e.deltaY < 0 ? 1.2 : 1 / 1.2)));
+    };
+    renderer.domElement.addEventListener("wheel", onNavWheel, { passive: true });
+    const stepNav = () => {
+      const now = performance.now();
+      const dt = Math.min(0.1, (now - navLast) / 1000);
+      navLast = now;
+      const mode = useAppStore.getState().nav3d;
+      if (mode === "orbit") {
+        if (nav) {
+          // Back to Orbit: about a point ahead.
+          const d = lookDir(nav);
+          controls.target.set(
+            nav.pos[0] + d[0] * 4000,
+            nav.pos[1] + d[1] * 4000,
+            nav.pos[2] + d[2] * 4000,
+          );
+          controls.enabled = true;
+          nav = null;
+          keys.clear();
+        }
+        return false;
+      }
+      controls.enabled = false;
+      nav ??= fromLook(
+        camera.position.toArray() as [number, number, number],
+        controls.target.toArray() as [number, number, number],
+      );
+      const has = (...k: string[]) => k.some((x) => keys.has(x));
+      const input = {
+        forward: (has("w", "arrowup") ? 1 : 0) - (has("s", "arrowdown") ? 1 : 0),
+        right: (has("d", "arrowright") ? 1 : 0) - (has("a", "arrowleft") ? 1 : 0),
+        up: (has("e") ? 1 : 0) - (has("q") ? 1 : 0),
+        fast: has("shift"),
+      };
+      const before = nav.pos.join();
+      nav = navStep(nav, input, dt, mode, navSpeed, mode === "walk" ? world : undefined);
+      const d = lookDir(nav);
+      camera.position.set(...nav.pos);
+      controls.target.set(
+        nav.pos[0] + d[0] * 4000,
+        nav.pos[1] + d[1] * 4000,
+        nav.pos[2] + d[2] * 4000,
+      );
+      camera.lookAt(controls.target);
+      if (nav.pos.join() !== before) onCameraChange();
+      return true;
+    };
     const loop = () => {
       cube.step();
-      controls.update();
+      if (!stepNav()) controls.update();
       const realistic = styleOf(useAppStore.getState(), view.id) === "realistic";
+      // Realistic's exposure (the sun panel's), raised after dark for the lights.
+      renderer.toneMappingExposure = realistic
+        ? useAppStore.getState().exposure3d * (three.current?.autoExposure ?? 1)
+        : 1;
       const c = realistic && !boxRef.current ? composer() : null;
       if (c) c.render();
       else renderer.render(scene, camera);
@@ -554,7 +603,6 @@ export function View3D({ view }: { view: ViewInfo }) {
       three.current?.composer?.setSize(r.width, r.height);
       camera.aspect = r.width / Math.max(r.height, 1);
       camera.updateProjectionMatrix();
-      scheduleRefine();
     });
     ro.observe(wrap);
 
@@ -1372,11 +1420,11 @@ export function View3D({ view }: { view: ViewInfo }) {
       window.removeEventListener("tool-cancel", onCancel);
       window.removeEventListener("select-tab", onTabEvent);
       window.removeEventListener("orient-to-sketch", onOrient);
-      unsubscribeRefine();
-      document.removeEventListener("visibilitychange", onVisibility);
-      stopRefine();
-      refiner?.dispose();
-      chip.remove();
+      window.removeEventListener("keydown", onNavKey, { capture: true });
+      window.removeEventListener("keyup", onNavKey, { capture: true });
+      window.removeEventListener("blur", onBlur);
+      renderer.domElement.removeEventListener("pointermove", onNavLook);
+      renderer.domElement.removeEventListener("wheel", onNavWheel);
       three.current?.composer?.dispose();
       renderer.domElement.removeEventListener("pointerleave", onLeave);
       window.clearTimeout(saveTimer);
@@ -1547,8 +1595,9 @@ export function View3D({ view }: { view: ViewInfo }) {
   // sky for the light and background, without its sun disk, which the shadow-casting sun
   // light carries at the sky model's sun-to-sky ratio.
   const sunKey = useAppStore(
-    (s) => JSON.stringify(s.app?.sun ?? null) + (s.app?.site ? "site" : ""),
+    (s) => JSON.stringify(s.sunPreview ?? s.app?.sun ?? null) + (s.app?.site ? "site" : ""),
   );
+  const previewing = useAppStore((s) => !!s.sunPreview);
   useEffect(() => {
     if (visualStyle !== "realistic") return;
     let live = true;
@@ -1557,17 +1606,21 @@ export function View3D({ view }: { view: ViewInfo }) {
         import("../render/sky"),
         import("../render/pathtrace"),
       ]);
-      const sun = await ipc.sunNow().catch(() => null);
+      const st = useAppStore.getState();
+      const settings = st.sunPreview ?? st.app?.sun ?? null;
+      const sun = await (settings ? ipc.sunFor(settings) : ipc.sunNow()).catch(() => null);
       const t = three.current;
       if (!live || !t) return;
       const alt = sun ? sun.altitude : 35;
-      const dirZ = sun && sun.altitude > 0 ? sun.dir : [0.45, -0.55, 0.7];
+      const night = alt <= 0;
+      const dirZ = sun && !night ? sun.dir : [0.45, -0.55, 0.7];
+      // A coarser sky while the time is being dragged.
       const sky = physicalSky({
         sunDir: toYUp(dirZ),
-        altitude: Math.max(alt, 2),
+        altitude: night ? -6 : Math.max(alt, 1),
         sunToSky: 0,
-        width: 1024,
-        height: 512,
+        width: previewing ? 512 : 1024,
+        height: previewing ? 256 : 512,
       });
       sky.mapping = THREE.EquirectangularReflectionMapping;
       sky.needsUpdate = true;
@@ -1581,7 +1634,24 @@ export function View3D({ view }: { view: ViewInfo }) {
       const irr = horizontalIrradiance(sky);
       const ratio = 6 * Math.min(1, Math.max(0.15, (Math.max(alt, 2) + 2) / 20));
       t.sunDir = new THREE.Vector3(dirZ[0], dirZ[1], dirZ[2]);
-      t.sunIntensity = ratio * irr;
+      t.sunIntensity = night ? 1e-6 : ratio * irr;
+      t.night = night;
+      // Auto exposure: a lit ground at any time of day reads like a photograph's, a white
+      // surface in full sun just short of white. After dark, a fixed boost for the lights.
+      const lux = irr * (1 + ratio * Math.max(0.2, Math.sin((Math.max(alt, 2) * Math.PI) / 180)));
+      t.autoExposure = night ? 8 : AUTO_EXPOSURE / Math.max(lux, 1e-6);
+      // After dark the building's fixtures light it (ADR-063).
+      if (!t.fixtures) {
+        t.fixtures = new THREE.Group();
+        t.scene.add(t.fixtures);
+      }
+      for (const c of [...t.fixtures.children]) t.fixtures.remove(c);
+      if (night) {
+        const lights = await ipc.lights(view.id).catch(() => [] as LightInfo[]);
+        if (!live) return;
+        for (const l of lights.filter((l) => l.on && l.lumens > 0).slice(0, 48))
+          t.fixtures.add(...fixtureLight3d(l));
+      }
       const c = sunColor(Math.max(alt, 2));
       t.sunColor = new THREE.Color().setRGB(c[0], c[1], c[2], THREE.LinearSRGBColorSpace);
       applyScene(t, "realistic");
@@ -1589,7 +1659,7 @@ export function View3D({ view }: { view: ViewInfo }) {
     return () => {
       live = false;
     };
-  }, [visualStyle, sunKey]);
+  }, [visualStyle, sunKey, previewing, revision, view.id]);
 
   // Realistic: the project's materials with their textures, loaded when first shown.
   useEffect(() => {
@@ -1724,6 +1794,10 @@ export function View3D({ view }: { view: ViewInfo }) {
   return (
     <div ref={wrapRef} className={`canvas-wrap view3d${temp ? " temp-hide" : ""}`} data-tool={tool}>
       <ViewCubeOverlay cube={cube} viewId={view.id} />
+      <div className="view3d-top">
+        <SunPanel />
+        <NavBar />
+      </div>
       <VisualStyleToggle value={visualStyle} onChange={(s) => setVisualStyle(view.id, s)} />
       <button
         className={`view3d-chip${grid3d ? " on" : ""}`}
@@ -1835,6 +1909,34 @@ function applyDisplay(
   }
 }
 
+/** A fixture's light in the z-up 3D view (ADR-063), in the render's units: candela over
+ * mm², the sky at 6,000 lux a unit. Area sources become cosine spots. */
+function fixtureLight3d(l: LightInfo): THREE.Object3D[] {
+  const color = new THREE.Color().setRGB(
+    l.color[0] / 255,
+    l.color[1] / 255,
+    l.color[2] / 255,
+    THREE.SRGBColorSpace,
+  );
+  const k = 1e6 / 6000;
+  const at = new THREE.Vector3(...l.at);
+  const dir = new THREE.Vector3(...l.dir).normalize();
+  if (l.distribution === "Spherical" && l.shape !== "Rectangle" && l.shape !== "Line") {
+    const p = new THREE.PointLight(color, (l.lumens / (4 * Math.PI)) * k, 0, 2);
+    p.position.copy(at);
+    return [p];
+  }
+  const spot = l.distribution === "Spot";
+  const half = spot
+    ? THREE.MathUtils.degToRad(Math.min(Math.max(l.beam, 2), 170)) / 2
+    : (Math.PI / 2) * 0.999;
+  const cd = spot ? l.lumens / (2 * Math.PI * (1 - Math.cos(half))) : l.lumens / Math.PI;
+  const s = new THREE.SpotLight(color, cd * k, 0, half, spot ? 0.35 : 1, 2);
+  s.position.copy(at);
+  s.target.position.copy(at.clone().addScaledVector(dir, 1000));
+  return [s, s.target];
+}
+
 /** Tab's candidate under the cursor, pre-highlighted lighter than the selection (ADR-056). */
 const PRESELECTED = 0x9fe6f8;
 
@@ -1897,6 +1999,7 @@ function applyScene(t: Three, style: VisualStyle) {
   t.sun.intensity = realistic ? (t.sunIntensity ?? 3.2) : 1.4;
   t.sun.color.copy(realistic && t.sunColor ? t.sunColor : new THREE.Color(0xffffff));
   t.sun.castShadow = realistic;
+  if (t.fixtures) t.fixtures.visible = realistic;
   const shadowSize = realistic ? 4096 : 2048;
   if (t.sun.shadow.mapSize.x !== shadowSize) {
     t.sun.shadow.mapSize.set(shadowSize, shadowSize);

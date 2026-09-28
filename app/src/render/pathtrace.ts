@@ -576,106 +576,62 @@ export class RenderJob {
   }
 }
 
-/** V-Ray's interactive render for the Realistic 3D view (ADR-062): one path tracer that
- * keeps its scene (its BVH is built once per model) and only moves its camera, refining
- * the still frame sample by sample and denoising it at the end. */
-export class Refiner {
-  readonly canvas: HTMLCanvasElement;
-  private renderer: THREE.WebGLRenderer;
-  private tracer: WebGLPathTracer;
-  private raf = 0;
-  private running = false;
-  private scene: THREE.Scene | null = null;
+/** The glare's bright pass: how much of a pixel's colour (0–255, sRGB) blooms, from 0 below
+ * `threshold` of full brightness to 1 at full. */
+export function glareWeight(r: number, g: number, b: number, threshold = 0.8): number {
+  const l = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return Math.max(0, Math.min(1, (l - threshold) / (1 - threshold)));
+}
 
-  constructor() {
-    this.renderer = new THREE.WebGLRenderer({
-      antialias: false,
-      alpha: false,
-      preserveDrawingBuffer: true,
-    });
-    this.renderer.setPixelRatio(1);
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.canvas = this.renderer.domElement;
-    this.tracer = new WebGLPathTracer(this.renderer);
-    this.tracer.bounces = 6;
-    this.tracer.transmissiveBounces = 8;
-    this.tracer.filterGlossyFactor = 0.5;
-    this.tracer.multipleImportanceSampling = true;
-    this.tracer.minSamples = 1;
-    this.tracer.renderDelay = 0;
-    this.tracer.fadeDuration = 0;
-    this.tracer.dynamicLowRes = false;
-    this.tracer.rasterizeScene = false;
-    this.tracer.tiles.set(2, 2);
-  }
-
-  setSize(width: number, height: number) {
-    this.renderer.setSize(Math.max(1, width), Math.max(1, height), false);
-    this.tracer.reset();
-  }
-
-  setExposure(exposure: number) {
-    this.renderer.toneMappingExposure = exposure;
-  }
-
-  /** The scene it traces (built again only when this is a new scene). */
-  setScene(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
-    if (this.scene === scene) {
-      this.tracer.setCamera(camera);
-      return;
-    }
-    this.tracer.textureSize.setScalar(textureSizeFor(scene));
-    this.tracer.setScene(scene, camera);
-    this.scene = scene;
-  }
-
-  /** Refines until `target` samples, then denoises; `onProgress` hears each sample. */
-  run(target: number, onProgress: (samples: number, done: boolean) => void) {
-    this.stop();
-    this.running = true;
-    const loop = () => {
-      if (!this.running) return;
-      this.tracer.renderSample();
-      const n = Math.floor(this.tracer.samples);
-      if (n >= target) {
-        this.running = false;
-        this.denoise();
-        onProgress(n, true);
-        return;
+/** V-Ray's and Corona's lens effects on a finished render (ADR-063): glare blooming from the
+ * brightest light (sun glints, lit fixtures, the sky through glass), tight and wide, and a
+ * soft vignette. `glare` and `vignette` are 0–1. */
+export function lensEffects(canvas: HTMLCanvasElement, o: { glare: number; vignette: number }) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const { width: w, height: h } = canvas;
+  if (o.glare > 0) {
+    const s = document.createElement("canvas");
+    s.width = Math.max(1, w >> 2);
+    s.height = Math.max(1, h >> 2);
+    const sc = s.getContext("2d");
+    if (sc) {
+      sc.drawImage(canvas, 0, 0, s.width, s.height);
+      const img = sc.getImageData(0, 0, s.width, s.height);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const k = glareWeight(d[i]!, d[i + 1]!, d[i + 2]!);
+        d[i] = d[i]! * k;
+        d[i + 1] = d[i + 1]! * k;
+        d[i + 2] = d[i + 2]! * k;
       }
-      onProgress(n, false);
-      this.raf = requestAnimationFrame(loop);
-    };
-    this.raf = requestAnimationFrame(loop);
+      sc.putImageData(img, 0, 0);
+      ctx.save();
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = o.glare;
+      ctx.filter = `blur(${Math.max(2, Math.round(w / 160))}px)`;
+      ctx.drawImage(s, 0, 0, w, h);
+      ctx.globalAlpha = o.glare * 0.6;
+      ctx.filter = `blur(${Math.max(6, Math.round(w / 45))}px)`;
+      ctx.drawImage(s, 0, 0, w, h);
+      ctx.restore();
+    }
   }
-
-  stop() {
-    this.running = false;
-    cancelAnimationFrame(this.raf);
-  }
-
-  private denoise() {
-    const mat = new DenoiseMaterial({
-      map: this.tracer.target.texture,
-      blending: THREE.NoBlending,
-      premultipliedAlpha: true,
-    });
-    mat.sigma = 5;
-    mat.threshold = 0.06;
-    mat.kSigma = 1.1;
-    const quad = new FullScreenQuad(mat);
-    this.renderer.setRenderTarget(null);
-    quad.render(this.renderer);
-    quad.dispose();
-    mat.dispose();
-  }
-
-  dispose() {
-    this.stop();
-    this.tracer.dispose();
-    this.renderer.dispose();
-    this.canvas.remove();
+  if (o.vignette > 0) {
+    const g = ctx.createRadialGradient(
+      w / 2,
+      h / 2,
+      Math.min(w, h) * 0.4,
+      w / 2,
+      h / 2,
+      Math.hypot(w, h) / 2,
+    );
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, `rgba(0,0,0,${o.vignette})`);
+    ctx.save();
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
   }
 }
 

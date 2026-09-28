@@ -133,8 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
-- Realistic view (ADR-062): pathtrace `Refiner` (persistent tracer), render/realScene.ts;
-  View3D refines the still frame, GTAO composer, physical sky and sun from Sun Settings.
+- Live Realistic view (ADR-063): View3D composer (GTAO, bloom), auto exposure, physical sky;
+  components/View3DPanels.tsx (SunPanel, NavBar), render/navigate.ts (Walk/Fly), studio-core
+  `lighting::sun_for`; Render adds pathtrace `lensEffects` (glare, vignette).
 - Generated materials (ADR-061): studio-views `texgen` (KINDS, generate); studio-core library
   Siding category and `gen:` roofing presets; app `material_cmds::generated_map` (4096 px PNG
   cache); pathtrace `textureSizeFor`; boxUv maps sloped faces along the slope.
@@ -198,4 +199,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-27
+- Last updated: 2026-09-28
