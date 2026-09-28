@@ -125,7 +125,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "door" || tool === "window" || tool === "light")
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   if (tool === "sketch" || tool === "elevation") return view === "Plan" || view === "CeilingPlan";
-  if (tool === "tag") return view === "Plan";
+  // Rooms are tagged in sections and elevations too (ADR-060).
+  if (tool === "tag") return view === "Plan" || view === "Elevation" || view === "Section";
   if (tool === "matchType" || tool === "mirrorPick")
     return view === "Plan" || view === "CeilingPlan";
   if (tool === "callout")
@@ -232,7 +233,9 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
     case "sketch":
       return sketchPrompt(useAppStore.getState().sketchUi.mode, n);
     case "tag":
-      return "Click a door, window, room, column or beam to tag it.";
+      return view === "Elevation" || view === "Section"
+        ? "Click inside a room, at its level's height, to tag it there. Select a tag and drag it to move it."
+        : "Click a door, window, room, column or beam to tag it. Select a tag and drag it to move it.";
     case "camera":
       return n === 0
         ? "Click in the plan to place the camera's eye point."

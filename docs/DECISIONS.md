@@ -2066,3 +2066,32 @@ from the model edges the view draws (`view_refs`):
 - dimensions that follow levels and openings in elevations (that needs new reference
   anchors in the file format);
 - placing doors and windows in walls seen at an angle.
+
+## ADR-060 Grid ends that snap to grids, frames in plan, draggable tags — Accepted (2026-09-27)
+Owner request (2026-09-27): "when moving the grid bubbles, allow them to snap to other
+gridlines as well; show the door frame and window frame in plan view; drag the room name tag
+when it's selected, in plan, elevation and section views".
+
+**Grid bubbles.** A grid end's grip stays on its grid's line, as in Revit
+(`handles::grip_snap`). While dragging, it snaps:
+- level with the ends of the grids parallel to it, so bubbles line up;
+- to where other gridlines cross it.
+The status bar names what it snapped to ("Aligned with Grid 3", "Grid B"). Before, the end
+could wander off its line.
+
+**Frames in plan.** Door and window symbols now show their frames, sized as in 3D:
+- **Doors:** the jambs through the wall (a 4 1/2" frame for glass and garage doors), and the
+  casings on both faces (not on barn doors).
+- **Windows:** the frame's jambs, as deep as the frame.
+
+**Tags drag.** A selected tag (a room's name, number and area, or a door, window, column or
+beam tag) drags by its text in any view it's drawn in. The drag area sets its offset from its
+element (`drag_handle` key `tag`), one undo step. Move still works too.
+
+**Room tags in sections and elevations.** Tag works in sections and elevations:
+- click inside a room, at its level's height;
+- the room is the first one the line of sight enters on the level at or below the click
+  (from the cut, in sections and interior elevations);
+- its tag goes where it was clicked, stored as an offset from a spot over the room's point,
+  4'-0" above its level (`view_refs::room_tag_base`), so it follows the room;
+- one tag per room per view.

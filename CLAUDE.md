@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Grids, frames and tags (ADR-060): studio-views `handles::grip_snap` (grid ends), tag drag
+  areas (key `tag`), `view_refs::room_in_view` / `room_tag_base`; studio-core
+  `visibility::tag_room_in_view`; door and window jambs (and casings) in plan symbols.
 - Elevations and sections (ADR-059): studio-views `view_refs` (segments, snaps, references,
   model_point); `opening_preview` there places on the wall face; `create_lighting_fixture` works
   out level and height from the click.

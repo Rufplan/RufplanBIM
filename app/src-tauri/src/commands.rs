@@ -291,6 +291,25 @@ pub fn pick_candidates(
     Ok(studio_views::pick_candidates(session.doc()?, &ids))
 }
 
+/// Where a dragged grip snaps, when it has its own rule (a grid end, ADR-060).
+#[tauri::command]
+pub fn grip_snap(
+    id: ElementId,
+    key: String,
+    point: Pt,
+    tol: f64,
+    state: State<'_, SessionState>,
+) -> CommandResult<Option<SnapResult>> {
+    let session = lock(&state)?;
+    Ok(studio_views::handles::grip_snap(
+        session.doc()?,
+        id,
+        &key,
+        point,
+        tol,
+    ))
+}
+
 #[tauri::command]
 pub fn snap(
     view: ElementId,

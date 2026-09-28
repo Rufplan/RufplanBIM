@@ -650,7 +650,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         ? null
         : (grip.anchor ?? null)
       : (pts.current[pts.current.length - 1] ?? null);
-    snapRef.current = await ipc.snap(view.id, p, from, tol);
+    // A grid's bubble stays on its line and lines up with other grids (ADR-060).
+    const own =
+      grip && (grip.key === "start" || grip.key === "end")
+        ? await ipc.gripSnap(grip.id, grip.key, p, tol)
+        : null;
+    snapRef.current = own ?? (await ipc.snap(view.id, p, from, tol));
     if (g && grip) {
       const q = snapRef.current.pt;
       g.to = title && !g.shift ? { x: q.x, y: grip.at.y } : q;
@@ -1359,6 +1364,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     if (s.tool === "roof") {
       await apply(() => ipc.createRoof(view.id, s.toolTypes.roof));
+      return;
+    }
+    if (s.tool === "tag" && (view.viewType === "Elevation" || view.viewType === "Section")) {
+      // A room's tag, where it's clicked (ADR-060).
+      await apply(() => ipc.tagRoomInView(view.id, raw));
       return;
     }
     if (s.tool === "tag") {

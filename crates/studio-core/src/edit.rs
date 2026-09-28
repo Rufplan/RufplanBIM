@@ -806,6 +806,14 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                 }
             })
         }),
+        // Dragging a selected tag (ADR-060): `to` is its new offset from its element.
+        (ElementData::Tag { .. }, "tag") => doc.transact("Move tag", |tx| {
+            tx.modify(id, |d| {
+                if let ElementData::Tag { offset, .. } = d {
+                    *offset = to;
+                }
+            })
+        }),
         (d @ ElementData::Dimension { .. }, "line") => {
             let (pts, u) = crate::dimension::string_points(doc, &d).ok_or_else(bad)?;
             let off = to.sub(pts[0]).dot(u.perp());

@@ -56,6 +56,112 @@ pub struct Handles {
     pub areas: Vec<DragArea>,
 }
 
+/// Where a dragged grid end snaps (ADR-060), as Revit's grid bubbles do: the end stays on
+/// its grid's line, and snaps level with the ends of the grids parallel to it (their
+/// bubbles line up) and to where other gridlines cross it. None for other grips.
+pub fn grip_snap(
+    doc: &Document,
+    id: ElementId,
+    key: &str,
+    p: Pt,
+    tol: f64,
+) -> Option<crate::snap::SnapResult> {
+    use crate::snap::{SnapKind, SnapResult};
+    let ElementData::Grid { start, end, .. } = doc.data(id).ok()? else {
+        return None;
+    };
+    let fixed = match key {
+        "start" => *end,
+        "end" => *start,
+        _ => return None,
+    };
+    let moving = if key == "start" { *start } else { *end };
+    let d = moving.sub(fixed).norm();
+    let along = |q: Pt| fixed.add(d.scale(q.sub(fixed).dot(d)));
+    let q = along(p);
+    let mut best: Option<(f64, Pt, SnapKind, String)> = None;
+    for e in doc.of(Category::Grid).filter(|e| e.id != id) {
+        let ElementData::Grid {
+            name,
+            start: s2,
+            end: e2,
+            ..
+        } = &e.data
+        else {
+            continue;
+        };
+        let d2 = e2.sub(*s2).norm();
+        let cands: Vec<(Pt, SnapKind, String)> = if d.cross(d2).abs() < 1e-3 {
+            // Parallel: level with its ends.
+            [*s2, *e2]
+                .iter()
+                .map(|x| {
+                    (
+                        along(*x),
+                        SnapKind::Endpoint,
+                        format!("Aligned with Grid {name}"),
+                    )
+                })
+                .collect()
+        } else {
+            studio_geom::line_intersection(fixed, d, *s2, d2)
+                .map(|x| vec![(x, SnapKind::Intersection, format!("Grid {name}"))])
+                .unwrap_or_default()
+        };
+        for (c, kind, label) in cands {
+            let dist = c.dist(q);
+            // Never onto (or past) the other end.
+            if dist <= tol && c.sub(fixed).dot(d) > 1.0 && best.as_ref().is_none_or(|b| dist < b.0)
+            {
+                best = Some((dist, c, kind, label));
+            }
+        }
+    }
+    Some(match best {
+        Some((_, pt, kind, label)) => SnapResult {
+            pt,
+            kind,
+            label: Some(label),
+        },
+        None => SnapResult {
+            pt: q,
+            kind: SnapKind::None,
+            label: Some(format_ft_in(q.dist(fixed))),
+        },
+    })
+}
+
+/// The box around what `id` draws in `view` (text by its size), for dragging.
+fn drawn_extent(doc: &Document, view: ElementId, id: ElementId) -> Option<(Pt, Pt)> {
+    let dl = crate::display_list_shared(doc, view)?;
+    let mut lo = Pt::new(f64::INFINITY, f64::INFINITY);
+    let mut hi = Pt::new(f64::NEG_INFINITY, f64::NEG_INFINITY);
+    let mut grow = |p: Pt| {
+        lo = Pt::new(lo.x.min(p.x), lo.y.min(p.y));
+        hi = Pt::new(hi.x.max(p.x), hi.y.max(p.y));
+    };
+    for it in dl.items.iter().filter(|i| i.el == Some(id)) {
+        match &it.prim {
+            Prim::Text { at, text, size, .. } => {
+                // Centered text, about 0.6 of its height per character.
+                let hw = text.chars().count() as f64 * size * 0.3;
+                grow(Pt::new(at[0] - hw, at[1] - size * 0.6));
+                grow(Pt::new(at[0] + hw, at[1] + size * 0.6));
+            }
+            Prim::Line { pts, .. } => pts.iter().for_each(|p| grow(Pt::new(p[0], p[1]))),
+            Prim::Fill { rings, .. } => rings
+                .iter()
+                .flatten()
+                .for_each(|p| grow(Pt::new(p[0], p[1]))),
+            Prim::Circle { c, r, .. } => {
+                grow(Pt::new(c[0] - r, c[1] - r));
+                grow(Pt::new(c[0] + r, c[1] + r));
+            }
+        }
+    }
+    (lo.x.is_finite() && hi.x > lo.x).then_some((lo, hi))
+}
+
 fn view_of(doc: &Document, view: ElementId) -> Option<(&ViewKind, f64)> {
     match doc.data(view).ok()? {
         ElementData::View { kind, scale, .. } => Some((kind, f64::from(*scale))),
@@ -390,6 +496,18 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     });
                 }
             }
+            // A selected tag drags by its text (ADR-060), in any view it's drawn in.
+            ElementData::Tag { offset, .. } => {
+                if let Some((min, max)) = drawn_extent(doc, view, *id) {
+                    out.areas.push(DragArea {
+                        id: *id,
+                        key: "tag".into(),
+                        min,
+                        max,
+                        at: *offset,
+                    });
+                }
+            }
             _ => {}
         }
     }
@@ -605,5 +723,95 @@ mod tests {
             Prim::Line { pts, .. } => assert!((pts[0][1] + 1000.0).abs() < 1e-6),
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn a_grid_end_stays_on_its_line_and_snaps_to_other_grids() {
+        let mut doc = Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let g = |doc: &mut Document, a: (f64, f64), b: (f64, f64)| {
+            studio_core::ops::create_grid(doc, Pt::new(a.0, a.1), Pt::new(b.0, b.1)).unwrap()
+        };
+        // Three vertical grids, the second shorter; one horizontal grid across them.
+        let a = g(&mut doc, (0.0, 0.0), (0.0, 10000.0));
+        g(&mut doc, (6000.0, 0.0), (6000.0, 12000.0));
+        g(&mut doc, (-3000.0, 4000.0), (12000.0, 4000.0));
+        // Dragging A's top end sideways and near 12 m: on A's line, level with the other end.
+        let s = grip_snap(&doc, a, "end", Pt::new(250.0, 11900.0), 300.0).unwrap();
+        assert!(
+            (s.pt.x).abs() < 1e-9 && (s.pt.y - 12000.0).abs() < 1e-9,
+            "{:?}",
+            s.pt
+        );
+        assert!(s.label.unwrap().starts_with("Aligned with Grid"));
+        // Near the horizontal grid: its crossing.
+        let s = grip_snap(&doc, a, "end", Pt::new(100.0, 4150.0), 300.0).unwrap();
+        assert!(matches!(s.kind, crate::snap::SnapKind::Intersection));
+        assert!((s.pt.y - 4000.0).abs() < 1e-9 && s.pt.x.abs() < 1e-9);
+        // Nothing near: just along the line.
+        let s = grip_snap(&doc, a, "end", Pt::new(400.0, 8000.0), 300.0).unwrap();
+        assert!(s.pt.x.abs() < 1e-9 && (s.pt.y - 8000.0).abs() < 1e-9);
+        assert!(grip_snap(&doc, a, "line", Pt::new(0.0, 0.0), 300.0).is_none());
+    }
+
+    #[test]
+    fn room_tags_drag_and_go_in_sections() {
+        let mut doc = Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = studio_core::ops::first_of(&doc, Category::WallType).unwrap();
+        let pts = [(0.0, 0.0), (6000.0, 0.0), (6000.0, 4000.0), (0.0, 4000.0)];
+        for k in 0..4 {
+            let (a, b) = (pts[k], pts[(k + 1) % 4]);
+            studio_core::ops::create_wall(&mut doc, wt, l1, Pt::new(a.0, a.1), Pt::new(b.0, b.1))
+                .unwrap();
+        }
+        let room = studio_core::ops::create_room(&mut doc, l1, Pt::new(3000.0, 2000.0)).unwrap();
+        // A section across the room, looking north.
+        let sec = studio_core::ops::create_section(
+            &mut doc,
+            Pt::new(-2000.0, 2000.0),
+            Pt::new(8000.0, 2000.0),
+        )
+        .unwrap();
+        let z0 = doc.levels()[0].2;
+        let click = Pt::new(4000.0, z0 + 1500.0);
+        assert_eq!(crate::view_refs::room_in_view(&doc, sec, click), Some(room));
+        let base = crate::view_refs::room_tag_base(&doc, sec, room).unwrap();
+        let tag = studio_core::visibility::tag_room_in_view(&mut doc, sec, room, click.sub(base))
+            .unwrap();
+        // Drawn where it was clicked, and selectable there.
+        let dl = crate::display_list(&doc, sec).unwrap();
+        assert!(crate::pick(&dl, click, 50.0) == Some(tag));
+        // Selected, it drags by its text: the area is around the click.
+        let h = handles(&doc, sec, &[tag]);
+        let area = h.areas.iter().find(|a| a.id == tag).unwrap();
+        assert!(area.min.x < click.x && area.max.x > click.x);
+        assert!(area.min.y < click.y + 500.0 && area.max.y > click.y - 500.0);
+        studio_core::edit::drag_handle(&mut doc, tag, "tag", area.at.add(Pt::new(600.0, 300.0)))
+            .unwrap();
+        let dl = crate::display_list(&doc, sec).unwrap();
+        assert_eq!(
+            crate::pick(&dl, click.add(Pt::new(600.0, 300.0)), 50.0),
+            Some(tag)
+        );
+        // Plans' room tags drag the same way.
+        let plan = doc
+            .of(Category::View)
+            .find(|e| matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1))
+            .unwrap()
+            .id;
+        let ptag = doc
+            .of(Category::Tag)
+            .find(|e| matches!(&e.data, ElementData::Tag { view, target, .. } if *view == plan && *target == room))
+            .map(|e| e.id);
+        if let Some(ptag) = ptag {
+            let h = handles(&doc, plan, &[ptag]);
+            assert!(h.areas.iter().any(|a| a.id == ptag && a.key == "tag"));
+        }
+        // Only one tag per room per view.
+        assert!(
+            studio_core::visibility::tag_room_in_view(&mut doc, sec, room, Pt::default()).is_err()
+        );
     }
 }

@@ -101,6 +101,25 @@ pub(crate) fn plan_symbol(
     for off in [h, -h] {
         seg(b, 0.0, w, off, 1);
     }
+    // The frame's jambs, as deep as in 3D (ADR-060).
+    let depth = lay.depth.min(2.0 * h).max(0.5 * 25.4);
+    let f = lay.frame;
+    if f > 0.0 {
+        for (u0, u1) in [(0.0, f), (w - f, w)] {
+            b.line(
+                el,
+                &[
+                    x.at(u0, -depth / 2.0),
+                    x.at(u1, -depth / 2.0),
+                    x.at(u1, depth / 2.0),
+                    x.at(u0, depth / 2.0),
+                ],
+                true,
+                1,
+                Dash::Solid,
+            );
+        }
+    }
     let edge = |u: f64| {
         if u <= lay.frame + 1.0 {
             0.0
@@ -577,7 +596,14 @@ mod tests {
                     )
                 })
                 .count();
-            (b.items.len(), dashed)
+            // The frame's jambs are checked in plans_show_door_and_window_frames.
+            let lay = layout_of(&o, s);
+            let frames = if lay.frame > 0.0 && lay.projection == 0.0 {
+                2
+            } else {
+                0
+            };
+            (b.items.len() - frames, dashed)
         };
         // Fixed: 2 wall faces + 2 glass lines.
         assert_eq!(count(WindowStyle::new(F::Fixed), 48.0 * IN), (4, 0));

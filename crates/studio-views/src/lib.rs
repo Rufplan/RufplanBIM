@@ -343,6 +343,12 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     if let ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } = kind {
         plan_model_lines(doc, &mut b, *level);
     }
+    if matches!(
+        kind,
+        ViewKind::Elevation { .. } | ViewKind::Section { .. } | ViewKind::MarkerElevation { .. }
+    ) {
+        view_room_tags(doc, &model, &mut b, view);
+    }
     annotations(doc, &mut b, view);
     if let Ok(ElementData::View { level_ends, .. }) = doc.data(view) {
         apply_level_ends(&mut b.items, level_ends);
@@ -946,7 +952,34 @@ fn section_markers(doc: &Document, b: &mut Builder) {
 
 /// Room tag at the room's point: name, number and area (or "Not Enclosed").
 fn room_tag(b: &mut Builder, r: &studio_regen::RoomInfo, el: Option<ElementId>, offset: Pt) {
-    let p = r.point.add(offset);
+    room_tag_at(b, r, el, r.point.add(offset));
+}
+
+/// Room tags placed in a section or elevation (ADR-060).
+fn view_room_tags(doc: &Document, model: &Model, b: &mut Builder, view: ElementId) {
+    for e in doc.iter() {
+        let ElementData::Tag {
+            view: v,
+            target,
+            offset,
+        } = &e.data
+        else {
+            continue;
+        };
+        if *v != view {
+            continue;
+        }
+        let (Some(r), Some(base)) = (
+            model.rooms.iter().find(|r| r.id == *target),
+            view_refs::room_tag_base(doc, view, *target),
+        ) else {
+            continue;
+        };
+        room_tag_at(b, r, Some(e.id), base.add(*offset));
+    }
+}
+
+fn room_tag_at(b: &mut Builder, r: &studio_regen::RoomInfo, el: Option<ElementId>, p: Pt) {
     let line = b.paper(4.2);
     b.text(
         el,
@@ -4237,6 +4270,35 @@ mod tests {
     }
 
     #[test]
+    fn plans_show_door_and_window_frames() {
+        let (doc, _, d, w) = with_openings();
+        let plan = view(&doc, |k| matches!(k, ViewKind::FloorPlan { .. }));
+        let dl = display_list(&doc, plan).unwrap();
+        // Closed four-sided outlines of the element: the jambs (and a door's casings).
+        let boxes = |el: ElementId| -> Vec<f64> {
+            dl.items
+                .iter()
+                .filter(|i| i.el == Some(el))
+                .filter_map(|i| match &i.prim {
+                    Prim::Line {
+                        pts, closed: true, ..
+                    } if pts.len() == 4 => {
+                        let p = |k: usize| Pt::new(pts[k][0], pts[k][1]);
+                        Some(p(0).dist(p(1)).min(p(1).dist(p(2))))
+                    }
+                    _ => None,
+                })
+                .collect()
+        };
+        let door = boxes(d);
+        // Two jambs and four casings; each is narrow (the frame or casing width).
+        assert!(door.len() >= 6, "{door:?}");
+        assert!(door.iter().all(|s| *s < 150.0));
+        let win = boxes(w);
+        assert!(win.len() >= 2, "{win:?}");
+    }
+
+    #[test]
     fn plan_shows_gaps_and_symbols_for_openings() {
         let (doc, south, d, w) = with_openings();
         let l1 = doc.levels()[0].0;
@@ -4254,8 +4316,16 @@ mod tests {
         assert_eq!(south_fills, 3);
         // Door: leaf + arc. Casement window: 2 sill + 2 glass + swing line. (Their tags are
         // separate Tag elements.)
-        assert_eq!(dl.items.iter().filter(|i| i.el == Some(d)).count(), 2);
-        assert_eq!(dl.items.iter().filter(|i| i.el == Some(w)).count(), 5);
+        // (Without the frames' boxes, ADR-060.)
+        let symbol = |el: ElementId| {
+            dl.items
+                .iter()
+                .filter(|i| i.el == Some(el))
+                .filter(|i| !matches!(&i.prim, Prim::Line { closed: true, w: 1, dash: Dash::Solid, pts } if pts.len() == 4))
+                .count()
+        };
+        assert_eq!(symbol(d), 2);
+        assert_eq!(symbol(w), 5);
         // Picking the door's leaf selects the door.
         let leaf = dl
             .items

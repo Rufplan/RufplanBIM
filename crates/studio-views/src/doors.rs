@@ -62,6 +62,25 @@ pub(crate) fn plan_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSol
             dash,
         );
     };
+    // The frame, as in 3D: jambs through the wall (a 4 1/2" frame for glass and garage
+    // doors) and the casings on both faces (ADR-060).
+    let f = lay.frame;
+    if f > 0.0 {
+        let d = if lay.casing > 0.0 {
+            h
+        } else {
+            (2.25 * IN).min(h)
+        };
+        rect(b, 0.0, f, -d, d, 1, Dash::Solid);
+        rect(b, w - f, w, -d, d, 1, Dash::Solid);
+    }
+    if lay.casing > 0.0 && s.family != DoorFamily::Barn {
+        let over = lay.casing - f;
+        for (a, e) in [(h, h + CASING_DEPTH), (-h - CASING_DEPTH, -h)] {
+            rect(b, -over, f, a, e, 1, Dash::Solid);
+            rect(b, w - f, w + over, a, e, 1, Dash::Solid);
+        }
+    }
     match s.family {
         DoorFamily::SlidingGlass => {
             for off in [h, -h] {
@@ -685,7 +704,15 @@ mod tests {
                     )
                 })
                 .count();
-            (b.items.len(), dashed)
+            // The frame's jambs and casings are checked in plans_show_door_and_window_frames.
+            let lay = layout_of(&opening(s, w, 80.0 * IN), s);
+            let frames = if lay.frame > 0.0 { 2 } else { 0 }
+                + if lay.casing > 0.0 && s.family != DoorFamily::Barn {
+                    4
+                } else {
+                    0
+                };
+            (b.items.len() - frames, dashed)
         };
         // Leaf + arc; a pair twice.
         assert_eq!(

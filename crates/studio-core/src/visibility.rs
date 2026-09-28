@@ -93,6 +93,47 @@ pub fn tag_element(
     })
 }
 
+/// Tag a room in a section or elevation (ADR-060), `offset` from where its tag sits
+/// there by default (studio-views `room_tag_base`).
+pub fn tag_room_in_view(
+    doc: &mut Document,
+    view: ElementId,
+    room: ElementId,
+    offset: studio_geom::Pt,
+) -> CoreResult<ElementId> {
+    if !matches!(
+        doc.data(view)?,
+        ElementData::View {
+            kind: ViewKind::Section { .. }
+                | ViewKind::Elevation { .. }
+                | ViewKind::MarkerElevation { .. },
+            ..
+        }
+    ) {
+        return Err(CoreError::Invalid(
+            "tag rooms here in a section or elevation".into(),
+        ));
+    }
+    if doc.data(room)?.category() != Category::Room {
+        return Err(CoreError::Invalid("click inside a room".into()));
+    }
+    let already = doc.iter().any(|e| {
+        matches!(&e.data, ElementData::Tag { view: v, target: t, .. } if *v == view && *t == room)
+    });
+    if already {
+        return Err(CoreError::Invalid(
+            "that room is already tagged in this view".into(),
+        ));
+    }
+    doc.transact("Tag room", |tx| {
+        Ok(tx.insert(ElementData::Tag {
+            view,
+            target: room,
+            offset,
+        }))
+    })
+}
+
 /// Tag on the contextual Modify tab: tags each selected door, window, room, column or beam
 /// that isn't tagged in this floor plan yet, as one undo step. Returns how many it tagged.
 pub fn tag_elements(

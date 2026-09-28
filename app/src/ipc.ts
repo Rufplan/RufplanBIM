@@ -330,10 +330,13 @@ export const ipc = {
   setPinned: (ids: ElementId[], pinned: boolean): S => invoke("set_pinned", { ids, pinned }),
   selectAllInstances: (id: ElementId) => invoke<ElementId[]>("select_all_instances", { id }),
   tagElement: (view: ElementId, target: ElementId): S => invoke("tag_element", { view, target }),
+  tagRoomInView: (view: ElementId, at: Pt): S => invoke("tag_room_in_view", { view, at }),
   tagElements: (view: ElementId, targets: ElementId[]): S =>
     invoke("tag_elements", { view, targets }),
   pickCycle: (view: ElementId, point: Pt, tol: number) =>
     invoke<PickCandidate[]>("pick_cycle", { view, point, tol }),
+  gripSnap: (id: ElementId, key: string, point: Pt, tol: number) =>
+    invoke<SnapResult | null>("grip_snap", { id, key, point, tol }),
   pickCandidates: (ids: ElementId[]) => invoke<PickCandidate[]>("pick_candidates", { ids }),
   // Lighting (ADR-057).
   lightingLibrary: () => invoke<LightLibrary>("lighting_library"),

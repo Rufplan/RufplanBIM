@@ -54,6 +54,9 @@ describe("tools", () => {
     for (const tool of ["door", "window", "light", "dimensionAngular"] as const)
       for (const v of ["Elevation", "Section"] as const) expect(toolAllowed(tool, v)).toBe(true);
     expect(toolAllowed("window", "Sheet")).toBe(false);
+    // Rooms are tagged in sections and elevations (ADR-060).
+    expect(toolAllowed("tag", "Section")).toBe(true);
+    expect(promptFor("tag", 0, "Section")).toMatch(/inside a room/);
     expect(promptFor("window", 0, "Elevation")).toMatch(/faces you/);
     expect(toolAllowed("room", "Plan")).toBe(true);
     expect(toolAllowed("room", "CeilingPlan")).toBe(false);

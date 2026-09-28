@@ -224,6 +224,70 @@ pub fn model_point(doc: &Document, view: ElementId, p: Pt, tol: f64) -> Option<M
     }
 }
 
+/// Height of a room's tag above its level in sections and elevations (ADR-060).
+pub const ROOM_TAG_HEIGHT: f64 = 4.0 * 304.8;
+
+/// Where `room`'s tag sits by default in a section or elevation: over the room's point,
+/// 4'-0" above its level.
+pub fn room_tag_base(doc: &Document, view: ElementId, room: ElementId) -> Option<Pt> {
+    let (origin, right, _) = crate::view_frame(doc, view)?;
+    let ElementData::Room { level, point, .. } = doc.data(room).ok()? else {
+        return None;
+    };
+    let z = doc.level_elevation(*level).ok()?;
+    Some(Pt::new(point.sub(origin).dot(right), z + ROOM_TAG_HEIGHT))
+}
+
+/// The room under `p` in a section or elevation: on the level at or below the click, the
+/// first room the line of sight enters (from the cut plane, in a section or interior
+/// elevation).
+pub fn room_in_view(doc: &Document, view: ElementId, p: Pt) -> Option<ElementId> {
+    let (origin, right, look) = crate::view_frame(doc, view)?;
+    let building = matches!(
+        doc.data(view).ok()?,
+        ElementData::View {
+            kind: studio_core::ViewKind::Elevation { .. },
+            ..
+        }
+    );
+    let levels = doc.levels();
+    let level = levels
+        .iter()
+        .filter(|(_, _, z)| *z <= p.y + 1.0)
+        .max_by(|a, b| a.2.total_cmp(&b.2))?
+        .0;
+    let from = origin.add(right.scale(p.x));
+    let min_t = if building { f64::NEG_INFINITY } else { 0.0 };
+    let model = studio_regen::regenerate(doc);
+    let mut best: Option<(f64, ElementId)> = None;
+    for r in model.rooms.iter().filter(|r| r.level == level) {
+        let Some(ring) = &r.boundary else { continue };
+        let mut entry: Option<f64> = None;
+        if min_t.is_finite() && studio_geom::point_in_ring(from, ring) {
+            entry = Some(0.0);
+        }
+        for i in 0..ring.len() {
+            let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+            let Some(x) = line_intersection(from, look, a, b.sub(a)) else {
+                continue;
+            };
+            if project_to_segment(x, a, b).1 > 0.5 {
+                continue;
+            }
+            let t = x.sub(from).dot(look);
+            if t >= min_t - 1e-6 && entry.is_none_or(|e| t < e) {
+                entry = Some(t);
+            }
+        }
+        if let Some(t) = entry {
+            if best.is_none_or(|b| t < b.0) {
+                best = Some((t, r.id));
+            }
+        }
+    }
+    best.map(|b| b.1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

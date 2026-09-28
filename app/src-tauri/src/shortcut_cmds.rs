@@ -91,6 +91,25 @@ pub fn tag_elements(
     })
 }
 
+/// Tag in a section or elevation (ADR-060): the room under the click, its tag placed there.
+#[tauri::command]
+pub fn tag_room_in_view(
+    view: ElementId,
+    at: studio_geom::Pt,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        let doc = s.doc()?;
+        let room = studio_views::view_refs::room_in_view(doc, view, at)
+            .ok_or_else(|| anyhow::anyhow!("click inside a room (at its level's height)"))?;
+        let base = studio_views::view_refs::room_tag_base(doc, view, room)
+            .ok_or_else(|| anyhow::anyhow!("tag rooms in a section or elevation"))?;
+        s.edit(|d| visibility::tag_room_in_view(d, view, room, at.sub(base)))?;
+        Ok(())
+    })
+}
+
 /// EH: Hide in View > Elements.
 #[tauri::command]
 pub fn hide_elements(
