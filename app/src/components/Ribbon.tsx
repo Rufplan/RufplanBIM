@@ -12,6 +12,7 @@ import {
 import { ipc } from "../ipc";
 import { refreshCloud } from "../rufplan";
 import { activeViewInfo, styleOf, useAppStore, type Tool } from "../store";
+import { setSeason } from "../vegetation";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
@@ -97,6 +98,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 type Tab =
   | "Standards"
   | "Site"
+  | "Vegetation"
   | "Architecture"
   | "Openings"
   | "Lighting"
@@ -112,6 +114,7 @@ type Tab =
 const TABS: Tab[] = [
   "Standards",
   "Site",
+  "Vegetation",
   "Architecture",
   "Openings",
   "Lighting",
@@ -373,6 +376,106 @@ export function Ribbon() {
               >
                 {Icons.render}
                 <span>Render</span>
+              </button>
+            </Group>
+          </>
+        )}
+        {tab === "Vegetation" && (
+          <>
+            <Group title="Asset Library">
+              <button
+                className="rb-btn"
+                onClick={() => {
+                  useAppStore.getState().setAssetFilter(null);
+                  void openPicker("Plant", "library");
+                }}
+                disabled={!app}
+                title="Asset Library: trees, bushes, hedges, grasses, flowers and succulents, with season variants (Enscape's)"
+              >
+                {Icons.assets}
+                <span>Asset Library</span>
+              </button>
+              <ToolButton tool="plant" label="Place Plant" icon={Icons.tree} keys="PL" />
+            </Group>
+            <Group title="Trees & Plants">
+              {(
+                [
+                  ["Trees", "Trees", null, Icons.tree, "Deciduous, flowering and evergreen trees"],
+                  [
+                    "Conifers",
+                    "Trees",
+                    "Conifer",
+                    Icons.conifer,
+                    "Pines, spruces, firs, cedars and cypresses",
+                  ],
+                  ["Palms", "Trees", "Palm", Icons.palm, "Palms and cycads"],
+                  ["Shrubs", "Bushes", null, Icons.shrub, "Shrubs, bushes and hedges"],
+                  [
+                    "Grasses",
+                    "Grass & Flowers",
+                    null,
+                    Icons.grass,
+                    "Ornamental grasses and flowers",
+                  ],
+                ] as const
+              ).map(([label, category, group, icon, title]) => (
+                <button
+                  key={label}
+                  className="rb-btn"
+                  onClick={() => {
+                    useAppStore.getState().setAssetFilter({ category, group });
+                    void openPicker("Plant", "library");
+                  }}
+                  disabled={!app}
+                  title={`${title}: open the Asset Library`}
+                >
+                  {icon}
+                  <span>{label}</span>
+                </button>
+              ))}
+            </Group>
+            <Group title="Season">
+              <label
+                className="rb-field"
+                title="Every deciduous and flowering tree's season (Enscape's season variants)"
+              >
+                {Icons.season}
+                <select
+                  aria-label="Season"
+                  defaultValue=""
+                  disabled={!app?.plantingTypes.length}
+                  onChange={(e) => {
+                    const v = e.target.value as "Spring" | "Summer" | "Autumn" | "Winter" | "";
+                    if (v) void setSeason(v);
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="">Set season…</option>
+                  <option value="Spring">Spring (in bloom)</option>
+                  <option value="Summer">Summer</option>
+                  <option value="Autumn">Autumn colour</option>
+                  <option value="Winter">Winter (bare)</option>
+                </select>
+              </label>
+            </Group>
+            <Group title="Ground">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "ground" })}
+                disabled={!app}
+                title="Base Ground: lawn, meadow, pine straw, mulch, gravel, asphalt, pavers… for the topography or the ground around the model; lawns grow 3D grass in Realistic"
+              >
+                {Icons.ground}
+                <span>Base Ground</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => void startSketch("GroundRegion")}
+                disabled={!app}
+                title="Ground Region: sketch a drive, a patio, a lawn or a bed on the ground (Revit's subregion); pick its material in Properties"
+              >
+                {Icons.region}
+                <span>Ground Region</span>
               </button>
             </Group>
           </>

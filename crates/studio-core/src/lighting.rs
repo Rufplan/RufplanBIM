@@ -1067,7 +1067,7 @@ pub fn kelvin_rgb(kelvin: f64) -> [u8; 3] {
     [c(r), c(g), c(b)]
 }
 
-fn opts<T: Copy>(
+pub(crate) fn opts<T: Copy>(
     all: &[T],
     id: impl Fn(T) -> String,
     label: impl Fn(T) -> &'static str,
@@ -1115,7 +1115,7 @@ fn distribution_label(d: LightDistribution) -> &'static str {
     }
 }
 
-fn num(key: &str, label: &str, group: &str, v: f64, unit: &str) -> Property {
+pub(crate) fn num(key: &str, label: &str, group: &str, v: f64, unit: &str) -> Property {
     let s = if v.fract() == 0.0 {
         format!("{v:.0}")
     } else {
@@ -1124,7 +1124,7 @@ fn num(key: &str, label: &str, group: &str, v: f64, unit: &str) -> Property {
     text(key, label, group, &format!("{s} {unit}"))
 }
 
-fn parse_num(value: &str, unit: &str) -> CoreResult<f64> {
+pub(crate) fn parse_num(value: &str, unit: &str) -> CoreResult<f64> {
     let v = value
         .trim()
         .trim_end_matches(unit)

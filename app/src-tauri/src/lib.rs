@@ -12,6 +12,7 @@ mod material_cmds;
 mod menu;
 mod model_edit_cmds;
 mod plans_cmds;
+mod planting_cmds;
 mod render_cmds;
 mod session;
 mod sheetset_cmds;
@@ -168,6 +169,15 @@ pub fn run() -> anyhow::Result<()> {
             lighting_cmds::lights,
             lighting_cmds::set_sun_settings,
             lighting_cmds::sun_now,
+            planting_cmds::planting_library,
+            planting_cmds::load_planting_types,
+            planting_cmds::plant_model,
+            planting_cmds::plant_texture,
+            planting_cmds::plant_instances,
+            planting_cmds::create_plants,
+            planting_cmds::set_base_ground,
+            planting_cmds::ground_library,
+            planting_cmds::planting_types,
             lighting_cmds::sun_for,
             shortcut_cmds::tag_elements,
             shortcut_cmds::tag_room_in_view,

@@ -25,7 +25,11 @@ levelElevations: Array<number>, wallTypes: Array<NamedItem>, floorTypes: Array<N
 /**
  * Lighting fixture types and the project's Sun Settings (ADR-057).
  */
-lightingFixtureTypes: Array<NamedItem>, sun: SunSettings, materials: Array<NamedItem>, elevationMarkerTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
+lightingFixtureTypes: Array<NamedItem>, sun: SunSettings, 
+/**
+ * Planting types and the base ground's material (ADR-064).
+ */
+plantingTypes: Array<NamedItem>, ground: ElementId | null, materials: Array<NamedItem>, elevationMarkerTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 
 /**
  * Issued sets, oldest first.
  */

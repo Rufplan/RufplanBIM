@@ -94,6 +94,9 @@ pub struct AppState {
     /// Lighting fixture types and the project's Sun Settings (ADR-057).
     pub lighting_fixture_types: Vec<NamedItem>,
     pub sun: studio_core::lighting::SunSettings,
+    /// Planting types and the base ground's material (ADR-064).
+    pub planting_types: Vec<NamedItem>,
+    pub ground: Option<ElementId>,
     pub materials: Vec<NamedItem>,
     pub elevation_marker_types: Vec<NamedItem>,
     pub stages: Vec<StageItem>,
@@ -323,6 +326,8 @@ impl Session {
             railing_types: named(Category::RailingType),
             lighting_fixture_types: named(Category::LightingFixtureType),
             sun: studio_core::lighting::sun_settings(doc),
+            planting_types: named(Category::PlantingType),
+            ground: studio_core::planting::ground(doc),
             materials: named(Category::Material),
             elevation_marker_types: named(Category::ElevationMarkerType),
             stages: ops::stages(doc)

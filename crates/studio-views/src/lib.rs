@@ -15,9 +15,11 @@ use ts_rs::TS;
 pub mod caps;
 pub mod doors;
 pub mod edges;
+pub mod foliage;
 pub mod handles;
 pub mod lighting;
 mod plan_parts;
+pub mod plants;
 pub mod site_plan;
 pub mod slopes;
 pub mod snap;
@@ -698,6 +700,10 @@ fn plan(
     }
     plan_parts::columns_in_plan(b, model, elev, cut, &joined_ids);
     lighting::plan_symbols(doc, b, level, ceiling);
+    if !ceiling {
+        plants::plan_regions(doc, b, level, site_view);
+        plants::plan_symbols(doc, b, level, site_view);
+    }
     if !ceiling {
         // Room separation lines (thin, like Revit's).
         for e in doc.of(Category::RoomSeparator) {
@@ -2063,6 +2069,44 @@ fn projected(
             }
             Seen::Hidden => {}
         }
+    }
+    // Plantings (ADR-064): silhouettes among the model's faces, in front of or behind it.
+    for p in studio_core::planting::placed(doc) {
+        let at = Pt::new(p.at[0], p.at[1]);
+        let d = depth_of(at);
+        let r = p.spec.spread / 2.0 * p.scale;
+        let uc = u_of(at);
+        if let Some(c) = cut {
+            if d < -r * 0.3 || d > c.depth || uc + r < 0.0 || uc - r > c.length {
+                continue;
+            }
+        }
+        let (outline, trunk) = plants::silhouette(p.spec, p.scale);
+        let place = |q: &Pt| Pt::new(uc + q.x, p.at[2] + q.y);
+        let mut push = |poly: Vec<Pt>, near: f64| {
+            if poly.len() < 3 {
+                return;
+            }
+            faces.push(Face {
+                el: p.id,
+                u0: poly.iter().map(|q| q.x).fold(f64::INFINITY, f64::min),
+                u1: poly.iter().map(|q| q.x).fold(f64::NEG_INFINITY, f64::max),
+                z0: poly.iter().map(|q| q.y).fold(f64::INFINITY, f64::min),
+                z1: poly.iter().map(|q| q.y).fold(f64::NEG_INFINITY, f64::max),
+                near,
+                mid: d,
+                fill: FillKind::Paper,
+                detail: None,
+                poly: Some(poly),
+                lines: vec![],
+            });
+        };
+        if trunk.len() == 2 {
+            let [a, b0] = trunk[0];
+            let [c0, e] = trunk[1];
+            push(vec![place(&a), place(&c0), place(&e), place(&b0)], d);
+        }
+        push(outline.iter().map(place).collect(), d - r * 0.5);
     }
     // Painter's algorithm: farthest first so nearer faces cover what they hide. Mitered
     // corners make side walls reach as near as the facade, so ties break on average depth.
@@ -3447,7 +3491,8 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 category: Category::Site,
                 exterior: false,
                 color: Some([184, 196, 160]),
-                material: None,
+                // The base ground's material (ADR-064).
+                material: studio_core::planting::ground(doc),
                 level: None,
                 positions,
             });
@@ -3533,6 +3578,8 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         out.push(r);
     }
     lighting::meshes(doc, &mut out);
+    plants::meshes(doc, &mut out);
+    plants::region_meshes(doc, &mut out);
     out
 }
 

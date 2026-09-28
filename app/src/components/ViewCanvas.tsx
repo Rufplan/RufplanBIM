@@ -25,6 +25,7 @@ import {
   useAppStore,
   type ActiveViewport,
 } from "../store";
+import { placePlant } from "../vegetation";
 import type { Reference } from "../bindings/Reference";
 import type { PickCandidate } from "../bindings/PickCandidate";
 import {
@@ -1503,6 +1504,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     if (s.tool === "light") {
       await apply(() => ipc.createLightingFixture(view.id, s.toolTypes.light, p));
+      return;
+    }
+    if (s.tool === "plant") {
+      await placePlant(view.id, p);
       return;
     }
     if (SELECTION_TOOLS.includes(s.tool) || POINT_TOOLS.includes(s.tool)) {

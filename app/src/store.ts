@@ -10,7 +10,7 @@ import type { Standards } from "./bindings/Standards";
 import type { DrawTool } from "./bindings/DrawTool";
 import type { LineStyle } from "./bindings/LineStyle";
 
-export type PickerCategory = "Door" | "Window" | "Light";
+export type PickerCategory = "Door" | "Window" | "Light" | "Plant";
 
 /** An applied Edit Model change: the prompt, what it did, and its undo step's name. */
 export interface EditLogEntry {
@@ -40,6 +40,7 @@ export type Tool =
   | "stair"
   | "column"
   | "light"
+  | "plant"
   | "wallOpening"
   | "beam"
   | "railing"
@@ -90,6 +91,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   stair: "Stair",
   column: "Column",
   light: "Lighting Fixture",
+  plant: "Plant",
   wallOpening: "Wall Opening",
   beam: "Beam",
   railing: "Railing",
@@ -140,6 +142,7 @@ export interface ToolTypes {
   beam: ElementId | null;
   railing: ElementId | null;
   light: ElementId | null;
+  plant: ElementId | null;
 }
 
 /** Options-bar settings of the modify tools (like Revit's options bar). */
@@ -164,6 +167,10 @@ export interface ToolOptions {
   dimPrefer: Prefer;
   /** Align: the same, defaulting to wall faces (ADR-042). */
   alignPrefer: Prefer;
+  /** Plant (Enscape's placement, ADR-064): turn each plant randomly, and vary its size by
+   * up to this many percent. */
+  plantRandomRotation: boolean;
+  plantSizeVariation: number;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -286,10 +293,14 @@ interface UiState {
     | "sheetSets"
     | "sunSettings"
     | "artificialLights"
+    | "ground"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
   picker: { category: PickerCategory; tab: "project" | "library"; change: ElementId[] } | null;
+  /** The Asset Library's category and group to open on (the Vegetation tab's buttons). */
+  assetFilter: { category: string; group: string | null } | null;
+  setAssetFilter: (f: UiState["assetFilter"]) => void;
   /** What the last IFC import brought in (ADR-035). */
   ifcReport: ImportReport | null;
   setIfcReport: (r: ImportReport | null) => void;
@@ -392,6 +403,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     beam: null,
     railing: null,
     light: null,
+    plant: null,
   },
   prompt: "",
   cursor: "",
@@ -409,6 +421,8 @@ export const useAppStore = create<UiState>((set, get) => ({
     wallLocation: "Centerline",
     stairShape: "straight",
     cameraHeight: "5' 6\"",
+    plantRandomRotation: true,
+    plantSizeVariation: 15,
   },
   paramsOpen: false,
   sketchUi: {
@@ -543,6 +557,7 @@ export const useAppStore = create<UiState>((set, get) => ({
         ),
         roof: firstId(app.roofTypes, s.toolTypes.roof),
         light: firstId(app.lightingFixtureTypes, s.toolTypes.light),
+        plant: firstId(app.plantingTypes, s.toolTypes.plant),
         // Structural columns and steel beams are the everyday defaults.
         column: firstId(
           [...app.columnTypes].sort(
@@ -591,6 +606,8 @@ export const useAppStore = create<UiState>((set, get) => ({
         ? { ribbonTab: "Architecture" }
         : {}),
     }),
+  assetFilter: null,
+  setAssetFilter: (assetFilter) => set({ assetFilter }),
   setToolType: (kind, id) => set((s) => ({ toolTypes: { ...s.toolTypes, [kind]: id } })),
   setPrompt: (prompt) => set({ prompt }),
   hoverLabel: "",

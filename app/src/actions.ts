@@ -38,7 +38,8 @@ export async function openPicker(category: PickerCategory, tab: "project" | "lib
   const s = useAppStore.getState();
   const ids = s.selection.slice(0, 50);
   const sheets = await Promise.all(ids.map((id) => ipc.properties(id).catch(() => null)));
-  const cat = category === "Light" ? "LightingFixture" : category;
+  const cat =
+    category === "Light" ? "LightingFixture" : category === "Plant" ? "Planting" : category;
   const change = ids.filter((_, i) => sheets[i]?.category === cat);
   useAppStore.getState().setPicker({ category, tab, change });
 }
@@ -46,6 +47,14 @@ export async function openPicker(category: PickerCategory, tab: "project" | "lib
 /** Starts a tool the way the ribbon and shortcuts do: Door and Window open their type
  * picker first, with any selected doors or windows to change. */
 export async function startTool(tool: Tool) {
+  if (tool === "plant") {
+    // Enscape: placing starts from the Asset Library.
+    const s = useAppStore.getState();
+    const picking = openPicker("Plant", s.toolTypes.plant ? "project" : "library");
+    s.setTool(tool);
+    await picking;
+    return;
+  }
   if (tool === "door" || tool === "window" || tool === "light") {
     const category = tool === "door" ? "Door" : tool === "window" ? "Window" : "Light";
     const picking = openPicker(category);
@@ -66,6 +75,7 @@ const SIMILAR: Record<string, [Tool, keyof ToolTypes | null]> = {
   Roof: ["roof", "roof"],
   Column: ["column", "column"],
   LightingFixture: ["light", "light"],
+  Planting: ["plant", "plant"],
   Beam: ["beam", "beam"],
   Railing: ["railing", "railing"],
   Room: ["room", null],

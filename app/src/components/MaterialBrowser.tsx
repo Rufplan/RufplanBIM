@@ -75,8 +75,18 @@ function Thumb({
   material?: RenderMaterial;
   label: string;
 }) {
-  if (src || !material)
-    return <img className="mb-thumb" src={src ?? ""} alt={label} draggable={false} />;
+  // A library material without a bundled preview yet is rendered on demand instead.
+  const [missing, setMissing] = useState(false);
+  if ((src && !(missing && material)) || !material)
+    return (
+      <img
+        className="mb-thumb"
+        src={src ?? ""}
+        alt={label}
+        draggable={false}
+        onError={() => setMissing(true)}
+      />
+    );
   return (
     <RenderedThumb
       key={previewKey(material.color, material.appearance)}
@@ -273,7 +283,7 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
                     onDoubleClick={() => void addPreset(p.id)}
                     title={p.description}
                   >
-                    <Thumb src={presetThumb(p.id)} label={p.name} />
+                    <Thumb src={presetThumb(p.id)} material={presetMaterial(p)} label={p.name} />
                     <span className="mb-name">{p.name}</span>
                     <span className={`mb-tier t-${p.tier}`}>{TIER_LABEL[p.tier]}</span>
                   </button>
@@ -303,7 +313,11 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
           <aside className="mb-detail">
             {pickedPreset && (
               <>
-                <Thumb src={presetThumb(pickedPreset.id)} label={pickedPreset.name} />
+                <Thumb
+                  src={presetThumb(pickedPreset.id)}
+                  material={presetMaterial(pickedPreset)}
+                  label={pickedPreset.name}
+                />
                 <h3>{pickedPreset.name}</h3>
                 <p className="mb-meta">
                   {pickedPreset.category} · {TIER_LABEL[pickedPreset.tier]} ·{" "}
@@ -364,6 +378,10 @@ export function MaterialBrowser({ onClose }: { onClose: () => void }) {
                   </p>
                 )}
                 <Settings a={pickedMaterial.appearance} />
+                <MaterialType
+                  key={JSON.stringify([pickedMaterial.id, pickedMaterial.appearance.grass])}
+                  material={pickedMaterial}
+                />
                 <div className="mb-actions">
                   <button
                     className="btn-cyan btn-paint"
@@ -436,11 +454,19 @@ function Settings({ a }: { a: Appearance }) {
     rows.push(["Refraction", `${a.refraction.toFixed(2)} (IOR ${a.ior.toFixed(2)})`]);
   if (a.coat > 0) rows.push(["Coat", a.coat.toFixed(2)]);
   if (a.sheen > 0) rows.push(["Sheen", a.sheen.toFixed(2)]);
-  if (a.texture)
+  if (a.grass)
     rows.push([
-      "Texture",
-      `${a.texture.startsWith("proc:") ? "Procedural" : "Photo, 2K"} · ${Math.round(a.scale / 25.4)}" tile`,
+      "Type",
+      `Grass · ${formatInches(a.grass.height)} · ${Math.round(a.grass.variation * 100)}% variation`,
     ]);
+  if (a.texture) {
+    const kind = a.texture.startsWith("proc:")
+      ? "Procedural"
+      : a.texture.startsWith("gen:")
+        ? "Generated, 4K"
+        : "Photo, 2K";
+    rows.push(["Texture", `${kind} · ${Math.round(a.scale / 25.4)}" tile`]);
+  }
   return (
     <dl className="mb-settings">
       {rows.map(([k, v]) => (
@@ -450,5 +476,94 @@ function Settings({ a }: { a: Appearance }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+/** A library preset as a material to render a preview of. */
+function presetMaterial(p: Preset): RenderMaterial {
+  return { id: p.id, name: p.name, color: p.color, appearance: p.appearance };
+}
+
+/** Millimetres as inches to the nearest eighth, feet past a foot: 60 → 2 3/8". */
+export function formatInches(mm: number): string {
+  const eighths = Math.round(mm / 3.175);
+  const ft = Math.floor(eighths / 96);
+  const whole = Math.floor((eighths % 96) / 8);
+  let num = eighths % 8;
+  let den = 8;
+  while (num > 0 && num % 2 === 0) {
+    num /= 2;
+    den /= 2;
+  }
+  const inches = `${whole}${num ? ` ${num}/${den}` : ""}"`;
+  return ft ? `${ft}'-${inches}` : inches;
+}
+
+/** Enscape's material Type (ADR-064): Generic, or Grass, whose blades (Height and Height
+ * Variation) grow on the surface in Realistic views and renders. */
+function MaterialType({ material }: { material: RenderMaterial }) {
+  const grass = material.appearance.grass;
+  const [height, setHeight] = useState(grass ? formatInches(grass.height) : "");
+  const [variation, setVariation] = useState(grass ? Math.round(grass.variation * 100) : 35);
+  const set = (key: string, value: string) =>
+    void apply(() => ipc.setProperty(material.id, key, value));
+  const commitVariation = () => {
+    if (grass && variation !== Math.round(grass.variation * 100))
+      set("grass_variation", `${variation}%`);
+  };
+  return (
+    <div className="mb-type">
+      <label>
+        Type
+        <select
+          aria-label="Material type"
+          value={grass ? "grass" : "generic"}
+          onChange={(e) => set("grass", e.target.value)}
+        >
+          <option value="generic">Generic</option>
+          <option value="grass">Grass</option>
+        </select>
+      </label>
+      {grass && (
+        <>
+          <label>
+            Height
+            <input
+              aria-label="Grass height"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              onBlur={() => {
+                if (height.trim() && height !== formatInches(grass.height))
+                  set("grass_height", height);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+            />
+          </label>
+          <label>
+            Height Variation
+            <span className="mb-type-range">
+              <input
+                type="range"
+                aria-label="Height variation"
+                min={0}
+                max={100}
+                step={5}
+                value={variation}
+                onChange={(e) => setVariation(Number(e.target.value))}
+                onPointerUp={commitVariation}
+                onKeyUp={commitVariation}
+                onBlur={commitVariation}
+              />
+              <output>{variation}%</output>
+            </span>
+          </label>
+          <p className="muted mb-type-note">
+            Grass grows 3D blades on the surface in Realistic views and renders.
+          </p>
+        </>
+      )}
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Prefer } from "../bindings/Prefer";
+import { openPicker } from "../actions";
 import { ipc } from "../ipc";
 import { LINE_STYLES, LINE_TOOLS, TOOL_LABELS, useAppStore } from "../store";
 import type { DrawTool } from "../bindings/DrawTool";
@@ -336,6 +337,42 @@ export function OptionsBar() {
       <>
         {choices && pick("stairShape", "Shape", choices[1])}
         {typed}
+      </>
+    );
+  else if (tool === "plant")
+    // Enscape's placement options (ADR-064).
+    body = (
+      <>
+        <label className="ob-check">
+          <input
+            type="checkbox"
+            checked={o.plantRandomRotation}
+            onChange={(e) => set("plantRandomRotation", e.target.checked)}
+          />
+          Random rotation
+        </label>
+        <label className="ob-field">
+          Random size ±
+          <input
+            aria-label="Random size"
+            type="number"
+            min={0}
+            max={50}
+            step={5}
+            value={o.plantSizeVariation}
+            onChange={(e) =>
+              set("plantSizeVariation", Math.max(0, Math.min(50, Number(e.target.value) || 0)))
+            }
+          />
+          %
+        </label>
+        <button
+          className="btn-ghost"
+          onClick={() => void openPicker("Plant", "library")}
+          title="Pick another plant"
+        >
+          Asset Library…
+        </button>
       </>
     );
   else if (["grid", "move", "beam"].includes(tool)) body = typed;

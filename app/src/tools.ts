@@ -54,6 +54,7 @@ export const SHORTCUTS: Record<string, Tool> = Object.fromEntries(
 
 /** Tools that need a plan view (they place elements on the view's level). */
 export const PLAN_TOOLS: Tool[] = [
+  "plant",
   "roof",
   "stair",
   "column",
@@ -80,6 +81,7 @@ export const TOOLS_3D: Tool[] = [
   "roof",
   "column",
   "light",
+  "plant",
   "wallOpening",
   "room",
   // Boundary sketches on the level's work plane, and moving or copying the selection (ADR-025).
@@ -125,6 +127,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "door" || tool === "window" || tool === "light")
     return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   if (tool === "sketch" || tool === "elevation") return view === "Plan" || view === "CeilingPlan";
+  // Plants go in plans (site plans too) and 3D (ADR-064).
+  if (tool === "plant") return view === "Plan";
   // Rooms are tagged in sections and elevations too (ADR-060).
   if (tool === "tag") return view === "Plan" || view === "Elevation" || view === "Section";
   if (tool === "matchType" || tool === "mirrorPick")
@@ -222,6 +226,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Click to place a column; it snaps to grid intersections. Columns rise to the level above.";
     case "wallOpening":
       return "Click the wall to cut the opening in. You'll sketch its shape on the wall's face: rectangles, circles, polygons, arcs or lines.";
+    case "plant":
+      return "Click to place the plant; keep clicking to place more (Esc to stop). Random rotation and size are on the options bar.";
     case "light":
       if (view === "Elevation" || view === "Section")
         return "Click a wall's face to place the fixture there (wall fixtures at the height clicked); in a section, click anywhere on the cut.";

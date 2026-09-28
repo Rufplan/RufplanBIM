@@ -133,6 +133,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             rufplan: None,
             param_defs: vec![],
             sun: Default::default(),
+            ground: None,
         });
         Ok(())
     })
@@ -2112,6 +2113,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::lighting::properties(doc, id, &mut props)
         }
         ElementData::WallOpening { .. } => crate::wall_opening::properties(doc, id, &mut props),
+        ElementData::PlantingType { .. }
+        | ElementData::Planting { .. }
+        | ElementData::GroundRegion { .. } => crate::planting::properties(doc, id, &mut props),
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2361,6 +2365,14 @@ pub fn set_property(
         ElementData::LightingFixture { .. } | ElementData::LightingFixtureType { .. }
     ) {
         return crate::lighting::set_property(doc, id, key, value);
+    }
+    if matches!(
+        data,
+        ElementData::PlantingType { .. }
+            | ElementData::Planting { .. }
+            | ElementData::GroundRegion { .. }
+    ) {
+        return crate::planting::set_property(doc, id, key, value);
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -2774,6 +2786,9 @@ pub fn set_property(
         | ElementData::GraphicScale { .. }
         | ElementData::LightingFixture { .. }
         | ElementData::LightingFixtureType { .. }
+        | ElementData::PlantingType { .. }
+        | ElementData::Planting { .. }
+        | ElementData::GroundRegion { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

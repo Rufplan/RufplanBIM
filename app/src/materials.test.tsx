@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as THREE from "three";
 import { App } from "./App";
-import { matchesPreset, presetThumb } from "./components/MaterialBrowser";
+import type { Appearance } from "./bindings/Appearance";
+import { formatInches, matchesPreset, presetThumb } from "./components/MaterialBrowser";
 import { boxUv, HEX_H, physicalMaterial } from "./render/materials";
 import { useAppStore } from "./store";
 import { installFakeBackend, LIBRARY, type FakeBackend } from "./test/fakeBackend";
@@ -36,8 +37,9 @@ describe("Materials tab and Material Browser (ADR-029)", () => {
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(1, 7)).toEqual([
+    expect(tabs.slice(1, 8)).toEqual([
       "Site",
+      "Vegetation",
       "Architecture",
       "Openings",
       "Lighting",
@@ -148,5 +150,70 @@ describe("Materials tab and Material Browser (ADR-029)", () => {
     expect(Math.abs(tan.getZ(0))).toBeCloseTo(1, 9);
     // Hexagon tiles hold whole rows.
     expect(HEX_H).toBe(Math.round(7 * Math.sqrt(3) * (1024 / 12)));
+  });
+
+  it("sets Enscape's material Type: Grass with its height and variation (ADR-064)", async () => {
+    const oak = LIBRARY[0]!.appearance as Appearance;
+    oak.grass = { height: 60, variation: 0.35 };
+    try {
+      await openProject();
+      await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
+      await userEvent.click(screen.getByRole("button", { name: "Material Browser" }));
+      const dialog = await screen.findByRole("dialog", { name: "Material Browser" });
+      const grid = within(dialog).getByRole("list");
+      await userEvent.click(await within(grid).findByText("White Oak Plank Flooring, Matte"));
+      expect(within(dialog).getByText(`Grass · 2 3/8" · 35% variation`)).toBeTruthy();
+      await userEvent.click(within(dialog).getByRole("button", { name: "Add to Project" }));
+      await userEvent.click(within(dialog).getByRole("tab", { name: /In This Project/ }));
+      await userEvent.click(await within(grid).findByText("White Oak Plank Flooring, Matte"));
+      const type = within(dialog).getByLabelText("Material type") as HTMLSelectElement;
+      expect(type.value).toBe("grass");
+      const id = "00000000-0000-7000-8000-0000000000a1";
+      const sets = () => fake.calls.filter((c) => c.cmd === "set_property").map((c) => c.args);
+      const height = within(dialog).getByLabelText("Grass height") as HTMLInputElement;
+      expect(height.value).toBe(`2 3/8"`);
+      await userEvent.clear(height);
+      await userEvent.type(height, `4"{Enter}`);
+      expect(sets()).toContainEqual(
+        expect.objectContaining({ id, key: "grass_height", value: `4"` }),
+      );
+      const range = within(dialog).getByLabelText("Height variation");
+      fireEvent.change(range, { target: { value: "60" } });
+      fireEvent.blur(range);
+      expect(sets()).toContainEqual(
+        expect.objectContaining({ id, key: "grass_variation", value: "60%" }),
+      );
+      await userEvent.selectOptions(type, "generic");
+      expect(sets()).toContainEqual(
+        expect.objectContaining({ id, key: "grass", value: "generic" }),
+      );
+    } finally {
+      delete oak.grass;
+    }
+    // Heights read in inches.
+    expect(formatInches(60)).toBe(`2 3/8"`);
+    expect(formatInches(300)).toBe(`11 3/4"`);
+    expect(formatInches(1219.2)).toBe(`4'-0"`);
+  });
+
+  it("offers Grass on a generic project material", async () => {
+    await openProject();
+    await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
+    await userEvent.click(screen.getByRole("button", { name: "Material Browser" }));
+    const dialog = await screen.findByRole("dialog", { name: "Material Browser" });
+    await userEvent.click(within(dialog).getByRole("tab", { name: /In This Project/ }));
+    await userEvent.click(await within(within(dialog).getByRole("list")).findByText("Brick"));
+    const type = within(dialog).getByLabelText("Material type") as HTMLSelectElement;
+    expect(type.value).toBe("generic");
+    expect(within(dialog).queryByLabelText("Grass height")).toBeNull();
+    await userEvent.selectOptions(type, "grass");
+    expect(
+      fake.calls.some(
+        (c) =>
+          c.cmd === "set_property" &&
+          (c.args as { key: string; value: string }).key === "grass" &&
+          (c.args as { value: string }).value === "grass",
+      ),
+    ).toBe(true);
   });
 });

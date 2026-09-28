@@ -149,6 +149,11 @@ fn default_type(doc: &Document, kind: SketchKind) -> Option<ElementId> {
         SketchKind::Floor => Category::FloorType,
         SketchKind::Ceiling => Category::CeilingType,
         SketchKind::WallOpening => return None,
+        // A new ground region takes the base ground's material, else the first one.
+        SketchKind::GroundRegion => {
+            return studio_core::planting::ground(doc)
+                .or_else(|| studio_core::ops::first_of(doc, Category::Material))
+        }
     };
     studio_core::ops::first_of(doc, cat)
 }
@@ -182,6 +187,9 @@ pub fn sketch_begin(
             let (level, kind_ok) = match d {
                 ElementData::Floor { level, .. } => (*level, kind == SketchKind::Floor),
                 ElementData::Ceiling { level, .. } => (*level, kind == SketchKind::Ceiling),
+                ElementData::GroundRegion { level, .. } => {
+                    (*level, kind == SketchKind::GroundRegion)
+                }
                 _ => (ElementId::default(), false),
             };
             if !kind_ok {
@@ -191,9 +199,12 @@ pub fn sketch_begin(
             }
             let outline = studio_regen::derived::slab_outline(doc, id);
             let curves = sketch::curves_of(doc, id, outline)?;
-            let t = d
-                .type_id()
-                .ok_or_else(|| anyhow::anyhow!("that has no type"))?;
+            let t = match d {
+                ElementData::GroundRegion { material, .. } => *material,
+                _ => d
+                    .type_id()
+                    .ok_or_else(|| anyhow::anyhow!("that has no type"))?,
+            };
             (level, curves, t)
         }
         None => {

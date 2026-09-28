@@ -1207,6 +1207,8 @@ pub enum SketchKind {
     Ceiling,
     /// A wall opening's sketch on a wall face (ADR-058; finished by `wall_opening::finish`).
     WallOpening,
+    /// A ground region on the site (ADR-064), finished in a material.
+    GroundRegion,
 }
 
 /// The curves to edit for an existing floor or ceiling (its sketch, or its outline as
@@ -1221,6 +1223,9 @@ pub fn curves_of(
             sketch, boundary, ..
         }
         | ElementData::Ceiling {
+            sketch, boundary, ..
+        }
+        | ElementData::GroundRegion {
             sketch, boundary, ..
         } => (sketch.clone(), boundary.clone()),
         _ => return Err(CoreError::Invalid("select a floor or ceiling".into())),
@@ -1260,6 +1265,7 @@ pub fn finish(
     let label = match (kind, target) {
         (SketchKind::Floor, None) => "Create floor",
         (SketchKind::Ceiling | SketchKind::WallOpening, None) => "Create ceiling",
+        (SketchKind::GroundRegion, None) => "Create ground region",
         (_, Some(_)) => "Edit boundary",
     };
     doc.transact(label, |tx| {
@@ -1281,18 +1287,31 @@ pub fn finish(
                     *bound = crate::element::SlabBound::Sketch;
                     *sketch = loops.clone();
                 }
+                ElementData::GroundRegion {
+                    boundary, sketch, ..
+                } => {
+                    *boundary = outer.clone();
+                    *sketch = loops.clone();
+                }
                 _ => {}
             })?;
             return Ok(id);
         }
         let want = match kind {
             SketchKind::Floor => Category::FloorType,
+            SketchKind::GroundRegion => Category::Material,
             SketchKind::Ceiling | SketchKind::WallOpening => Category::CeilingType,
         };
         if tx.data(type_id)?.category() != want {
             return Err(CoreError::Invalid("pick a type for the sketch".into()));
         }
         Ok(tx.insert(match kind {
+            SketchKind::GroundRegion => ElementData::GroundRegion {
+                level,
+                material: type_id,
+                boundary: outer.clone(),
+                sketch: loops.clone(),
+            },
             SketchKind::Floor => ElementData::Floor {
                 type_id,
                 level,
@@ -1340,7 +1359,7 @@ pub fn plan_for(doc: &Document, level: ElementId, kind: SketchKind) -> Option<El
         }
     }
     match kind {
-        SketchKind::Floor => floor.or(ceiling),
+        SketchKind::Floor | SketchKind::GroundRegion => floor.or(ceiling),
         SketchKind::Ceiling | SketchKind::WallOpening => ceiling.or(floor),
     }
 }
@@ -1355,7 +1374,7 @@ pub fn work_plane_z(
 ) -> CoreResult<f64> {
     let z = doc.level_elevation(level)?;
     Ok(match kind {
-        SketchKind::Floor | SketchKind::WallOpening => z,
+        SketchKind::Floor | SketchKind::WallOpening | SketchKind::GroundRegion => z,
         SketchKind::Ceiling => {
             let h = target
                 .and_then(|id| match doc.data(id) {

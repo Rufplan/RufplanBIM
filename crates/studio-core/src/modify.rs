@@ -53,6 +53,17 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                 }
                 ElementData::Room { point, .. } => *point = point.add(delta),
                 ElementData::ElevationMarker { at, .. } => *at = at.add(delta),
+                ElementData::Planting { at, .. } => *at = at.add(delta),
+                ElementData::GroundRegion {
+                    boundary, sketch, ..
+                } => {
+                    for p in boundary.iter_mut() {
+                        *p = p.add(delta);
+                    }
+                    for c in sketch.iter_mut().flatten() {
+                        *c = c.mapped(&|p| p.add(delta), false);
+                    }
+                }
                 ElementData::RoomSeparator { start, end, .. } => {
                     *start = start.add(delta);
                     *end = end.add(delta);
@@ -283,7 +294,9 @@ pub fn stretch(
                 ElementData::Roof { boundary, .. } => boundary.iter_mut().for_each(&mut map),
                 ElementData::Railing { path, .. } => path.iter_mut().for_each(&mut map),
                 ElementData::Room { point, .. } => map(point),
-                ElementData::Column { at, .. } | ElementData::ElevationMarker { at, .. } => map(at),
+                ElementData::Column { at, .. }
+                | ElementData::ElevationMarker { at, .. }
+                | ElementData::Planting { at, .. } => map(at),
                 // A stair moves whole with its first riser (its run keeps its length).
                 ElementData::Stair { start, end, .. } => {
                     let t = f(*start).sub(*start);

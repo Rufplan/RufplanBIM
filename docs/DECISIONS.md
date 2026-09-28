@@ -2261,3 +2261,104 @@ are on by default:
 - **Lens glare:** the brightest highlights (sun glints, fixtures, sky through glass)
   bloom tight and wide;
 - **Vignette:** a soft darkening toward the corners.
+
+## ADR-064 Vegetation tab: Enscape's Asset Library, 3D grass and site ground — Accepted (2026-09-28)
+Owner request (2026-09-28): "create a vegetation tab that allows you to place common vegetation
+around the site, as well as realistic 3D-looking grass, pine cones, asphalt or any other typical
+base … in 3D view in realistic mode as well as in renderings. Make the library as extensive as
+Enscape's but mainly focus on trees and shrubs", and "copy or model after Enscape as closely as
+possible".
+
+**Model (studio-core `planting`).** New element kinds:
+- `PlantingType { name, spec }` holds a species: its group, crown form, foliage, bark, height,
+  spread, clear trunk, caliper, stems, leaf, flower and autumn colours, season and density.
+- `Planting { type_id, level, at, offset, rotation, scale }` is one placed plant. It stands on
+  the topography where its level is within 5' of grade, and otherwise on its level.
+- `GroundRegion { level, material, boundary, sketch }` is Revit's subregion. It is sketched
+  with a new `SketchKind::GroundRegion` and draped over the topography.
+- `ProjectInfo.ground` is the base ground's material. All new fields default when missing, so
+  older files still open.
+
+Plantings move, copy, rotate, mirror and array like any element and have Revit-style properties
+(size, offset, rotation; on the type: height, spread, trunk, form, season, density and colours).
+
+**The Asset Library.** The catalog has 183 species:
+- 119 trees: 43 deciduous, 18 flowering, 17 broadleaf evergreen, 28 conifer and 13 palm;
+- 38 bushes: shrubs and clipped hedges;
+- 20 grasses and flowers;
+- 6 succulents and cacti.
+
+Each has real sizes, a botanical name, a description and the climates it suits (cold,
+temperate, Mediterranean, tropical, arid). Like Enscape's, deciduous and flowering trees come
+in season variants (spring bloom, summer, autumn colour, bare winter).
+
+The Asset Library window (components/AssetLibrary.tsx) follows Enscape's:
+- **Layout:** a dark window with Vegetation categories and groups down the left, and season
+  chips, a climate filter and search across the top.
+- **Tiles:** thumbnails rendered from each plant's own model and textures, with a height badge.
+- **Details:** size, botanical name and climates.
+- **Placing:** Place (or a double-click) loads the asset and starts placing it. Each click in a
+  plan or the 3D view places one more, with Enscape's random rotation and random size (±%) on
+  the options bar.
+- **Vegetation tab:** Asset Library, Place Plant, Trees, Conifers, Palms, Shrubs and Grasses
+  (each opens the library on its category), a Season control that sets every seasonal type at
+  once, Base Ground and Ground Region.
+
+**Plants in views (studio-views `plants`, `foliage`).**
+- **Models are grown, not stored.**
+  - Broadleaf trees, pines and shrubs grow by space colonization: branches grow toward points
+    scattered through the crown's envelope, thickened by the pipe model, as bark tubes with
+    root flare.
+  - Firs, spruces and cypresses are a leader with whorled branches that droop with age.
+  - Palms have curved trunks with feather fronds or fan leaves (and a dead-frond skirt on
+    fan palms).
+  - Also: rosettes (agave, yucca, hosta), grass clumps with plumes, clipped hedges and ribbed
+    cacti.
+  - Three variants per species; an instance's variant comes from its id.
+- **Foliage is alpha-cut cards** textured with a per-species atlas drawn in Rust:
+  - leaves with shaped outlines (pointed maple lobes, oak lobes, hearts), serrations, midribs,
+    veins, a folded-light gradient, pale undersides and soft shadows between leaves;
+  - needle and scale sprays, palm fronds and fans, grass plumes and blossoms.
+
+  Card normals point out of the crown, and the crown's occlusion is baked into their colour, so
+  a crown reads as one soft volume.
+- **Bark** is a seamless texture per bark kind (smooth, furrowed, plated, papery, mottled,
+  fibrous, palm rings, green).
+- **Working views** show a low-poly proxy, as Enscape's assets show in Revit.
+- **Plans** show Revit-style symbols: a scalloped canopy with branches, a conifer star, palm
+  fronds, a shrub cloud, a grass tuft and a scalloped hedge. Site plans show every planting
+  at grade.
+- **Elevations and sections** show silhouettes that hide and are hidden like other faces.
+  Ground regions show as outlines in plan.
+
+**Realistic view and renders.**
+- **Plants:** full models, instanced in the live view with a gentle wind sway, and merged
+  into the path tracer's scene.
+  - Foliage mipmaps preserve coverage (Castaño), so thin needles and narrow leaves don't
+    vanish in the distance.
+  - Leaves use a low specular, avoiding the white rim full Fresnel gives cards seen edge-on.
+  - Foliage is on layer 1, which ambient occlusion doesn't see, because its normal pass can't
+    cut leaves out of their cards.
+  - The proxy stays pickable and shows only while selected.
+- **Ground:** the base ground's material covers the topography (unless it shows satellite
+  imagery), or the ground around the model. Ground regions sit 30 mm above it.
+- **Enscape's Grass material type** (`Appearance.grass`: height, height variation; the Type
+  control in the Material Browser) grows real 3D blades.
+  - Clumps are scattered over every grass surface once. The nearest (about 45,000 in the
+    live view, 70,000 in a render) are drawn at full density and shrink to nothing at the
+    edge, following the camera. The lawn's texture carries on beyond.
+  - No grass grows through paving, slabs or decks: a 250 mm cover grid of the other surfaces
+    near grade masks them out.
+  - Pine straw gets fallen 3D pine cones.
+- **Ground materials:** 23 generated Site & Landscape materials:
+  - lawns, meadow, pine straw, leaf litter, three mulches;
+  - pea gravel, crushed stone, river rock, decomposed granite;
+  - two asphalts, broom concrete, running-bond and herringbone pavers, flagstone;
+  - sand, soil, moss and snow.
+
+  Their picker swatches are bundled in app/public/ground (dev aid: `cargo test --release -p
+  rufplan-studio write_ground_previews -- --ignored`).
+
+**Not yet:** temporary hide and the section box don't apply to the full models in Realistic,
+though Visibility/Graphics hiding does. There's no scatter-by-area tool; place plants one click
+at a time or array them.

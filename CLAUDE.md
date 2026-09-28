@@ -133,6 +133,12 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Vegetation (ADR-064): studio-core `planting` (PlantSpec, 183-species catalog with season variants,
+  Planting/PlantingType/GroundRegion, base ground); studio-views `plants` (grown models, proxies,
+  plan symbols, silhouettes, ground regions) and `foliage` (leaf atlases, bark); app
+  `planting_cmds`; components/AssetLibrary.tsx, GroundDialog.tsx; render/plants.ts,
+  grass.ts (Enscape Grass type), plantThumbs.ts. Ground swatches: `cargo test --release -p
+  rufplan-studio write_ground_previews -- --ignored`.
 - Live Realistic view (ADR-063): View3D composer (GTAO, bloom), auto exposure, physical sky;
   components/View3DPanels.tsx (SunPanel, NavBar), render/navigate.ts (Walk/Fly), studio-core
   `lighting::sun_for`; Render adds pathtrace `lensEffects` (glare, vignette).

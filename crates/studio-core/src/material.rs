@@ -3,6 +3,7 @@
 
 use crate::document::{CoreError, CoreResult, Document, Tx};
 use crate::element::{Category, CutPattern, ElementData, ElementId, SurfacePattern, WallLayer};
+use crate::library::{Appearance, GrassSettings};
 use crate::ops::{choice, non_empty, ro, text, PropOption, Property};
 
 /// A resolved material: what drawings need to know about it.
@@ -358,6 +359,13 @@ fn unit(value: &str, max: f64) -> CoreResult<f64> {
     Ok(v)
 }
 
+/// A Grass-type material's blades, for setting them.
+fn grass_of(a: &mut Appearance) -> CoreResult<&mut GrassSettings> {
+    a.grass
+        .as_mut()
+        .ok_or_else(|| CoreError::Invalid("set the material's Type to Grass first".into()))
+}
+
 /// A built-in material's look: glossy steel, matte masonry, painted board…
 fn built_in_appearance(name: &str) -> crate::library::Appearance {
     let mut a = crate::library::Appearance::default();
@@ -483,6 +491,37 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
     props.push(text("bump", "Bump (0–2)", A, &num(a.bump)));
     props.push(text("coat", "Coat (0–1)", A, &num(a.coat)));
     props.push(text("sheen", "Sheen (0–1)", A, &num(a.sheen)));
+    // Enscape's material Type (ADR-064): Grass grows 3D blades in Realistic views.
+    props.push(choice(
+        "grass",
+        "Type",
+        A,
+        if a.grass.is_some() {
+            "grass"
+        } else {
+            "generic"
+        }
+        .into(),
+        vec![
+            PropOption {
+                id: "generic".into(),
+                label: "Generic".into(),
+            },
+            PropOption {
+                id: "grass".into(),
+                label: "Grass".into(),
+            },
+        ],
+    ));
+    if let Some(g) = a.grass {
+        props.push(crate::ops::len("grass_height", "Grass Height", A, g.height));
+        props.push(text(
+            "grass_variation",
+            "Height Variation (0–1)",
+            A,
+            &num(g.variation),
+        ));
+    }
     props.push(ro(
         "uses",
         "Used By",
@@ -544,6 +583,38 @@ pub(crate) fn set_property(
         "refraction" => a.refraction = unit(value, 1.0)?,
         "coat" => a.coat = unit(value, 1.0)?,
         "sheen" => a.sheen = unit(value, 1.0)?,
+        "grass" => {
+            a.grass = match value.trim().to_ascii_lowercase().as_str() {
+                "grass" | "on" | "true" | "1" => Some(a.grass.unwrap_or_else(|| {
+                    // The library preset's blades, or a mown lawn's.
+                    a.preset
+                        .as_deref()
+                        .and_then(crate::library::preset)
+                        .and_then(|p| p.appearance.grass)
+                        .unwrap_or(GrassSettings::LAWN)
+                })),
+                "generic" | "off" | "false" | "0" => None,
+                _ => {
+                    return Err(CoreError::Invalid(format!(
+                        "unknown material type {value} (Generic or Grass)"
+                    )))
+                }
+            }
+        }
+        "grass_height" => {
+            let h = crate::ops::positive(crate::ops::parse_len(value)?)?;
+            if h > 2000.0 {
+                return Err(CoreError::Invalid("grass can be up to 6'-6\" tall".into()));
+            }
+            grass_of(a)?.height = h;
+        }
+        "grass_variation" => {
+            let v = match value.trim().strip_suffix('%') {
+                Some(pct) => unit(pct, 100.0)? / 100.0,
+                None => unit(value, 1.0)?,
+            };
+            grass_of(a)?.variation = v;
+        }
         "bump" => a.bump = unit(value, 2.0)?,
         "ior" => {
             let v: f64 = value
@@ -671,5 +742,58 @@ mod tests {
         assert_eq!(material_for_name("Wood Post - 6x6"), Some("Wood Framing"));
         assert_eq!(material_for_name("Mystery"), None);
         assert_eq!(cut_for_name("CMU 8\""), CutPattern::Masonry);
+    }
+
+    #[test]
+    fn a_material_can_be_enscape_grass() {
+        let mut doc = Document::new();
+        crate::ops::seed_default_project(&mut doc).unwrap();
+        let brick = by_name(&doc, "Brick").unwrap();
+        let grass = |doc: &Document| match doc.data(brick).unwrap() {
+            ElementData::Material { appearance, .. } => appearance.grass,
+            _ => panic!(),
+        };
+        let keys = |doc: &Document| {
+            let mut props = vec![];
+            properties(doc, brick, &mut props);
+            props
+                .into_iter()
+                .map(|p| (p.key, p.value))
+                .collect::<Vec<_>>()
+        };
+        // Generic by default: the Type choice, no blade settings.
+        assert_eq!(grass(&doc), None);
+        let k = keys(&doc);
+        assert!(k.contains(&("grass".into(), "generic".into())));
+        assert!(!k.iter().any(|(key, _)| key == "grass_height"));
+        assert!(set_property(&mut doc, brick, "grass_height", "3\"").is_err());
+        // Grass: a mown lawn's blades, then set.
+        set_property(&mut doc, brick, "grass", "grass").unwrap();
+        assert_eq!(grass(&doc), Some(GrassSettings::LAWN));
+        set_property(&mut doc, brick, "grass_height", "4\"").unwrap();
+        set_property(&mut doc, brick, "grass_variation", "60%").unwrap();
+        let g = grass(&doc).unwrap();
+        assert!((g.height - 101.6).abs() < 1e-9 && (g.variation - 0.6).abs() < 1e-12);
+        set_property(&mut doc, brick, "grass_variation", "0.25").unwrap();
+        assert!((grass(&doc).unwrap().variation - 0.25).abs() < 1e-12);
+        let k = keys(&doc);
+        assert!(k.contains(&("grass".into(), "grass".into())));
+        assert!(k.contains(&("grass_variation".into(), "0.25".into())));
+        assert!(set_property(&mut doc, brick, "grass_variation", "1.5").is_err());
+        assert!(set_property(&mut doc, brick, "grass_height", "10'").is_err());
+        assert!(set_property(&mut doc, brick, "grass", "moss").is_err());
+        // Back to Generic, and undo brings the blades back.
+        set_property(&mut doc, brick, "grass", "generic").unwrap();
+        assert_eq!(grass(&doc), None);
+        doc.undo().unwrap();
+        assert!((grass(&doc).unwrap().variation - 0.25).abs() < 1e-12);
+        // A library lawn keeps its own blades when switched back on.
+        let meadow = crate::library::add_preset(&mut doc, "site-meadow").unwrap();
+        set_property(&mut doc, meadow, "grass", "off").unwrap();
+        set_property(&mut doc, meadow, "grass", "on").unwrap();
+        let ElementData::Material { appearance, .. } = doc.data(meadow).unwrap() else {
+            panic!()
+        };
+        assert_eq!(appearance.grass.unwrap().height, 300.0);
     }
 }

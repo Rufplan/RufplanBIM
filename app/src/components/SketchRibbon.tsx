@@ -144,7 +144,12 @@ export function SketchRibbon() {
   if (!sketch) return null;
   // A wall opening's sketch is on a wall face (ADR-058): no Pick Walls, Pick Lines or Flip.
   const onWall = !!sketch.wall;
-  const what = sketch.kind === "Floor" ? "Floor" : "Ceiling";
+  const what =
+    sketch.kind === "Floor"
+      ? "Floor"
+      : sketch.kind === "GroundRegion"
+        ? "Ground Region"
+        : "Ceiling";
   const title = onWall
     ? sketch.target
       ? "Modify | Wall Openings > Edit Sketch"

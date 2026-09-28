@@ -21,6 +21,7 @@ pub mod ops;
 pub mod paint;
 pub mod params;
 pub mod plans;
+pub mod planting;
 pub mod site;
 pub mod sketch;
 pub mod slope;

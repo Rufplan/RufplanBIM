@@ -16,6 +16,7 @@ import {
   startWallOpening,
 } from "../sketch";
 import { litOf, styleOf, useAppStore } from "../store";
+import { placePlant } from "../vegetation";
 import { samePt, sketchPrompt } from "../tools";
 import { savedHome, ViewCube } from "../render/viewCube";
 import { ViewCubeOverlay } from "./ViewCubeOverlay";
@@ -47,6 +48,9 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { Cap } from "../bindings/Cap";
 import type { Terrain } from "../bindings/Terrain";
 import { TerrainBar } from "./TerrainBar";
+import { loadPlantEntries, plantGroup, wind } from "../render/plants";
+import { grassGroup, type GrassSurface } from "../render/grass";
+import { plantLoader } from "./AssetLibrary";
 
 const COLORS = {
   exteriorWall: 0xe9e7e2,
@@ -177,6 +181,13 @@ interface Three {
   night?: boolean;
   /** Enscape's auto exposure: scales the sun and sky's light to a steady brightness. */
   autoExposure?: number;
+  /** Realistic's plants and grass (ADR-064), on layer 1 (left out of ambient occlusion,
+   * whose normal pass can't cut leaves out of their cards). */
+  plants?: THREE.Group;
+  grass?: THREE.Group;
+  aoCamera?: THREE.PerspectiveCamera;
+  /** The base ground's material on Realistic's ground, and what it was made from. */
+  groundKey?: string;
 }
 
 /** Wireframe and six face handles of the section box. */
@@ -287,6 +298,8 @@ export function prompt3d(tool: string, n = 0): string {
       return "Click on the level's work plane to place a column.";
     case "light":
       return "Click a ceiling, wall or floor to place the lighting fixture on it.";
+    case "plant":
+      return "Click the ground, a floor or a roof to place the plant; keep clicking to place more. Esc finishes.";
     case "floorAuto":
       return "Click a wall: a floor at the outer faces of that level's walls.";
     case "ceilingAuto":
@@ -349,6 +362,7 @@ export function View3D({ view }: { view: ViewInfo }) {
     scene.add(ground);
     const camera = new THREE.PerspectiveCamera(40, 1, 50, 1e7);
     camera.up.set(0, 0, 1);
+    camera.layers.enable(1);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.screenSpacePanning = true;
@@ -439,7 +453,10 @@ export function View3D({ view }: { view: ViewInfo }) {
         });
         const c = new EffectComposer(renderer, target);
         c.addPass(new RenderPass(scene, camera));
-        const ao = new GTAOPass(scene, camera, r.width, r.height);
+        // Ambient occlusion sees the model, not the foliage (layer 1).
+        const aoCamera = new THREE.PerspectiveCamera();
+        t.aoCamera = aoCamera;
+        const ao = new GTAOPass(scene, aoCamera, r.width, r.height);
         // Model units are mm: contact shadow within about 2'.
         ao.updateGtaoMaterial({ radius: 600, distanceExponent: 1.4, thickness: 300, scale: 1 });
         ao.blendIntensity = 0.85;
@@ -456,9 +473,11 @@ export function View3D({ view }: { view: ViewInfo }) {
     let navLast = performance.now();
     let navSpeed = 1;
     const keys = new Set<string>();
+    // Walk steps through foliage (and doesn't stand on it).
     const solids = () =>
       [...group.children, ...terrainGroup.children].filter(
-        (c): c is THREE.Mesh => c instanceof THREE.Mesh && c.visible,
+        (c): c is THREE.Mesh =>
+          c instanceof THREE.Mesh && c.visible && c.userData.category !== "Planting",
       );
     const world = {
       ground: (x: number, y: number, z: number) => {
@@ -591,6 +610,24 @@ export function View3D({ view }: { view: ViewInfo }) {
         ? useAppStore.getState().exposure3d * (three.current?.autoExposure ?? 1)
         : 1;
       const c = realistic && !boxRef.current ? composer() : null;
+      const ac = three.current?.aoCamera;
+      if (c && ac) {
+        ac.copy(camera);
+        ac.layers.set(0);
+      }
+      // The plants' and grass's wind.
+      if (realistic) {
+        wind.time.value = performance.now() / 1000;
+        // Grass grows around where you are: the camera near the ground, else what it
+        // looks at.
+        const g = three.current?.grass as
+          (THREE.Group & { follow?: (x: number, y: number) => void }) | undefined;
+        if (g?.follow) {
+          const low = camera.position.z - controls.target.z < 40_000;
+          const p = low ? camera.position : controls.target;
+          g.follow(p.x, p.y);
+        }
+      }
       if (c) c.render();
       else renderer.render(scene, camera);
       cube.render(renderer);
@@ -1151,6 +1188,32 @@ export function View3D({ view }: { view: ViewInfo }) {
           return;
         }
         if (await startWallOpening(el, { x: n.x, y: n.y })) orientToSketch();
+      } else if (tool === "plant") {
+        // On the ground, a floor or a roof terrace clicked (not on other plants).
+        const hit = rayAt(e).intersectObjects(
+          group.children.filter(
+            (c) =>
+              c instanceof THREE.Mesh &&
+              c.visible &&
+              (c.userData.info as MeshInfo | undefined)?.mesh.category !== "Planting",
+          ),
+          false,
+        )[0];
+        const q = hit?.point ?? planeHit(e)?.point;
+        const levels = s.app?.levels ?? [];
+        const elevs = s.app?.levelElevations ?? [];
+        if (!q || levels.length === 0) {
+          s.setError("Click the ground, a floor or a roof to place the plant.");
+          return;
+        }
+        let i = elevs.reduce(
+          (best, z, k) => (Math.abs(z) < Math.abs(elevs[best] ?? Infinity) ? k : best),
+          0,
+        );
+        elevs.forEach((z, k) => {
+          if (z <= q.z + 1 && z > (elevs[i] ?? -Infinity)) i = k;
+        });
+        await placePlant(view.id, { x: q.x, y: q.y }, levels[i]!.id);
       } else if (tool === "light") {
         // On the face clicked, as Revit hosts fixtures: under a ceiling at its height, on a
         // wall at the height clicked; on a floor or the ground at the type's own height.
@@ -1691,6 +1754,133 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
   }, [visualStyle, meshRev, view.id]);
 
+  // Realistic: the full plant models and Enscape's grass (ADR-064), loaded when first shown
+  // and after the model changes.
+  const baseGround = useAppStore((s) => s.app?.ground ?? null);
+  useEffect(() => {
+    const t = three.current;
+    if (!t) return;
+    const clear = () => {
+      for (const k of ["plants", "grass"] as const) {
+        const g = t[k];
+        if (!g) continue;
+        t.scene.remove(g);
+        g.traverse((o) => {
+          if (o instanceof THREE.InstancedMesh) {
+            (o.material as THREE.Material).dispose();
+            o.dispose();
+          }
+        });
+        t[k] = undefined;
+      }
+    };
+    if (visualStyle !== "realistic") {
+      clear();
+      return;
+    }
+    let live = true;
+    void (async () => {
+      const [instances, mats] = await Promise.all([
+        ipc.plantInstances(view.id).catch(() => []),
+        ipc.renderMaterials().catch(() => []),
+      ]);
+      const entries = await loadPlantEntries(instances, plantLoader);
+      const t = three.current;
+      if (!live || !t) return;
+      clear();
+      const plants = plantGroup(entries);
+      plants.traverse((o) => o.layers.set(1));
+      t.scene.add(plants);
+      t.plants = plants;
+      // Grass on every surface in a Grass material, and on the ground without topography.
+      const byId = new Map(mats.map((m) => [m.id, m]));
+      const surfaces: GrassSurface[] = [];
+      // What covers the ground (paving, slabs): no grass grows through it.
+      const blockers: number[][] = [];
+      let hasSite = false;
+      for (const c of t.group.children) {
+        if (!(c instanceof THREE.Mesh)) continue;
+        const m = (c.userData.info as MeshInfo | undefined)?.mesh;
+        if (m?.category === "Site") hasSite = true;
+        const mat = m?.material ? byId.get(m.material) : undefined;
+        const grows =
+          !!mat && (!!mat.appearance.grass || mat.appearance.texture === "gen:pine-straw");
+        if (m && !grows && m.category !== "Site" && m.category !== "Planting")
+          blockers.push(m.positions);
+        if (!m || !mat) continue;
+        const cones = mat.appearance.texture === "gen:pine-straw";
+        if (mat.appearance.grass || cones)
+          surfaces.push({
+            positions: m.positions,
+            grass: mat.appearance.grass ?? null,
+            color: mat.color,
+            cones,
+          });
+      }
+      const box = new THREE.Box3().setFromObject(t.group);
+      const center = box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
+      const radius = box.isEmpty() ? 10_000 : box.getSize(new THREE.Vector3()).length() / 2;
+      const base = baseGround ? byId.get(baseGround) : undefined;
+      if (
+        !hasSite &&
+        base &&
+        (base.appearance.grass || base.appearance.texture === "gen:pine-straw")
+      ) {
+        const z = Math.min(0, ...(useAppStore.getState().app?.levelElevations ?? [0])) - 2;
+        const r = Math.max(radius * 3, 45_000);
+        const [x0, y0, x1, y1] = [center.x - r, center.y - r, center.x + r, center.y + r];
+        surfaces.push({
+          positions: [x0, y0, z, x1, y0, z, x1, y1, z, x0, y0, z, x1, y1, z, x0, y1, z],
+          grass: base.appearance.grass ?? null,
+          color: base.color,
+          cones: base.appearance.texture === "gen:pine-straw",
+        });
+      }
+      if (surfaces.length) {
+        const grass = grassGroup(surfaces, center, radius, blockers);
+        grass.traverse((o) => o.layers.set(1));
+        t.scene.add(grass);
+        t.grass = grass;
+      }
+      // The base ground's material on Realistic's ground (without topography).
+      const key = base ? `${base.id}:${JSON.stringify(base.appearance)}` : "";
+      if (t.groundKey !== key) {
+        t.groundKey = key;
+        const old = t.ground.material as THREE.Material;
+        if (base) {
+          const [real] = [
+            await realMaterials([{ material: base.id } as Mesh], [base], (set, map) =>
+              ipc.materialTexture(set, map),
+            ),
+          ];
+          const r = real.get(base.id);
+          if (r && live) {
+            const m = (r.material as THREE.MeshPhysicalMaterial).clone();
+            // The disc is scaled up hugely: tile its texture at the material's real size.
+            const k = (2 * t.ground.scale.x) / Math.max(r.scale, 1);
+            for (const map of [m.map, m.normalMap, m.roughnessMap]) {
+              if (!map) continue;
+              const c = map.clone();
+              c.repeat.set(k, k / (r.aspect || 1));
+              c.needsUpdate = true;
+              if (map === m.map) m.map = c;
+              else if (map === m.normalMap) m.normalMap = c;
+              else m.roughnessMap = c;
+            }
+            t.ground.material = m;
+            old.dispose();
+          }
+        } else {
+          t.ground.material = new THREE.MeshStandardMaterial({ color: 0x6f7d5c, roughness: 1 });
+          old.dispose();
+        }
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [visualStyle, meshRev, view.id, baseGround]);
+
   const highlight = useAppStore((s) => s.highlight);
   useEffect(() => {
     if (three.current) {
@@ -1899,7 +2089,17 @@ function applyDisplay(
         child.material = styleMaterial(style, u.info, u.planes, r);
         u.style = style;
       }
-      const shadows = realistic && !isGlass(u.info.mesh) && u.category !== "Ceiling";
+      if (realistic && u.category === "Planting")
+        (child.material as THREE.Material).visible = false;
+      // Ground regions lie just over the ground: drawn in front of it (ADR-064).
+      if (u.category === "GroundRegion")
+        Object.assign(child.material as THREE.Material, {
+          polygonOffset: true,
+          polygonOffsetFactor: -4,
+          polygonOffsetUnits: -8,
+        });
+      const shadows =
+        realistic && !isGlass(u.info.mesh) && u.category !== "Ceiling" && u.category !== "Planting";
       child.castShadow = shadows;
       child.receiveShadow = realistic;
     } else if (child instanceof THREE.LineSegments && lastMesh) {
@@ -1959,7 +2159,16 @@ function applySelection(
         emissive?: THREE.Color;
       };
       const lit = pre(child.userData.el as string);
-      if (style === "realistic") {
+      if (style === "realistic" && info.mesh.category === "Planting") {
+        // The Enscape proxy shows only while selected or under the cursor.
+        Object.assign(mat, {
+          visible: on || lit,
+          transparent: true,
+          opacity: 0.3,
+          depthWrite: false,
+        });
+        mat.emissive?.setHex(on ? 0x146e87 : 0x0b4455);
+      } else if (style === "realistic") {
         mat.emissive?.setHex(on ? 0x146e87 : lit ? 0x0b4455 : 0x000000);
       } else if (mat.color) {
         mat.color.setHex(

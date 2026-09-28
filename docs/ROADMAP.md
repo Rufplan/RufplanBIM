@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Vegetation tab: Enscape-style Asset Library of 183 species with seasons, 3D grass, base ground and ground regions (ADR-064).
 - Enscape-style live Realistic view, sun panel, Walk and Fly; Render glare and vignette (ADR-063).
 - Archviz-grade wood sidings (ADR-062; its auto-refine was replaced by ADR-063).
 - High-resolution wood sidings and modern roofing, slope-aligned roof mapping (ADR-061).

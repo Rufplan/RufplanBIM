@@ -98,6 +98,10 @@ pub enum Category {
     LightingFixture,
     /// Wall openings (ADR-058).
     WallOpening,
+    /// Planting and ground regions (ADR-064).
+    PlantingType,
+    Planting,
+    GroundRegion,
 }
 
 impl Category {
@@ -150,6 +154,9 @@ impl Category {
             Category::LightingFixtureType => "LightingFixtureType",
             Category::LightingFixture => "LightingFixture",
             Category::WallOpening => "WallOpening",
+            Category::PlantingType => "PlantingType",
+            Category::Planting => "Planting",
+            Category::GroundRegion => "GroundRegion",
         }
     }
 }
@@ -928,6 +935,10 @@ pub enum ElementData {
         /// Revit's Sun Settings (ADR-057).
         #[serde(default)]
         sun: crate::lighting::SunSettings,
+        /// The base ground's material (ADR-064): the topography, or the ground around the
+        /// model without one. None: plain lawn.
+        #[serde(default)]
+        ground: Option<ElementId>,
     },
     DoorType {
         name: String,
@@ -1258,6 +1269,34 @@ pub enum ElementData {
         #[serde(default = "full")]
         dimming: f64,
     },
+    /// A planting type (ADR-064): a species from the Asset Library, its size and look.
+    PlantingType {
+        name: String,
+        spec: crate::planting::PlantSpec,
+    },
+    /// A tree, shrub or grass on `level` at `at` (on the ground where the topography is
+    /// under a level at grade), `offset` above it, turned `rotation` radians and sized
+    /// `scale` times its type.
+    Planting {
+        type_id: ElementId,
+        level: ElementId,
+        at: Pt,
+        #[serde(default)]
+        offset: f64,
+        #[serde(default)]
+        rotation: f64,
+        #[serde(default = "full")]
+        scale: f64,
+    },
+    /// Revit's topography subregion (ADR-064): an area of the ground (a drive, a lawn, a
+    /// bed) finished in `material`, sketched on `level` and laid over the topography.
+    GroundRegion {
+        level: ElementId,
+        material: ElementId,
+        boundary: Vec<Pt>,
+        #[serde(default)]
+        sketch: Vec<Vec<crate::sketch::SketchCurve>>,
+    },
     /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
     NorthArrow {
         view: ElementId,
@@ -1361,6 +1400,9 @@ impl ElementData {
             ElementData::LightingFixtureType { .. } => Category::LightingFixtureType,
             ElementData::LightingFixture { .. } => Category::LightingFixture,
             ElementData::WallOpening { .. } => Category::WallOpening,
+            ElementData::PlantingType { .. } => Category::PlantingType,
+            ElementData::Planting { .. } => Category::Planting,
+            ElementData::GroundRegion { .. } => Category::GroundRegion,
         }
     }
 
@@ -1447,6 +1489,8 @@ impl ElementData {
             } => vec![*base_level, *top_level],
             ElementData::LightingFixture { type_id, level, .. } => vec![*type_id, *level],
             ElementData::WallOpening { host, .. } => vec![*host],
+            ElementData::Planting { type_id, level, .. } => vec![*type_id, *level],
+            ElementData::GroundRegion { level, .. } => vec![*level],
             ElementData::Dimension { view, .. }
             | ElementData::AngularDimension { view, .. }
             | ElementData::TextNote { view, .. }
@@ -1534,6 +1578,9 @@ impl ElementData {
             ElementData::LightingFixtureType { name, .. } => name.clone(),
             ElementData::LightingFixture { .. } => "Lighting Fixture".into(),
             ElementData::WallOpening { .. } => "Wall Opening".into(),
+            ElementData::PlantingType { name, .. } => name.clone(),
+            ElementData::Planting { .. } => "Planting".into(),
+            ElementData::GroundRegion { .. } => "Ground Region".into(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),
@@ -1558,7 +1605,9 @@ impl ElementData {
             | ElementData::Railing { level, .. }
             | ElementData::RoomSeparator { level, .. }
             | ElementData::ElevationMarker { level, .. }
-            | ElementData::LightingFixture { level, .. } => Some(*level),
+            | ElementData::LightingFixture { level, .. }
+            | ElementData::Planting { level, .. }
+            | ElementData::GroundRegion { level, .. } => Some(*level),
             ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
                 Some(*base_level)
             }
@@ -1582,7 +1631,8 @@ impl ElementData {
             | ElementData::Column { type_id, .. }
             | ElementData::Beam { type_id, .. }
             | ElementData::Railing { type_id, .. }
-            | ElementData::LightingFixture { type_id, .. } => Some(*type_id),
+            | ElementData::LightingFixture { type_id, .. }
+            | ElementData::Planting { type_id, .. } => Some(*type_id),
             ElementData::ElevationMarker { type_id, .. } => *type_id,
             _ => None,
         }

@@ -6,7 +6,7 @@ import { ipc, type ElementId, type Pt } from "./ipc";
 import { activeViewInfo, useAppStore } from "./store";
 
 /** Floor (SB) or Sketch Ceiling (CS): enters sketch mode for a new one on this plan. */
-export async function startSketch(kind: "Floor" | "Ceiling") {
+export async function startSketch(kind: "Floor" | "Ceiling" | "GroundRegion") {
   const s = useAppStore.getState();
   const v = activeViewInfo(s);
   // In 3D, the sketch is on the work plane of the options bar's level (ADR-025).
@@ -16,9 +16,16 @@ export async function startSketch(kind: "Floor" | "Ceiling") {
     return;
   }
   const level = in3d ? (s.level3d ?? s.app?.levels[0]?.id ?? null) : null;
-  const type = kind === "Floor" ? s.toolTypes.floor : s.toolTypes.ceiling;
-  // Revit starts floors with Pick Walls and ceilings with Line.
-  s.setSketchUi({ mode: kind === "Floor" ? "PickWalls" : "Line", sel: [], tab: false });
+  // A ground region (ADR-064) takes the base ground's material to start; change it in
+  // Properties once it's made.
+  const type =
+    kind === "Floor" ? s.toolTypes.floor : kind === "Ceiling" ? s.toolTypes.ceiling : null;
+  // Revit starts floors with Pick Walls, ceilings with Line and regions with Rectangle.
+  s.setSketchUi({
+    mode: kind === "Floor" ? "PickWalls" : kind === "GroundRegion" ? "Rectangle" : "Line",
+    sel: [],
+    tab: false,
+  });
   await apply(() => ipc.sketchBegin(v.id, kind, null, type, level));
 }
 
@@ -51,6 +58,11 @@ export async function editBoundary(id: ElementId) {
     const sheet = await ipc.properties(id);
     if (sheet.category === "WallOpening") {
       await editWallOpening(id);
+      return;
+    }
+    if (sheet.category === "GroundRegion" && v) {
+      s.setSketchUi({ mode: "Modify", sel: [], tab: false });
+      await apply(() => ipc.sketchBegin(v.id, "GroundRegion", id, null));
       return;
     }
     if (sheet.category !== "Floor" && sheet.category !== "Ceiling") {

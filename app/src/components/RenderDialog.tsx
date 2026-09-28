@@ -6,6 +6,8 @@ import { BACKGROUNDS, type BackgroundId } from "../render/backgrounds";
 import type { RenderJob } from "../render/pathtrace";
 import { activeViewInfo, useAppStore } from "../store";
 import { liveCameras } from "./View3D";
+import { plantLoader } from "./AssetLibrary";
+import type { Mesh } from "../bindings/Mesh";
 
 // Render (RR): a path-traced image of the active 3D or camera view (ADR-027, ADR-028).
 
@@ -170,9 +172,11 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const photo = bg.photo ? await bgs.backgroundPhoto(bg.id) : null;
       const light = horizontalIrradiance(env) * intensity;
       setStatus("Preparing materials…");
+      const materials = await ipc.renderMaterials();
+      const groundId = useAppStore.getState().app?.ground ?? null;
       const materialOf = await pt.prepareMaterials(
-        meshes,
-        await ipc.renderMaterials(),
+        groundId ? [...meshes, { material: groundId } as Mesh] : meshes,
+        materials,
         (set, map) => ipc.materialTexture(set, map),
         (done, total) => total > 0 && setStatus(`Loading material textures… ${done} of ${total}`),
       );
@@ -195,7 +199,70 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         imagery,
         groundZ: Math.min(0, ...levels),
         lights,
+        groundMaterial: groundId ? materialOf?.({ material: groundId } as Mesh) : null,
       });
+      // Plants and Enscape's grass (ADR-064).
+      setStatus("Growing the plants…");
+      const [{ loadPlantEntries, plantMeshesYUp }, { grassMeshesYUp }, THREE] = await Promise.all([
+        import("../render/plants"),
+        import("../render/grass"),
+        import("three"),
+      ]);
+      const instances = await ipc.plantInstances(view.id).catch(() => []);
+      for (const m of plantMeshesYUp(await loadPlantEntries(instances, plantLoader))) scene.add(m);
+      const byId = new Map(materials.map((m) => [m.id, m]));
+      const box = new THREE.Box3();
+      const v = new THREE.Vector3();
+      let hasSite = false;
+      const surfaces: import("../render/grass").GrassSurface[] = [];
+      for (const m of meshes) {
+        if (m.category === "Site") hasSite = true;
+        else
+          for (let i = 0; i < m.positions.length; i += 3)
+            box.expandByPoint(v.set(m.positions[i]!, m.positions[i + 1]!, m.positions[i + 2]!));
+        const mat = m.material ? byId.get(m.material) : undefined;
+        const cones = mat?.appearance.texture === "gen:pine-straw";
+        if (mat && (mat.appearance.grass || cones))
+          surfaces.push({
+            positions: m.positions,
+            grass: mat.appearance.grass ?? null,
+            color: mat.color,
+            cones,
+          });
+      }
+      const center = box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
+      const radius = box.isEmpty() ? 10_000 : box.getSize(new THREE.Vector3()).length() / 2;
+      const base = groundId ? byId.get(groundId) : undefined;
+      if (
+        !hasSite &&
+        base &&
+        (base.appearance.grass || base.appearance.texture === "gen:pine-straw")
+      ) {
+        const z = Math.min(0, ...levels) - 2;
+        const r = Math.max(radius * 3, 45_000);
+        const [x0, y0, x1, y1] = [center.x - r, center.y - r, center.x + r, center.y + r];
+        surfaces.push({
+          positions: [x0, y0, z, x1, y0, z, x1, y1, z, x0, y0, z, x1, y1, z, x0, y1, z],
+          grass: base.appearance.grass ?? null,
+          color: base.color,
+          cones: base.appearance.texture === "gen:pine-straw",
+        });
+      }
+      const blockers = meshes
+        .filter((m) => {
+          const mat = m.material ? byId.get(m.material) : undefined;
+          const grows = !!mat?.appearance.grass || mat?.appearance.texture === "gen:pine-straw";
+          return !grows && m.category !== "Site" && m.category !== "Planting";
+        })
+        .map((m) => m.positions);
+      for (const m of grassMeshesYUp(
+        surfaces,
+        center,
+        radius,
+        { x: pose.eye[0]!, y: pose.eye[1]! },
+        blockers,
+      ))
+        scene.add(m);
       backdrop.current = photo
         ? renderBackdrop(w, h, camera, { texture: photo, rotation: rot, exposure: ev, tone })
         : bg.id === "physical"

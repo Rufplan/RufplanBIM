@@ -78,6 +78,29 @@ pub struct Appearance {
     /// Fabric sheen, 0–1.
     #[serde(default)]
     pub sheen: f64,
+    /// Enscape's Grass material type (ADR-064): 3D blades grown on the surface in Realistic
+    /// views and renders. None: a generic material.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub grass: Option<GrassSettings>,
+}
+
+/// How a Grass-type material's blades grow (Enscape's Height and Height Variation).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct GrassSettings {
+    /// Blade height (mm).
+    pub height: f64,
+    /// How much blades differ in height, 0 (all the same) to 1.
+    pub variation: f64,
+}
+
+impl GrassSettings {
+    /// A mown lawn's blades: Enscape's defaults for its Grass type.
+    pub const LAWN: GrassSettings = GrassSettings {
+        height: 60.0,
+        variation: 0.35,
+    };
 }
 
 impl Default for Appearance {
@@ -96,6 +119,7 @@ impl Default for Appearance {
             texture_color: true,
             coat: 0.0,
             sheen: 0.0,
+            grass: None,
         }
     }
 }
@@ -147,7 +171,7 @@ pub const CATEGORIES: &[&str] = &[
     "Fabric & Leather",
     "Roofing",
     "Surfaces & Ceilings",
-    "Site",
+    "Site & Landscape",
 ];
 
 struct P {
@@ -170,6 +194,7 @@ struct P {
     sheen: f64,
     tint: [u8; 3],
     texture_color: bool,
+    grass: Option<GrassSettings>,
 }
 
 const fn p(id: &'static str, name: &'static str, cat: &'static str, tier: Tier) -> P {
@@ -192,6 +217,7 @@ const fn p(id: &'static str, name: &'static str, cat: &'static str, tier: Tier) 
         sheen: 0.0,
         tint: [255, 255, 255],
         texture_color: true,
+        grass: None,
     }
 }
 
@@ -246,6 +272,11 @@ impl P {
     /// Keep the texture's relief and gloss, painted in the material's colour.
     const fn painted(mut self) -> P {
         self.texture_color = false;
+        self
+    }
+    /// Enscape's Grass type: blades `height` mm tall, `variation` (0–1) apart.
+    const fn grass(mut self, height: f64, variation: f64) -> P {
+        self.grass = Some(GrassSettings { height, variation });
         self
     }
 }
@@ -592,13 +623,77 @@ const PRESETS: &[P] = &[
     p("ceiling-act", "Acoustic Ceiling Tile, 2' x 2'", "Surfaces & Ceilings", TYP).sec("HM")
         .d("Mineral fiber tile in a white grid: corridors and back-of-house.")
         .c([238, 238, 234]).tex("proc:act", 609.6).r(0.95),
-    // Site
-    p("site-asphalt", "Asphalt Paving", "Site", TYP)
-        .d("Asphalt: drives, parking and streets.")
-        .c([70, 70, 70]).tex("asphalt_02", 3000.0).r(0.9),
-    p("site-lawn", "Lawn", "Site", TYP)
-        .d("Turf grass.")
-        .c([70, 100, 40]).tex("proc:grass", 1000.0).r(0.95).sheen(0.3),
+    // Site & Landscape (ADR-064): ground covers generated at 4096 px, the lawns and meadow of
+    // Enscape's Grass type (3D blades in Realistic views and renders).
+    p("site-lawn", "Lawn, Manicured Turf", "Site & Landscape", TYP)
+        .d("Mown fescue and bluegrass turf, fine blades with a little thatch: yards, parks and amenity lawns.")
+        .c([74, 104, 38]).tex("gen:lawn", FT8).r(0.85).sheen(0.3).grass(60.0, 0.35),
+    p("site-lawn-lush", "Lawn, Lush Bluegrass", "Site & Landscape", MID).sec("RH")
+        .d("Dense, deep green irrigated turf: estate lawns, resort grounds and golf-course fringes.")
+        .c([48, 90, 34]).tex("gen:lawn-lush", FT8).r(0.85).sheen(0.3).grass(70.0, 0.3),
+    p("site-lawn-dry", "Lawn, Summer Dry", "Site & Landscape", TYP).sec("RM")
+        .d("Unirrigated turf in late summer, straw patches through the green: realistic suburban yards.")
+        .c([128, 124, 70]).tex("gen:lawn-dry", FT8).r(0.9).sheen(0.2).grass(70.0, 0.45),
+    p("site-meadow", "Meadow Grass with Wildflowers", "Site & Landscape", MID).sec("RH")
+        .d("Unmown native grasses with clover and wildflowers: meadows, swales and naturalized edges.")
+        .c([88, 108, 48]).tex("gen:meadow", FT8).r(0.85).sheen(0.3).grass(300.0, 0.6),
+    p("site-pine-straw", "Pine Straw Mulch", "Site & Landscape", TYP).sec("R")
+        .d("Long-leaf pine needles laid thick, a fallen cone here and there: Southeast planting beds.")
+        .c([128, 82, 48]).tex("gen:pine-straw", FT8).r(0.75),
+    p("site-leaf-litter", "Autumn Leaf Litter", "Site & Landscape", TYP).sec("R")
+        .d("Fallen oak, maple and beech leaves: woodland floors and fall scenes.")
+        .c([130, 92, 54]).tex("gen:leaf-litter", FT4).r(0.8),
+    p("site-bark-mulch", "Shredded Hardwood Mulch", "Site & Landscape", TYP)
+        .d("Double-shredded hardwood bark, natural brown: the standard planting-bed mulch.")
+        .c([92, 62, 40]).tex("gen:bark-mulch", FT4).r(0.85),
+    p("site-black-mulch", "Shredded Mulch, Black", "Site & Landscape", TYP)
+        .d("Shredded mulch dyed black: modern planting beds and commercial landscapes.")
+        .c([36, 32, 30]).tex("gen:black-mulch", FT4).r(0.85),
+    p("site-red-mulch", "Shredded Mulch, Red", "Site & Landscape", TYP).sec("RM")
+        .d("Shredded mulch dyed red: traditional residential and retail beds.")
+        .c([116, 48, 34]).tex("gen:red-mulch", FT4).r(0.85),
+    p("site-pea-gravel", "Pea Gravel, 3/8\"", "Site & Landscape", TYP)
+        .d("Rounded mixed-color pea gravel: paths, patios, fire-pit areas and drainage strips.")
+        .c([150, 132, 110]).tex("gen:pea-gravel", FT4).r(0.8),
+    p("site-crushed-stone", "Crushed Stone, 3/4\" Gray", "Site & Landscape", TYP)
+        .d("Angular gray crushed stone (#57): drives, drip edges, gabions and utility yards.")
+        .c([120, 120, 118]).tex("gen:crushed-stone", FT4).r(0.85),
+    p("site-river-rock", "River Rock Cobbles, 2\"-4\"", "Site & Landscape", MID)
+        .d("Smooth mixed river cobbles over pea gravel: dry creek beds, swales and modern beds.")
+        .c([130, 122, 110]).tex("gen:river-rock", FT8).r(0.75),
+    p("site-decomposed-granite", "Decomposed Granite, Stabilized", "Site & Landscape", MID)
+        .d("Compacted tan DG fines: xeriscape paths, courtyards and bocce courts.")
+        .c([176, 150, 112]).tex("gen:decomposed-granite", FT4).r(0.9),
+    p("site-asphalt", "Asphalt Paving", "Site & Landscape", TYP)
+        .d("Fresh dense-graded asphalt with its aggregate showing: drives, parking and streets.")
+        .c([46, 46, 46]).tex("gen:asphalt", FT4).r(0.9),
+    p("site-asphalt-worn", "Asphalt Paving, Weathered", "Site & Landscape", TYP).sec("HM")
+        .d("Oxidized gray asphalt with sealed cracks, stains and a patch: existing lots and roads.")
+        .c([92, 90, 86]).tex("gen:asphalt-worn", FT8).r(0.9),
+    p("site-concrete-broom", "Concrete Paving, Broom Finish", "Site & Landscape", TYP)
+        .d("Broom-finished concrete with tooled joints at 5': walks, drives and patios.")
+        .c([172, 168, 160]).tex("gen:concrete-broom", FT10).r(0.85),
+    p("site-pavers-running", "Concrete Pavers, Running Bond", "Site & Landscape", MID)
+        .d("6\" x 12\" concrete pavers in a gray-tan blend, running bond, polymeric sand joints: patios and drives.")
+        .c([140, 134, 126]).tex("gen:pavers-running", FT4).r(0.85),
+    p("site-pavers-herringbone", "Clay Brick Pavers, Herringbone", "Site & Landscape", HI).sec("RH")
+        .d("4\" x 8\" red clay pavers in 90° herringbone on sand: walks, courtyards and plazas.")
+        .c([140, 74, 56]).tex("gen:pavers-herringbone", FT4).r(0.85),
+    p("site-flagstone", "Bluestone Flagging, Irregular", "Site & Landscape", HI).sec("RH")
+        .d("Irregular full-color bluestone with mortared joints: terraces, walks and pool decks.")
+        .c([108, 112, 116]).tex("gen:flagstone", FT8).r(0.85),
+    p("site-sand", "Sand", "Site & Landscape", TYP).sec("RH")
+        .d("Clean washed sand: beaches, play areas and volleyball courts.")
+        .c([204, 182, 144]).tex("gen:sand", FT4).r(0.9),
+    p("site-soil", "Garden Soil", "Site & Landscape", TYP).sec("R")
+        .d("Dark, freshly worked topsoil: new beds, vegetable gardens and construction sites.")
+        .c([66, 50, 36]).tex("gen:soil", FT4).r(0.9),
+    p("site-moss", "Moss", "Site & Landscape", MID).sec("RH")
+        .d("Cushion moss carpet: shade gardens, Japanese gardens and between stepping stones.")
+        .c([86, 108, 40]).tex("gen:moss", FT4).r(0.85).sheen(0.3),
+    p("site-snow", "Snow", "Site & Landscape", TYP)
+        .d("Fresh settled snow: winter scenes.")
+        .c([236, 240, 246]).tex("gen:snow", FT4).r(0.75),
 ];
 
 /// The library, in browser order.
@@ -635,6 +730,7 @@ pub fn library() -> Vec<Preset> {
                 texture_color: p.texture_color,
                 coat: p.coat,
                 sheen: p.sheen,
+                grass: p.grass,
             },
         })
         .collect()
@@ -884,5 +980,38 @@ mod tests {
             (0.8, 0.0, 1000.0, [255, 255, 255])
         );
         assert!(a.texture_color && a.texture.is_none());
+    }
+
+    #[test]
+    fn landscape_materials_are_generated_and_lawns_grow_grass() {
+        let lib = library();
+        let site: Vec<_> = lib
+            .iter()
+            .filter(|p| p.category == "Site & Landscape")
+            .collect();
+        assert!(site.len() >= 20, "{}", site.len());
+        for p in &site {
+            let t = p.appearance.texture.as_deref().unwrap_or_default();
+            assert!(t.starts_with("gen:"), "{}: {t}", p.id);
+            assert!(p.appearance.roughness * 1.4 >= 1.0, "{}", p.id);
+        }
+        // Enscape's Grass type on the lawns and the meadow, not on paving.
+        let lawn = preset("site-lawn").unwrap().appearance.grass.unwrap();
+        assert_eq!(lawn, GrassSettings::LAWN);
+        let meadow = preset("site-meadow").unwrap().appearance.grass.unwrap();
+        assert_eq!((meadow.height, meadow.variation), (300.0, 0.6));
+        assert_eq!(
+            preset("site-lawn-dry")
+                .unwrap()
+                .appearance
+                .grass
+                .unwrap()
+                .height,
+            70.0
+        );
+        assert!(preset("site-asphalt").unwrap().appearance.grass.is_none());
+        assert!(Appearance::default().grass.is_none());
+        let grassy = lib.iter().filter(|p| p.appearance.grass.is_some()).count();
+        assert_eq!(grassy, 4);
     }
 }

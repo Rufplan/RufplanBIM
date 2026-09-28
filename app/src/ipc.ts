@@ -64,6 +64,13 @@ import type { LightLibrary } from "./bindings/LightLibrary";
 import type { FixtureSource } from "./bindings/FixtureSource";
 import type { FixtureThumb } from "./bindings/FixtureThumb";
 import type { LightInfo } from "./bindings/LightInfo";
+import type { PlantLibrary } from "./bindings/PlantLibrary";
+import type { PlantSource } from "./bindings/PlantSource";
+import type { PlantModel } from "./bindings/PlantModel";
+import type { PlantMap } from "./bindings/PlantMap";
+import type { PlantInstance } from "./bindings/PlantInstance";
+import type { PlantAt } from "./bindings/PlantAt";
+import type { GroundChoice } from "./bindings/GroundChoice";
 import type { SunSettings } from "./bindings/SunSettings";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
 import type { PublishOptions } from "./bindings/PublishOptions";
@@ -356,6 +363,24 @@ export const ipc = {
   setSunSettings: (settings: SunSettings): S => invoke("set_sun_settings", { settings }),
   sunNow: () => invoke<SunPosition>("sun_now"),
   sunFor: (settings: SunSettings) => invoke<SunPosition>("sun_for", { settings }),
+  // Vegetation (ADR-064).
+  plantingLibrary: () => invoke<PlantLibrary>("planting_library"),
+  loadPlantingTypes: (names: string[]) => invoke<LoadedWindows>("load_planting_types", { names }),
+  plantModel: (source: PlantSource, variant: number) =>
+    invoke<PlantModel>("plant_model", { source, variant }),
+  /** A plant's foliage atlas or bark (PNG), made once and cached by Rust. */
+  plantTexture: (source: PlantSource, map: PlantMap, size: number | null = null) =>
+    invoke<ArrayBuffer>("plant_texture", { source, map, size }),
+  plantInstances: (view: ElementId | null) => invoke<PlantInstance[]>("plant_instances", { view }),
+  createPlants: (
+    view: ElementId,
+    typeId: ElementId,
+    at: PlantAt[],
+    level: ElementId | null = null,
+  ): S => invoke("create_plants", { view, typeId, at, level }),
+  setBaseGround: (material: ElementId | null, preset: string | null = null): S =>
+    invoke("set_base_ground", { material, preset }),
+  groundLibrary: () => invoke<GroundChoice[]>("ground_library"),
   selectionCategories: (ids: ElementId[]) => invoke<Category[]>("selection_categories", { ids }),
   hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
   setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>

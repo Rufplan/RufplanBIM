@@ -159,6 +159,21 @@ fn transformed(
         }
         ElementData::Room { point, .. } => *point = x.apply(*point),
         ElementData::ElevationMarker { at, .. } => *at = x.apply(*at),
+        ElementData::Planting { at, rotation, .. } => {
+            *at = x.apply(*at);
+            let d = x.apply(Pt::new(rotation.cos(), rotation.sin()));
+            let o = x.apply(Pt::default());
+            let v = d.sub(o);
+            *rotation = v.y.atan2(v.x);
+        }
+        ElementData::GroundRegion {
+            boundary, sketch, ..
+        } => {
+            *boundary = ccw(boundary.iter().map(|p| x.apply(*p)).collect());
+            for c in sketch.iter_mut().flatten() {
+                *c = c.mapped(&|p| x.apply(p), mirror);
+            }
+        }
         ElementData::RoomSeparator { start, end, .. } => {
             *start = x.apply(*start);
             *end = x.apply(*end);

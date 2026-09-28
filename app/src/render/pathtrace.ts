@@ -112,6 +112,13 @@ export interface SceneOptions {
   ) => { material: THREE.Material; scale: number; aspect: number; textured: boolean } | null;
   /** Lit lighting fixtures (ADR-057); their lenses glow when there are any. */
   lights?: LightInfo[];
+  /** The base ground's material (ADR-064) for the ground without topography. */
+  groundMaterial?: {
+    material: THREE.Material;
+    scale: number;
+    aspect: number;
+    textured: boolean;
+  } | null;
 }
 
 /** Lux per unit of the sky map's scale (its zenith is about 1): a clear sky and sun light
@@ -301,10 +308,15 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
       scene.add(new THREE.Mesh(geo, mat));
       continue;
     }
-    const custom = m.category === "Site" ? null : (o.materialOf?.(m) ?? null);
+    // Topography takes the base ground's material (ADR-064), unless it shows imagery.
+    const custom = m.category === "Site" && o.imagery ? null : (o.materialOf?.(m) ?? null);
     if (custom) {
       if (custom.textured) boxUv(geo, custom.scale, custom.aspect);
       const mesh = new THREE.Mesh(geo, custom.material);
+      if (m.category === "Site") {
+        hasSite = true;
+        mesh.userData.ground = true;
+      }
       scene.add(mesh);
       geo.computeBoundingBox();
       bounds = bounds.union(geo.boundingBox!);
@@ -380,14 +392,26 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     geo.rotateX(-Math.PI / 2);
     const c = bounds.isEmpty() ? new THREE.Vector3() : bounds.getCenter(new THREE.Vector3());
     geo.translate(c.x, o.groundZ - 5, c.z);
+    const gm = o.groundMaterial;
+    if (gm?.textured) {
+      // World-scale texture coordinates: the material's tile in mm.
+      const pos = geo.getAttribute("position");
+      const uv = new Float32Array(pos.count * 2);
+      for (let i = 0; i < pos.count; i++) {
+        uv[i * 2] = pos.getX(i) / gm.scale;
+        uv[i * 2 + 1] = -pos.getZ(i) / (gm.scale * (gm.aspect || 1));
+      }
+      geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    }
     const ground = new THREE.Mesh(
       geo,
-      new THREE.MeshPhysicalMaterial({
-        color: groundColor(),
-        roughness: 0.95,
-        specularIntensity: 0.2,
-        side: THREE.DoubleSide,
-      }),
+      gm?.material ??
+        new THREE.MeshPhysicalMaterial({
+          color: groundColor(),
+          roughness: 0.95,
+          specularIntensity: 0.2,
+          side: THREE.DoubleSide,
+        }),
     );
     ground.userData.ground = true;
     scene.add(ground);

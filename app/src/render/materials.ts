@@ -18,7 +18,10 @@ export interface TextureSet {
 
 const photoSets = new Map<string, Promise<TextureSet>>();
 
-async function imageTexture(bytes: ArrayBuffer | Blob, srgb: boolean): Promise<THREE.Texture> {
+export async function imageTexture(
+  bytes: ArrayBuffer | Blob,
+  srgb: boolean,
+): Promise<THREE.Texture> {
   // Generated sets (ADR-061) are PNG; photo sets JPEG.
   const png = !(bytes instanceof Blob) && new Uint8Array(bytes, 0, 1)[0] === 0x89;
   const blob =

@@ -2,6 +2,57 @@ import { mockIPC } from "@tauri-apps/api/mocks";
 import type { AppState } from "../ipc";
 import type { Standards } from "../bindings/Standards";
 
+/** A small Asset Library: a maple in two seasons and a boxwood. */
+const plantSpec = (group: string, form: string, season: string) => ({
+  botanical: "Acer rubrum",
+  group,
+  form,
+  foliage: "Palmate",
+  bark_kind: "Smooth",
+  height: 15240,
+  spread: 10668,
+  depth: 0,
+  trunk: 4572,
+  caliper: 363,
+  stems: 1,
+  leaf: [72, 104, 48],
+  leaf_alt: [90, 120, 60],
+  bark: [118, 114, 106],
+  autumn: [178, 48, 30],
+  season,
+  density: 0.8,
+});
+export const FAKE_PLANT_LIBRARY = {
+  presets: [
+    {
+      name: "Red Maple",
+      species: "Red Maple",
+      description: "Fast, adaptable street and yard tree.",
+      climates: ["Temperate"],
+      spec: plantSpec("Deciduous", "Oval", "Summer"),
+    },
+    {
+      name: "Red Maple (Autumn)",
+      species: "Red Maple",
+      description: "Fast, adaptable street and yard tree.",
+      climates: ["Temperate"],
+      spec: plantSpec("Deciduous", "Oval", "Autumn"),
+    },
+    {
+      name: "Boxwood, Round",
+      species: "Boxwood, Round",
+      description: "Clipped evergreen globe.",
+      climates: ["Temperate"],
+      spec: { ...plantSpec("Shrub", "Mound", "Summer"), botanical: "Buxus sempervirens" },
+    },
+  ],
+  groups: [
+    ["Deciduous", "Deciduous Trees", "Trees"],
+    ["Shrub", "Shrubs & Bushes", "Bushes"],
+  ],
+  climates: [["Temperate", "Temperate"]],
+};
+
 export interface FakeBackend {
   calls: { cmd: string; args: unknown }[];
   /** Path returned by the next open dialog; null simulates Cancel. */
@@ -147,6 +198,8 @@ export function appState(path: string | null, dirty = false): AppState {
       { id: "00000000-0000-7000-8000-000000000043", name: "Wall Sconce" },
     ],
     sun: { mode: "Still", month: 6, day: 21, hour: 15, azimuth: 225, altitude: 35 },
+    plantingTypes: [],
+    ground: null,
     materials: [
       { id: "00000000-0000-7000-8000-000000000050", name: "Brick" },
       { id: "00000000-0000-7000-8000-000000000051", name: "Concrete" },
@@ -902,6 +955,26 @@ export function installFakeBackend(): FakeBackend {
         case "set_lights":
         case "set_sun_settings":
         case "create_lighting_fixture":
+          return fake.state;
+        // Vegetation (ADR-064).
+        case "planting_library":
+          return FAKE_PLANT_LIBRARY;
+        case "load_planting_types":
+          return { state: fake.state, ids: ["00000000-0000-7000-8000-000000000061"] };
+        case "plant_instances":
+          return [];
+        case "ground_library":
+          return [
+            {
+              id: "site-lawn",
+              name: "Lawn, Manicured",
+              description: "Fine mown turf.",
+              color: [92, 124, 60],
+              texture: "gen:lawn",
+            },
+          ];
+        case "create_plants":
+        case "set_base_ground":
           return fake.state;
         case "sun_for":
         case "sun_now":

@@ -16,6 +16,73 @@ const I = ({ children }: { children: ReactNode }) => (
 );
 
 export const Icons = {
+  tree: (
+    <I>
+      <path d="M12 21v-7M12 16l-3-2.5M12 14.5l3-2" />
+      <path
+        d="M12 3c-2.6 0-4.3 1.8-4.5 3.8C5.8 7.3 4.5 8.8 4.5 10.6c0 2.3 1.9 4 4.3 4h6.4c2.4 0 4.3-1.7 4.3-4 0-1.8-1.3-3.3-3-3.8C16.3 4.8 14.6 3 12 3z"
+        fill="currentColor"
+        fillOpacity="0.25"
+      />
+    </I>
+  ),
+  conifer: (
+    <I>
+      <path d="M12 21v-3" />
+      <path
+        d="M12 3l-4 5h2.5L7 12.5h3L6 18h12l-4-5.5h3L13.5 8H16z"
+        fill="currentColor"
+        fillOpacity="0.25"
+      />
+    </I>
+  ),
+  palm: (
+    <I>
+      <path d="M12.5 21c.5-4 .3-7-.5-10" />
+      <path d="M12 11c-2-3-5-3.5-8-2.5M12 11c2.5-2.5 5.5-2.5 8-1M12 11c-1-3-.5-5.5 1-7.5M12 11c-3.5-.5-6 1-7 3.5M12 11c3 0 5.5 1.5 6.5 4" />
+    </I>
+  ),
+  shrub: (
+    <I>
+      <path
+        d="M4 19c-1-3 1-5.5 3.5-5.5.3-2.3 2.2-3.8 4.5-3.8s4.2 1.5 4.5 3.8c2.5 0 4.5 2.5 3.5 5.5z"
+        fill="currentColor"
+        fillOpacity="0.25"
+      />
+      <path d="M3 19h18" />
+    </I>
+  ),
+  grass: (
+    <I>
+      <path d="M3 20h18M6 20c0-4 1-7 3-10M9 20c0-3-.5-6-2.5-8.5M12 20c0-5 .5-9 2-12M15 20c0-3 1.5-6 4-7.5M18 20c0-2-1-4.5-2.5-6" />
+    </I>
+  ),
+  assets: (
+    <I>
+      <rect x="3" y="3" width="8" height="8" rx="1" />
+      <rect x="13" y="3" width="8" height="8" rx="1" />
+      <rect x="3" y="13" width="8" height="8" rx="1" />
+      <path d="M17 13v8M13 17h8" />
+    </I>
+  ),
+  ground: (
+    <I>
+      <path d="M2 17l6-4 5 3 4-2.5 5 3.5v3H2z" fill="currentColor" fillOpacity="0.25" />
+      <path d="M5 11V9M8 10V7.5M11 11V8.5" />
+    </I>
+  ),
+  region: (
+    <I>
+      <path d="M4 7l7-3 9 4-2 11-12 1z" strokeDasharray="3 2" />
+      <path d="M8 16c1-2 2-3 3-3.5M12 16c.5-2 1.5-3.5 3-4" />
+    </I>
+  ),
+  season: (
+    <I>
+      <path d="M12 3a9 9 0 100 18 9 9 0 000-18z" />
+      <path d="M12 3v18M3 12h18" strokeDasharray="2 2" />
+    </I>
+  ),
   select: (
     <I>
       <path d="M5 3l12 8-5.5 1.2L14 19l-2.4 1.2-2.6-6.6L5 17z" fill="currentColor" stroke="none" />
