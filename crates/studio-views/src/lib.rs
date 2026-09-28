@@ -702,6 +702,7 @@ fn plan(
     lighting::plan_symbols(doc, b, level, ceiling);
     if !ceiling {
         plants::plan_regions(doc, b, level, site_view);
+        plants::plan_grass(doc, b, level, site_view);
         plants::plan_symbols(doc, b, level, site_view);
     }
     if !ceiling {
@@ -3580,6 +3581,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     lighting::meshes(doc, &mut out);
     plants::meshes(doc, &mut out);
     plants::region_meshes(doc, &mut out);
+    plants::grass_meshes(doc, &mut out);
     out
 }
 

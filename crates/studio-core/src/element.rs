@@ -102,6 +102,8 @@ pub enum Category {
     PlantingType,
     Planting,
     GroundRegion,
+    /// Painted grass (ADR-065).
+    GrassPatch,
 }
 
 impl Category {
@@ -157,6 +159,7 @@ impl Category {
             Category::PlantingType => "PlantingType",
             Category::Planting => "Planting",
             Category::GroundRegion => "GroundRegion",
+            Category::GrassPatch => "GrassPatch",
         }
     }
 }
@@ -1297,6 +1300,13 @@ pub enum ElementData {
         #[serde(default)]
         sketch: Vec<Vec<crate::sketch::SketchCurve>>,
     },
+    /// Grass painted with D5's brush (ADR-065): a stroke of round dabs (x, y, the surface's z,
+    /// radius) on `level`, growing as `spec`.
+    GrassPatch {
+        level: ElementId,
+        dabs: Vec<[f64; 4]>,
+        spec: crate::grass::GrassSpec,
+    },
     /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
     NorthArrow {
         view: ElementId,
@@ -1403,6 +1413,7 @@ impl ElementData {
             ElementData::PlantingType { .. } => Category::PlantingType,
             ElementData::Planting { .. } => Category::Planting,
             ElementData::GroundRegion { .. } => Category::GroundRegion,
+            ElementData::GrassPatch { .. } => Category::GrassPatch,
         }
     }
 
@@ -1490,7 +1501,9 @@ impl ElementData {
             ElementData::LightingFixture { type_id, level, .. } => vec![*type_id, *level],
             ElementData::WallOpening { host, .. } => vec![*host],
             ElementData::Planting { type_id, level, .. } => vec![*type_id, *level],
-            ElementData::GroundRegion { level, .. } => vec![*level],
+            ElementData::GroundRegion { level, .. } | ElementData::GrassPatch { level, .. } => {
+                vec![*level]
+            }
             ElementData::Dimension { view, .. }
             | ElementData::AngularDimension { view, .. }
             | ElementData::TextNote { view, .. }
@@ -1581,6 +1594,7 @@ impl ElementData {
             ElementData::PlantingType { name, .. } => name.clone(),
             ElementData::Planting { .. } => "Planting".into(),
             ElementData::GroundRegion { .. } => "Ground Region".into(),
+            ElementData::GrassPatch { spec, .. } => format!("Grass: {}", spec.kind.label()),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),
@@ -1607,7 +1621,8 @@ impl ElementData {
             | ElementData::ElevationMarker { level, .. }
             | ElementData::LightingFixture { level, .. }
             | ElementData::Planting { level, .. }
-            | ElementData::GroundRegion { level, .. } => Some(*level),
+            | ElementData::GroundRegion { level, .. }
+            | ElementData::GrassPatch { level, .. } => Some(*level),
             ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
                 Some(*base_level)
             }

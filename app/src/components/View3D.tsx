@@ -40,6 +40,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { fromLook, look, lookDir, navStep, type NavState } from "../render/navigate";
 import { NavBar, SunPanel } from "./View3DPanels";
@@ -298,6 +299,8 @@ export function prompt3d(tool: string, n = 0): string {
       return "Click on the level's work plane to place a column.";
     case "light":
       return "Click a ceiling, wall or floor to place the lighting fixture on it.";
+    case "grassBrush":
+      return "Drag over the ground, a floor or a roof to paint grass; Erase on the options bar takes it away. Esc finishes.";
     case "plant":
       return "Click the ground, a floor or a roof to place the plant; keep clicking to place more. Esc finishes.";
     case "floorAuto":
@@ -314,6 +317,33 @@ export function prompt3d(tool: string, n = 0): string {
 }
 
 /** 3D view. Geometry comes from Rust as triangle soup in mm, z-up. */
+/** D5's colour (ADR-065): saturation and contrast on the finished image. */
+export const D5_SATURATION = 1.14;
+export const D5_CONTRAST = 1.06;
+const D5_GRADE = {
+  uniforms: {
+    tDiffuse: { value: null },
+    saturation: { value: D5_SATURATION },
+    contrast: { value: D5_CONTRAST },
+  },
+  vertexShader: `varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float saturation; uniform float contrast;
+    varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      vec3 s = mix(vec3(l), c.rgb, saturation);
+      gl_FragColor = vec4(clamp((s - 0.5) * contrast + 0.5, 0.0, 1.0), c.a);
+    }`,
+};
+
+/** D5's grass kinds and their looks, fetched once for the brush. */
+let grassKinds: Promise<import("../bindings/GrassKindInfo").GrassKindInfo[]> | null = null;
+
+/** D5's default sky: the share of it that soft cumulus covers (ADR-065). */
+export const D5_CLOUDS = 0.42;
+
 /** Auto exposure's target: the light on level ground, sun and sky, that maps to exposure 1. */
 const AUTO_EXPOSURE = 5.5;
 
@@ -464,6 +494,8 @@ export function View3D({ view }: { view: ViewInfo }) {
         // A soft bloom on the brightest light: sun glints, lit lenses (Enscape's).
         c.addPass(new UnrealBloomPass(new THREE.Vector2(r.width, r.height), 0.12, 0.5, 6));
         c.addPass(new OutputPass());
+        // D5's look (ADR-065): a touch more colour and contrast after tone mapping.
+        c.addPass(new ShaderPass(D5_GRADE));
         t.composer = c;
       }
       return t.composer;
@@ -1302,11 +1334,110 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
     });
 
+    // ---- D5's Grass Brush (ADR-065): a ring on the ground; dragging lays dabs ----
+    const brushRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.93, 1, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0x3ecff7,
+        transparent: true,
+        opacity: 0.95,
+        depthTest: false,
+      }),
+    );
+    brushRing.renderOrder = 10;
+    brushRing.visible = false;
+    scene.add(brushRing);
+    const brushPaint = new THREE.Group();
+    scene.add(brushPaint);
+    let stroke: { dabs: [number, number, number, number][] } | null = null;
+    const brushHit = (e: PointerEvent) => {
+      const targets = [...group.children, ...terrainGroup.children, ground].filter(
+        (c) =>
+          c instanceof THREE.Mesh &&
+          c.visible &&
+          c.userData.category !== "Planting" &&
+          c.userData.category !== "GrassPatch",
+      );
+      const h = rayAt(e).intersectObjects(targets, false)[0];
+      return h?.point ?? planeHit(e)?.point ?? null;
+    };
+    const brushOptions = () => useAppStore.getState().options;
+    const showRing = (p: THREE.Vector3) => {
+      const o = brushOptions();
+      brushRing.position.set(p.x, p.y, p.z + 15);
+      brushRing.scale.setScalar(o.grassBrush);
+      (brushRing.material as THREE.MeshBasicMaterial).color.setHex(
+        o.grassErase ? 0xc0352b : 0x3ecff7,
+      );
+      brushRing.visible = true;
+    };
+    const addDab = (p: THREE.Vector3) => {
+      if (!stroke) return;
+      const o = brushOptions();
+      stroke.dabs.push([p.x, p.y, p.z, o.grassBrush]);
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(o.grassBrush, 32),
+        new THREE.MeshBasicMaterial({
+          color: o.grassErase ? 0xc0352b : 0x5fae3c,
+          transparent: true,
+          opacity: 0.3,
+          depthWrite: false,
+        }),
+      );
+      disc.position.set(p.x, p.y, p.z + 10);
+      brushPaint.add(disc);
+    };
+    const endStroke = async () => {
+      const st = stroke;
+      stroke = null;
+      for (const c of [...brushPaint.children]) {
+        brushPaint.remove(c);
+        (c as THREE.Mesh).geometry.dispose();
+      }
+      controls.enabled = true;
+      if (!st?.dabs.length) return;
+      const s = useAppStore.getState();
+      const o = s.options;
+      if (o.grassErase) {
+        await apply(() => ipc.eraseGrass(st.dabs));
+        return;
+      }
+      const kinds = await (grassKinds ??= ipc.grassKinds());
+      const spec = kinds.find((k) => k.kind === o.grassKind)?.spec;
+      if (!spec) return;
+      // The level at or below the stroke's start.
+      const z = st.dabs[0]![2];
+      const levels = s.app?.levels ?? [];
+      const elevs = s.app?.levelElevations ?? [];
+      let i = elevs.reduce(
+        (best, e, k) => (Math.abs(e) < Math.abs(elevs[best] ?? Infinity) ? k : best),
+        0,
+      );
+      elevs.forEach((e, k) => {
+        if (e <= z + 1 && e > (elevs[i] ?? -Infinity)) i = k;
+      });
+      await apply(() =>
+        ipc.paintGrass(levels[i]?.id ?? null, st.dabs, {
+          ...spec,
+          density: Math.max(0.2, Math.min(2, o.grassDensity / 100)),
+        }),
+      );
+    };
+
     // Dragging a section box handle moves that face along its axis.
     let drag: { axis: number; end: "min" | "max"; at: THREE.Vector3 } | null = null;
     let down: [number, number] | null = null;
     const onDown = (e: PointerEvent) => {
       down = [e.clientX, e.clientY];
+      if (e.button === 0 && useAppStore.getState().tool === "grassBrush") {
+        const p = brushHit(e);
+        if (!p) return;
+        stroke = { dabs: [] };
+        addDab(p);
+        controls.enabled = false;
+        renderer.domElement.setPointerCapture(e.pointerId);
+        return;
+      }
       // Dragging a selected boundary line's end (sketch Modify).
       if (e.button === 0 && useAppStore.getState().tool === "sketch") {
         const g = gripAt3d(e);
@@ -1374,6 +1505,19 @@ export function View3D({ view }: { view: ViewInfo }) {
     };
     const onMove = (e: PointerEvent) => {
       lastPointer = e;
+      if (useAppStore.getState().tool === "grassBrush") {
+        const p = brushHit(e);
+        if (!p) {
+          brushRing.visible = false;
+          return;
+        }
+        showRing(p);
+        const last = stroke?.dabs.at(-1);
+        if (stroke && (!last || Math.hypot(last[0] - p.x, last[1] - p.y) > last[3] * 0.35))
+          addDab(p);
+        return;
+      }
+      brushRing.visible = false;
       if (cycle3d && Math.hypot(e.clientX - cycle3d.x, e.clientY - cycle3d.y) > 4) endCycle();
       const b = boxRef.current;
       if (!drag || !b) {
@@ -1400,6 +1544,10 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
     };
     const onUp = (e: PointerEvent) => {
+      if (stroke) {
+        void endStroke();
+        return;
+      }
       if (vertexDrag) {
         const vd = vertexDrag;
         vertexDrag = null;
@@ -1684,6 +1832,8 @@ export function View3D({ view }: { view: ViewInfo }) {
         sunToSky: 0,
         width: previewing ? 512 : 1024,
         height: previewing ? 256 : 512,
+        // D5's default sky: fair-weather clouds (ADR-065).
+        clouds: night ? 0 : D5_CLOUDS,
       });
       sky.mapping = THREE.EquirectangularReflectionMapping;
       sky.needsUpdate = true;
@@ -1780,10 +1930,12 @@ export function View3D({ view }: { view: ViewInfo }) {
     }
     let live = true;
     void (async () => {
-      const [instances, mats] = await Promise.all([
+      const [instances, mats, patches] = await Promise.all([
         ipc.plantInstances(view.id).catch(() => []),
         ipc.renderMaterials().catch(() => []),
+        ipc.grassPatches(view.id).catch(() => []),
       ]);
+      const patchSpec = new Map(patches.map((p) => [p.el, p.spec]));
       const entries = await loadPlantEntries(instances, plantLoader);
       const t = three.current;
       if (!live || !t) return;
@@ -1805,7 +1957,25 @@ export function View3D({ view }: { view: ViewInfo }) {
         const mat = m?.material ? byId.get(m.material) : undefined;
         const grows =
           !!mat && (!!mat.appearance.grass || mat.appearance.texture === "gen:pine-straw");
-        if (m && !grows && m.category !== "Site" && m.category !== "Planting")
+        // Painted grass (ADR-065): its own kind, colour and density.
+        const painted = m ? patchSpec.get(m.el) : undefined;
+        if (m && painted) {
+          surfaces.push({
+            positions: m.positions,
+            grass: { height: painted.height, variation: painted.variation },
+            color: painted.color,
+            kind: painted.kind,
+            density: painted.density,
+          });
+          continue;
+        }
+        if (
+          m &&
+          !grows &&
+          m.category !== "Site" &&
+          m.category !== "Planting" &&
+          m.category !== "GrassPatch"
+        )
           blockers.push(m.positions);
         if (!m || !mat) continue;
         const cones = mat.appearance.texture === "gen:pine-straw";
@@ -2090,6 +2260,9 @@ function applyDisplay(
         u.style = style;
       }
       if (realistic && u.category === "Planting")
+        (child.material as THREE.Material).visible = false;
+      // Painted grass shows as its blades in Realistic (its patch stays pickable).
+      if (realistic && u.category === "GrassPatch")
         (child.material as THREE.Material).visible = false;
       // Ground regions lie just over the ground: drawn in front of it (ADR-064).
       if (u.category === "GroundRegion")

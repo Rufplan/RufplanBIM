@@ -149,11 +149,11 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
 
   it("offers photo backgrounds and projects their ground like V-Ray (ADR-028)", async () => {
     expect(BACKGROUNDS.map((b) => b.label)).toEqual([
+      "D5 Sky (clouds, matches the sun)",
       "Sky",
       "Mountains",
       "Grass Plain",
       "City",
-      "Physical Sky (matches the sun)",
       "White",
     ]);
     expect(BACKGROUNDS.filter((b) => b.project).map((b) => b.id)).toEqual([
@@ -195,6 +195,9 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
     const dialog = await screen.findByRole("dialog", { name: "Render" });
     const bg = within(dialog).getByLabelText("Background") as HTMLSelectElement;
     expect([...bg.options].map((o) => o.textContent)).toContain("Grass Plain");
+    // D5's cloudy physical sky is the default (ADR-065); the photos credit their source.
+    expect(bg.value).toBe("physical");
+    await userEvent.selectOptions(bg, "sky");
     expect(within(dialog).getByText(/Kloofendal/)).toBeTruthy();
     await userEvent.selectOptions(bg, "white");
     expect((within(dialog).getByLabelText("Lighting") as HTMLSelectElement).disabled).toBe(true);

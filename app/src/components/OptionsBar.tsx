@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import type { Prefer } from "../bindings/Prefer";
 import { openPicker } from "../actions";
+
+/** D5's grass kinds, for the brush (the core's GrassKind labels). */
+export const GRASS_KINDS: [import("../bindings/GrassKind").GrassKind, string][] = [
+  ["Lawn", "Lawn"],
+  ["LushLawn", "Lush Lawn"],
+  ["Meadow", "Meadow with Flowers"],
+  ["WildGrass", "Wild Grass"],
+  ["DryGrass", "Dry Grass"],
+  ["Clover", "Clover"],
+  ["TallGrass", "Tall Grass"],
+];
 import { ipc } from "../ipc";
 import { LINE_STYLES, LINE_TOOLS, TOOL_LABELS, useAppStore } from "../store";
 import type { DrawTool } from "../bindings/DrawTool";
@@ -337,6 +348,60 @@ export function OptionsBar() {
       <>
         {choices && pick("stairShape", "Shape", choices[1])}
         {typed}
+      </>
+    );
+  else if (tool === "grassBrush")
+    // D5's grass brush (ADR-065).
+    body = (
+      <>
+        <label className="ob-field">
+          Grass
+          <select
+            aria-label="Grass"
+            value={o.grassKind}
+            onChange={(e) => set("grassKind", e.target.value as never)}
+          >
+            {GRASS_KINDS.map(([k, label]) => (
+              <option key={k} value={k}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="ob-field">
+          Brush
+          <input
+            aria-label="Brush size"
+            type="range"
+            min={300}
+            max={6000}
+            step={100}
+            value={o.grassBrush}
+            onChange={(e) => set("grassBrush", Number(e.target.value))}
+          />
+          {Math.round((o.grassBrush * 2) / 304.8)}'
+        </label>
+        <label className="ob-field">
+          Density
+          <input
+            aria-label="Grass density"
+            type="range"
+            min={20}
+            max={200}
+            step={10}
+            value={o.grassDensity}
+            onChange={(e) => set("grassDensity", Number(e.target.value))}
+          />
+          {o.grassDensity}%
+        </label>
+        <label className="ob-check">
+          <input
+            type="checkbox"
+            checked={o.grassErase}
+            onChange={(e) => set("grassErase", e.target.checked)}
+          />
+          Erase
+        </label>
       </>
     );
   else if (tool === "plant")

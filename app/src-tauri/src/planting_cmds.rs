@@ -304,6 +304,94 @@ pub fn planting_types(state: State<'_, SessionState>) -> CommandResult<Vec<(Elem
         .collect())
 }
 
+// ---------------------------------------------------------------- painted grass (ADR-065)
+
+/// D5's grass kinds for the brush, each with its own look.
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export)]
+pub struct GrassKindInfo {
+    pub kind: studio_core::grass::GrassKind,
+    pub label: String,
+    pub spec: studio_core::grass::GrassSpec,
+}
+
+#[tauri::command]
+pub fn grass_kinds() -> Vec<GrassKindInfo> {
+    studio_core::grass::GrassKind::ALL
+        .iter()
+        .map(|k| GrassKindInfo {
+            kind: *k,
+            label: k.label().into(),
+            spec: k.spec(),
+        })
+        .collect()
+}
+
+/// Paints a stroke of grass (one undo step) on `level`, or the level at grade.
+#[tauri::command]
+pub fn paint_grass(
+    level: Option<ElementId>,
+    dabs: Vec<[f64; 4]>,
+    spec: studio_core::grass::GrassSpec,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut s = lock(&state)?;
+    let level = match level {
+        Some(l) => l,
+        None => s
+            .doc()?
+            .levels()
+            .into_iter()
+            .min_by(|a, b| a.2.abs().total_cmp(&b.2.abs()))
+            .map(|l| l.0)
+            .ok_or_else(|| anyhow::anyhow!("the project has no levels"))?,
+    };
+    s.edit(|d| studio_core::grass::paint(d, level, &dabs, spec))?;
+    finish(&window, &s)
+}
+
+/// Erases painted grass under a stroke (one undo step).
+#[tauri::command]
+pub fn erase_grass(
+    dabs: Vec<[f64; 4]>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut s = lock(&state)?;
+    s.edit(|d| studio_core::grass::erase(d, &dabs))?;
+    finish(&window, &s)
+}
+
+/// Each painted patch's grass, for growing its blades (those hidden in `view` left out).
+#[derive(Debug, Clone, Serialize, TS)]
+#[ts(export)]
+pub struct GrassPatchInfo {
+    pub el: ElementId,
+    pub spec: studio_core::grass::GrassSpec,
+}
+
+#[tauri::command]
+pub fn grass_patches(
+    view: Option<ElementId>,
+    state: State<'_, SessionState>,
+) -> CommandResult<Vec<GrassPatchInfo>> {
+    let s = lock(&state)?;
+    let doc = s.doc()?;
+    let v = view.and_then(|v| doc.data(v).ok());
+    Ok(doc
+        .of(Category::GrassPatch)
+        .filter(|e| v.is_none_or(|v| !studio_core::visibility::hidden_in(doc, v, e.id)))
+        .filter_map(|e| match &e.data {
+            studio_core::ElementData::GrassPatch { spec, .. } => Some(GrassPatchInfo {
+                el: e.id,
+                spec: *spec,
+            }),
+            _ => None,
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -93,13 +93,54 @@ export interface SkyOptions {
   height?: number;
   /** Ground seen below the horizon (linear albedo). */
   ground?: [number, number, number];
+  /** D5's default sky (ADR-065): soft fair-weather cumulus covering this share of the sky
+   * (0 clear, about 0.35 a D5 day), lit by the sun. */
+  clouds?: number;
 }
+
+/** Periodic-free value noise for the clouds, 0-1. */
+function cloudNoise(x: number, y: number): number {
+  const h = (i: number, j: number) => {
+    let n = (i * 374761393 + j * 668265263) | 0;
+    n = (n ^ (n >>> 13)) * 1274126177;
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
+  let sum = 0;
+  let amp = 0.5;
+  let norm = 0;
+  let fx = x;
+  let fy = y;
+  for (let o = 0; o < 5; o++) {
+    const i = Math.floor(fx);
+    const j = Math.floor(fy);
+    const tx = fx - i;
+    const ty = fy - j;
+    const sx = tx * tx * (3 - 2 * tx);
+    const sy = ty * ty * (3 - 2 * ty);
+    const a = h(i, j) * (1 - sx) + h(i + 1, j) * sx;
+    const b = h(i, j + 1) * (1 - sx) + h(i + 1, j + 1) * sx;
+    sum += amp * (a * (1 - sy) + b * sy);
+    norm += amp;
+    amp *= 0.5;
+    // Rotate each octave a little so the lattice doesn't show.
+    const nx = fx * 1.6 - fy * 1.2 + 17.3;
+    fy = fx * 1.2 + fy * 1.6 + 3.1;
+    fx = nx;
+  }
+  return sum / norm;
+}
+
+const smooth = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
 
 /** An equirectangular HDR map of the sky and sun, scaled so the zenith is about 1. */
 export function physicalSky(o: SkyOptions): THREE.DataTexture {
   const w = o.width ?? 2048;
   const h = o.height ?? 1024;
-  const t = o.turbidity ?? 3;
+  // A cloudy D5 sky is a clearer, deeper blue between its clouds.
+  const t = o.turbidity ?? (o.clouds ? 2.4 : 3);
   const sun = o.sunDir.clone().normalize();
   const ts = Math.min(Math.acos(Math.max(-1, Math.min(1, sun.y))), (89.5 * Math.PI) / 180);
   const co = coefficients(t);
@@ -115,6 +156,9 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
   let hn = 0;
   const dir = new THREE.Vector3();
   let irradiance = 0;
+  const cover = Math.min(0.9, Math.max(0, o.clouds ?? 0));
+  const cloudLum = z.Y * scale * (2.4 + 1.6 * Math.max(0, sun.y));
+  const tint = sunColor(Math.max(o.altitude, 1));
   for (let j = 0; j < h; j++) {
     // three's equirect: row 0 straight down, the last row straight up.
     const elev = ((j + 0.5) / h - 0.5) * Math.PI;
@@ -129,14 +173,37 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
       const Y = zY * perez(theta, gamma, co.Y) * scale;
       const x = zx * perez(theta, gamma, co.x);
       const y = zy * perez(theta, gamma, co.y);
-      const [r, g, b] = xyYToRgb(x, y, Y);
+      let [r, g, b] = xyYToRgb(x, y, Y);
+      let lum = Y;
+      if (cover > 0 && dir.y > 0.01) {
+        // A cloud deck overhead, seen in perspective: features shrink toward the horizon.
+        const kk = 1 / Math.max(dir.y, 0.04);
+        const n = cloudNoise(dir.x * kk * 0.85 + 40, dir.z * kk * 0.85 + 40);
+        const d = smooth(1 - cover - 0.04, 1 - cover + 0.12, n) * smooth(0.02, 0.16, dir.y) * 0.97;
+        if (d > 0) {
+          const toward = Math.max(0, dir.dot(sun));
+          // Bright sunlit tops, silver edges toward the sun, greyer thick undersides.
+          const silver = 1 + 1.4 * Math.pow(toward, 10) * (1 - d);
+          const shade = 1 - 0.42 * d * d;
+          const cl = cloudLum * silver * shade;
+          const c = [
+            cl * (0.78 + 0.22 * tint[0]),
+            cl * (0.78 + 0.22 * tint[1]),
+            cl * (0.78 + 0.22 * tint[2]),
+          ];
+          r = r * (1 - d) + c[0]! * d;
+          g = g * (1 - d) + c[1]! * d;
+          b = b * (1 - d) + c[2]! * d;
+          lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+      }
       data[k] = r;
       data[k + 1] = g;
       data[k + 2] = b;
       data[k + 3] = 1;
       // Horizontal illuminance from the sky: L cosθ dΩ.
       const dOmega = cosE * (Math.PI / h) * ((2 * Math.PI) / w);
-      irradiance += Y * Math.sin(elev) * dOmega;
+      irradiance += lum * Math.sin(elev) * dOmega;
       if (elev < 0.05) {
         horizon[0] += r;
         horizon[1] += g;

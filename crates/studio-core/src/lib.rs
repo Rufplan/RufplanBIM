@@ -10,6 +10,7 @@ pub mod doors;
 pub mod edit;
 pub mod element;
 pub mod generate;
+pub mod grass;
 pub mod hosting;
 pub mod library;
 pub mod lighting;

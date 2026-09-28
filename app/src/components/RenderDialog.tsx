@@ -5,7 +5,7 @@ import { errorMessage, ipc } from "../ipc";
 import { BACKGROUNDS, type BackgroundId } from "../render/backgrounds";
 import type { RenderJob } from "../render/pathtrace";
 import { activeViewInfo, useAppStore } from "../store";
-import { liveCameras } from "./View3D";
+import { D5_CLOUDS, liveCameras } from "./View3D";
 import { plantLoader } from "./AssetLibrary";
 import type { Mesh } from "../bindings/Mesh";
 
@@ -62,7 +62,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const sunOn = !scheme.endsWith("Artificial only");
   const artificial = scheme.includes("Artificial");
   const baseExposure = SCHEMES.find(([s]) => s === scheme)![1];
-  const [background, setBackground] = useState<BackgroundId>("sky");
+  // D5's default: its physical sky with clouds, lit by the site's sun (ADR-065).
+  const [background, setBackground] = useState<BackgroundId>("physical");
   const [lighting, setLighting] = useState<Lighting>("sunsky");
   const [rotation, setRotation] = useState(0);
   const [exposure, setExposure] = useState(1);
@@ -70,6 +71,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const [tone, setTone] = useState<"contrast" | "filmic">("filmic");
   const [glare, setGlare] = useState(true);
   const [vignette, setVignette] = useState(true);
+  // D5's colour: a touch more saturation and contrast (ADR-065).
+  const [d5, setD5] = useState(true);
   const [denoise, setDenoise] = useState(true);
   const [withBackground, setWithBackground] = useState(true);
   const [sun, setSun] = useState<SunPosition | null>(null);
@@ -151,6 +154,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         sky.physicalSky({
           sunDir: sunUp ? toYUp(sunUp.dir) : toYUp([0, -1, -0.2]),
           altitude: sunUp ? sunUp.altitude : -6,
+          clouds: sunUp ? D5_CLOUDS : 0,
+          width: 2048,
+          height: 1024,
         });
       let env: import("three").DataTexture;
       let intensity = 1;
@@ -209,6 +215,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         import("three"),
       ]);
       const instances = await ipc.plantInstances(view.id).catch(() => []);
+      const patchSpec = new Map(
+        (await ipc.grassPatches(view.id).catch(() => [])).map((p) => [p.el, p.spec]),
+      );
       for (const m of plantMeshesYUp(await loadPlantEntries(instances, plantLoader))) scene.add(m);
       const byId = new Map(materials.map((m) => [m.id, m]));
       const box = new THREE.Box3();
@@ -220,6 +229,17 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         else
           for (let i = 0; i < m.positions.length; i += 3)
             box.expandByPoint(v.set(m.positions[i]!, m.positions[i + 1]!, m.positions[i + 2]!));
+        const painted = patchSpec.get(m.el);
+        if (painted) {
+          surfaces.push({
+            positions: m.positions,
+            grass: { height: painted.height, variation: painted.variation },
+            color: painted.color,
+            kind: painted.kind,
+            density: painted.density,
+          });
+          continue;
+        }
         const mat = m.material ? byId.get(m.material) : undefined;
         const cones = mat?.appearance.texture === "gen:pine-straw";
         if (mat && (mat.appearance.grass || cones))
@@ -252,7 +272,12 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         .filter((m) => {
           const mat = m.material ? byId.get(m.material) : undefined;
           const grows = !!mat?.appearance.grass || mat?.appearance.texture === "gen:pine-straw";
-          return !grows && m.category !== "Site" && m.category !== "Planting";
+          return (
+            !grows &&
+            m.category !== "Site" &&
+            m.category !== "Planting" &&
+            m.category !== "GrassPatch"
+          );
         })
         .map((m) => m.positions);
       for (const m of grassMeshesYUp(
@@ -288,6 +313,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         show();
         if (glare || vignette)
           pt.lensEffects(shown, { glare: glare ? 0.35 : 0, vignette: vignette ? 0.22 : 0 });
+        if (d5) pt.d5Grade(shown);
       };
       await j.start(scene, camera, samples, (n, secs, phase) => {
         setProgress(n / samples);
@@ -551,6 +577,15 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 disabled={running}
               />
               Lens glare
+            </label>
+            <label className="ob-check">
+              <input
+                type="checkbox"
+                checked={d5}
+                onChange={(e) => setD5(e.target.checked)}
+                disabled={running}
+              />
+              D5 colour
             </label>
             <label className="ob-check">
               <input

@@ -133,6 +133,9 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- D5 look (ADR-065): studio-core `grass` (GrassKind, GrassSpec, GrassPatch paint/erase); studio-views
+  `plants::grass_patch_mesh`; app `planting_cmds` grass_*; render/grass.ts (D5 kinds, patches,
+  camera-following field); sky.ts `clouds`; View3D Grass Brush and D5 grade pass.
 - Vegetation (ADR-064): studio-core `planting` (PlantSpec, 183-species catalog with season variants,
   Planting/PlantingType/GroundRegion, base ground); studio-views `plants` (grown models, proxies,
   plan symbols, silhouettes, ground regions) and `foliage` (leaf atlases, bark); app

@@ -1,11 +1,19 @@
-// Enscape's Grass material type (ADR-064): real 3D blades grown on any surface finished in
-// a material whose appearance has grass settings (height and height variation), plus
-// fallen pine cones on pine straw. Like Enscape, the blades grow densely only near the
-// camera: clumps are scattered over the surfaces once (a field), and the nearest fill an
-// instanced mesh, shrinking to nothing at its edge, as the camera moves; the lawn's
-// texture carries on beyond. Renders take the field around their camera, merged.
+// 3D grass after D5 Render (ADR-064, ADR-065): real blades grown on every surface finished
+// in a Grass-type material (Enscape's) and on grass painted with the Grass Brush (D5's), in
+// D5's kinds — lawn, lush lawn, meadow with flowers, wild grass, dry grass, clover, tall
+// grass — plus fallen pine cones on pine straw.
+// - Each clump mixes blades of different heights, widths and hues (yellow-green to
+//   blue-green, a few dry straw ones), darker at the root and lighter at the tip; meadows
+//   carry wildflowers, clover its trefoil leaves and white heads, wild and tall grass their
+//   seed heads.
+// - The lawn has gentle patches across it (lighter, yellower, darker), as D5's do.
+// - Grass grows densely near the camera: clumps are scattered over the surfaces once (a
+//   field), and the nearest fill an instanced mesh, shrinking to nothing at its edge, as
+//   the camera moves; the ground's texture carries on beyond. Renders take the field around
+//   their camera, merged.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { GrassKind } from "../bindings/GrassKind";
 import { rgba, wind } from "./plants";
 
 export interface GrassSettings {
@@ -17,8 +25,12 @@ export interface GrassSettings {
 export interface GrassSurface {
   positions: ArrayLike<number>;
   grass: GrassSettings | null;
-  /** The material's colour (sRGB 0-255), for the blades' tint. */
+  /** The grass's base colour (sRGB 0-255). */
   color: [number, number, number];
+  /** D5's kind (a Grass-type material is a lawn, or a meadow when tall). */
+  kind?: GrassKind;
+  /** Relative to the kind's own density. */
+  density?: number;
   /** Pine straw: pine cones instead of (or with) blades. */
   cones?: boolean;
 }
@@ -39,47 +51,236 @@ const lin = (c: number) => {
   return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
 };
 
-/** A clump of `blades` blades about 1 unit tall, spread over `radius` units (instances
- * scale it by the grass height), each a tapered, bending strip, darker at its root. */
-export function clumpGeometry(blades = 12, radius = 1.1, seed = 1): THREE.BufferGeometry {
-  const r = rng(seed);
+/** How a kind's clumps grow (sizes in blade heights). */
+interface Look {
+  blades: number;
+  width: number;
+  lean: number;
+  spread: number;
+  /** Share of dry straw blades. */
+  dry: number;
+  /** Flowers per clump, and their colours (linear). */
+  flowers: number;
+  flowerColors: [number, number, number][];
+  clover: number;
+  seedHeads: number;
+  /** Clumps per square metre at full density. */
+  perM2: number;
+}
+
+const WHITE: [number, number, number] = [0.9, 0.9, 0.85];
+const look = (o: Partial<Look> & Pick<Look, "blades" | "width" | "perM2">): Look => ({
+  lean: 0.35,
+  spread: 1,
+  dry: 0.05,
+  flowers: 0,
+  flowerColors: [],
+  clover: 0,
+  seedHeads: 0,
+  ...o,
+});
+const LOOKS: Record<GrassKind, Look> = {
+  Lawn: look({ blades: 26, width: 0.045, perM2: 80 }),
+  LushLawn: look({ blades: 30, width: 0.05, lean: 0.3, spread: 0.9, dry: 0.02, perM2: 85 }),
+  Meadow: look({
+    blades: 26,
+    width: 0.036,
+    lean: 0.5,
+    spread: 0.55,
+    dry: 0.1,
+    flowers: 3.4,
+    flowerColors: [WHITE, [0.95, 0.75, 0.1], [0.45, 0.28, 0.7], [0.85, 0.3, 0.45]],
+    seedHeads: 1,
+    perM2: 40,
+  }),
+  WildGrass: look({
+    blades: 24,
+    width: 0.03,
+    lean: 0.6,
+    spread: 0.5,
+    dry: 0.2,
+    flowers: 0.3,
+    flowerColors: [WHITE, [0.95, 0.8, 0.15]],
+    seedHeads: 3,
+    perM2: 30,
+  }),
+  DryGrass: look({
+    blades: 22,
+    width: 0.034,
+    lean: 0.55,
+    spread: 0.5,
+    dry: 0.65,
+    seedHeads: 2,
+    perM2: 34,
+  }),
+  Clover: look({
+    blades: 10,
+    width: 0.04,
+    spread: 0.9,
+    dry: 0.03,
+    flowers: 0.6,
+    flowerColors: [WHITE],
+    clover: 8,
+    perM2: 70,
+  }),
+  TallGrass: look({
+    blades: 20,
+    width: 0.022,
+    lean: 0.4,
+    spread: 0.4,
+    dry: 0.15,
+    seedHeads: 5,
+    perM2: 18,
+  }),
+};
+
+/** The kind a Grass-type material grows: a lawn, or a meadow when tall. */
+export const kindFor = (s: GrassSurface): GrassKind =>
+  s.kind ?? ((s.grass?.height ?? 60) > 200 ? "Meadow" : "Lawn");
+
+/** A clump of one kind's grass in `color` (sRGB), about 1 unit tall (instances scale it
+ * by the grass height). Its vertex colours are linear: each blade its own hue of the base
+ * colour, darker at the root; flowers and seed heads their own colours. */
+export function clumpGeometry(
+  kind: GrassKind = "Lawn",
+  color: [number, number, number] = [86, 124, 54],
+  seed = 7,
+): THREE.BufferGeometry {
+  const baseLin = color.map(lin);
+  const L = LOOKS[kind];
+  const r = rng(seed + kind.length * 101);
   const pos: number[] = [];
   const col: number[] = [];
   const nor: number[] = [];
   const idx: number[] = [];
   const segs = 3;
-  for (let b = 0; b < blades; b++) {
+  // Grass parts are tints of the base colour; flowers and seed heads their own.
+  const push = (p: number[], n: number[], c: number[], own = false) => {
+    pos.push(...p);
+    nor.push(...n);
+    col.push(...(own ? c : c.map((v, k) => v * baseLin[k]!)));
+    return pos.length / 3 - 1;
+  };
+  // Straw relative to green: the base colour times this reads as dry.
+  const straw = [2.6, 1.7, 1.9];
+  for (let b = 0; b < L.blades; b++) {
     const a = r() * Math.PI * 2;
-    const d = Math.sqrt(r()) * radius;
+    const d = Math.sqrt(r()) * L.spread;
     const base = [Math.cos(a) * d, Math.sin(a) * d];
-    const lean = r() * 0.9 + 0.1;
+    const lean = r() * L.lean * 2 + 0.05;
     const dir = r() * Math.PI * 2;
-    const h = 0.6 + r() * 0.4;
-    const w = 0.03 + r() * 0.02;
-    const tone = 0.8 + r() * 0.35;
+    const h = 0.55 + r() * 0.45;
+    const w = L.width * (0.7 + r() * 0.6);
+    const twist = (r() - 0.5) * 1.2;
+    // Hue: yellow-green to blue-green, and brightness.
+    const hue = r();
+    const bright = 0.8 + r() * 0.35;
+    const tint = [
+      (1.12 - 0.22 * hue) * bright,
+      (1.02 + 0.02 * hue) * bright,
+      (0.72 + 0.4 * hue) * bright,
+    ];
+    const dry = r() < L.dry;
     const start = pos.length / 3;
     for (let s = 0; s <= segs; s++) {
       const t = s / segs;
-      // The blade bends over as it rises.
-      const bend = lean * t * t * 0.45;
+      // The blade bends over as it rises, and twists a little.
+      const bend = lean * t * t * 0.5;
       const x = base[0]! + Math.cos(dir) * bend * h;
       const y = base[1]! + Math.sin(dir) * bend * h;
-      const z = h * t;
-      const half = w * (1 - t * 0.92);
-      const sx = -Math.sin(dir) * half;
-      const sy = Math.cos(dir) * half;
-      pos.push(x - sx, y - sy, z, x + sx, y + sy, z);
-      const shade = (0.35 + 0.65 * Math.pow(t, 0.6)) * tone;
-      col.push(shade, shade, shade, shade, shade, shade);
-      // Normals mostly up (soft, like a lawn), a little toward the blade's face.
+      const z = h * t * (1 - 0.15 * lean * t);
+      const half = w * (1 - t * 0.9);
+      const ang = dir + twist * t;
+      const sx = -Math.sin(ang) * half;
+      const sy = Math.cos(ang) * half;
+      // Dark at the root (the thatch), lighter and yellower toward the tip.
+      const shade = 0.3 + 0.75 * Math.pow(t, 0.55);
+      const tip = [1 + 0.12 * t, 1 + 0.05 * t, 1 - 0.1 * t];
+      const c = [0, 1, 2].map((k) => {
+        const v = tint[k]! * tip[k]! * shade;
+        return dry ? v * straw[k]! * 0.75 : v;
+      });
       const nx = Math.cos(dir) * 0.35;
       const ny = Math.sin(dir) * 0.35;
-      nor.push(nx, ny, 1, nx, ny, 1);
+      push([x - sx, y - sy, z], [nx, ny, 1], c);
+      push([x + sx, y + sy, z], [nx, ny, 1], c);
     }
     for (let s = 0; s < segs; s++) {
       const i = start + s * 2;
       idx.push(i, i + 1, i + 3, i, i + 3, i + 2);
     }
+  }
+  // A little flat disc (flower head, clover leaflet), coloured `c` relative to the base
+  // colour of the grass (flowers are divided by it so they show their own colour).
+  const disc = (
+    cx: number,
+    cy: number,
+    cz: number,
+    rad: number,
+    c: number[],
+    tilt = 0,
+    own = false,
+  ) => {
+    const centre = push([cx, cy, cz], [0, 0, 1], c, own);
+    const n = 6;
+    const ring: number[] = [];
+    for (let k = 0; k < n; k++) {
+      const t = (k / n) * Math.PI * 2;
+      ring.push(
+        push(
+          [cx + Math.cos(t) * rad, cy + Math.sin(t) * rad, cz + Math.sin(t) * rad * tilt],
+          [0, 0, 1],
+          c,
+          own,
+        ),
+      );
+    }
+    for (let k = 0; k < n; k++) idx.push(centre, ring[k]!, ring[(k + 1) % n]!);
+  };
+  const stalk = (x: number, y: number, top: number, c: number[]) => {
+    const w = 0.008;
+    const i = push([x - w, y, 0], [0, -1, 0.3], c);
+    push([x + w, y, 0], [0, -1, 0.3], c);
+    push([x + w * 0.5, y, top], [0, -1, 0.3], c);
+    push([x - w * 0.5, y, top], [0, -1, 0.3], c);
+    idx.push(i, i + 1, i + 2, i, i + 2, i + 3);
+  };
+  // Clover: trefoil leaves low in the sward.
+  for (let k = 0; k < L.clover; k++) {
+    const a = r() * Math.PI * 2;
+    const d = Math.sqrt(r()) * L.spread;
+    const [x, y] = [Math.cos(a) * d, Math.sin(a) * d];
+    const z = 0.25 + r() * 0.3;
+    const g = [0.75, 0.95, 0.8];
+    for (let l = 0; l < 3; l++) {
+      const t = a + (l * Math.PI * 2) / 3;
+      disc(x + Math.cos(t) * 0.07, y + Math.sin(t) * 0.07, z, 0.075, g, 0.2);
+    }
+  }
+  // Flowers on stalks a little above the grass, in their own colours.
+  const flowers = Math.floor(L.flowers) + (r() < L.flowers % 1 ? 1 : 0);
+  for (let k = 0; k < flowers; k++) {
+    const a = r() * Math.PI * 2;
+    const d = Math.sqrt(r()) * L.spread * 0.8;
+    const [x, y] = [Math.cos(a) * d, Math.sin(a) * d];
+    const top = kind === "Clover" ? 0.55 : 0.9 + r() * 0.35;
+    stalk(x, y, top, [0.8, 0.95, 0.8]);
+    // Each clump carries a mix of the colours, not one.
+    const fc = L.flowerColors[k % L.flowerColors.length]!;
+    disc(x, y, top, kind === "Clover" ? 0.08 : 0.07 + r() * 0.05, fc, 0, true);
+  }
+  // Seed heads: tan spikes at some blade tips.
+  for (let k = 0; k < L.seedHeads; k++) {
+    const a = r() * Math.PI * 2;
+    const d = Math.sqrt(r()) * L.spread * 0.6;
+    const [x, y] = [Math.cos(a) * d, Math.sin(a) * d];
+    const top = 1.05 + r() * 0.3;
+    stalk(x, y, top, [1.4, 1.2, 1.1]);
+    const c = [0.42, 0.32, 0.17];
+    const i = push([x - 0.02, y, top - 0.14], [0, -1, 0.4], c, true);
+    push([x + 0.02, y, top - 0.14], [0, -1, 0.4], c, true);
+    push([x, y, top + 0.02], [0, -1, 0.4], c, true);
+    idx.push(i, i + 1, i + 2);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -181,22 +382,31 @@ export function scatter(
   return out;
 }
 
-/** Grass clumps per square metre at full density, and the most drawn at once. */
-export const CLUMPS_PER_M2 = 90;
+/** Lawn clumps per square metre at full density (other kinds have their own), and the
+ * most drawn at once. */
+export const CLUMPS_PER_M2 = 70;
 export const LIVE_BUDGET = 45_000;
-// Renders merge every clump into the path tracer's scene: about 100 vertices each, four
+// Renders merge every clump into the path tracer's scene: about 150 vertices each, four
 // float attributes a vertex. More than this crowds out the rest of the scene on the GPU.
 export const RENDER_BUDGET = 40_000;
 /** The most clumps a field holds (it thins out beyond, in proportion). */
 const FIELD_MAX = 900_000;
 
-const clump = { geo: null as THREE.BufferGeometry | null };
+const clumps = new Map<string, THREE.BufferGeometry>();
+const clumpOf = (k: GrassKind, color: [number, number, number]) => {
+  const key = `${k}|${color.join(",")}`;
+  let g = clumps.get(key);
+  if (!g) {
+    g = clumpGeometry(k, color);
+    clumps.set(key, g);
+  }
+  return g;
+};
 
-function grassMaterial(color: [number, number, number], swaying: boolean) {
+function grassMaterial(swaying: boolean) {
   const m = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(lin(color[0]) * 1.1, lin(color[1]) * 1.1, lin(color[2]) * 1.1),
     vertexColors: true,
-    roughness: 0.7,
+    roughness: 0.62,
     side: THREE.DoubleSide,
   });
   if (swaying) {
@@ -209,8 +419,9 @@ function grassMaterial(color: [number, number, number], swaying: boolean) {
           `#include <begin_vertex>
           {
             vec3 base = instanceMatrix[3].xyz;
-            float s = sin(uWind * 1.7 + base.x * 0.0021 + base.y * 0.0013);
-            transformed.xy += vec2(s, s * 0.5) * transformed.z * transformed.z * 0.12;
+            float s = sin(uWind * 1.7 + base.x * 0.0021 + base.y * 0.0013)
+                    + 0.4 * sin(uWind * 3.1 + base.y * 0.004);
+            transformed.xy += vec2(s, s * 0.5) * transformed.z * transformed.z * 0.1;
           }`,
         );
     };
@@ -264,11 +475,41 @@ export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, 
   };
 }
 
+/** Smooth value noise over the ground (mm), 0-1, for the lawn's patches. */
+function patchNoise(x: number, y: number, cell: number, seed: number) {
+  const h = (i: number, j: number) => {
+    let n = (i * 374761393 + j * 668265263 + seed * 144269) | 0;
+    n = (n ^ (n >>> 13)) * 1274126177;
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
+  const fx = x / cell;
+  const fy = y / cell;
+  const i = Math.floor(fx);
+  const j = Math.floor(fy);
+  const [tx, ty] = [fx - i, fy - j];
+  const s = (t: number) => t * t * (3 - 2 * t);
+  const a = h(i, j) * (1 - s(tx)) + h(i + 1, j) * s(tx);
+  const b = h(i, j + 1) * (1 - s(tx)) + h(i + 1, j + 1) * s(tx);
+  return a * (1 - s(ty)) + b * s(ty);
+}
+
+/** A clump's colour for where it grows: gentle patches of lighter, yellower and darker
+ * grass, as D5's lawns have. */
+export function patchTint(x: number, y: number): [number, number, number] {
+  const big = patchNoise(x, y, 9000, 1);
+  const small = patchNoise(x, y, 2600, 2);
+  const v = 0.86 + 0.22 * big + 0.1 * (small - 0.5);
+  const yellow = Math.max(0, small - 0.62) * 0.9;
+  return [v * (1 + yellow * 0.6), v * (1 + yellow * 0.2), v * (1 - yellow * 0.5)];
+}
+
 /** Candidate clumps over grass surfaces: (x, y, z, height, turn) per clump, bucketed in
  * 4 m cells for finding those near a point. */
 export class GrassField {
   readonly data: Float32Array;
   readonly count: number;
+  /** Clumps per square metre at full density. */
+  readonly perM2: number;
   private cells = new Map<string, number[]>();
   static readonly CELL = 4000;
 
@@ -283,10 +524,15 @@ export class GrassField {
     const out: number[] = [];
     const covered = coverMask(blockers, center, far);
     const grassy = surfaces.filter((s) => s.grass);
+    let per = 0;
     grassy.forEach((s, k) => {
       const g = s.grass!;
+      const look = LOOKS[kindFor(s)];
       // Taller grass grows in bigger clumps, fewer to the metre.
-      const density = CLUMPS_PER_M2 * Math.min(1, Math.max(0.05, (60 / g.height) ** 2));
+      const typical = LOOKS[kindFor(s)] === LOOKS.Lawn ? 70 : 300;
+      const density =
+        look.perM2 * (s.density ?? 1) * Math.min(1.4, Math.max(0.3, (typical / g.height) ** 0.5));
+      per = Math.max(per, density);
       scatter(
         s.positions,
         density,
@@ -302,6 +548,7 @@ export class GrassField {
         },
       );
     });
+    this.perM2 = per || CLUMPS_PER_M2;
     this.data = new Float32Array(out);
     this.count = out.length / 5;
     for (let i = 0; i < this.count; i++) {
@@ -330,10 +577,10 @@ export class GrassField {
     return found.slice(0, max).map((f) => f[1]);
   }
   /** Fills `mesh` with the clumps nearest (x, y): full size close in, shrinking to nothing
-   * at the edge of what the budget reaches. */
+   * at the edge of what the budget reaches; each tinted for its patch of lawn. */
   fill(mesh: THREE.InstancedMesh, x: number, y: number, budget: number) {
-    const reach = Math.sqrt(budget / (CLUMPS_PER_M2 * Math.PI)) * 1000 * 1.25;
-    const ids = this.near(x, y, reach, budget);
+    const reach = Math.sqrt(budget / (Math.max(this.perM2, 1) * Math.PI)) * 1000 * 1.4;
+    const ids = this.near(x, y, Math.max(reach, 5000), budget);
     const edge = ids.length
       ? Math.hypot(
           this.data[ids[ids.length - 1]! * 5]! - x,
@@ -342,6 +589,7 @@ export class GrassField {
       : reach;
     const m = new THREE.Matrix4();
     const s = new THREE.Vector3();
+    const c = new THREE.Color();
     ids.forEach((k, n) => {
       const [px, py, pz, h, turn] = [0, 1, 2, 3, 4].map((o) => this.data[k * 5 + o]!);
       const d = Math.hypot(px! - x, py! - y);
@@ -350,9 +598,12 @@ export class GrassField {
       m.scale(s.setScalar(h! * fade));
       m.setPosition(px!, py!, pz!);
       mesh.setMatrixAt(n, m);
+      const t = patchTint(px!, py!);
+      mesh.setColorAt(n, c.setRGB(t[0], t[1], t[2]));
     });
     mesh.count = ids.length;
     mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
   }
 }
@@ -391,18 +642,18 @@ function coneMesh(ms: THREE.Matrix4[]) {
   return mesh;
 }
 
-/** Groups surfaces by their grass's colour (one material each). */
-function byColor(surfaces: GrassSurface[]) {
+/** Groups surfaces by their grass's kind and colour (one geometry and material each). */
+function byLook(surfaces: GrassSurface[]) {
   const out = new Map<string, GrassSurface[]>();
   for (const s of surfaces) {
-    const k = s.color.join(",");
+    const k = `${s.grass ? kindFor(s) : "none"}|${s.color.join(",")}`;
     out.set(k, [...(out.get(k) ?? []), s]);
   }
   return [...out.values()];
 }
 
-/** Live-view grass: a field per grass colour that follows the camera (call `follow` as it
- * moves; it refills only after a few metres), and pine cones. */
+/** Live-view grass: a field per kind and colour that follows the camera (call `follow` as
+ * it moves; it refills only after a few metres), and pine cones. */
 export function grassGroup(
   surfaces: GrassSurface[],
   center: THREE.Vector3,
@@ -411,14 +662,18 @@ export function grassGroup(
 ): THREE.Group & { follow: (x: number, y: number) => void } {
   const g = new THREE.Group() as THREE.Group & { follow: (x: number, y: number) => void };
   g.name = "grass";
-  clump.geo ??= clumpGeometry(12, 1.1, 7);
   const fields: { field: GrassField; mesh: THREE.InstancedMesh }[] = [];
-  const groups = byColor(surfaces);
+  const groups = byLook(surfaces);
+  const grassy = groups.filter((l) => l.some((s) => s.grass)).length || 1;
   for (const list of groups) {
     if (list.some((s) => s.grass)) {
       const field = new GrassField(list, center, radius, blockers);
-      const budget = Math.floor(LIVE_BUDGET / groups.length);
-      const mesh = new THREE.InstancedMesh(clump.geo, grassMaterial(list[0]!.color, true), budget);
+      const budget = Math.floor(LIVE_BUDGET / grassy);
+      const mesh = new THREE.InstancedMesh(
+        clumpOf(kindFor(list[0]!), list[0]!.color),
+        grassMaterial(true),
+        budget,
+      );
       mesh.count = 0;
       mesh.receiveShadow = true;
       mesh.frustumCulled = false;
@@ -438,7 +693,8 @@ export function grassGroup(
   return g;
 }
 
-/** Grass for the path tracer around the render's camera (x, y): merged, turned y-up. */
+/** Grass for the path tracer around the render's camera (x, y): merged (each clump's
+ * patch tint baked into its colours), turned y-up. */
 export function grassMeshesYUp(
   surfaces: GrassSurface[],
   center: THREE.Vector3,
@@ -447,31 +703,49 @@ export function grassMeshesYUp(
   blockers: ArrayLike<number>[] = [],
 ): THREE.Mesh[] {
   const toYUp = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
-  clump.geo ??= clumpGeometry(12, 1.1, 7);
   const out: THREE.Mesh[] = [];
-  const bake = (geo: THREE.BufferGeometry, ms: THREE.Matrix4[]) => {
+  const bake = (
+    geo: THREE.BufferGeometry,
+    ms: THREE.Matrix4[],
+    tints: THREE.Color[] | null = null,
+  ) => {
     if (!ms.length) return null;
-    const pieces = ms.map((m) => geo.clone().applyMatrix4(toYUp.clone().multiply(m)));
+    const pieces = ms.map((m, i) => {
+      const p = geo.clone().applyMatrix4(toYUp.clone().multiply(m));
+      const t = tints?.[i];
+      if (t) {
+        const c = p.getAttribute("color");
+        for (let v = 0; v < c.count; v++)
+          c.setXYZ(v, c.getX(v) * t.r, c.getY(v) * t.g, c.getZ(v) * t.b);
+      }
+      return p;
+    });
     const merged = mergeGeometries(pieces, false);
     for (const p of pieces) p.dispose();
     return merged;
   };
-  const groups = byColor(surfaces);
+  const groups = byLook(surfaces);
+  const grassy = groups.filter((l) => l.some((s) => s.grass)).length || 1;
   for (const list of groups) {
     if (list.some((s) => s.grass)) {
       const field = new GrassField(list, center, radius, blockers);
-      const budget = Math.floor(RENDER_BUDGET / groups.length);
-      const tmp = new THREE.InstancedMesh(clump.geo, undefined, budget);
+      const budget = Math.floor(RENDER_BUDGET / grassy);
+      const geo = clumpOf(kindFor(list[0]!), list[0]!.color);
+      const tmp = new THREE.InstancedMesh(geo, undefined, budget);
       field.fill(tmp, camera.x, camera.y, budget);
       const ms: THREE.Matrix4[] = [];
+      const tints: THREE.Color[] = [];
       for (let i = 0; i < tmp.count; i++) {
         const m = new THREE.Matrix4();
         tmp.getMatrixAt(i, m);
         ms.push(m);
+        const c = new THREE.Color();
+        tmp.getColorAt(i, c);
+        tints.push(c);
       }
       tmp.dispose();
-      const g = bake(clump.geo, ms);
-      if (g) out.push(new THREE.Mesh(g, grassMaterial(list[0]!.color, false)));
+      const g = bake(geo, ms, tints);
+      if (g) out.push(new THREE.Mesh(g, grassMaterial(false)));
     }
     const c = bake(coneGeometry(), conePlacements(list, center, radius));
     if (c)

@@ -19,6 +19,8 @@ export interface Background {
 }
 
 export const BACKGROUNDS: Background[] = [
+  // D5's default (ADR-065): the physical sky with soft clouds, matching the site's sun.
+  { id: "physical", label: "D5 Sky (clouds, matches the sun)", photo: false, ground: "grass" },
   {
     id: "sky",
     label: "Sky",
@@ -50,7 +52,6 @@ export const BACKGROUNDS: Background[] = [
     ground: "paving",
     source: "Canary Wharf, Poly Haven, CC0",
   },
-  { id: "physical", label: "Physical Sky (matches the sun)", photo: false, ground: "grass" },
   { id: "white", label: "White", photo: false, ground: "neutral" },
 ];
 

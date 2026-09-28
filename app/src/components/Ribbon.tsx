@@ -396,6 +396,12 @@ export function Ribbon() {
                 <span>Asset Library</span>
               </button>
               <ToolButton tool="plant" label="Place Plant" icon={Icons.tree} keys="PL" />
+              <ToolButton
+                tool="grassBrush"
+                label="Grass Brush"
+                icon={Icons.grass}
+                keys="GB, in 3D: drag to paint grass (D5's)"
+              />
             </Group>
             <Group title="Trees & Plants">
               {(

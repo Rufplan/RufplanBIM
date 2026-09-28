@@ -2038,6 +2038,125 @@ pub fn region_mesh(doc: &Document, id: ElementId) -> Vec<f32> {
     out
 }
 
+/// Triangulates areas and lays them over the ground: split finely (under 1.5 m a side)
+/// when `fine`, so they follow the topography, heights from `z_at`.
+fn drape(polys: &[studio_geom::Poly], z_at: impl Fn(Pt) -> f64, fine: bool) -> Vec<f32> {
+    let mut out = vec![];
+    for poly in polys {
+        let (pts, tris) = studio_geom::triangulate(poly);
+        let mut stack: Vec<[Pt; 3]> = tris
+            .iter()
+            .map(|t| [pts[t[0]], pts[t[1]], pts[t[2]]])
+            .collect();
+        let mut guard = 0;
+        while let Some(tri) = stack.pop() {
+            guard += 1;
+            let longest = (0..3)
+                .max_by(|&a, &b| {
+                    tri[a]
+                        .dist(tri[(a + 1) % 3])
+                        .total_cmp(&tri[b].dist(tri[(b + 1) % 3]))
+                })
+                .unwrap_or(0);
+            let (a, b, c) = (tri[longest], tri[(longest + 1) % 3], tri[(longest + 2) % 3]);
+            if fine && a.dist(b) > 1500.0 && guard < 200_000 {
+                let m = a.lerp(b, 0.5);
+                stack.push([a, m, c]);
+                stack.push([m, b, c]);
+                continue;
+            }
+            for p in tri {
+                out.extend([p.x as f32, p.y as f32, z_at(p) as f32]);
+            }
+        }
+    }
+    out
+}
+
+/// A grass patch's painted area: its dabs' circles merged.
+fn patch_polys(dabs: &[studio_core::grass::Dab]) -> Vec<studio_geom::Poly> {
+    let circles: Vec<studio_geom::Poly> = studio_core::grass::dab_rings(dabs)
+        .into_iter()
+        .map(studio_geom::Poly::simple)
+        .collect();
+    studio_geom::union_all(&circles)
+}
+
+/// A grass patch's area laid on what was painted: the topography under a level at grade,
+/// else the painted surface's height (the nearest dab's).
+pub fn grass_patch_mesh(doc: &Document, id: ElementId) -> Vec<f32> {
+    let Ok(ElementData::GrassPatch { level, dabs, .. }) = doc.data(id) else {
+        return vec![];
+    };
+    let draped = studio_core::planting::at_grade(doc, *level);
+    let first = dabs
+        .first()
+        .map(|d| Pt::new(d[0], d[1]))
+        .unwrap_or_default();
+    let fine = draped && studio_core::planting::ground_at(doc, first).is_some();
+    let nearest = |p: Pt| {
+        dabs.iter()
+            .min_by(|a, b| {
+                (a[0] - p.x)
+                    .hypot(a[1] - p.y)
+                    .total_cmp(&(b[0] - p.x).hypot(b[1] - p.y))
+            })
+            .map_or(0.0, |d| d[2])
+    };
+    let z_at = |p: Pt| {
+        let g = if draped {
+            studio_core::planting::ground_at(doc, p)
+        } else {
+            None
+        };
+        g.unwrap_or_else(|| nearest(p)) + 12.0
+    };
+    drape(&patch_polys(dabs), z_at, fine)
+}
+
+/// Painted grass for the 3D view: its area in its colour (Realistic grows blades on it).
+pub(crate) fn grass_meshes(doc: &Document, out: &mut Vec<Mesh>) {
+    for e in doc.of(Category::GrassPatch) {
+        let ElementData::GrassPatch { level, spec, .. } = &e.data else {
+            continue;
+        };
+        out.push(Mesh {
+            el: e.id,
+            category: Category::GrassPatch,
+            exterior: false,
+            color: Some(spec.color),
+            material: None,
+            level: Some(*level),
+            positions: grass_patch_mesh(doc, e.id),
+            edges: vec![],
+            glow: None,
+        });
+    }
+}
+
+/// Painted grass in a plan of its level (a site plan shows that at grade): its outline.
+pub(crate) fn plan_grass(doc: &Document, b: &mut Builder, level: ElementId, site: bool) {
+    for e in doc.of(Category::GrassPatch) {
+        let ElementData::GrassPatch { level: l, dabs, .. } = &e.data else {
+            continue;
+        };
+        if *l != level && !(site && studio_core::planting::at_grade(doc, *l)) {
+            continue;
+        }
+        for poly in patch_polys(dabs) {
+            b.fill(
+                Some(e.id),
+                vec![crate::ring(&poly.outer)],
+                crate::FillKind::Room,
+            );
+            b.line(Some(e.id), &poly.outer, true, 1, Dash::Dashed);
+            for h in &poly.holes {
+                b.line(Some(e.id), h, true, 1, Dash::Dashed);
+            }
+        }
+    }
+}
+
 /// Ground regions for the 3D view, in their materials.
 pub(crate) fn region_meshes(doc: &Document, out: &mut Vec<Mesh>) {
     for e in doc.of(Category::GroundRegion) {

@@ -2372,3 +2372,52 @@ The Asset Library window (components/AssetLibrary.tsx) follows Enscape's:
 **Not yet:** temporary hide and the section box don't apply to the full models in Realistic,
 though Visibility/Graphics hiding does. There's no scatter-by-area tool; place plants one click
 at a time or array them.
+
+## ADR-065 D5 Render's look: grass, sky, colour and the Grass Brush — Accepted (2026-09-28)
+Owner request (2026-09-28): "base all the rendering assets off of D5 Render … update the default
+sky in Realistic mode or render to be like D5, including how it treats all its assets including
+the grass. Grass is probably most important to match, and add a paint feature for more grass".
+
+**Grass, D5's kinds.** Seven kinds, each with its own clump (render/grass.ts `clumpGeometry`):
+- **Lawn and Lush Lawn:** dense, fine blades.
+- **Meadow with Flowers:** mixed wildflowers (white, yellow, purple, pink).
+- **Wild Grass and Tall Grass:** seed heads.
+- **Dry Grass:** mostly straw.
+- **Clover:** trefoil leaves and white heads.
+
+Every blade gets its own hue (yellow-green to blue-green) and brightness. It is dark at the
+root and lighter and yellower at the tip, and it bends and twists. The base colour is baked
+into the clump's vertex colours, so flowers keep their own colours.
+
+The lawn has gentle patches, tinted per clump from smooth noise at about 9 m and 2.6 m, as
+D5's lawns do.
+
+Grass-type materials (Enscape's, ADR-064) grow a lawn, or a meadow when taller than 200 mm.
+Densities are per kind.
+
+**The Grass Brush, D5's scatter brush.** It is a 3D-view tool (Vegetation > Grass Brush, GB):
+- **Cursor:** a ring on the ground (or a floor or roof) under the cursor.
+- **Painting:** dragging lays round dabs, each recording the surface's height; releasing
+  paints one Grass Patch (one undo step).
+- **Options bar:** the grass kind, brush size, density and Erase. Erase removes the dabs a
+  stroke covers and deletes emptied patches.
+- **The element:** `GrassPatch { level, dabs [x, y, z, r], spec }` (studio-core `grass`)
+  moves and copies like any element. Its properties are kind (which brings its own height and
+  colour), height, height variation, density and colour.
+- **In the views:**
+  - Plans show its merged outline, dashed; site plans show patches at grade.
+  - 3D shows its area laid over the topography (or at the painted height) in its colour; in
+    Realistic only its blades show, and the area stays pickable.
+  - Renders grow the blades and leave the flat area out.
+
+**Sky.** `physicalSky` gains `clouds` (the share of sky covered).
+- **The clouds:** a fair-weather cumulus deck seen in perspective, with bright sunlit tops,
+  silver edges toward the sun and greyer, thicker undersides, fading into the horizon haze.
+  Between them the sky is a clearer blue (turbidity 2.4).
+- **Where it's used:** Realistic's sky uses 42% cover. It is also the renders' new default
+  background, "D5 Sky (clouds, matches the sun)", lit by the site's sun. The photo skies
+  remain as choices.
+
+**Colour.** D5's slightly richer, punchier images come from 1.14 saturation and 1.06 contrast
+after tone mapping. The live view applies them as a final shader pass, and renders apply them
+as a "D5 colour" option (on by default).

@@ -279,7 +279,9 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     new THREE.Color().setRGB(...GROUND_ALBEDO[o.ground], THREE.LinearSRGBColorSpace);
   for (const m of meshes) {
     // Plantings' proxies are for the working views; renders get the full models (ADR-064).
-    if (m.positions.length === 0 || m.category === "Planting") continue;
+    // Painted grass is its blades (ADR-065), not its flat patch.
+    if (m.positions.length === 0 || m.category === "Planting" || m.category === "GrassPatch")
+      continue;
     const p = m.positions;
     const out = new Float32Array(p.length);
     for (let i = 0; i < p.length; i += 3) {
@@ -658,6 +660,21 @@ export function lensEffects(canvas: HTMLCanvasElement, o: { glare: number; vigne
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
   }
+}
+
+/** D5's colour on a finished render (ADR-065): a touch more saturation and contrast. */
+export function d5Grade(canvas: HTMLCanvasElement, saturation = 1.14, contrast = 1.06) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const copy = document.createElement("canvas");
+  copy.width = canvas.width;
+  copy.height = canvas.height;
+  copy.getContext("2d")?.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.filter = `saturate(${saturation}) contrast(${contrast})`;
+  ctx.drawImage(copy, 0, 0);
+  ctx.restore();
 }
 
 /** Draws the render over its backdrop. */

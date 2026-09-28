@@ -71,6 +71,9 @@ import type { PlantMap } from "./bindings/PlantMap";
 import type { PlantInstance } from "./bindings/PlantInstance";
 import type { PlantAt } from "./bindings/PlantAt";
 import type { GroundChoice } from "./bindings/GroundChoice";
+import type { GrassKindInfo } from "./bindings/GrassKindInfo";
+import type { GrassPatchInfo } from "./bindings/GrassPatchInfo";
+import type { GrassSpec } from "./bindings/GrassSpec";
 import type { SunSettings } from "./bindings/SunSettings";
 import type { ProjectStatus } from "./bindings/ProjectStatus";
 import type { PublishOptions } from "./bindings/PublishOptions";
@@ -381,6 +384,15 @@ export const ipc = {
   setBaseGround: (material: ElementId | null, preset: string | null = null): S =>
     invoke("set_base_ground", { material, preset }),
   groundLibrary: () => invoke<GroundChoice[]>("ground_library"),
+  // Grass Brush (ADR-065).
+  grassKinds: () => invoke<GrassKindInfo[]>("grass_kinds"),
+  paintGrass: (
+    level: ElementId | null,
+    dabs: [number, number, number, number][],
+    spec: GrassSpec,
+  ): S => invoke("paint_grass", { level, dabs, spec }),
+  eraseGrass: (dabs: [number, number, number, number][]): S => invoke("erase_grass", { dabs }),
+  grassPatches: (view: ElementId | null) => invoke<GrassPatchInfo[]>("grass_patches", { view }),
   selectionCategories: (ids: ElementId[]) => invoke<Category[]>("selection_categories", { ids }),
   hideElements: (view: ElementId, ids: ElementId[]): S => invoke("hide_elements", { view, ids }),
   setCategoryVisible: (view: ElementId, categories: Category[], visible: boolean): S =>

@@ -166,6 +166,13 @@ fn transformed(
             let v = d.sub(o);
             *rotation = v.y.atan2(v.x);
         }
+        ElementData::GrassPatch { dabs, .. } => {
+            for d in dabs.iter_mut() {
+                let p = x.apply(Pt::new(d[0], d[1]));
+                d[0] = p.x;
+                d[1] = p.y;
+            }
+        }
         ElementData::GroundRegion {
             boundary, sketch, ..
         } => {

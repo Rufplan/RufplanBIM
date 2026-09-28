@@ -975,7 +975,20 @@ export function installFakeBackend(): FakeBackend {
           ];
         case "create_plants":
         case "set_base_ground":
+        case "paint_grass":
+        case "erase_grass":
           return fake.state;
+        // Grass Brush (ADR-065).
+        case "grass_kinds":
+          return [
+            {
+              kind: "Lawn",
+              label: "Lawn",
+              spec: { kind: "Lawn", height: 70, variation: 0.35, density: 1, color: [86, 124, 54] },
+            },
+          ];
+        case "grass_patches":
+          return [];
         case "sun_for":
         case "sun_now":
           return { dir: [0.5, -0.5, 0.7], altitude: 35, azimuth: 225 };

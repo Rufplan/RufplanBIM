@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { GrassKind } from "./bindings/GrassKind";
 import type { NavMode } from "./render/navigate";
 import type { SunSettings } from "./bindings/SunSettings";
 import type { AppState, CloudStatus, ElementId, Pt } from "./ipc";
@@ -41,6 +42,7 @@ export type Tool =
   | "column"
   | "light"
   | "plant"
+  | "grassBrush"
   | "wallOpening"
   | "beam"
   | "railing"
@@ -92,6 +94,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   column: "Column",
   light: "Lighting Fixture",
   plant: "Plant",
+  grassBrush: "Grass Brush",
   wallOpening: "Wall Opening",
   beam: "Beam",
   railing: "Railing",
@@ -171,6 +174,12 @@ export interface ToolOptions {
    * up to this many percent. */
   plantRandomRotation: boolean;
   plantSizeVariation: number;
+  /** Grass Brush (D5's, ADR-065): the grass to paint, the brush's radius (mm), the density
+   * (%), and erasing instead of painting. */
+  grassKind: GrassKind;
+  grassBrush: number;
+  grassDensity: number;
+  grassErase: boolean;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -423,6 +432,10 @@ export const useAppStore = create<UiState>((set, get) => ({
     cameraHeight: "5' 6\"",
     plantRandomRotation: true,
     plantSizeVariation: 15,
+    grassKind: "Lawn",
+    grassBrush: 1200,
+    grassDensity: 100,
+    grassErase: false,
   },
   paramsOpen: false,
   sketchUi: {
