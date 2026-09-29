@@ -1,7 +1,9 @@
 //! The typical details (ADR-069), drawn in inches with the exterior to the left (sections)
 //! or up (plans). Light-frame US residential construction, as a starting point to edit.
 
-use super::FillPattern::{Concrete, Gravel, RigidInsulation, Sand, Solid, Steel, Wood};
+use super::FillPattern::{
+    Concrete, Diagonal, Gravel, Gray, RigidInsulation, Sand, Solid, Steel, Wood,
+};
 use super::D;
 use crate::lines::LineStyle::{Beyond, Hidden, Medium, Thin, Wide};
 
@@ -20,6 +22,9 @@ const OPENINGS: &str = "Openings";
 const ROOFS: &str = "Roofs";
 const FLOORS: &str = "Floors & Stairs";
 const INTERIORS: &str = "Interiors";
+const CASEWORK: &str = "Casework";
+const BASE: &str = "Base & Trim";
+const TRANSITIONS: &str = "Floor Transitions";
 
 pub(super) static DETAILS: &[Entry] = &[
     Entry {
@@ -185,7 +190,7 @@ pub(super) static DETAILS: &[Entry] = &[
     Entry {
         id: "base-cabinet",
         name: "Base Cabinet and Countertop",
-        category: INTERIORS,
+        category: CASEWORK,
         scale: 8,
         description: "Base cabinet with toe kick, countertop at 36\" and backsplash.",
         draw: base_cabinet,
@@ -205,6 +210,87 @@ pub(super) static DETAILS: &[Entry] = &[
         scale: 4,
         description: "Metal stud partition to structure with a slotted deflection track.",
         draw: partition_head,
+    },
+    Entry {
+        id: "upper-cabinet",
+        name: "Upper Wall Cabinet",
+        category: CASEWORK,
+        scale: 8,
+        description:
+            "30\" wall cabinet on a hanging rail and blocking: shelves, crown and light rail.",
+        draw: upper_cabinet,
+    },
+    Entry {
+        id: "countertop-backsplash",
+        name: "Countertop Edge and Backsplash",
+        category: CASEWORK,
+        scale: 4,
+        description: "Quartz top with an eased edge on the cabinet, 4\" backsplash and tile above.",
+        draw: countertop_backsplash,
+    },
+    Entry {
+        id: "island-overhang",
+        name: "Island Countertop Overhang",
+        category: CASEWORK,
+        scale: 8,
+        description: "12\" seating overhang on steel flat bars let into a plywood subtop.",
+        draw: island_overhang,
+    },
+    Entry {
+        id: "wood-base",
+        name: "Wood Base and Shoe",
+        category: BASE,
+        scale: 2,
+        description: "Painted 1x6 base and shoe molding over hardwood, with its expansion gap.",
+        draw: wood_base,
+    },
+    Entry {
+        id: "resilient-base",
+        name: "Rubber Cove Base",
+        category: BASE,
+        scale: 2,
+        description: "4\" rubber cove base at a metal stud partition on a slab with LVT.",
+        draw: resilient_base,
+    },
+    Entry {
+        id: "tile-base",
+        name: "Ceramic Cove Base",
+        category: BASE,
+        scale: 2,
+        description: "Ceramic cove base and wall tile on cement board, porcelain floor tile.",
+        draw: tile_base,
+    },
+    Entry {
+        id: "carpet-tile",
+        name: "Carpet to Tile",
+        category: TRANSITIONS,
+        scale: 2,
+        description: "Aluminum carpet edge trim in the tile's thinset, carpet tucked to it.",
+        draw: carpet_tile,
+    },
+    Entry {
+        id: "wood-tile",
+        name: "Wood to Tile",
+        category: TRANSITIONS,
+        scale: 2,
+        description: "Flush hardwood and tile on a plywood subfloor, joined by a wood T-molding.",
+        draw: wood_tile,
+    },
+    Entry {
+        id: "tile-resilient",
+        name: "Tile to Resilient",
+        category: TRANSITIONS,
+        scale: 2,
+        description: "Aluminum reducer ramping 1:2 from tile down to vinyl tile.",
+        draw: tile_resilient,
+    },
+    Entry {
+        id: "door-saddle",
+        name: "Marble Saddle at Door",
+        category: TRANSITIONS,
+        scale: 2,
+        description: "Bevelled marble saddle between tile and wood under an undercut door.",
+        draw: door_saddle,
     },
 ];
 
@@ -1347,5 +1433,436 @@ fn partition_head() -> D {
     d.note((-0.3, -0.4), "FIRE-RATED JOINT SEALANT");
     d.note((1.8, -12.0), "ACOUSTIC BATT INSULATION");
     d.note((10.0, 3.0), "CONC. DECK ABOVE");
+    d
+}
+
+// ------------------------------------------------------------------------------------------
+// Casework, base and floor transitions (ADR-078)
+// ------------------------------------------------------------------------------------------
+
+/// A sealant fillet in an inside corner at (`x`, `y`), `dx` along the floor (or top) and
+/// `dy` up the face.
+fn fillet(d: &mut D, x: f64, y: f64, dx: f64, dy: f64) {
+    d.region(&[(x, y), (x + dx, y), (x, y + dy)], Gray);
+    d.poly(&[(x, y), (x + dx, y), (x, y + dy)], Thin);
+}
+
+/// Cement backer board (no component type): its stipple in a medium outline.
+fn cement_board(d: &mut D, x0: f64, y0: f64, x1: f64, y1: f64) {
+    d.region_rect(x0, y0, x1, y1, Sand);
+    d.rect(x0, y0, x1, y1, Medium);
+}
+
+/// A concrete slab from `x0` to `x1`, its top at y 0, broken at both ends.
+fn slab(d: &mut D, x0: f64, x1: f64, depth: f64) {
+    d.cut(
+        &[(x0, 0.0), (x1, 0.0), (x1, -depth), (x0, -depth)],
+        Concrete,
+    );
+    d.brk((x0, -depth - 0.5), (x0, 0.5));
+    d.brk((x1, -depth - 0.5), (x1, 0.5));
+}
+
+fn upper_cabinet() -> D {
+    let mut d = D::new();
+    // The wall at x 12 (right), the cabinet's front at x 0; its bottom at y 0 (54" A.F.F.).
+    d.gyp(12.0, -6.0, 12.5, 42.0);
+    d.board(12.5, -6.0, 16.0, 42.0);
+    d.lumber(12.5, 26.0, 16.0, 27.5);
+    // Ceiling above, broken where the section stops.
+    d.gyp(-6.0, 42.0, 12.0, 42.625);
+    d.brk((-6.0, 41.0), (-6.0, 44.0));
+    // The box: 3/4" bottom and top, 1/4" back, hanging rail at the top.
+    d.sheet(0.0, 0.0, 11.25, 0.75);
+    d.sheet(0.0, 29.25, 11.25, 30.0);
+    d.rect(11.0, 0.75, 11.25, 29.25, Medium);
+    d.lumber(10.25, 26.0, 11.0, 29.25);
+    d.line(&[(10.25, 27.6), (15.0, 27.6)], Thin);
+    // Adjustable shelves on pins; the side panel beyond.
+    d.sheet(0.5, 10.0, 10.75, 10.75);
+    d.sheet(0.5, 20.0, 10.75, 20.75);
+    d.line(&[(0.75, 0.75), (0.75, 29.25)], Beyond);
+    // Door, crown and light rail.
+    d.rect(-0.75, 0.0, 0.0, 30.0, Medium);
+    d.cut(
+        &[
+            (0.0, 30.0),
+            (-0.75, 30.0),
+            (-2.25, 31.5),
+            (-2.75, 33.25),
+            (0.0, 33.25),
+        ],
+        Wood,
+    );
+    d.cut(
+        &[(-0.75, -1.5), (0.0, -1.5), (0.0, 0.0), (-0.75, 0.0)],
+        Wood,
+    );
+    d.rect(1.0, -0.5, 2.5, 0.0, Medium);
+    d.brk((10.0, -6.0), (17.0, -6.0));
+    d.note((5.5, 0.4), "3/4\" CABINET BOTTOM, 54\" A.F.F.");
+    d.note((5.5, 10.4), "ADJUSTABLE SHELF ON PINS");
+    d.note((-0.4, 15.0), "3/4\" DOOR, FULL OVERLAY");
+    d.note((-1.6, 31.8), "CROWN MOLDING");
+    d.note((-0.4, -0.8), "LIGHT RAIL");
+    d.note((1.75, -0.25), "LED UNDER-CABINET LIGHT");
+    d.note((11.1, 15.0), "1/4\" BACK PANEL");
+    d.note((10.6, 28.5), "HANGING RAIL, SCREW TO BLOCKING");
+    d.note((14.25, 26.75), "2x4 BLOCKING");
+    d.note((12.25, 36.0), "1/2\" GYP. BD.");
+    d.note((5.0, 42.3), "5/8\" GYP. BD. CEILING");
+    d
+}
+
+fn countertop_backsplash() -> D {
+    let mut d = D::new();
+    // The wall face at x 25.5 (right), the cabinet's face at x 0; countertop at 36".
+    d.gyp(25.5, 22.0, 26.0, 52.0);
+    d.board(26.0, 22.0, 29.5, 52.0);
+    d.brk((24.5, 52.0), (30.5, 52.0));
+    // Cabinet top: drawer front, face frame rail, stretchers, back.
+    d.rect(-0.75, 28.25, 0.0, 34.25, Medium);
+    d.rect(0.0, 33.0, 0.75, 34.5, Medium);
+    d.sheet(0.75, 33.75, 4.75, 34.5);
+    d.sheet(20.5, 33.75, 24.5, 34.5);
+    d.rect(24.25, 22.0, 24.5, 33.75, Medium);
+    d.line(&[(0.75, 22.0), (0.75, 33.0)], Beyond);
+    d.line(&[(2.75, 33.75), (2.75, 34.9)], Thin);
+    d.brk((-1.5, 22.0), (25.0, 22.0));
+    // Quartz top with an eased edge, 1" past the drawer front, and its backsplash.
+    d.cut(
+        &[
+            (-1.75, 34.5),
+            (25.5, 34.5),
+            (25.5, 35.75),
+            (-1.625, 35.75),
+            (-1.75, 35.625),
+        ],
+        Sand,
+    );
+    d.cut(
+        &[(24.75, 35.75), (25.5, 35.75), (25.5, 39.75), (24.75, 39.75)],
+        Sand,
+    );
+    fillet(&mut d, 24.75, 35.75, -0.2, 0.2);
+    // Tile above the backsplash.
+    d.cut_rect(25.125, 39.875, 25.5, 52.0, Diagonal);
+    fillet(&mut d, 25.125, 39.75, -0.15, 0.15);
+    d.note((10.0, 35.1), "1-1/4\" QUARTZ COUNTERTOP W/ EASED EDGE");
+    d.note((-1.2, 35.1), "1\" OVERHANG AT DRAWER FRONT");
+    d.note((2.75, 34.1), "3/4\" PLY. STRETCHER, SCREW UP INTO TOP");
+    d.note((25.1, 38.0), "3/4\" x 4\" QUARTZ BACKSPLASH");
+    d.note((24.65, 35.85), "SILICONE SEALANT, TYP.");
+    d.note((25.3, 46.0), "CERAMIC TILE BACKSPLASH");
+    d.note((25.75, 30.0), "1/2\" GYP. BD.");
+    d.note((24.4, 28.0), "1/4\" CABINET BACK");
+    d.note((0.4, 33.6), "FACE FRAME");
+    d.note((-0.4, 30.0), "DRAWER FRONT");
+    d
+}
+
+fn island_overhang() -> D {
+    let mut d = D::new();
+    // The island's seating side at x 0 (left), its kitchen side at x 24; floor at y 0.
+    d.line(&[(-14.0, 0.0), (28.0, 0.0)], Medium);
+    d.brk((-14.0, -1.5), (-14.0, 1.5));
+    d.brk((28.0, -1.5), (28.0, 1.5));
+    // Finished back panel, box bottom, toe kick and door.
+    d.sheet(0.0, 0.0, 0.75, 33.75);
+    d.sheet(0.75, 4.0, 23.25, 4.75);
+    d.line(
+        &[(0.75, 0.0), (21.0, 0.0), (21.0, 4.0), (24.0, 4.0)],
+        Medium,
+    );
+    d.rect(24.0, 4.0, 24.75, 33.0, Medium);
+    d.line(&[(23.25, 4.75), (23.25, 33.75)], Beyond);
+    // Plywood subtop with the steel bar let into it, reaching out under the overhang.
+    d.sheet(0.0, 33.75, 24.0, 34.5);
+    d.cut_rect(-10.0, 34.25, 0.0, 34.5, Steel);
+    d.line(&[(0.0, 34.25), (18.0, 34.25)], Hidden);
+    for x in [6.0, 14.0] {
+        d.line(&[(x, 33.5), (x, 34.5)], Thin);
+    }
+    d.cut(
+        &[
+            (-12.0, 34.5),
+            (25.0, 34.5),
+            (25.0, 35.625),
+            (24.875, 35.75),
+            (-11.875, 35.75),
+            (-12.0, 35.625),
+        ],
+        Sand,
+    );
+    d.note((-6.0, 35.1), "1-1/4\" QUARTZ COUNTERTOP");
+    d.note((-11.9, 35.3), "12\" SEATING OVERHANG");
+    d.note(
+        (-5.0, 34.4),
+        "1/4\"x3\" STL. FLAT BAR @ 24\" O.C., LET INTO SUBTOP",
+    );
+    d.note((10.0, 34.1), "3/4\" PLYWOOD SUBTOP");
+    d.note((6.0, 33.9), "#10 SCREWS @ 8\" O.C.");
+    d.note((0.4, 20.0), "3/4\" FINISHED BACK PANEL");
+    d.note((12.0, 4.4), "BASE CABINET, 24\" DEEP");
+    d.note((22.5, 2.0), "4\" TOE KICK");
+    d.note((-8.0, 0.0), "FINISH FLOOR");
+    d
+}
+
+fn wood_base() -> D {
+    let mut d = D::new();
+    // The wall face at x 0, the room to the right; subfloor top at y 0.
+    d.sheet(-6.0, -0.75, 10.0, 0.0);
+    d.brk((-6.0, -1.25), (-6.0, 0.25));
+    d.brk((10.0, -1.25), (10.0, 1.25));
+    d.lumber(-4.0, 0.0, -0.5, 1.5);
+    d.board(-4.0, 1.5, -0.5, 10.0);
+    d.gyp(-0.5, 0.5, 0.0, 10.0);
+    d.brk((-5.0, 10.0), (1.5, 10.0));
+    // Hardwood held 1/2" off the wall, under the base and shoe.
+    d.cut_rect(0.5, 0.0, 10.0, 0.75, Wood);
+    d.cut(
+        &[
+            (0.0, 0.75),
+            (0.625, 0.75),
+            (0.625, 5.0),
+            (0.375, 5.5),
+            (0.0, 5.5),
+        ],
+        Wood,
+    );
+    d.cut(
+        &[
+            (0.625, 0.75),
+            (1.375, 0.75),
+            (1.3, 1.0),
+            (1.1, 1.2),
+            (0.875, 1.32),
+            (0.625, 1.35),
+        ],
+        Wood,
+    );
+    d.line(&[(0.45, 1.05), (-2.5, 1.05)], Thin);
+    d.line(&[(0.45, 4.0), (-2.5, 4.0)], Thin);
+    fillet(&mut d, 0.0, 5.5, 0.12, 0.12);
+    d.note((0.3, 3.0), "1x6 PAINTED WOOD BASE");
+    d.note((0.35, 5.6), "CAULK TOP EDGE, PAINT");
+    d.note((1.0, 1.0), "3/4\" SHOE MOLDING, NAIL TO BASE");
+    d.note((6.0, 0.4), "3/4\" HARDWOOD FLOORING");
+    d.note((0.25, 0.4), "1/2\" EXPANSION GAP");
+    d.note((5.0, -0.4), "3/4\" T&G PLYWOOD SUBFLOOR");
+    d.note((-0.25, 8.0), "1/2\" GYP. BD., HELD 1/2\" OFF SUBFLOOR");
+    d.note((-2.25, 0.75), "2x4 SOLE PLATE");
+    d.note((-1.5, 4.0), "FINISH NAILS INTO PLATE & STUDS");
+    d
+}
+
+fn resilient_base() -> D {
+    let mut d = D::new();
+    // The wall face at x 0 on a slab (top y 0), the room to the right.
+    slab(&mut d, -6.0, 10.0, 3.0);
+    d.gyp(-0.625, 0.25, 0.0, 10.0);
+    d.line(
+        &[(-4.25, 1.25), (-4.25, 0.0), (-0.625, 0.0), (-0.625, 1.25)],
+        Medium,
+    );
+    d.line(&[(-4.2, 1.25), (-4.2, 10.0)], Beyond);
+    d.line(&[(-0.675, 1.25), (-0.675, 10.0)], Beyond);
+    d.line(&[(-2.44, 0.0), (-2.44, -1.25)], Medium);
+    d.brk((-5.0, 10.0), (1.0, 10.0));
+    // LVT on leveler, and the rubber base's toe over it.
+    d.cut_rect(0.25, 0.0, 10.0, 0.125, Gray);
+    d.cut(
+        &[
+            (0.0, 0.125),
+            (0.625, 0.125),
+            (0.375, 0.2),
+            (0.2, 0.35),
+            (0.125, 0.55),
+            (0.125, 4.125),
+            (0.0, 4.125),
+        ],
+        Solid,
+    );
+    d.note((0.06, 2.5), "4\" RUBBER COVE BASE, CONTACT ADHESIVE");
+    d.note((5.0, 0.06), "LUXURY VINYL TILE ON LEVELER");
+    d.note((-0.3, 7.0), "5/8\" GYP. BD.");
+    d.note((-2.5, 1.0), "3-5/8\" MTL. STUD & TRACK");
+    d.note((-2.44, -0.8), "P.A.F. @ 24\" O.C.");
+    d.note((4.0, -2.0), "CONC. SLAB");
+    d
+}
+
+fn tile_base() -> D {
+    let mut d = D::new();
+    // The wall face at x 0 on a slab (top y 0), the room to the right.
+    slab(&mut d, -6.0, 10.0, 3.0);
+    d.lumber(-4.0, 0.0, -0.5, 1.5);
+    d.board(-4.0, 1.5, -0.5, 10.0);
+    cement_board(&mut d, -0.5, 0.125, 0.0, 10.0);
+    d.brk((-5.0, 10.0), (1.0, 10.0));
+    // Floor tile on thinset, the cove base, then wall tile above it.
+    d.line(&[(0.0, 0.06), (10.0, 0.06)], Hidden);
+    d.cut_rect(1.0, 0.125, 10.0, 0.5, Diagonal);
+    d.cut(
+        &[
+            (0.0, 0.125),
+            (0.875, 0.125),
+            (0.875, 0.5),
+            (0.6, 0.6),
+            (0.45, 0.75),
+            (0.375, 1.0),
+            (0.375, 6.0),
+            (0.0, 6.0),
+        ],
+        Diagonal,
+    );
+    d.cut_rect(0.0, 6.125, 0.375, 10.0, Diagonal);
+    fillet(&mut d, 0.875, 0.5, 0.125, 0.1);
+    d.note((0.2, 3.0), "6\" CERAMIC COVE BASE");
+    d.note((0.2, 8.0), "CERAMIC WALL TILE");
+    d.note((5.0, 0.3), "PORCELAIN FLOOR TILE");
+    d.note((3.0, 0.06), "THINSET ON WATERPROOF MEMBRANE");
+    d.note((0.93, 0.55), "SEALANT AT CHANGE OF PLANE");
+    d.note((-0.25, 4.0), "1/2\" CEMENT BACKER BD.");
+    d.note((-2.25, 0.75), "P.T. 2x4 SILL PLATE");
+    d.note((5.0, -2.0), "CONC. SLAB");
+    d
+}
+
+fn carpet_tile() -> D {
+    let mut d = D::new();
+    // Tile to the left of x 0, carpet to the right, on a slab (top y 0).
+    slab(&mut d, -8.0, 8.0, 3.0);
+    d.line(&[(-8.0, 0.06), (0.0, 0.06)], Hidden);
+    d.cut_rect(-8.0, 0.125, -0.06, 0.5, Diagonal);
+    // The edge trim's leg under the tile and its face against the tile's edge.
+    d.line(&[(-1.0, 0.1), (0.0, 0.1), (0.0, 0.52)], Wide);
+    // Tackless strip, pad and carpet tucked down to the trim.
+    d.rect(0.4, 0.0, 1.4, 0.25, Medium);
+    for x in [0.65, 0.9, 1.15] {
+        d.line(&[(x, 0.25), (x + 0.08, 0.35)], Thin);
+    }
+    d.cut_rect(1.5, 0.0, 8.0, 0.375, Sand);
+    d.cut(
+        &[
+            (0.1, 0.1),
+            (0.3, 0.1),
+            (0.3, 0.375),
+            (8.0, 0.375),
+            (8.0, 0.75),
+            (0.25, 0.75),
+            (0.1, 0.6),
+        ],
+        Gray,
+    );
+    d.note((-4.0, 0.3), "PORCELAIN TILE ON THINSET");
+    d.note((-0.5, 0.1), "ALUM. CARPET EDGE TRIM, SET IN THINSET");
+    d.note((0.9, 0.12), "TACKLESS STRIP");
+    d.note((4.0, 0.2), "7/16\" CARPET PAD");
+    d.note((4.0, 0.6), "CARPET, TUCKED TO EDGE TRIM");
+    d.note((0.05, 0.65), "1/4\" MAX. CHANGE IN LEVEL");
+    d.note((4.0, -1.5), "CONC. SLAB");
+    d
+}
+
+fn wood_tile() -> D {
+    let mut d = D::new();
+    // Tile to the left, hardwood to the right, both flush on a plywood subfloor (top y 0).
+    d.sheet(-8.0, -0.75, 8.0, 0.0);
+    d.lumber(-0.75, -10.0, 0.75, -0.75);
+    d.brk((-8.0, -1.25), (-8.0, 1.25));
+    d.brk((8.0, -1.25), (8.0, 1.25));
+    d.brk((-2.5, -10.0), (2.5, -10.0));
+    // Tile on 1/4" backer and thinset; hardwood with its gap; the T-molding over both.
+    cement_board(&mut d, -8.0, 0.0, -0.25, 0.25);
+    d.line(&[(-8.0, 0.31), (-0.25, 0.31)], Hidden);
+    d.cut_rect(-8.0, 0.375, -0.25, 0.75, Diagonal);
+    d.cut_rect(0.5, 0.0, 8.0, 0.75, Wood);
+    d.cut(
+        &[
+            (-1.0, 0.75),
+            (-0.125, 0.75),
+            (-0.125, 0.0),
+            (0.375, 0.0),
+            (0.375, 0.75),
+            (1.25, 0.75),
+            (1.0, 1.1),
+            (-0.75, 1.1),
+        ],
+        Wood,
+    );
+    d.note((4.0, 0.4), "3/4\" HARDWOOD FLOORING");
+    d.note((0.125, 0.9), "WOOD T-MOLDING, GLUE STEM TO SUBFLOOR");
+    d.note((-4.0, 0.55), "PORCELAIN TILE");
+    d.note((-5.0, 0.31), "THINSET");
+    d.note((-4.0, 0.12), "1/4\" CEMENT BACKER BD.");
+    d.note((4.0, -0.4), "3/4\" T&G PLYWOOD SUBFLOOR");
+    d.note((0.0, -5.0), "2x10 FLOOR JOIST");
+    d
+}
+
+fn tile_resilient() -> D {
+    let mut d = D::new();
+    // Tile to the left of x 0, LVT to the right, on a slab (top y 0).
+    slab(&mut d, -8.0, 8.0, 3.0);
+    d.line(&[(-8.0, 0.06), (-1.0, 0.06)], Hidden);
+    d.cut_rect(-8.0, 0.125, -0.06, 0.5, Diagonal);
+    // The aluminum reducer: its leg under the tile, the 1:2 ramp down to the LVT.
+    d.cut(
+        &[
+            (-1.0, 0.1),
+            (0.95, 0.1),
+            (0.95, 0.16),
+            (0.05, 0.53),
+            (-0.03, 0.53),
+            (-0.03, 0.16),
+            (-1.0, 0.16),
+        ],
+        Steel,
+    );
+    d.cut_rect(1.0, 0.0, 8.0, 0.125, Gray);
+    d.note((-4.0, 0.3), "PORCELAIN TILE ON THINSET");
+    d.note((0.4, 0.35), "ALUM. REDUCER, 1:2 BEVEL, SET IN THINSET");
+    d.note((-0.6, 0.13), "ANCHORING LEG");
+    d.note((4.0, 0.06), "LUXURY VINYL TILE, GLUE-DOWN");
+    d.note((0.8, 0.2), "3/8\" CHANGE IN LEVEL, BEVELED 1:2");
+    d.note((4.0, -1.5), "CONC. SLAB");
+    d
+}
+
+fn door_saddle() -> D {
+    let mut d = D::new();
+    // A door's centerline at x 0: tile to the left, engineered wood to the right.
+    slab(&mut d, -8.0, 8.0, 3.0);
+    d.line(&[(-8.0, 0.06), (2.25, 0.06)], Hidden);
+    d.cut_rect(-8.0, 0.125, -2.375, 0.5, Diagonal);
+    d.cut_rect(2.5, 0.0, 8.0, 0.125, Gray);
+    d.cut_rect(2.5, 0.125, 8.0, 0.625, Wood);
+    // The marble saddle, bevelled both sides, on thinset.
+    d.cut(
+        &[
+            (-2.25, 0.125),
+            (2.25, 0.125),
+            (2.25, 0.5),
+            (2.0, 0.75),
+            (-2.0, 0.75),
+            (-2.25, 0.625),
+        ],
+        Sand,
+    );
+    // The door and jamb beyond.
+    d.rect(-0.875, 1.25, 0.875, 8.0, Beyond);
+    d.line(&[(-2.25, 0.75), (-2.25, 8.0)], Beyond);
+    d.line(&[(2.25, 0.75), (2.25, 8.0)], Beyond);
+    d.brk((-3.0, 8.0), (3.0, 8.0));
+    d.note((0.0, 0.45), "MARBLE SADDLE, 5/8\" W/ BEVELED EDGES");
+    d.note((0.0, 1.0), "1/2\" UNDERCUT ABOVE SADDLE");
+    d.note((0.0, 5.0), "DOOR BEYOND");
+    d.note((-2.25, 4.0), "JAMB BEYOND");
+    d.note((-5.0, 0.3), "PORCELAIN TILE ON THINSET");
+    d.note((5.0, 0.4), "1/2\" ENGINEERED WOOD FLOORING");
+    d.note((5.0, 0.06), "1/8\" UNDERLAYMENT");
+    d.note((4.0, -1.5), "CONC. SLAB");
     d
 }

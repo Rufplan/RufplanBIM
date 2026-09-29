@@ -2809,3 +2809,19 @@ coursing along a line".
   target, laid out bottom-up so notes never overlap. Its leader leaves the text level (a
   shoulder a quarter of the way over, 3–10 mm on paper), then angles down to the arrowhead:
   `Note.elbow`, inserted as the text note's two-segment leader.
+
+## ADR-078 Casework, base and floor transition details — Accepted (2026-09-28)
+- **Ten typical interior details** join the library (studio-core `details::library`), in
+  three new categories. Base Cabinet and Countertop moves from Interiors to Casework.
+  - **Casework:** Upper Wall Cabinet (1 1/2"), Countertop Edge and Backsplash (3"), Island
+    Countertop Overhang (1 1/2"), Base Cabinet and Countertop.
+  - **Base & Trim:** Wood Base and Shoe, Rubber Cove Base, Ceramic Cove Base (all 6").
+  - **Floor Transitions:** Carpet to Tile, Wood to Tile, Tile to Resilient, Marble Saddle
+    at Door (all 6").
+- **Drawn like the others (ADR-077):** detail components wherever a type fits (sheathing,
+  gypsum, side and cut lumber, break lines). Notes have leaders angled down from a
+  shoulder.
+- **Shared helpers:** `fillet` (a sealant bead in an inside corner), `cement_board` (no
+  component type exists) and `slab`.
+- The levels follow the usual accessible-route limits: at most 1/4" vertical, bevelled 1:2
+  up to 1/2". They are starting points to edit, not code review.

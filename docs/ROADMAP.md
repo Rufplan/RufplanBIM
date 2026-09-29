@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Casework, base and floor transition details in the library (ADR-078).
 - Library details drawn with detail components (lumber, sheathing, gypsum, batt and rigid
   insulation, brick/CMU coursing, break lines, rebar), notes with Revit-style leaders angled
   down from a shoulder (ADR-077).
