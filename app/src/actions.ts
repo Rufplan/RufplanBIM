@@ -3,6 +3,7 @@ import { apply, deleteSelection } from "./fileActions";
 import { ipc } from "./ipc";
 import { startSketch } from "./sketch";
 import type { Action } from "./shortcuts";
+import type { DetailLevel } from "./bindings/DetailLevel";
 import {
   activeViewInfo,
   useAppStore,
@@ -22,6 +23,18 @@ export async function paintElement(id: string | null, wholeType: boolean) {
   }
   if (!id) return;
   await apply(() => (wholeType ? ipc.applyMaterial([id], m) : ipc.paintElements([id], m)));
+}
+
+/** Sets a drawn view's Detail Level (ADR-067); the active view's by default. */
+export async function setDetailLevel(level: DetailLevel, view?: string) {
+  const s = useAppStore.getState();
+  const v = view ? s.app?.views.find((x) => x.id === view) : activeViewInfo(s);
+  if (!v?.detailLevel) {
+    s.setError("Detail Level applies to plans, elevations and sections.");
+    return;
+  }
+  if (v.detailLevel === level) return;
+  await apply(() => ipc.setProperty(v.id, "detail_level", level));
 }
 
 /** Starts painting with `material` (from the Material Browser). */
@@ -224,6 +237,12 @@ export async function runAction(action: Action) {
     case "thinLines":
       s.setUi({ thinLines: !s.thinLines });
       return;
+    case "detailCoarse":
+      return setDetailLevel("Coarse");
+    case "detailMedium":
+      return setDetailLevel("Medium");
+    case "detailFine":
+      return setDetailLevel("Fine");
     case "wireframe":
     case "hiddenLine":
     case "shaded":

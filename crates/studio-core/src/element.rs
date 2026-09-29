@@ -405,6 +405,45 @@ impl SurfacePattern {
     }
 }
 
+/// A view's Detail Level (ADR-067), as in Revit: how much of each element it draws.
+/// Coarse: walls in solid poché, doors and windows as bare openings. Medium: wall core
+/// boundaries and frames. Fine: every layer with its cut pattern, casings and muntins.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum DetailLevel {
+    Coarse,
+    Medium,
+    Fine,
+}
+
+impl DetailLevel {
+    pub const ALL: [DetailLevel; 3] = [DetailLevel::Coarse, DetailLevel::Medium, DetailLevel::Fine];
+
+    /// The level a view has until one is chosen: Fine at 1/4" = 1'-0" and larger (what
+    /// such views always drew), Coarse smaller, like Revit's templates.
+    pub fn for_scale(scale: u32) -> Self {
+        if scale <= 50 {
+            DetailLevel::Fine
+        } else {
+            DetailLevel::Coarse
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            DetailLevel::Coarse => "Coarse",
+            DetailLevel::Medium => "Medium",
+            DetailLevel::Fine => "Fine",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|d| d.label().eq_ignore_ascii_case(s.trim()))
+    }
+}
+
 /// Where a level's line starts and ends in one elevation or section (ADR-052), along the
 /// view (its x, mm). None: that end where the view puts it.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
@@ -922,6 +961,9 @@ pub enum ElementData {
         /// (Revit's 2D extents). Levels not listed span the view.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         level_ends: Vec<LevelEnds>,
+        /// Detail Level (ADR-067); None follows the scale ([`DetailLevel::for_scale`]).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        detail_level: Option<DetailLevel>,
     },
     ProjectInfo {
         name: String,
@@ -1669,6 +1711,19 @@ impl ElementData {
             hidden_categories: vec![],
             camera: None,
             level_ends: vec![],
+            detail_level: None,
+        }
+    }
+
+    /// A view's Detail Level: the one chosen, else the one its scale gives (ADR-067).
+    pub fn detail_level(&self) -> Option<DetailLevel> {
+        match self {
+            ElementData::View {
+                detail_level,
+                scale,
+                ..
+            } => Some(detail_level.unwrap_or(DetailLevel::for_scale(*scale))),
+            _ => None,
         }
     }
 

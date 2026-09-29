@@ -3,7 +3,7 @@
 //! panels, muntins and glass, and thumbnails. Layouts come from `studio_core::doors`.
 
 use studio_core::doors::{layout, DoorLayout, DoorOp, DoorStyle, Leaf, BAR, LEAF};
-use studio_core::{DoorFamily, ElementId};
+use studio_core::{DetailLevel, DoorFamily, ElementId};
 use studio_geom::{Poly, Prism, Pt};
 use studio_regen::OpeningSolid;
 
@@ -64,8 +64,9 @@ pub(crate) fn plan_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSol
     };
     // The frame, as in 3D: jambs through the wall (a 4 1/2" frame for glass and garage
     // doors) and the casings on both faces (ADR-060).
+    // Coarse draws the leaves alone, Medium adds the frame, Fine the casings (ADR-067).
     let f = lay.frame;
-    if f > 0.0 {
+    if f > 0.0 && b.detail >= DetailLevel::Medium {
         let d = if lay.casing > 0.0 {
             h
         } else {
@@ -74,7 +75,7 @@ pub(crate) fn plan_symbol(b: &mut Builder, el: Option<ElementId>, o: &OpeningSol
         rect(b, 0.0, f, -d, d, 1, Dash::Solid);
         rect(b, w - f, w, -d, d, 1, Dash::Solid);
     }
-    if lay.casing > 0.0 && s.family != DoorFamily::Barn {
+    if lay.casing > 0.0 && s.family != DoorFamily::Barn && b.detail == DetailLevel::Fine {
         let over = lay.casing - f;
         for (a, e) in [(h, h + CASING_DEPTH), (-h - CASING_DEPTH, -h)] {
             rect(b, -over, f, a, e, 1, Dash::Solid);
@@ -354,7 +355,11 @@ pub(crate) fn elevation_detail(
         let u = if mirrored { u1 - p[0] } else { u0 + p[0] };
         Pt::new(u, z0 + p[1])
     };
-    for line in elevation_lines(&lay) {
+    let detail = b.detail;
+    for line in elevation_lines(&lay)
+        .into_iter()
+        .filter(|l| super::windows::shown_at(l, detail))
+    {
         let pts: Vec<Pt> = line.pts.iter().map(map).collect();
         if line.glass {
             b.fill(Some(el), vec![super::ring(&pts)], FillKind::Glass);

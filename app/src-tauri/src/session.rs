@@ -52,6 +52,8 @@ pub struct ViewInfo {
     pub site: bool,
     /// Camera views: the camera in model space (ADR-027).
     pub camera: Option<studio_core::camera::CameraPose>,
+    /// Drawn views (plans, elevations, sections): their Detail Level (ADR-067).
+    pub detail_level: Option<studio_core::DetailLevel>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -265,6 +267,9 @@ impl Session {
                         hidden_count: hidden.len(),
                         site: *site,
                         camera: camera.map(|c| studio_core::camera::pose(doc, &c)),
+                        detail_level: e.data.detail_level().filter(|_| {
+                            !matches!(kind, ViewKind::ThreeD | ViewKind::Schedule { .. })
+                        }),
                     })
                 }
                 ElementData::Sheet { stages, .. } => Some(ViewInfo {
@@ -282,6 +287,7 @@ impl Session {
                     hidden_count: 0,
                     site: false,
                     camera: None,
+                    detail_level: None,
                 }),
                 _ => None,
             })

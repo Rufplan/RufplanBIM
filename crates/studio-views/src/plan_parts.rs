@@ -1,7 +1,7 @@
 //! Plan graphics for stairs, columns, beams, railings and wall layer detail (ADR-019).
 
 use super::{clip_line_convex, ring, Anchor, Builder, Dash, FillKind};
-use studio_core::ElementId;
+use studio_core::{DetailLevel, ElementId};
 use studio_geom::{clip_half_plane, Pt};
 use studio_regen::{BeamSolid, ColumnSolid, CutPattern as Hatch, Model, WallSolid};
 
@@ -219,9 +219,23 @@ fn pieces_at_cut(w: &WallSolid, cut: f64) -> impl Iterator<Item = &Vec<Pt>> {
         .map(|p| &p.base.outer)
 }
 
-/// Wall layers at detail scales: finish layers wrap around free ends and opening jambs,
-/// and hatched layers get their cut pattern.
+/// Wall layers at Fine detail: finish layers wrap around free ends and opening jambs,
+/// and hatched layers get their cut pattern. At Medium only the core's boundaries show,
+/// straight through (ADR-067).
 pub(crate) fn wall_layer_detail(b: &mut Builder, walls: &[&WallSolid], cut: f64) {
+    if b.detail == DetailLevel::Medium {
+        for w in walls {
+            let (d, n) = (w.dir(), w.dir().perp());
+            for piece in pieces_at_cut(w, cut) {
+                for off in &w.core {
+                    if let Some((s, e)) = clip_line_convex(w.start.add(n.scale(*off)), d, piece) {
+                        b.line(Some(w.id), &[s, e], false, 1, Dash::Solid);
+                    }
+                }
+            }
+        }
+        return;
+    }
     // Sketched wall openings (ADR-058) cut gaps through the layers too.
     let holes: Vec<Vec<studio_geom::Poly>> = walls
         .iter()

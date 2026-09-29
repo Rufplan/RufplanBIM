@@ -299,9 +299,53 @@ pub fn layer_boundaries(layers: &[WallLayer], width: f64) -> Vec<f64> {
     out
 }
 
+/// Offsets from the center of the core's faces inside the build-up: the outer face of its
+/// first structure layer and the inner face of its last (Revit's core boundaries, drawn at
+/// Medium detail, ADR-067). Faces on the wall's own faces are left out.
+pub fn core_boundaries(layers: &[WallLayer], width: f64) -> Vec<f64> {
+    let is_core = |l: &WallLayer| l.function == LayerFunction::Structure;
+    let (Some(first), Some(last)) = (
+        layers.iter().position(is_core),
+        layers.iter().rposition(is_core),
+    ) else {
+        return vec![];
+    };
+    let face = |n: usize| width / 2.0 - layers[..n].iter().map(|l| l.thickness).sum::<f64>();
+    let mut out = vec![];
+    if first > 0 {
+        out.push(face(first));
+    }
+    if last + 1 < layers.len() {
+        out.push(face(last + 1));
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn core_boundaries_are_the_structure_faces_inside_the_wall() {
+        let l = |t: f64, f: LayerFunction| WallLayer {
+            name: String::new(),
+            thickness: t,
+            function: f,
+            material: None,
+        };
+        // 20 finish, 100 structure, 30 insulation, 50 structure, 10 finish: 210 wide.
+        let layers = [
+            l(20.0, LayerFunction::Finish),
+            l(100.0, LayerFunction::Structure),
+            l(30.0, LayerFunction::Insulation),
+            l(50.0, LayerFunction::Structure),
+            l(10.0, LayerFunction::Finish),
+        ];
+        assert_eq!(core_boundaries(&layers, 210.0), vec![85.0, -95.0]);
+        // A core on the wall's face adds no line there; no core, no lines.
+        assert_eq!(core_boundaries(&layers[1..], 190.0), vec![-85.0]);
+        assert!(core_boundaries(&[l(100.0, LayerFunction::Finish)], 100.0).is_empty());
+    }
 
     #[test]
     fn default_layers_add_up_to_nominal_widths() {

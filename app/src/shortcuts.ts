@@ -31,6 +31,9 @@ export type Action =
   | "zoomRegion"
   | "zoomPrevious"
   | "thinLines"
+  | "detailCoarse"
+  | "detailMedium"
+  | "detailFine"
   | "wireframe"
   | "hiddenLine"
   | "shaded"
@@ -289,6 +292,27 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     command: a("hideCategoryInView"),
   },
   { id: "thinLines", label: "Thin Lines", group: "View", keys: ["TL"], command: a("thinLines") },
+  {
+    id: "detailCoarse",
+    label: "Detail Level: Coarse (ours)",
+    group: "View",
+    keys: ["DC"],
+    command: a("detailCoarse"),
+  },
+  {
+    id: "detailMedium",
+    label: "Detail Level: Medium (ours)",
+    group: "View",
+    keys: ["DD"],
+    command: a("detailMedium"),
+  },
+  {
+    id: "detailFine",
+    label: "Detail Level: Fine (ours)",
+    group: "View",
+    keys: ["DF"],
+    command: a("detailFine"),
+  },
   {
     id: "wireframe",
     label: "Wireframe (3D)",

@@ -44,6 +44,8 @@ pub struct WallSolid {
     /// Offsets of the boundaries between layers from the location line (mm, positive =
     /// exterior, the wall's left). Empty for a single-layer type.
     pub layers: Vec<f64>,
+    /// The core's boundaries among `layers` (Revit's core boundaries, ADR-067).
+    pub core: Vec<f64>,
     /// Thickness of the outer and inner finish layers (0 when not finish), which wrap
     /// around free ends and openings in plan.
     pub wraps: (f64, f64),
@@ -518,6 +520,7 @@ struct RawWall {
     thickness: f64,
     exterior: bool,
     layers: Vec<f64>,
+    core: Vec<f64>,
     wraps: (f64, f64),
     hatches: Vec<(f64, f64, CutPattern)>,
     surfaces: (SurfacePattern, SurfacePattern),
@@ -552,7 +555,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
         else {
             continue;
         };
-        let (thickness, exterior, layers, wraps, hatches, (surfaces, color)) =
+        let (thickness, exterior, (layers, core), wraps, hatches, (surfaces, color)) =
             match doc.data(*type_id) {
                 Ok(ElementData::WallType {
                     thickness,
@@ -562,7 +565,10 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 }) => (
                     *thickness,
                     *function == WallFunction::Exterior,
-                    studio_core::compound::layer_boundaries(layers, *thickness),
+                    (
+                        studio_core::compound::layer_boundaries(layers, *thickness),
+                        studio_core::compound::core_boundaries(layers, *thickness),
+                    ),
                     (finish_t(layers.first()), finish_t(layers.last())),
                     hatch_bands(doc, layers, *thickness),
                     finishes(doc, layers),
@@ -585,6 +591,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
             thickness,
             exterior,
             layers,
+            core,
             wraps,
             hatches,
             surfaces,
@@ -649,6 +656,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 z1: w.z1,
                 pieces: vec![],
                 layers: w.layers.clone(),
+                core: w.core.clone(),
                 wraps: w.wraps,
                 top_profile: None,
                 hatches: w.hatches.clone(),

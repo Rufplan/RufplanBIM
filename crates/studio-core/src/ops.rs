@@ -1617,6 +1617,26 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                         .collect(),
                 ));
             }
+            // Revit's Detail Level (ADR-067), for the drawn views.
+            if !matches!(kind, ViewKind::Schedule { .. } | ViewKind::ThreeD) {
+                props.push(choice(
+                    "detail_level",
+                    "Detail Level",
+                    "Graphics",
+                    el.data
+                        .detail_level()
+                        .unwrap_or(crate::DetailLevel::Fine)
+                        .label()
+                        .into(),
+                    crate::DetailLevel::ALL
+                        .iter()
+                        .map(|d| PropOption {
+                            id: d.label().into(),
+                            label: d.label().into(),
+                        })
+                        .collect(),
+                ));
+            }
             let kind_label = match kind {
                 ViewKind::FloorPlan { .. } => "Floor Plan",
                 ViewKind::CeilingPlan { .. } => "Ceiling Plan",
@@ -2536,6 +2556,7 @@ pub fn set_property(
             show_crop,
             section_box,
             camera,
+            detail_level,
             ..
         } => match key {
             "name" => *name = non_empty(value)?,
@@ -2595,6 +2616,12 @@ pub fn set_property(
                 *scale = value
                     .parse()
                     .map_err(|_| CoreError::Invalid("bad scale".into()))?
+            }
+            "detail_level" => {
+                *detail_level = Some(
+                    crate::DetailLevel::parse(value)
+                        .ok_or_else(|| CoreError::Invalid("use Coarse, Medium or Fine".into()))?,
+                )
             }
             _ => return Err(unknown()),
         },

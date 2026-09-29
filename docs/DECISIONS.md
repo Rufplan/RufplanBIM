@@ -2442,3 +2442,44 @@ selected, similar to how Revit has it".
   from Modify | Multi-Select > Selection > Filter, or from the status bar's funnel, which
   shows how many elements are selected. A new command, `element_categories`, gives each
   element's category.
+
+## ADR-067 Detail Level (Coarse, Medium, Fine), after Revit — Accepted (2026-09-28)
+Owner request (2026-09-28): "a similar toggle button like the one in 3D view for wireframe to
+realistic, but for plans, sections, elevations and most views, showing different detail levels
+of walls, doors, windows, equipment etc.: coarse, medium and fine", per the design handoff
+"Detail Level Toggle (icon set 2C, wall layers)".
+
+- **The model.** `DetailLevel` (Coarse, Medium, Fine) is a view property, as in Revit.
+  - It is stored as `View.detail_level` (optional, serde default). Older files open unchanged,
+    so this is not a file format change.
+  - Until one is chosen, a view follows its scale: Fine at 1/4" = 1'-0" and larger, Coarse at
+    smaller scales. Views at 1/4" and larger therefore draw exactly as they did before.
+  - It appears in the view's Properties as Graphics > Detail Level.
+- **What each level draws:**
+  - **Coarse:**
+    - Walls: cut walls are solid poché.
+    - Doors in plan: the leaves and swings only.
+    - Windows in plan: the wall's faces across the opening and one line of glass.
+    - Sections: cut floors and roofs are solid, without layer lines.
+    - Door and window elevations: keep the outlines of sashes, panels and glass, and drop
+      muntins, rails and swing marks.
+  - **Medium:**
+    - Walls: a lighter fill with only the core's boundaries, the faces of the structure
+      layers inside the wall (`compound::core_boundaries`, `WallSolid.core`).
+    - Door and window frames appear; window mullions and casement swings do not.
+    - Elevations leave off only the dashed swing marks.
+  - **Fine:** everything, as before. Every layer is drawn, finishes wrap at free ends and
+    openings, cut patterns (batt insulation) show, and door casings, mullions and swing
+    marks appear.
+- **The toggle.** A pill in each drawn view's lower-left corner, like the 3D view's Visual
+  Style pill (ADR-038).
+  - It shows the current level. Hovering or focusing opens Coarse, Medium and Fine; arrow keys
+    step between them.
+  - The icons are set 2C: the same wall slab drawn as poché, as core lines, and as every layer
+    with insulation.
+  - Choosing a level sets the view's property, which is undoable like any change.
+- **Shortcuts.** The handoff's single keys C, M and F would clash with the two-letter Revit
+  shortcuts (CO, MV, …), so the levels get two-letter shortcuts of our own, listed in
+  Keyboard Shortcuts: **DC** Coarse, **DD** Medium, **DF** Fine.
+- **Not yet:** equipment, furniture and other families have no level-specific geometry yet.
+  3D views keep their Visual Style and have no Detail Level.

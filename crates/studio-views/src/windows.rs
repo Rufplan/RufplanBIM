@@ -4,7 +4,7 @@
 
 use serde::Serialize;
 use studio_core::windows::{layout, Operation, WindowLayout, WindowStyle, BAR};
-use studio_core::ElementId;
+use studio_core::{DetailLevel, ElementId};
 use studio_geom::{Poly, Prism, Pt};
 use studio_regen::OpeningSolid;
 use ts_rs::TS;
@@ -101,6 +101,11 @@ pub(crate) fn plan_symbol(
     for off in [h, -h] {
         seg(b, 0.0, w, off, 1);
     }
+    // Coarse (ADR-067): the wall's faces across the opening and one line of glass.
+    if b.detail == DetailLevel::Coarse {
+        seg(b, 0.0, w, 0.0, 2);
+        return;
+    }
     // The frame's jambs, as deep as in 3D (ADR-060).
     let depth = lay.depth.min(2.0 * h).max(0.5 * 25.4);
     let f = lay.frame;
@@ -151,6 +156,9 @@ pub(crate) fn plan_symbol(
                 seg(b, u0, u1, off, 2);
             }
         }
+    }
+    if b.detail < DetailLevel::Fine {
+        return;
     }
     for m in &lay.mullions {
         if m[3] - m[1] > lay.height / 2.0 {
@@ -294,6 +302,17 @@ pub fn elevation_lines(lay: &WindowLayout) -> Vec<WindowLine> {
     out
 }
 
+/// Whether a door or window elevation line shows at a Detail Level (ADR-067): Coarse
+/// keeps the outlines of sashes, panels and glass (no muntins, rails or swing marks),
+/// Medium leaves off only the dashed swing marks, Fine shows all.
+pub(crate) fn shown_at(line: &WindowLine, detail: DetailLevel) -> bool {
+    match detail {
+        DetailLevel::Coarse => !line.dashed && (line.closed || line.glass),
+        DetailLevel::Medium => !line.dashed,
+        DetailLevel::Fine => true,
+    }
+}
+
 /// Draws a window's elevation detail into the face spanning `u0`..`u1`, `z0`..`z1`;
 /// `mirrored` when seen from inside, so its left is on the viewer's right.
 pub(crate) fn elevation_detail(
@@ -304,7 +323,11 @@ pub(crate) fn elevation_detail(
     mirrored: bool,
 ) {
     let lay = layout(style, u1 - u0, z1 - z0);
-    for line in elevation_lines(&lay) {
+    let detail = b.detail;
+    for line in elevation_lines(&lay)
+        .into_iter()
+        .filter(|l| shown_at(l, detail))
+    {
         let pts: Vec<Pt> = line
             .pts
             .iter()

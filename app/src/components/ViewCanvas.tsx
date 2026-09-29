@@ -1,5 +1,6 @@
 import { siteImagery, type Imagery } from "../imagery";
-import { paintElement } from "../actions";
+import { paintElement, setDetailLevel } from "../actions";
+import { DetailLevelToggle } from "./DetailLevelToggle";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   errorMessage,
@@ -1632,6 +1633,13 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         >
           Grids
         </button>
+      )}
+      {view.detailLevel && (
+        // Revit's Detail Level for this view (ADR-067), like the 3D view's style pill.
+        <DetailLevelToggle
+          value={view.detailLevel}
+          onChange={(d) => void setDetailLevel(d, view.id)}
+        />
       )}
       {onSheet && (
         <div className="activated-banner" role="status">

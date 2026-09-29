@@ -1,5 +1,6 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import type { AppState } from "../ipc";
+import type { DetailLevel } from "../bindings/DetailLevel";
 import type { Standards } from "../bindings/Standards";
 
 /** A small Asset Library: a maple in two seasons and a boxwood. */
@@ -154,6 +155,7 @@ export function appState(path: string | null, dirty = false): AppState {
     hiddenCount: 0,
     site: false,
     camera: null as AppState["views"][number]["camera"],
+    detailLevel: (viewType === "ThreeD" ? null : "Fine") as DetailLevel | null,
   });
   return {
     project: { name, path, schemaVersion: 2, appVersion: "0.0.1", dirty },
@@ -451,6 +453,13 @@ export function installFakeBackend(): FakeBackend {
         case "set_property":
           if (fake.state && a.key === "current_stage")
             fake.state = { ...fake.state, currentStage: a.value as string };
+          if (fake.state && a.key === "detail_level")
+            fake.state = {
+              ...fake.state,
+              views: fake.state.views.map((v) =>
+                v.id === a.id ? { ...v, detailLevel: a.value as DetailLevel } : v,
+              ),
+            };
           return fake.state;
         case "view_display_list":
           return { viewType: "Plan", scale: 48, bounds: [0, 0, 10000, 8000], items: [] };

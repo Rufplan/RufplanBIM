@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use studio_core::units::{format_area_sf, format_ft_in, MM_PER_IN};
-use studio_core::{Category, CropBox, Document, ElementData, ElementId, ViewKind};
+use studio_core::{Category, CropBox, DetailLevel, Document, ElementData, ElementId, ViewKind};
 use studio_geom::{point_in_ring, project_to_segment, Pt};
 use studio_regen::{bounds, regenerate, Model, OpeningKind, OpeningSolid};
 use ts_rs::TS;
@@ -155,13 +155,17 @@ pub struct Builder {
     pub items: Vec<Item>,
     /// Drawing scale denominator; paper sizes are multiplied by it.
     pub scale: f64,
+    /// The view's Detail Level (ADR-067): how much of walls, doors and windows is drawn.
+    pub detail: DetailLevel,
 }
 
 impl Builder {
+    /// A builder drawing at Fine detail (thumbnails and previews).
     pub fn new(scale: f64) -> Self {
         Self {
             items: vec![],
             scale,
+            detail: DetailLevel::Fine,
         }
     }
     pub fn push(&mut self, el: Option<ElementId>, prim: Prim) {
@@ -293,6 +297,11 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     let mut b = Builder {
         items: vec![],
         scale: f64::from(*scale),
+        detail: doc
+            .data(view)
+            .ok()
+            .and_then(|d| d.detail_level())
+            .unwrap_or(DetailLevel::Fine),
     };
     let (view_type, bounds) = match kind {
         ViewKind::FloorPlan { level } => (
@@ -633,14 +642,20 @@ fn plan(
                 .map(move |p| (w.id, p))
         })
         .collect();
-    // Compound layers show at 1/4" = 1'-0" and larger (Revit's medium detail), on a
-    // lighter cut fill so the layer lines read.
-    let detail = b.scale <= 50.0;
+    // Coarse: solid poché. Medium: the core's boundaries; Fine: every layer with its
+    // pattern (ADR-067), on a lighter cut fill so the lines read.
+    let detail = b.detail >= DetailLevel::Medium;
+    let fine = b.detail == DetailLevel::Fine;
     let layered = |id: &ElementId| {
         detail
-            && cut_walls
-                .iter()
-                .any(|w| w.id == *id && !w.layers.is_empty())
+            && cut_walls.iter().any(|w| {
+                w.id == *id
+                    && if fine {
+                        !w.layers.is_empty()
+                    } else {
+                        !w.core.is_empty()
+                    }
+            })
     };
     for (id, base) in &cut_pieces {
         let fill = if layered(id) {
@@ -2166,7 +2181,10 @@ fn projected(
         }
     }
     // Cut material over everything beyond it; layered material is lighter so its layer
-    // lines read.
+    // lines read. Coarse detail (ADR-067) draws it solid, without them.
+    if b.detail == DetailLevel::Coarse {
+        cut_lines.clear();
+    }
     let light = |el: &ElementId| cut_lines.iter().any(|(e, _)| e == el);
     for (el, u0, u1, z0, z1) in &cut_rects {
         let r = [
@@ -2591,10 +2609,7 @@ pub fn room_preview(doc: &Document, view: ElementId, p: Pt) -> Option<RoomPrevie
             valid: false,
         });
     };
-    let mut b = Builder {
-        items: vec![],
-        scale: f64::from(*scale),
-    };
+    let mut b = Builder::new(f64::from(*scale));
     b.line(None, &area, true, 3, Dash::Solid);
     let (label, valid) = match studio_regen::room_occupying(&model, *level, p) {
         Some(r) => (format!("Already room {} {}", r.name, r.number), false),
@@ -2759,10 +2774,7 @@ pub fn opening_preview(
         flip_hand: false,
         flip_facing,
     };
-    let mut b = Builder {
-        items: vec![],
-        scale: f64::from(*scale),
-    };
+    let mut b = Builder::new(f64::from(*scale));
     let n = dir.perp().scale(wall.thickness / 2.0);
     let (j0, j1) = (temp.at(temp.t0), temp.at(temp.t1));
     b.line(
@@ -4563,7 +4575,7 @@ mod tests {
 
     #[test]
     fn elevation_draws_openings_over_their_wall() {
-        let (doc, _, d, w) = with_openings();
+        let (mut doc, _, d, w) = with_openings();
         let v = view(&doc, |k| {
             matches!(
                 k,
@@ -4589,15 +4601,22 @@ mod tests {
                     ..
                 }
             )));
-        // Casement swing indicator is dashed.
-        assert!(dl.items.iter().any(|i| i.el == Some(w)
-            && matches!(
-                i.prim,
-                Prim::Line {
-                    dash: Dash::Dashed,
-                    ..
-                }
-            )));
+        // Casement swing indicator is dashed, drawn at Fine detail (not at 1/8"'s Coarse).
+        let swing = |dl: &DisplayList| {
+            dl.items.iter().any(|i| {
+                i.el == Some(w)
+                    && matches!(
+                        i.prim,
+                        Prim::Line {
+                            dash: Dash::Dashed,
+                            ..
+                        }
+                    )
+            })
+        };
+        assert!(!swing(&dl));
+        ops::set_property(&mut doc, v, "detail_level", "Fine", 0).unwrap();
+        assert!(swing(&display_list(&doc, v).unwrap()));
         // Clicking the middle of the door in elevation picks the door, not the wall.
         let door_mid = Pt::new(3000.0, 1000.0);
         assert_eq!(pick(&dl, door_mid, 20.0), Some(d));
@@ -5377,6 +5396,103 @@ mod tests {
             0,
             "coarse at 1/8\""
         );
+    }
+
+    #[test]
+    fn detail_level_draws_walls_and_openings_coarse_medium_and_fine() {
+        let (mut doc, l1, _, _) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        // Until chosen, a view's level follows its scale (Fine at 1/4").
+        assert_eq!(
+            doc.data(plan).unwrap().detail_level(),
+            Some(DetailLevel::Fine)
+        );
+        let wall = doc.of(Category::Wall).next().unwrap().id;
+        let pick_type = |cat: Category, name: &str| {
+            doc.of(cat)
+                .find(|e| e.data.name().starts_with(name))
+                .unwrap()
+                .id
+        };
+        let (dt, wn) = (
+            pick_type(Category::DoorType, "Single Flush 36"),
+            pick_type(Category::WindowType, "Casement"),
+        );
+        ops::create_door(&mut doc, dt, wall, 2000.0, false).unwrap();
+        ops::create_window(&mut doc, wn, wall, 5000.0, false).unwrap();
+        let of = |doc: &Document, cat: Category| -> std::collections::HashSet<ElementId> {
+            doc.of(cat).map(|e| e.id).collect()
+        };
+        let (walls, doors, windows) = (
+            of(&doc, Category::Wall),
+            of(&doc, Category::Door),
+            of(&doc, Category::Window),
+        );
+        assert!(!doors.is_empty() && !windows.is_empty());
+        let count = |dl: &DisplayList,
+                     ids: &std::collections::HashSet<ElementId>,
+                     w: Option<u8>| {
+            dl.items
+                .iter()
+                .filter(|i| i.el.is_some_and(|e| ids.contains(&e)))
+                .filter(
+                    |i| matches!(&i.prim, Prim::Line { w: lw, .. } if w.is_none_or(|w| *lw == w)),
+                )
+                .count()
+        };
+        let solid = |dl: &DisplayList| {
+            dl.items.iter().any(|i| {
+                i.el.is_some_and(|e| walls.contains(&e))
+                    && matches!(
+                        &i.prim,
+                        Prim::Fill {
+                            fill: FillKind::Poche,
+                            ..
+                        }
+                    )
+            })
+        };
+        let at = |doc: &mut Document, level: &str| {
+            ops::set_property(doc, plan, "detail_level", level, 0).unwrap();
+            display_list(doc, plan).unwrap()
+        };
+        let fine = at(&mut doc, "Fine");
+        let medium = at(&mut doc, "Medium");
+        let coarse = at(&mut doc, "Coarse");
+        // Walls: every layer and its pattern; the core's two faces; solid poché.
+        // (The wall with the door and window is in three pieces: two more.)
+        let core = (walls.len() + 2) * 2;
+        assert_eq!(count(&medium, &walls, Some(1)), core);
+        assert!(count(&fine, &walls, Some(1)) > core);
+        assert_eq!(count(&coarse, &walls, Some(1)), 0);
+        assert!(solid(&coarse) && !solid(&fine) && !solid(&medium));
+        // Doors and windows lose casings, then frames.
+        for ids in [&doors, &windows] {
+            let (f, m, c) = (
+                count(&fine, ids, None),
+                count(&medium, ids, None),
+                count(&coarse, ids, None),
+            );
+            assert!(f > m && m > c && c > 0, "{f} > {m} > {c}");
+        }
+        // The chosen level is kept (the scale no longer decides) and bad values are refused.
+        ops::set_property(&mut doc, plan, "scale", "24", 0).unwrap();
+        assert_eq!(
+            doc.data(plan).unwrap().detail_level(),
+            Some(DetailLevel::Coarse)
+        );
+        assert!(ops::set_property(&mut doc, plan, "detail_level", "Extra", 0).is_err());
+        let sheet = ops::properties(&doc, plan).unwrap();
+        let p = sheet
+            .properties
+            .iter()
+            .find(|p| p.key == "detail_level")
+            .unwrap();
+        assert_eq!(p.value, "Coarse");
+        assert_eq!(p.options.len(), 3);
     }
 
     /// M2 acceptance timing: `cargo test --release -p studio-views bench_500_walls -- --ignored --nocapture`.
