@@ -20,6 +20,7 @@ pub mod foliage;
 pub mod handles;
 mod inplace;
 pub mod lighting;
+pub mod mep;
 mod plan_parts;
 pub mod plants;
 pub mod site_plan;

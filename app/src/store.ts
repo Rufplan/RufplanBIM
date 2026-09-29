@@ -5,6 +5,7 @@ import type { LeaderMode } from "./text";
 import type { NavMode } from "./render/navigate";
 import type { SunSettings } from "./bindings/SunSettings";
 import type { AppState, CloudStatus, ElementId, Pt } from "./ipc";
+import type { Discipline } from "./bindings/Discipline";
 import type { SnapKind } from "./bindings/SnapKind";
 import type { ImportReport } from "./bindings/ImportReport";
 import type { VisualStyle } from "./render/visualStyle";
@@ -337,6 +338,7 @@ interface UiState {
     | "worksets"
     | "structure"
     | "keynotes"
+    | "mep"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
@@ -387,6 +389,11 @@ interface UiState {
    * opaque it is (0.2–1). */
   structuralOverlay: boolean;
   structuralAlpha: number;
+  /** The MEPT overlays (ADR-082): which disciplines show, and the Suggest dialog's. */
+  mepOverlay: Discipline[];
+  mepDiscipline: Discipline;
+  setMepOverlay: (d: Discipline, on: boolean) => void;
+  setMepDiscipline: (d: Discipline) => void;
   setStructuralOverlay: (on: boolean) => void;
   setStructuralAlpha: (a: number) => void;
   /** The project's drawing-set standards (ADR-047). */
@@ -513,6 +520,13 @@ export const useAppStore = create<UiState>((set, get) => ({
   setGrayInactive: (grayInactive) => set({ grayInactive }),
   structuralOverlay: false,
   structuralAlpha: 0.85,
+  mepOverlay: [],
+  mepDiscipline: "Mechanical",
+  setMepOverlay: (d, on) =>
+    set((s) => ({
+      mepOverlay: on ? [...new Set([...s.mepOverlay, d])] : s.mepOverlay.filter((x) => x !== d),
+    })),
+  setMepDiscipline: (mepDiscipline) => set({ mepDiscipline }),
   setStructuralOverlay: (structuralOverlay) => set({ structuralOverlay }),
   setStructuralAlpha: (structuralAlpha) =>
     set({ structuralAlpha: Math.min(1, Math.max(0.2, structuralAlpha)) }),

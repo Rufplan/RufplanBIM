@@ -1,5 +1,6 @@
 import type { OverlayInfo } from "../bindings/OverlayInfo";
-import { STRUCT_COLORS, STRUCT_LEGEND } from "../render/structural";
+import { MEP_COLORS, STRUCT_COLORS, STRUCT_LEGEND } from "../render/structural";
+import type { MepKind } from "../bindings/MepKind";
 import { DISCLAIMER } from "./StructuralDialog";
 
 // The structural overlay's legend and its hover/click card (ADR-080).
@@ -19,7 +20,13 @@ export function StructuralInfoCard({ at, onClose }: { at: InfoAt; onClose: () =>
       aria-label={at.info.title}
       style={{ left: at.x + 14, top: at.y + 14 }}
     >
-      <h5 style={{ color: STRUCT_COLORS[at.info.kind] }}>{at.info.title}</h5>
+      <h5
+        style={{
+          color: at.info.mep ? MEP_COLORS[at.info.mep] : STRUCT_COLORS[at.info.kind],
+        }}
+      >
+        {at.info.title}
+      </h5>
       {at.info.lines.map((l) => (
         <p key={l}>{l}</p>
       ))}
@@ -31,6 +38,42 @@ export function StructuralInfoCard({ at, onClose }: { at: InfoAt; onClose: () =>
     </div>
   );
 }
+
+/** The MEPT overlays' legend: the kinds on show, in a discipline's colours. */
+export function MepLegend({ kinds, shift }: { kinds: MepKind[]; shift?: boolean }) {
+  return (
+    <div
+      className="st-legend mep-legend"
+      aria-label="MEPT overlay legend"
+      style={shift ? { left: 300 } : undefined}
+    >
+      <b>MEPT layers</b>
+      {kinds.map((k) => (
+        <span key={k}>
+          <i style={{ background: MEP_COLORS[k] }} />
+          {MEP_LABELS[k] ?? k}
+        </span>
+      ))}
+      <small>Preliminary — not engineered. Requires review by licensed engineers.</small>
+    </div>
+  );
+}
+
+const MEP_LABELS: Partial<Record<MepKind, string>> = {
+  OutdoorUnit: "Outdoor units",
+  IndoorUnit: "Indoor units",
+  SupplyDuct: "Supply ducts",
+  ReturnGrille: "Returns",
+  WaterHeater: "Water heater",
+  WaterService: "Water service",
+  BuildingDrain: "Building drain",
+  ColdWater: "Cold water",
+  HotWater: "Hot water",
+  DataOutlet: "Data outlets",
+  AccessPoint: "Wi-Fi APs",
+  AccessControl: "Access control",
+  AvDisplay: "AV",
+};
 
 export function StructuralLegend() {
   return (

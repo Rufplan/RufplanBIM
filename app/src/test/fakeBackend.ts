@@ -219,8 +219,39 @@ export function appState(path: string | null, dirty = false): AppState {
     worksets: FAKE_WORKSETS.map(({ id, name }) => ({ id, name })),
     activeWorkset: FAKE_WORKSETS[0]!.id,
     structuralLayer: null,
+    mepLayers: [],
   };
 }
+
+/** A MEPT Suggest answer (ADR-082). */
+export const FAKE_MEP_PROPOSAL = (discipline: string, climate: string) => {
+  const sys = (key: string, label: string, score: number) => ({
+    key,
+    label,
+    description: `${label} description.`,
+    score,
+    ruledOut: false,
+    criteria: [{ name: "Size", score: 1, note: "Fits." }],
+    rationale: `${label} scores ${score}/100.`,
+    highlights: [`${discipline} key number`],
+    redFlags: key === "b" ? ["A red flag."] : [],
+    settings: { discipline, system: key, climate },
+  });
+  return {
+    discipline,
+    disclaimer: `Preliminary — not engineered. Requires review by a licensed ${discipline.toLowerCase()} engineer.`,
+    climate,
+    systems: [
+      sys("a", `${discipline} System A`, 90),
+      sys("b", `${discipline} System B`, 80),
+      sys("c", `${discipline} System C`, 70),
+      sys("d", `${discipline} System D`, 60),
+    ],
+    assumptions: ["An assumption."],
+    questions: ["A question?"],
+    summary: ["2 stories."],
+  };
+};
 
 /** A small keynote table (ADR-081). */
 export const FAKE_KEYNOTES = [
@@ -820,6 +851,53 @@ export function installFakeBackend(): FakeBackend {
               },
             ],
           };
+        // MEPT (ADR-082).
+        case "mep_suggest":
+          return FAKE_MEP_PROPOSAL(a.discipline as string, a.climate as string);
+        case "mep_generate": {
+          const d = (a.settings as { discipline: string }).discipline;
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              revision: fake.state.revision + 1,
+              mepLayers: [...new Set([...fake.state.mepLayers, d])] as typeof fake.state.mepLayers,
+            };
+          return fake.state;
+        }
+        case "mep_overlay_2d":
+          return (a.disciplines as string[]).length
+            ? [
+                {
+                  kind: "Mep",
+                  mep: "Diffuser",
+                  member: 0,
+                  fill: [
+                    [
+                      [0, 0],
+                      [300, 0],
+                      [300, 300],
+                      [0, 300],
+                    ],
+                  ],
+                  lines: [],
+                },
+              ]
+            : [];
+        case "mep_overlay_3d":
+          return [];
+        case "mep_pick":
+          return {
+            kind: "Mep",
+            mep: "Diffuser",
+            title: "Supply Diffuser — 150 cfm diffuser (prelim.)",
+            lines: ["Rule: 150 cfm per diffuser."],
+          };
+        case "mep_info":
+          return null;
+        case "mep_export_json":
+          return a.path;
+        case "mep_edit_rules":
+          return "C:/data/mep_rules.toml";
         // Keynotes (ADR-081).
         case "keynote_table":
           return {

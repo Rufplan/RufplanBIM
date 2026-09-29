@@ -17,6 +17,8 @@ import {
 } from "../sketch";
 import { buildStructural3d, disposeGroup, ghostArchitecture } from "../render/structural";
 import { StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralOverlay";
+import type { Discipline } from "../bindings/Discipline";
+import type { OverlayMesh } from "../bindings/OverlayMesh";
 import { litOf, styleOf, useAppStore } from "../store";
 import { placePlant } from "../vegetation";
 import { samePt, sketchPrompt } from "../tools";
@@ -364,37 +366,65 @@ export function View3D({ view }: { view: ViewInfo }) {
   // Bumped when the meshes are rebuilt; Realistic's materials are loaded for them.
   const [meshRev, setMeshRev] = useState(0);
   const real = useRef<{ rev: number; map: Map<string, RealMaterial> } | null>(null);
-  // The structural overlay (ADR-080): coloured members over the ghosted architecture.
+  // The structural and MEPT overlays (ADR-080, ADR-082): coloured members over the ghosted
+  // architecture, each in its own group; a click explains what it hits.
   const structuralOn = useAppStore((s) => s.structuralOverlay && !!s.app?.structuralLayer);
   const structuralAlpha = useAppStore((s) => s.structuralAlpha);
+  const mepKey = useAppStore((s) =>
+    s.mepOverlay.filter((d) => s.app?.mepLayers.includes(d)).join(","),
+  );
   const revision3d = useAppStore((s) => s.app?.revision ?? 0);
   const [stInfo, setStInfo] = useState<InfoAt | null>(null);
-  useEffect(() => {
+  const anyOverlay = structuralOn || !!mepKey;
+  const overlayGroup = (name: string, on: boolean, load: () => Promise<OverlayMesh[]>) => {
     const t = three.current;
-    if (!t) return;
-    const old = t.scene.getObjectByName("structural-overlay") as THREE.Group | undefined;
+    if (!t) return () => {};
+    const old = t.scene.getObjectByName(name) as THREE.Group | undefined;
     if (old) {
       t.scene.remove(old);
       disposeGroup(old);
     }
-    ghostArchitecture(t.group, structuralOn);
-    if (!structuralOn) return;
+    if (!on) return () => {};
     let live = true;
-    ipc.structuralOverlay3d().then(
+    load().then(
       (meshes) => {
         const t2 = three.current;
         if (!live || !t2) return;
-        t2.scene.add(buildStructural3d(meshes, structuralAlpha));
-        ghostArchitecture(t2.group, true);
+        const g = buildStructural3d(meshes, structuralAlpha);
+        g.name = name;
+        t2.scene.add(g);
       },
       () => {},
     );
-    // Clicking a member or flag explains it.
+    return () => {
+      live = false;
+    };
+  };
+  useEffect(
+    () => overlayGroup("structural-overlay", structuralOn, () => ipc.structuralOverlay3d()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [structuralOn, structuralAlpha, revision3d, meshRev],
+  );
+  useEffect(
+    () =>
+      overlayGroup("mep-overlay", !!mepKey, () =>
+        ipc.mepOverlay3d(mepKey.split(",") as Discipline[]),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mepKey, structuralAlpha, revision3d, meshRev],
+  );
+  useEffect(() => {
+    const t = three.current;
+    if (!t) return;
+    ghostArchitecture(t.group, anyOverlay);
+    if (!anyOverlay) return;
     const canvas = t.renderer.domElement;
     const onClick = (e: MouseEvent) => {
       const t3 = three.current;
-      const g = t3?.scene.getObjectByName("structural-overlay");
-      if (!t3 || !g) return;
+      if (!t3) return;
+      const groups = ["structural-overlay", "mep-overlay"]
+        .map((n) => t3.scene.getObjectByName(n))
+        .filter((g): g is THREE.Object3D => !!g);
       const r = canvas.getBoundingClientRect();
       const ray = new THREE.Raycaster();
       ray.setFromCamera(
@@ -404,22 +434,26 @@ export function View3D({ view }: { view: ViewInfo }) {
         ),
         t3.camera,
       );
-      const hit = ray.intersectObjects(g.children, false)[0];
+      const hit = ray.intersectObjects(
+        groups.flatMap((g) => g.children),
+        false,
+      )[0];
       if (!hit) {
         setStInfo(null);
         return;
       }
       const u = hit.object.userData as { member: number | null; flag: number | null };
-      void ipc.structuralInfo(u.member, u.flag).then((info) => {
+      const fromMep = hit.object.parent?.name === "mep-overlay";
+      const ask = fromMep ? ipc.mepInfo(u.member, u.flag) : ipc.structuralInfo(u.member, u.flag);
+      void ask.then((info) => {
         if (info) setStInfo({ info, x: e.clientX - r.left, y: e.clientY - r.top, pinned: true });
       });
     };
     canvas.addEventListener("click", onClick);
     return () => {
-      live = false;
       canvas.removeEventListener("click", onClick);
     };
-  }, [structuralOn, structuralAlpha, revision3d, meshRev]);
+  }, [anyOverlay, revision3d, meshRev]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -2342,7 +2376,11 @@ function applyDisplay(
   }
   // Under the structural overlay the architecture stays ghosted (ADR-080).
   const st = useAppStore.getState();
-  if (st.structuralOverlay && st.app?.structuralLayer) ghostArchitecture(group, true);
+  if (
+    (st.structuralOverlay && st.app?.structuralLayer) ||
+    st.mepOverlay.some((d) => st.app?.mepLayers.includes(d))
+  )
+    ghostArchitecture(group, true);
 }
 
 /** A fixture's light in the z-up 3D view (ADR-063), in the render's units: candela over

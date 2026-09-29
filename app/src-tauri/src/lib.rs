@@ -13,6 +13,7 @@ mod lighting_cmds;
 mod lines_cmds;
 mod material_cmds;
 mod menu;
+mod mep_cmds;
 mod model_edit_cmds;
 mod plans_cmds;
 mod planting_cmds;
@@ -177,6 +178,14 @@ pub fn run() -> anyhow::Result<()> {
             keynote_cmds::keynote_target,
             keynote_cmds::keynote_place,
             keynote_cmds::keynote_legend,
+            mep_cmds::mep_suggest,
+            mep_cmds::mep_generate,
+            mep_cmds::mep_overlay_2d,
+            mep_cmds::mep_overlay_3d,
+            mep_cmds::mep_pick,
+            mep_cmds::mep_info,
+            mep_cmds::mep_export_json,
+            mep_cmds::mep_edit_rules,
             detailing::create_elevation_marker,
             detailing::opening_preview_3d,
             detailing::set_section_box,

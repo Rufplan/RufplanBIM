@@ -2,6 +2,7 @@
 // element type, with adjustable transparency. The geometry is Rust's (studio-views
 // `structural`); this only paints it.
 import * as THREE from "three";
+import type { MepKind } from "../bindings/MepKind";
 import type { OverlayKind } from "../bindings/OverlayKind";
 import type { OverlayMesh } from "../bindings/OverlayMesh";
 import type { OverlayPrim } from "../bindings/OverlayPrim";
@@ -19,7 +20,51 @@ export const STRUCT_COLORS: Record<OverlayKind, string> = {
   Span: "#2e7d32",
   Transfer: "#ff1744",
   Flag: "#ffb300",
+  Mep: "#607d8b",
+  MepZone: "#90caf9",
 };
+
+/** MEPT colours (ADR-082): a hue family per discipline — mechanical purples and blues,
+ * electrical oranges and yellow, plumbing teals, greens and red (hot), technology indigo. */
+export const MEP_COLORS: Record<MepKind, string> = {
+  Equipment: "#6a1b9a",
+  OutdoorUnit: "#8e24aa",
+  IndoorUnit: "#ab47bc",
+  Diffuser: "#1e88e5",
+  ReturnGrille: "#546e7a",
+  SupplyDuct: "#42a5f5",
+  Refrigerant: "#7e57c2",
+  Piping: "#5e35b1",
+  Shaft: "#455a64",
+  Service: "#e65100",
+  Panel: "#ef6c00",
+  Transformer: "#bf360c",
+  Generator: "#bf360c",
+  Feeder: "#fb8c00",
+  Light: "#f9a825",
+  Receptacle: "#f57c00",
+  WaterService: "#00838f",
+  WaterHeater: "#c62828",
+  Fixture: "#0097a7",
+  Stack: "#2e7d32",
+  BuildingDrain: "#388e3c",
+  ColdWater: "#0277bd",
+  HotWater: "#e53935",
+  Vent: "#66bb6a",
+  Mdf: "#283593",
+  Idf: "#3949ab",
+  Pathway: "#5c6bc0",
+  Backbone: "#1a237e",
+  DataOutlet: "#3f51b5",
+  AccessPoint: "#00acc1",
+  Camera: "#37474f",
+  AccessControl: "#455a64",
+  AvDisplay: "#6d4c41",
+};
+
+/** A prim's colour: structural by kind, MEPT by its item. */
+export const primColor = (p: { kind: OverlayKind; mep?: MepKind }) =>
+  p.kind === "Mep" && p.mep ? MEP_COLORS[p.mep] : STRUCT_COLORS[p.kind];
 
 /** The overlay's legend order and labels. */
 export const STRUCT_LEGEND: [OverlayKind, string][] = [
@@ -54,8 +99,15 @@ export function drawStructural(
 ) {
   ctx.save();
   for (const p of prims) {
-    const color = STRUCT_COLORS[p.kind];
-    const a = p.kind === "Flag" ? 1 : p.kind === "Grid" ? Math.min(alpha, 0.8) : alpha;
+    const color = primColor(p);
+    const a =
+      p.kind === "Flag"
+        ? 1
+        : p.kind === "MepZone"
+          ? alpha * 0.2
+          : p.kind === "Grid"
+            ? Math.min(alpha, 0.8)
+            : alpha;
     ctx.globalAlpha = a;
     for (const ring of p.fill) {
       ctx.beginPath();
@@ -92,7 +144,7 @@ export function drawStructural(
       ctx.font = `${p.kind === "Flag" ? "bold 12" : p.kind === "Grid" ? "600 12" : "10"}px Inter, Arial, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = p.kind === "Flag" ? "#1b1b1b" : color;
+      ctx.fillStyle = p.kind === "Flag" ? "#1b1b1b" : p.kind === "MepZone" ? "#0d47a1" : color;
       ctx.fillText(text, sx, sy);
     }
   }
@@ -108,14 +160,19 @@ export function buildStructural3d(meshes: OverlayMesh[], alpha: number): THREE.G
     geo.setAttribute("position", new THREE.Float32BufferAttribute(m.positions, 3));
     geo.computeVertexNormals();
     const mat = new THREE.MeshLambertMaterial({
-      color: STRUCT_COLORS[m.kind],
+      color: primColor(m),
       transparent: alpha < 1 || m.kind === "Flag",
       opacity: m.kind === "Flag" ? 0.95 : alpha,
       side: THREE.DoubleSide,
       depthWrite: alpha >= 0.95,
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.userData = { structural: true, member: m.member ?? null, flag: m.flag ?? null };
+    mesh.userData = {
+      structural: m.kind !== "Mep" && !m.mep,
+      mep: !!m.mep || m.kind === "Mep",
+      member: m.member ?? null,
+      flag: m.flag ?? null,
+    };
     mesh.renderOrder = 5;
     g.add(mesh);
   }

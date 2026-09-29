@@ -11,6 +11,10 @@ import type { RefShape } from "./bindings/RefShape";
 import type { RefTarget } from "./bindings/RefTarget";
 import type { WorksetInfo } from "./bindings/WorksetInfo";
 import type { Keynote } from "./bindings/Keynote";
+import type { Discipline } from "./bindings/Discipline";
+import type { MepClimate } from "./bindings/MepClimate";
+import type { MepProposal } from "./bindings/MepProposal";
+import type { MepSettings } from "./bindings/MepSettings";
 import type { KeynoteNumbering } from "./bindings/KeynoteNumbering";
 import type { KeynoteSource } from "./bindings/KeynoteSource";
 import type { KeynoteStyle } from "./bindings/KeynoteStyle";
@@ -316,6 +320,21 @@ export const ipc = {
   createRoomSeparator: (view: ElementId, start: Pt, end: Pt): S =>
     invoke("create_room_separator", { view, start, end }),
   createCallout: (view: ElementId, a: Pt, b: Pt): S => invoke("create_callout", { view, a, b }),
+  // MEPT (ADR-082).
+  mepSuggest: (discipline: Discipline, climate: MepClimate) =>
+    invoke<MepProposal>("mep_suggest", { discipline, climate }),
+  mepGenerate: (settings: MepSettings): S => invoke("mep_generate", { settings }),
+  mepOverlay2d: (view: ElementId, disciplines: Discipline[]) =>
+    invoke<OverlayPrim[]>("mep_overlay_2d", { view, disciplines }),
+  mepOverlay3d: (disciplines: Discipline[]) =>
+    invoke<OverlayMesh[]>("mep_overlay_3d", { disciplines }),
+  mepPick: (view: ElementId, at: Pt, tol: number, disciplines: Discipline[]) =>
+    invoke<OverlayInfo | null>("mep_pick", { view, at, tol, disciplines }),
+  mepInfo: (item: number | null, flag: number | null) =>
+    invoke<OverlayInfo | null>("mep_info", { item, flag }),
+  mepExportJson: (discipline: Discipline, path: string) =>
+    invoke<string>("mep_export_json", { discipline, path }),
+  mepEditRules: () => invoke<string>("mep_edit_rules"),
   // Keynotes (ADR-081).
   keynoteTable: () => invoke<KeynoteTableInfo>("keynote_table"),
   keynoteSave: (oldKey: string | null, entry: Keynote): S =>

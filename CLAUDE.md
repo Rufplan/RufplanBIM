@@ -71,6 +71,7 @@ Read these before writing code:
 │  ├─ studio-sheets/   # sheets, title blocks, viewports, schedules, PDF export
 │  ├─ studio-io/       # .rfproj persistence (SQLite), IFC export
 │  ├─ studio-structural/ # Suggest Structure: features, schemes, layout, sizing (ADR-080)
+│  ├─ studio-mep/      # MEPT suggestions: features, mechanical/electrical/plumbing/technology (ADR-082)
 │  └─ studio-sync/     # Supabase client, publish, (later) worksharing
 ├─ app/
 │  ├─ src-tauri/       # Tauri shell, IPC commands only
@@ -152,6 +153,10 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- MEPT (ADR-082): crate studio-mep (features, common, mechanical, electrical, plumbing, technology; rules
+  from mep_rules.toml), ElementData::MepScheme per discipline on the MEP workset; studio-views `mep`
+  (overlay_2d/3d, pick, info); app mep_cmds; components/MepDialog.tsx, MEPT ribbon tab; render/structural.ts
+  MEP_COLORS. Always labelled Preliminary — not engineered.
 - Keynotes (ADR-081): studio-core `keynotes` (KeynoteTable/KeynoteTag, keynotes_default.txt, parse/to_text,
   assign via `rufplan.keynote`, tag_label, sheet_numbers, legend); studio-views `keynote_tag`; studio-sheets
   `schedule_on` (Keynote Legend by sheet); app keynote_cmds; keynotes.ts, components/KeynotePicker.tsx,

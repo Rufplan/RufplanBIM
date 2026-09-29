@@ -20,6 +20,7 @@ import { InPlaceRibbon } from "./InPlaceRibbon";
 import { TextRibbon } from "./TextRibbon";
 import { NewViewMenu } from "./NewViewMenu";
 import { ActiveWorkset } from "./Worksets";
+import type { Discipline } from "../bindings/Discipline";
 import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
 import { startComponent } from "../components";
@@ -150,6 +151,100 @@ function KeynoteGroup() {
   );
 }
 
+/** MEPT (ADR-082): Mechanical, Electrical, Plumbing and Technology, each with its
+ * Suggest, overlay and export; one opacity for them all. */
+function MeptRibbon() {
+  const app = useAppStore((s) => s.app);
+  const on = useAppStore((s) => s.mepOverlay);
+  const setOn = useAppStore((s) => s.setMepOverlay);
+  const alpha = useAppStore((s) => s.structuralAlpha);
+  const setAlpha = useAppStore((s) => s.setStructuralAlpha);
+  const setUi = useAppStore((s) => s.setUi);
+  const setDiscipline = useAppStore((s) => s.setMepDiscipline);
+  const icons: Record<Discipline, ReactNode> = {
+    Mechanical: Icons.mepMechanical,
+    Electrical: Icons.mepElectrical,
+    Plumbing: Icons.mepPlumbing,
+    Technology: Icons.mepTechnology,
+  };
+  const exportJson = async (d: Discipline) => {
+    const s = useAppStore.getState();
+    const path = await dialogs.pickJsonLocation(
+      `${app?.projectName || "Project"} ${d} (Preliminary)`,
+    );
+    if (!path) return;
+    try {
+      s.setPrompt(
+        `Exported the preliminary ${d.toLowerCase()} layer: ${await ipc.mepExportJson(d, path)}`,
+      );
+    } catch (e) {
+      s.setError(errorMessage(e));
+    }
+  };
+  return (
+    <>
+      {(["Mechanical", "Electrical", "Plumbing", "Technology"] as Discipline[]).map((d) => {
+        const has = !!app?.mepLayers.includes(d);
+        const shown = on.includes(d);
+        return (
+          <Group key={d} title={d}>
+            <button
+              className="rb-btn"
+              disabled={!app}
+              title={`Suggest ${d}: rank the systems for this model (preliminary)`}
+              onClick={() => {
+                setDiscipline(d);
+                setUi({ viewDialog: "mep" });
+              }}
+            >
+              {icons[d]}
+              <span>Suggest</span>
+            </button>
+            <button
+              className={`rb-btn${shown ? " active" : ""}`}
+              aria-pressed={shown}
+              aria-label={`${d} overlay`}
+              disabled={!has}
+              title={
+                has
+                  ? `Show the ${d.toLowerCase()} layer over the greyed-out architecture`
+                  : "Generate a layer from Suggest first"
+              }
+              onClick={() => setOn(d, !shown)}
+            >
+              {Icons.structureOverlay}
+              <span>Overlay</span>
+            </button>
+            <div className="rb-stack">
+              <button
+                className="rb-text"
+                disabled={!has}
+                aria-label={`Export ${d} JSON`}
+                onClick={() => void exportJson(d)}
+              >
+                Export JSON
+              </button>
+            </div>
+          </Group>
+        );
+      })}
+      <Group title="Overlay">
+        <label className="rb-field" title="Overlay transparency">
+          <span>Opacity</span>
+          <input
+            type="range"
+            aria-label="MEPT overlay opacity"
+            min={20}
+            max={100}
+            value={Math.round(alpha * 100)}
+            onChange={(e) => setAlpha(Number(e.target.value) / 100)}
+          />
+        </label>
+      </Group>
+    </>
+  );
+}
+
 /** Structure > Analyze (ADR-080): Suggest Structure and the structural overlay. */
 function StructureAnalyze() {
   const app = useAppStore((s) => s.app);
@@ -275,6 +370,7 @@ type Tab =
   | "Materials"
   | "Rendering"
   | "Structure"
+  | "MEPT"
   | "Modify"
   | "Annotate"
   | "Details"
@@ -293,6 +389,7 @@ const TABS: Tab[] = [
   "Materials",
   "Rendering",
   "Structure",
+  "MEPT",
   "Modify",
   "Annotate",
   "Details",
@@ -853,6 +950,7 @@ export function Ribbon() {
           </Group>
         )}
         {tab === "Structure" && <StructureAnalyze />}
+        {tab === "MEPT" && <MeptRibbon />}
         {tab === "Modify" && (
           <>
             {ctxLabel && <ContextPropertiesGroup />}

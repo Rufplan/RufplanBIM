@@ -19,6 +19,7 @@ pub mod library;
 pub mod lighting;
 pub mod lines;
 pub mod material;
+pub mod mep;
 pub mod model_edit;
 pub mod modify;
 pub mod ops;

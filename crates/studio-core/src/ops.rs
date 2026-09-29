@@ -2411,6 +2411,32 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 ],
             ));
         }
+        ElementData::MepScheme { settings, layout } => {
+            props.push(ro(
+                "discipline",
+                "Discipline",
+                "Identity Data",
+                settings.discipline.label().into(),
+            ));
+            props.push(ro(
+                "system",
+                "System",
+                "Identity Data",
+                settings.system.clone(),
+            ));
+            props.push(ro(
+                "items",
+                "Items",
+                "Identity Data",
+                layout.items.len().to_string(),
+            ));
+            props.push(ro(
+                "note",
+                "Status",
+                "Identity Data",
+                settings.discipline.disclaimer().into(),
+            ));
+        }
         ElementData::KeynoteTable { entries, .. } => {
             props.push(ro(
                 "count",
@@ -3235,6 +3261,7 @@ pub fn set_property(
         | ElementData::StructuralScheme { .. }
         | ElementData::KeynoteTable { .. }
         | ElementData::KeynoteTag { .. }
+        | ElementData::MepScheme { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

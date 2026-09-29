@@ -2968,3 +2968,66 @@ coursing along a line".
     filters, "Unassigned only", a progress bar, and bulk assign or clear.
 - **File format:** the two element kinds and the schedule kind are additions. Older builds
   can't open projects that have them.
+
+## ADR-082 MEPT: Mechanical, Electrical, Plumbing and Technology suggestions and overlays — Accepted (2026-09-29)
+- **The owner's ask:** do for mechanical, electrical, plumbing and technology what Suggest
+  Structure does (ADR-080), in a new MEPT tab with the four kept apart.
+  - Suggestions of systems, and an overlay on top of the greyed-out architecture.
+  - Same approach as ADR-080, so the same approvals: a new element kind and a TOML rules
+    file.
+- **New crate `studio-mep`**, pure deterministic stages, each unit-tested on a two-story
+  house, a three-story office and a four-story apartment building:
+  - `features`: levels, rooms typed by whole-word name matching (Bedroom, Restroom, Office,
+    Telecom…), areas, the edges on exterior walls, exterior walls and doors, cores, uses by
+    area, dwellings (one per kitchen).
+  - **Mechanical**, six systems: furnace/split, ductless mini-split, packaged RTU, VRF +
+    DOAS, central plant + VAV, PTAC.
+    - Criteria: size, use, climate (your setting), ceiling space for ducts, outside walls
+      for wall units, roof reach, plant room, zoning.
+    - Layout: zones with tons (sf per ton by room type); equipment in a closet, laundry,
+      garage, plant room or on the roof; condensers outside; shafts; supply trunks and
+      branches sized by velocity; diffusers per cfm; heads or PTACs on outside walls, with
+      interior rooms flagged.
+  - **Electrical**, four services: 120/240 V single phase, multifamily meter center,
+    208Y/120 V, 480Y/277 V with transformers.
+    - Load: lighting, receptacles, HVAC and appliances by rule of thumb, a demand factor,
+      +25%, then the next standard service size.
+    - Layout: service, main panel or switchboard, a branch panel per upper floor or a unit
+      panel per dwelling, feeders up the core, light fixtures per sf, and receptacles along
+      the walls, GFCI in wet rooms.
+    - Flags: long feeders, switchgear over 800 A, no electrical room.
+  - **Plumbing**, five water-heating systems: tank, heat pump, tankless, point of use,
+    central + recirculation.
+    - Fixtures and fixture units by room type; wet rooms grouped into stacks lined up with
+      the floor below.
+    - Layout: fixtures on the wet wall, waste/vent stacks sized by DFU, vents, a building
+      drain and water service on the street (south) side, cold and hot mains.
+    - Flags: stack offsets, and hot water runs over 50'.
+  - **Technology**, four systems: structured media panel, single MDF + Cat6A, MDF + IDF per
+    floor with a fiber backbone, passive optical LAN.
+    - Layout: data outlets by room type, Wi-Fi access points by sf, pathways, a backbone
+      riser, cameras and access control at exterior doors, AV in meeting rooms.
+    - It checks the 295' copper reach from each telecom room.
+  - `mep_rules.toml` holds space loads, fixtures, every system's range and fit, and the
+    sizing tables. It is copied to the app data folder and opened by Edit Rules….
+  - Proposal text is templated from the scores. Each discipline has its own disclaimer
+    ("Preliminary — not engineered. Requires review by a licensed … engineer"), and
+    nothing claims code compliance.
+- **Saved** as `ElementData::MepScheme { settings, layout }`, one per discipline, on the MEP
+  workset (ADR-079). Generating again replaces that discipline's layer in one undo step.
+  The architecture is untouched.
+- **Overlay** (studio-views `mep`):
+  - Plans per level: zones tinted, point devices as coloured symbols with short labels,
+    runs as lines or bands.
+  - 3D: boxes, bars and risers.
+  - Hover or click for type, size, length, level, the rule and the disclaimer.
+  - It shares the structural overlay's pipeline, now with `OverlayKind::Mep`/`MepZone` and a
+    `mep` kind for colour: a hue family per discipline.
+  - Any overlay greys the architecture. Structural and MEPT layers can show together.
+- **UI:** MEPT tab after Structure.
+  - Four groups (Mechanical, Electrical, Plumbing, Technology), each with Suggest, Overlay
+    and Export JSON.
+  - A shared Opacity control.
+  - The Suggest dialog switches discipline by tabs and shows climate for Mechanical.
+- Binding names are MEP-prefixed where they would clash (MepFeatures, MepCriterion,
+  MepClimate…).

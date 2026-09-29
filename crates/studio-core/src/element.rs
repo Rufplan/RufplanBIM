@@ -123,6 +123,8 @@ pub enum Category {
     /// Keynotes (ADR-081): the project's table, and tags in views.
     KeynoteTable,
     KeynoteTag,
+    /// The MEPT layers (ADR-082).
+    MepScheme,
 }
 
 impl Category {
@@ -191,6 +193,7 @@ impl Category {
             Category::StructuralScheme => "StructuralScheme",
             Category::KeynoteTable => "KeynoteTable",
             Category::KeynoteTag => "KeynoteTag",
+            Category::MepScheme => "MepScheme",
         }
     }
 }
@@ -1430,6 +1433,12 @@ pub enum ElementData {
         #[serde(default)]
         flip: bool,
     },
+    /// A MEPT layer (ADR-082): one discipline's system, settings and preliminary layout, on
+    /// the MEP workset.
+    MepScheme {
+        settings: crate::mep::MepSettings,
+        layout: crate::mep::MepLayout,
+    },
     /// The project's keynote table (ADR-081): Revit's keynote file, kept in the project.
     KeynoteTable {
         entries: Vec<crate::keynotes::Keynote>,
@@ -1590,6 +1599,7 @@ impl ElementData {
             ElementData::Workset { .. } => Category::Workset,
             ElementData::KeynoteTable { .. } => Category::KeynoteTable,
             ElementData::KeynoteTag { .. } => Category::KeynoteTag,
+            ElementData::MepScheme { .. } => Category::MepScheme,
             ElementData::StructuralScheme { .. } => Category::StructuralScheme,
         }
     }
@@ -1799,6 +1809,9 @@ impl ElementData {
             }
             ElementData::Workset { name, .. } => name.clone(),
             ElementData::KeynoteTable { .. } => "Keynote Table".into(),
+            ElementData::MepScheme { settings, .. } => {
+                format!("{} Layer: {}", settings.discipline.label(), settings.system)
+            }
             ElementData::KeynoteTag { source, .. } => match source {
                 crate::keynotes::KeynoteSource::Element { .. } => "Element Keynote".into(),
                 crate::keynotes::KeynoteSource::Material { .. } => "Material Keynote".into(),

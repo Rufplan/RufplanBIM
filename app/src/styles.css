@@ -4635,3 +4635,11 @@ button:disabled {
   white-space: nowrap;
   cursor: pointer;
 }
+
+/* ---------- MEPT (ADR-082) ---------- */
+.mep-tabs {
+  margin: 4px 0 8px;
+}
+.mep-legend {
+  max-width: 300px;
+}

@@ -345,6 +345,31 @@ export const Icons = {
       <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
     </I>
   ),
+  mepMechanical: (
+    <I>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 4c2 3 2 5 0 8s-2 5 0 8M4 12c3-2 5-2 8 0s5 2 8 0" strokeWidth="1.1" />
+    </I>
+  ),
+  mepElectrical: (
+    <I>
+      <path d="M13 3L6 13h5l-1 8 7-10h-5z" />
+    </I>
+  ),
+  mepPlumbing: (
+    <I>
+      <path d="M5 4h6v5h6v11" />
+      <path d="M8 4v5M14 9v11" strokeWidth="1.1" />
+      <path d="M17 14c1.5 2 1.5 3 0 4" strokeWidth="1.1" />
+    </I>
+  ),
+  mepTechnology: (
+    <I>
+      <rect x="4" y="13" width="16" height="7" />
+      <path d="M8 16.5h.01M12 16.5h.01" strokeWidth="2" />
+      <path d="M7 9a7 7 0 0 1 10 0M9.5 11.5a3.5 3.5 0 0 1 5 0" />
+    </I>
+  ),
   keynoteElement: (
     <I>
       <rect x="11" y="3" width="10" height="7" />

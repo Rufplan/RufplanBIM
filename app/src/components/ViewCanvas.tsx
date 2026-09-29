@@ -22,7 +22,9 @@ import type { Assignable } from "../bindings/Assignable";
 import { KeynotePicker } from "./KeynotePicker";
 import { ContextMenu } from "./ContextMenu";
 import { drawStructural } from "../render/structural";
-import { StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralOverlay";
+import { MepLegend, StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralOverlay";
+import type { Discipline } from "../bindings/Discipline";
+import type { MepKind } from "../bindings/MepKind";
 import { referenceChoice } from "./ReferenceOptions";
 import { drawOptions, editBoundary, filletRadius, startWallOpening } from "../sketch";
 import { lineOptions } from "../lines";
@@ -311,9 +313,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         visible,
         thin: s.thinLines,
         // Under the structural overlay the architecture is greyed out (ADR-080).
-        grayed: structural.current ? () => true : grayedFn(s.app?.activeWorkset ?? null),
+        grayed:
+          structural.current || mep.current ? () => true : grayedFn(s.app?.activeWorkset ?? null),
         overlay: (c, S) => {
           if (structural.current) drawStructural(c, S, structural.current, s.structuralAlpha);
+          if (mep.current) drawStructural(c, S, mep.current, s.structuralAlpha);
           drawKeynotePreview(c, S);
         },
         underlay:
@@ -680,6 +684,32 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       live = false;
     };
   }, [structuralOn, planLike, view.id, revision]);
+  // The MEPT overlays (ADR-082): the disciplines shown that have layers.
+  const mepKey = useAppStore((s) =>
+    s.mepOverlay.filter((d) => s.app?.mepLayers.includes(d)).join(","),
+  );
+  const mep = useRef<OverlayPrim[] | null>(null);
+  const [mepKinds, setMepKinds] = useState<string>("");
+  useEffect(() => {
+    if (!mepKey || !planLike) {
+      mep.current = null;
+      redrawRef.current();
+      return;
+    }
+    let live = true;
+    ipc.mepOverlay2d(view.id, mepKey.split(",") as Discipline[]).then(
+      (prims) => {
+        if (!live) return;
+        mep.current = prims;
+        setMepKinds([...new Set(prims.map((p) => p.mep).filter(Boolean))].join(","));
+        redrawRef.current();
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [mepKey, planLike, view.id, revision]);
   useEffect(() => redrawRef.current(), [structuralAlpha]);
   const stHover = useRef(0);
   const stLast = useRef(0);
@@ -694,7 +724,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   }, []);
   /** The overlay piece under the cursor, shown as a card (pinned on click). */
   const structuralAt = async (sx: number, sy: number, pinned: boolean) => {
-    if (!structural.current || !cam.current) return false;
+    if ((!structural.current && !mep.current) || !cam.current) return false;
     if (!pinned) {
       // Hover: throttled, and a pinned card stays until closed.
       const now = performance.now();
@@ -702,9 +732,15 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       stLast.current = now;
     }
     const n = ++stHover.current;
-    const hit = await ipc
-      .structuralPick(view.id, modelAt(sx, sy), 8 / cam.current.zoom)
-      .catch(() => null);
+    const at = modelAt(sx, sy);
+    const tol = 8 / cam.current.zoom;
+    let hit = structural.current
+      ? await ipc.structuralPick(view.id, at, tol).catch(() => null)
+      : null;
+    if (!hit && mep.current)
+      hit = await ipc
+        .mepPick(view.id, at, tol, mepKey.split(",") as Discipline[])
+        .catch(() => null);
     if (n !== stHover.current) return !!hit;
     if (hit) setStInfo({ info: hit, x: sx, y: sy, pinned });
     else if (!stPinned.current || pinned) setStInfo(null);
@@ -1599,7 +1635,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     const s = useAppStore.getState();
     if (!cam.current) return;
     // With the structural overlay on, clicking a member or flag explains it.
-    if (s.tool === "select" && structural.current && (await structuralAt(sx, sy, true))) return;
+    if (
+      s.tool === "select" &&
+      (structural.current || mep.current) &&
+      (await structuralAt(sx, sy, true))
+    )
+      return;
     const raw = modelAt(sx, sy);
     const tol = 12 / cam.current.zoom;
     if (s.tool === "select") {
@@ -2073,6 +2114,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       onContextMenu={(e) => e.preventDefault()}
     >
       {structuralOn && planLike && <StructuralLegend />}
+      {!!mepKey && planLike && mepKinds && (
+        <MepLegend kinds={mepKinds.split(",") as MepKind[]} shift={structuralOn} />
+      )}
       {knAsk && (
         <KeynotePicker
           title={knAsk.title}
@@ -2093,7 +2137,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           onClose={() => setKnMats(null)}
         />
       )}
-      {structuralOn && planLike && stInfo && (
+      {(structuralOn || !!mepKey) && planLike && stInfo && (
         <StructuralInfoCard at={stInfo} onClose={() => setStInfo(null)} />
       )}
       {view.site && (
@@ -2163,7 +2207,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         }}
         onMouseMove={(e) => {
           const [sx, sy] = local(e);
-          if (structural.current && useAppStore.getState().tool === "select" && !drag.current)
+          if (
+            (structural.current || mep.current) &&
+            useAppStore.getState().tool === "select" &&
+            !drag.current
+          )
             void structuralAt(sx, sy, false);
           if (kn.current && cam.current) {
             knCursor.current = modelAt(sx, sy);

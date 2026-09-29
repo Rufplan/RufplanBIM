@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- MEPT tab: Mechanical, Electrical, Plumbing and Technology suggestions (ranked systems, key
+  numbers, red flags) and preliminary overlays in plans and 3D, JSON export (ADR-082).
 - Keynotes: Element/Material/User keynote tags, Keynote Manager (edit, load/save Revit files,
   bulk assign), numbering by keynote or sheet, Keynote Legend (ADR-081).
 - Suggest Structure: preliminary scheme ranking, structural layer overlay (plans + 3D), flags,

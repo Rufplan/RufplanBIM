@@ -126,6 +126,8 @@ pub struct AppState {
     pub active_workset: Option<ElementId>,
     /// The structural layer (ADR-080), once generated.
     pub structural_layer: Option<ElementId>,
+    /// The MEPT layers generated so far (ADR-082).
+    pub mep_layers: Vec<studio_core::mep::Discipline>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -336,6 +338,17 @@ impl Session {
             .collect();
         Some(AppState {
             structural_layer: doc.of(Category::StructuralScheme).next().map(|e| e.id),
+            mep_layers: {
+                let mut v: Vec<_> = doc
+                    .of(Category::MepScheme)
+                    .filter_map(|e| match &e.data {
+                        ElementData::MepScheme { settings, .. } => Some(settings.discipline),
+                        _ => None,
+                    })
+                    .collect();
+                v.sort();
+                v
+            },
             worksets,
             active_workset: doc.active_workset(),
             project,

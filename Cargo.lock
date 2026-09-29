@@ -3647,6 +3647,7 @@ dependencies = [
  "studio-core",
  "studio-geom",
  "studio-io",
+ "studio-mep",
  "studio-regen",
  "studio-sheets",
  "studio-structural",
@@ -4372,6 +4373,18 @@ dependencies = [
  "thiserror 2.0.21",
  "ts-rs",
  "uuid",
+]
+
+[[package]]
+name = "studio-mep"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "studio-core",
+ "studio-geom",
+ "studio-regen",
+ "toml 0.9.12+spec-1.1.0",
+ "ts-rs",
 ]
 
 [[package]]

@@ -84,6 +84,7 @@ pub fn carries_workset(data: &ElementData) -> bool {
             | ElementData::GrassPatch { .. }
             | ElementData::InPlace { .. }
             | ElementData::StructuralScheme { .. }
+            | ElementData::MepScheme { .. }
     )
 }
 
@@ -125,6 +126,12 @@ fn default_for(doc: &Document, data: &ElementData) -> Option<ElementId> {
         ElementData::StructuralScheme { .. } => {
             with_role(doc, WorksetRole::Structural).or_else(|| default_workset(doc))
         }
+        // The MEPT layers (ADR-082) go on the MEP workset.
+        ElementData::MepScheme { .. } => worksets(doc)
+            .into_iter()
+            .find(|w| w.1 == "MEP")
+            .map(|w| w.0)
+            .or_else(|| default_workset(doc)),
         _ => default_workset(doc),
     }
 }

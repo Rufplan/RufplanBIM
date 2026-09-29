@@ -1,0 +1,18 @@
+[package]
+name = "studio-mep"
+description = "MEPT suggestions: building features, system scoring and preliminary layouts for mechanical, electrical, plumbing and technology (ADR-082)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+studio-core.workspace = true
+studio-geom.workspace = true
+studio-regen.workspace = true
+toml = "0.9"
+ts-rs = "12.0.1"

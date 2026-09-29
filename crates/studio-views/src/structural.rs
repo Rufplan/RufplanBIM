@@ -26,6 +26,9 @@ pub enum OverlayKind {
     Span,
     Transfer,
     Flag,
+    /// The MEPT layers (ADR-082): an item, coloured by its `mep` kind, and a zone.
+    Mep,
+    MepZone,
 }
 
 impl From<MemberKind> for OverlayKind {
@@ -55,6 +58,8 @@ pub struct OverlayPrim {
     pub member: Option<u32>,
     #[ts(optional)]
     pub flag: Option<u32>,
+    #[ts(optional)]
+    pub mep: Option<studio_core::mep::MepKind>,
     /// Filled areas.
     pub fill: Vec<Vec<[f64; 2]>>,
     /// Lines.
@@ -74,6 +79,8 @@ pub struct OverlayMesh {
     pub member: Option<u32>,
     #[ts(optional)]
     pub flag: Option<u32>,
+    #[ts(optional)]
+    pub mep: Option<studio_core::mep::MepKind>,
     pub positions: Vec<f32>,
 }
 
@@ -83,6 +90,8 @@ pub struct OverlayMesh {
 #[ts(export)]
 pub struct OverlayInfo {
     pub kind: OverlayKind,
+    #[ts(optional)]
+    pub mep: Option<studio_core::mep::MepKind>,
     pub title: String,
     pub lines: Vec<String>,
 }
@@ -96,12 +105,12 @@ pub fn scheme(doc: &Document) -> Option<(ElementId, &StructLayout)> {
         })
 }
 
-fn p2(p: Pt) -> [f64; 2] {
+pub(crate) fn p2(p: Pt) -> [f64; 2] {
     [p.x, p.y]
 }
 
 /// A band `w` wide along `a`–`b`.
-fn band(a: Pt, b: Pt, w: f64) -> Vec<[f64; 2]> {
+pub(crate) fn band(a: Pt, b: Pt, w: f64) -> Vec<[f64; 2]> {
     let d = b.sub(a);
     let len = d.len();
     let n = if len > 1e-6 {
@@ -112,7 +121,7 @@ fn band(a: Pt, b: Pt, w: f64) -> Vec<[f64; 2]> {
     vec![p2(a.add(n)), p2(b.add(n)), p2(b.sub(n)), p2(a.sub(n))]
 }
 
-fn square(c: Pt, w: f64) -> Vec<[f64; 2]> {
+pub(crate) fn square(c: Pt, w: f64) -> Vec<[f64; 2]> {
     let h = w / 2.0;
     vec![
         [c.x - h, c.y - h],
@@ -122,7 +131,7 @@ fn square(c: Pt, w: f64) -> Vec<[f64; 2]> {
     ]
 }
 
-fn ring(c: Pt, r: f64) -> Vec<[f64; 2]> {
+pub(crate) fn ring(c: Pt, r: f64) -> Vec<[f64; 2]> {
     (0..=24)
         .map(|i| {
             let a = i as f64 * std::f64::consts::TAU / 24.0;
@@ -156,7 +165,7 @@ fn grid_base(i: usize, along_y: bool) -> String {
 }
 
 /// The level a plan view shows, and its elevation.
-fn plan_level(doc: &Document, view: ElementId) -> Option<(ElementId, f64)> {
+pub(crate) fn plan_level(doc: &Document, view: ElementId) -> Option<(ElementId, f64)> {
     let ElementData::View { kind, .. } = doc.data(view).ok()? else {
         return None;
     };
@@ -215,6 +224,7 @@ pub fn overlay_2d(doc: &Document, view: ElementId) -> Vec<OverlayPrim> {
                 kind: OverlayKind::Grid,
                 member: None,
                 flag: None,
+                mep: None,
                 fill: vec![],
                 lines: vec![
                     vec![[x, y0 - ext], p2(top)],
@@ -229,6 +239,7 @@ pub fn overlay_2d(doc: &Document, view: ElementId) -> Vec<OverlayPrim> {
                 kind: OverlayKind::Grid,
                 member: None,
                 flag: None,
+                mep: None,
                 fill: vec![],
                 lines: vec![
                     vec![p2(left), [x1 + ext, y]],
@@ -300,6 +311,7 @@ pub fn overlay_2d(doc: &Document, view: ElementId) -> Vec<OverlayPrim> {
             kind,
             member: Some(i as u32),
             flag: None,
+            mep: None,
             fill,
             lines,
             label,
@@ -319,6 +331,7 @@ pub fn overlay_2d(doc: &Document, view: ElementId) -> Vec<OverlayPrim> {
             kind: OverlayKind::Flag,
             member: None,
             flag: Some(i as u32),
+            mep: None,
             fill: vec![tri],
             lines: vec![],
             label: Some(("!".into(), [f.at.x, f.at.y - r * 0.1])),
@@ -334,7 +347,7 @@ fn push_quad(v: &mut Vec<f32>, a: [f64; 3], b: [f64; 3], c: [f64; 3], d: [f64; 3
 }
 
 /// A box on base `ring` (4 corners) from `z0` to `z1`.
-fn prism(ring: &[[f64; 2]], z0: f64, z1: f64) -> Vec<f32> {
+pub(crate) fn prism(ring: &[[f64; 2]], z0: f64, z1: f64) -> Vec<f32> {
     let mut v = vec![];
     let n = ring.len();
     let at = |i: usize, z: f64| [ring[i % n][0], ring[i % n][1], z];
@@ -404,6 +417,7 @@ pub fn overlay_3d(doc: &Document) -> Vec<OverlayMesh> {
             kind,
             member: Some(i as u32),
             flag: None,
+            mep: None,
             positions,
         });
     }
@@ -418,13 +432,14 @@ pub fn overlay_3d(doc: &Document) -> Vec<OverlayMesh> {
             kind: OverlayKind::Flag,
             member: None,
             flag: Some(i as u32),
+            mep: None,
             positions: prism(&square(f.at, s), z, z + s),
         });
     }
     out
 }
 
-fn dist_to_poly(p: Pt, ring: &[[f64; 2]], closed: bool) -> f64 {
+pub(crate) fn dist_to_poly(p: Pt, ring: &[[f64; 2]], closed: bool) -> f64 {
     let pts: Vec<Pt> = ring.iter().map(|q| Pt::new(q[0], q[1])).collect();
     let n = pts.len();
     if n == 0 {
@@ -488,6 +503,7 @@ pub fn info(doc: &Document, member: Option<u32>, flag: Option<u32>) -> Option<Ov
         lines.push(DISCLAIMER.into());
         return Some(OverlayInfo {
             kind: OverlayKind::Flag,
+            mep: None,
             title: f.kind.label().into(),
             lines,
         });
@@ -503,6 +519,7 @@ pub fn info(doc: &Document, member: Option<u32>, flag: Option<u32>) -> Option<Ov
     };
     Some(OverlayInfo {
         kind: m.kind.into(),
+        mep: None,
         title: format!("{} — {}", m.kind.label(), m.size),
         lines: vec![
             format!("{span_label}: {}", format_ft_in(m.span)),
