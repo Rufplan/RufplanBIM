@@ -2760,3 +2760,27 @@ coursing along a line".
   dialogs don't nudge.
 - **Held keys.** Presses made while a nudge is still saving add up and go into the next Move,
   so holding an arrow doesn't queue up a backlog.
+
+## ADR-076 Reference sections and callouts — Accepted (2026-09-28)
+- **Revit's "Reference Other View."** The Section and Callout tools have a Reference Other
+  View checkbox on the options bar. Next to it is a list of views: `<New drafting view>`
+  first, then drafting views, then sections (for a section) or detail views (for a callout).
+  - With the box checked, the tool draws a mark pointing at that view instead of making a
+    new one. The usual case is a typical detail in a drafting view.
+  - `<New drafting view>` makes a drafting view at 1 1/2" = 1'-0". It is made in the same
+    undo step as the mark.
+- **Drafting views** allow Section and Callout, always as references, as in Revit: there's
+  no model to cut.
+- **The element** is `ElementData::ViewReference { view, target, shape }`, with
+  `RefShape::Section { start, end }` or `RefShape::Callout { min, max }` (studio-core
+  `references`), category `ViewReference`.
+  - It is drawn only in its view, with the same head as a real section or callout. The
+    head shows the target's detail and sheet numbers, and a callout shows the target's
+    name (studio-views `reference_marks`, `section_symbol`, `callout_symbol`).
+  - It depends on both views: deleting either deletes the mark, as in Revit.
+  - It moves and copies like other annotations, and Duplicate with Detailing carries it.
+- **Properties:** Referenced View (a list, to repoint the mark), Reference Detail and
+  Reference Sheet.
+- **Opening:** double-clicking the mark opens the view it points at.
+- **File format:** adding the variant is additive. Older builds can't read a project that
+  has one.

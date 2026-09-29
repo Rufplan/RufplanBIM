@@ -105,6 +105,12 @@ export const POINT_TOOLS: Tool[] = [
   "camera",
 ];
 
+/** Drafting views have no model to cut, so a section or callout there can only reference
+ * another view, as in Revit (ADR-076). */
+export function referenceForced(view: ViewType | undefined): boolean {
+  return view === "Drafting";
+}
+
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (tool === "paint") return view !== "Sheet" && view !== "Schedule";
@@ -123,6 +129,8 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
       "mirror",
       "array",
       "offset",
+      "section",
+      "callout",
     ].includes(tool);
   // Detail components go in any 2D view (ADR-071).
   if (tool === "component")

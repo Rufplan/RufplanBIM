@@ -114,6 +114,8 @@ pub enum Category {
     FilledRegion,
     /// Detail components (ADR-071).
     DetailComponent,
+    /// Reference sections and callouts (ADR-076).
+    ViewReference,
 }
 
 impl Category {
@@ -177,6 +179,7 @@ impl Category {
             Category::PlumbingFixture => "PlumbingFixture",
             Category::FilledRegion => "FilledRegion",
             Category::DetailComponent => "DetailComponent",
+            Category::ViewReference => "ViewReference",
         }
     }
 }
@@ -1411,6 +1414,14 @@ pub enum ElementData {
         #[serde(default)]
         flip: bool,
     },
+    /// Revit's reference section or callout (ADR-076): a mark drawn in `view` that points
+    /// at `target`, a view already made (a drafting view, section or callout), instead of
+    /// making a new one. Its head shows where the target is placed on the sheets.
+    ViewReference {
+        view: ElementId,
+        target: ElementId,
+        shape: crate::references::RefShape,
+    },
     /// Model In-Place (ADR-068): a one-off element modelled from forms (extrusions, blends,
     /// sweeps and voids), in the category chosen for it: it is a wall, a door, furniture…
     /// for visibility, filters, schedules and IFC, as in Revit.
@@ -1532,6 +1543,7 @@ impl ElementData {
             ElementData::InPlace { category, .. } => *category,
             ElementData::FilledRegion { .. } => Category::FilledRegion,
             ElementData::DetailComponent { .. } => Category::DetailComponent,
+            ElementData::ViewReference { .. } => Category::ViewReference,
         }
     }
 
@@ -1639,6 +1651,8 @@ impl ElementData {
             | ElementData::KeyPlan { sheet: view, .. } => vec![*view],
             ElementData::Viewport { sheet, view, .. } => vec![*sheet, *view],
             ElementData::Tag { view, target, .. } => vec![*view, *target],
+            // Deleting either view deletes the reference, as in Revit.
+            ElementData::ViewReference { view, target, .. } => vec![*view, *target],
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
                 vec![*type_id, *host]
             }
@@ -1728,6 +1742,10 @@ impl ElementData {
                     None => "Detail Component".into(),
                 }
             }
+            ElementData::ViewReference { shape, .. } => match shape {
+                crate::references::RefShape::Section { .. } => "Reference Section".into(),
+                crate::references::RefShape::Callout { .. } => "Reference Callout".into(),
+            },
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),

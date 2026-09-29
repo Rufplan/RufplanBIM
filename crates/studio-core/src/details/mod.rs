@@ -336,7 +336,7 @@ pub fn drawing(id: &str) -> Option<(u32, Drawing)> {
 /// Text height of the library's notes, paper mm (3/32").
 pub const TEXT_SIZE: f64 = 2.4;
 
-fn unique_view_name(doc: &Document, base: &str) -> String {
+pub(crate) fn unique_view_name(doc: &Document, base: &str) -> String {
     let taken = |n: &str| {
         doc.of(Category::View)
             .any(|e| matches!(&e.data, ElementData::View { name, .. } if name == n))

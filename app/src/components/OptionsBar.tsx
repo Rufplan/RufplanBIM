@@ -19,6 +19,7 @@ import type { LineStyle } from "../bindings/LineStyle";
 import { DRAW_TOOLS } from "../lines";
 import { DRAW } from "./SketchRibbon";
 import { ComponentOptions } from "./ComponentOptions";
+import { ReferenceOptions } from "./ReferenceOptions";
 
 type Choices = [[string, string][], [string, string][]];
 
@@ -253,6 +254,8 @@ export function OptionsBar() {
       </label>
     );
   else if (tool === "copy") body = check("copyMultiple", "Multiple");
+  else if (tool === "section" || tool === "callout")
+    body = <ReferenceOptions callout={tool === "callout"} />;
   else if (tool === "rotate") body = check("rotateCopy", "Copy");
   else if (tool === "mirror") body = check("mirrorCopy", "Copy");
   else if (tool === "array")

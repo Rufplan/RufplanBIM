@@ -88,6 +88,16 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     *start = start.add(delta);
                     *end = end.add(delta);
                 }
+                ElementData::ViewReference { shape, .. } => match shape {
+                    crate::references::RefShape::Section { start, end } => {
+                        *start = start.add(delta);
+                        *end = end.add(delta);
+                    }
+                    crate::references::RefShape::Callout { min, max } => {
+                        *min = min.add(delta);
+                        *max = max.add(delta);
+                    }
+                },
                 ElementData::DetailLine { curve, .. } | ElementData::ModelLine { curve, .. } => {
                     *curve = curve.mapped(&|p| p.add(delta), false);
                 }

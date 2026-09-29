@@ -80,7 +80,8 @@ fn owner(data: &ElementData) -> Option<ElementId> {
         | ElementData::SpotElevation { view, .. }
         | ElementData::SpotSlope { view, .. }
         | ElementData::NorthArrow { view, .. }
-        | ElementData::GraphicScale { view, .. } => Some(*view),
+        | ElementData::GraphicScale { view, .. }
+        | ElementData::ViewReference { view, .. } => Some(*view),
         ElementData::KeyPlan { sheet, .. } => Some(*sheet),
         _ => None,
     }
@@ -98,7 +99,8 @@ fn set_owner(data: &mut ElementData, to: ElementId) {
         | ElementData::SpotElevation { view, .. }
         | ElementData::SpotSlope { view, .. }
         | ElementData::NorthArrow { view, .. }
-        | ElementData::GraphicScale { view, .. } => *view = to,
+        | ElementData::GraphicScale { view, .. }
+        | ElementData::ViewReference { view, .. } => *view = to,
         ElementData::KeyPlan { sheet, .. } => *sheet = to,
         _ => {}
     }

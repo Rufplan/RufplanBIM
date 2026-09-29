@@ -378,6 +378,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         apply_level_ends(&mut b.items, level_ends);
     }
     callout_markers(doc, &mut b, view);
+    reference_marks(doc, &mut b, view);
     camera_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
     let crop = crop.or(auto_crop);
@@ -955,36 +956,50 @@ fn section_markers(doc: &Document, b: &mut Builder) {
         else {
             continue;
         };
-        let el = Some(v.id);
-        let d = end.sub(*start).norm();
-        let look = d.perp();
-        // The head is the building elevation mark (the owner's request): its body, the
-        // large right-angled pointer toward the view and the detail over sheet number, at the
-        // default exterior mark's size. The line runs from the head to Section Tail - Filled,
-        // a 3/32" x 3/8" bar on the view's side.
-        let symbol = studio_core::detail::mark_symbol(doc, None, false);
-        let r = b.paper(symbol.1);
-        let c = start.sub(d.scale(r));
-        b.line(el, &[*start, *end], false, 1, Dash::Center);
-        let seg = b.paper(8.0);
-        b.line(
-            el,
-            &[*start, start.add(d.scale(seg))],
-            false,
-            5,
-            Dash::Solid,
-        );
-        b.line(el, &[*end, end.sub(d.scale(seg))], false, 5, Dash::Solid);
-        elevation_mark(doc, b, el, c, &[(v.id, look)], symbol);
-        let (len, w) = (b.paper(9.525), b.paper(2.38));
-        let tail = [
-            *end,
-            end.add(look.scale(len)),
-            end.add(look.scale(len)).sub(d.scale(w)),
-            end.sub(d.scale(w)),
-        ];
-        b.fill(el, vec![ring(&tail)], FillKind::Ink);
+        section_symbol(doc, b, Some(v.id), v.id, *start, *end);
     }
+}
+
+/// A section line from `start` to `end` with its head and tail, drawn as element `el`,
+/// the head labelled with where `labelled` is placed (the section, or a reference's
+/// target, ADR-076).
+fn section_symbol(
+    doc: &Document,
+    b: &mut Builder,
+    el: Option<ElementId>,
+    labelled: ElementId,
+    start: Pt,
+    end: Pt,
+) {
+    let (start, end) = (&start, &end);
+    let d = end.sub(*start).norm();
+    let look = d.perp();
+    // The head is the building elevation mark (the owner's request): its body, the
+    // large right-angled pointer toward the view and the detail over sheet number, at the
+    // default exterior mark's size. The line runs from the head to Section Tail - Filled,
+    // a 3/32" x 3/8" bar on the view's side.
+    let symbol = studio_core::detail::mark_symbol(doc, None, false);
+    let r = b.paper(symbol.1);
+    let c = start.sub(d.scale(r));
+    b.line(el, &[*start, *end], false, 1, Dash::Center);
+    let seg = b.paper(8.0);
+    b.line(
+        el,
+        &[*start, start.add(d.scale(seg))],
+        false,
+        5,
+        Dash::Solid,
+    );
+    b.line(el, &[*end, end.sub(d.scale(seg))], false, 5, Dash::Solid);
+    mark_as(doc, b, el, c, &[(labelled, look)], symbol, el);
+    let (len, w) = (b.paper(9.525), b.paper(2.38));
+    let tail = [
+        *end,
+        end.add(look.scale(len)),
+        end.add(look.scale(len)).sub(d.scale(w)),
+        end.sub(d.scale(w)),
+    ];
+    b.fill(el, vec![ring(&tail)], FillKind::Ink);
 }
 
 /// Room tag at the room's point: name, number and area (or "Not Enclosed").
@@ -1227,26 +1242,7 @@ fn revit_ft_in(mm: f64) -> String {
 
 /// A view's reference on a sheet: its detail number (order placed) and the sheet number.
 pub(crate) fn view_ref(doc: &Document, view: ElementId) -> Option<(String, String)> {
-    let sheet = doc.iter().find_map(|e| match &e.data {
-        ElementData::Viewport { sheet, view: v, .. } if *v == view => Some(*sheet),
-        _ => None,
-    })?;
-    let mut on_sheet: Vec<ElementId> = doc
-        .iter()
-        .filter_map(|e| match &e.data {
-            ElementData::Viewport {
-                sheet: s, view: v, ..
-            } if *s == sheet => Some(*v),
-            _ => None,
-        })
-        .collect();
-    on_sheet.sort();
-    let n = on_sheet.iter().position(|v| *v == view)? + 1;
-    let number = studio_core::ops::sheets(doc)
-        .into_iter()
-        .find(|s| s.0 == sheet)
-        .map(|s| s.1)?;
-    Some((n.to_string(), number))
+    studio_core::references::placement(doc, view)
 }
 
 /// Revit's "Filled Arrow" pointer: two lines tangent to a round body of radius `r` at `c`,
@@ -1289,8 +1285,23 @@ pub(crate) fn elevation_mark(
     body: Option<ElementId>,
     c: Pt,
     pointers: &[(ElementId, Pt)],
-    (style, rp): (studio_core::MarkStyle, f64),
+    symbol: (studio_core::MarkStyle, f64),
 ) {
+    mark_as(doc, b, body, c, pointers, symbol, None);
+}
+
+/// [`elevation_mark`], its pointers drawn as `owner` when set (a reference's mark points
+/// at its target's labels but is its own element).
+fn mark_as(
+    doc: &Document,
+    b: &mut Builder,
+    body: Option<ElementId>,
+    c: Pt,
+    pointers: &[(ElementId, Pt)],
+    (style, rp): (studio_core::MarkStyle, f64),
+    owner: Option<ElementId>,
+) {
+    let el_of = |v: ElementId| owner.or(Some(v));
     use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, TAU};
     use studio_core::MarkStyle;
     let r = b.paper(rp);
@@ -1307,7 +1318,7 @@ pub(crate) fn elevation_mark(
                 } else {
                     filled_arrow(c, r, *look)
                 };
-                b.fill(Some(*view), vec![ring(&shape)], FillKind::Ink);
+                b.fill(el_of(*view), vec![ring(&shape)], FillKind::Ink);
             }
             b.fill(body, vec![ring(&arc(c, r, 0.0, TAU))], FillKind::Paper);
             b.circle(body, c, rp, 2, false);
@@ -1325,12 +1336,12 @@ pub(crate) fn elevation_mark(
                 let a0 = angle(*look) - sweep / 2.0;
                 let mut wedge = vec![c];
                 wedge.extend(arc(c, r, a0, sweep));
-                b.fill(Some(*view), vec![ring(&wedge)], FillKind::Ink);
+                b.fill(el_of(*view), vec![ring(&wedge)], FillKind::Ink);
                 let side = look.perp().scale(r * 0.45);
                 let tip = c.add(look.scale(r * 1.55));
                 let base = c.add(look.scale(r * 0.85));
                 b.fill(
-                    Some(*view),
+                    el_of(*view),
                     vec![ring(&[tip, base.add(side), base.sub(side)])],
                     FillKind::Ink,
                 );
@@ -1353,7 +1364,7 @@ pub(crate) fn elevation_mark(
                 let a = angle(*look);
                 let mut region = vec![corner];
                 region.extend(arc(c, r, a - FRAC_PI_4, FRAC_PI_2).into_iter().rev());
-                b.fill(Some(*view), vec![ring(&region)], FillKind::Ink);
+                b.fill(el_of(*view), vec![ring(&region)], FillKind::Ink);
             }
             b.line(body, &corners, true, 2, Dash::Solid);
             b.circle(body, c, rp, 1, false);
@@ -1368,7 +1379,7 @@ pub(crate) fn elevation_mark(
                 // The empty half carries the reference.
                 let at = c.sub(look.scale(r * 0.45)).sub(Pt::new(0.0, b.paper(0.8)));
                 b.text(
-                    Some(*view),
+                    el_of(*view),
                     at,
                     format!("{detail}/{sheet}"),
                     1.6,
@@ -1383,14 +1394,14 @@ pub(crate) fn elevation_mark(
                     Dash::Solid,
                 );
                 b.text(
-                    Some(*view),
+                    el_of(*view),
                     c.add(Pt::new(0.0, r * 0.42)),
                     detail,
                     rp * 0.49,
                     Anchor::Center,
                 );
                 b.text(
-                    Some(*view),
+                    el_of(*view),
                     c.sub(Pt::new(0.0, r * 0.58)),
                     sheet,
                     rp * 0.4,
@@ -1415,7 +1426,7 @@ pub(crate) fn elevation_mark(
             for (view, look) in pointers {
                 let label = view_ref(doc, *view).map_or_else(|| "—".into(), |r| r.0);
                 b.text(
-                    Some(*view),
+                    el_of(*view),
                     c.add(look.scale(reach)),
                     label,
                     rp * 0.45,
@@ -2503,7 +2514,51 @@ fn callout_markers(doc: &Document, b: &mut Builder, view: ElementId) {
         if *parent != view {
             continue;
         }
-        let el = Some(e.id);
+        callout_symbol(doc, b, Some(e.id), e.id, name, c.min, c.max);
+    }
+}
+
+/// Reference sections and callouts drawn in `view` (ADR-076): the marks of real ones,
+/// labelled with where their target views are placed.
+fn reference_marks(doc: &Document, b: &mut Builder, view: ElementId) {
+    use studio_core::references::RefShape;
+    for e in doc.of(Category::ViewReference) {
+        let ElementData::ViewReference {
+            view: v,
+            target,
+            shape,
+        } = &e.data
+        else {
+            continue;
+        };
+        if *v != view {
+            continue;
+        }
+        match shape {
+            RefShape::Section { start, end } => {
+                section_symbol(doc, b, Some(e.id), *target, *start, *end)
+            }
+            RefShape::Callout { min, max } => {
+                let name = doc.data(*target).map(|d| d.name()).unwrap_or_default();
+                callout_symbol(doc, b, Some(e.id), *target, &name, *min, *max)
+            }
+        }
+    }
+}
+
+/// A callout's rounded box from `min` to `max` and its head, drawn as element `el`, the
+/// head labelled with where `labelled` is placed and named `name`.
+fn callout_symbol(
+    doc: &Document,
+    b: &mut Builder,
+    el: Option<ElementId>,
+    labelled: ElementId,
+    name: &str,
+    min: Pt,
+    max: Pt,
+) {
+    let c = studio_core::CropBox { min, max };
+    {
         // Rounded corners, as Revit draws callouts.
         let r = b
             .paper(3.0)
@@ -2551,7 +2606,8 @@ fn callout_markers(doc: &Document, b: &mut Builder, view: ElementId) {
             1,
             Dash::Solid,
         );
-        let (detail, number) = view_ref(doc, e.id).unwrap_or_else(|| ("—".into(), String::new()));
+        let (detail, number) =
+            view_ref(doc, labelled).unwrap_or_else(|| ("—".into(), String::new()));
         b.text(
             el,
             head.add(Pt::new(0.0, b.paper(2.1))),
@@ -6071,6 +6127,73 @@ mod tests {
             .filter(|i| matches!(&i.prim, Prim::Line { w: 1, .. }))
             .count();
         assert!(thin > 4, "{thin}");
+    }
+
+    #[test]
+    fn reference_marks_show_where_their_detail_is_placed() {
+        use studio_core::references::{create, RefShape};
+        let (mut doc, l1, _, _) = roofed_house();
+        let plan = view_where(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let ft = studio_core::units::MM_PER_FT;
+        let eave = studio_core::details::create_drafting_view(&mut doc, "Typ. Eave", 8).unwrap();
+        let sec = create(
+            &mut doc,
+            plan,
+            RefShape::Section {
+                start: Pt::new(0.0, 3.0 * ft),
+                end: Pt::new(10.0 * ft, 3.0 * ft),
+            },
+            Some(eave),
+        )
+        .unwrap();
+        let box_ = create(
+            &mut doc,
+            plan,
+            RefShape::Callout {
+                min: Pt::new(-2.0 * ft, -2.0 * ft),
+                max: Pt::new(4.0 * ft, 4.0 * ft),
+            },
+            Some(eave),
+        )
+        .unwrap();
+        let texts = |doc: &Document, el: ElementId| -> Vec<String> {
+            display_list(doc, plan)
+                .unwrap()
+                .items
+                .into_iter()
+                .filter(|i| i.el == Some(el))
+                .filter_map(|i| match i.prim {
+                    Prim::Text { text, .. } => Some(text),
+                    _ => None,
+                })
+                .collect()
+        };
+        // Unplaced, the heads show a dash; the callout is named after the detail.
+        assert!(texts(&doc, sec).contains(&"—".to_string()));
+        assert!(texts(&doc, box_).contains(&"TYP. EAVE".to_string()));
+        // Placed on a sheet, both heads read detail 1 on that sheet. The marks are their own
+        // elements: nothing is drawn as the drafting view in the plan.
+        let sheet = ops::create_sheet(&mut doc, "Details", studio_core::SheetSize::ArchD).unwrap();
+        ops::place_view(&mut doc, sheet, eave, Pt::new(400.0, 300.0)).unwrap();
+        let number = ops::sheets(&doc)
+            .into_iter()
+            .find(|s| s.0 == sheet)
+            .unwrap()
+            .1;
+        for el in [sec, box_] {
+            let t = texts(&doc, el);
+            assert!(t.contains(&"1".to_string()), "{t:?}");
+            assert!(t.contains(&number), "{t:?}");
+        }
+        let dl = display_list(&doc, plan).unwrap();
+        assert!(dl.items.iter().all(|i| i.el != Some(eave)));
+        // Other views don't show them.
+        let north = view_where(&doc, |k| matches!(k, ViewKind::Elevation { .. }));
+        let other = display_list(&doc, north).unwrap();
+        assert!(other.items.iter().all(|i| i.el != Some(sec)));
     }
 
     #[test]

@@ -739,6 +739,20 @@ export function installFakeBackend(): FakeBackend {
               },
             ],
           };
+        // Reference sections and callouts (ADR-076).
+        case "reference_targets":
+          return (fake.state?.views ?? [])
+            .filter((v) => v.viewType === "Drafting" || (!a.callout && v.viewType === "Section"))
+            .map((v) => ({
+              id: v.id,
+              label: `${v.viewType === "Drafting" ? "Drafting View" : "Section"}: ${v.name}`,
+            }));
+        case "create_reference":
+          return fake.state;
+        case "reference_target":
+          return a.id === "ref-1"
+            ? (fake.state?.views.find((v) => v.viewType === "Drafting")?.id ?? null)
+            : null;
         case "create_plan_view":
         case "create_3d_view":
         case "duplicate_view":

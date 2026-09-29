@@ -2349,6 +2349,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::DetailComponent { .. } => {
             crate::details::component_properties(doc, id, &mut props)
         }
+        ElementData::ViewReference { .. } => crate::references::properties(doc, id, &mut props),
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2618,6 +2619,9 @@ pub fn set_property(
     }
     if matches!(data, ElementData::DetailComponent { .. }) {
         return crate::details::set_component_property(doc, id, key, value);
+    }
+    if matches!(data, ElementData::ViewReference { .. }) {
+        return crate::references::set_property(doc, id, key, value);
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -3075,6 +3079,7 @@ pub fn set_property(
         | ElementData::InPlace { .. }
         | ElementData::FilledRegion { .. }
         | ElementData::DetailComponent { .. }
+        | ElementData::ViewReference { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

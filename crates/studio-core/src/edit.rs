@@ -198,6 +198,28 @@ fn transformed(
                 *p = x.apply(*p);
             }
         }
+        ElementData::ViewReference { view, shape, .. } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            match shape {
+                crate::references::RefShape::Section { start, end } => {
+                    *start = x.apply(*start);
+                    *end = x.apply(*end);
+                }
+                // Turned, a callout stays square to the view around its corners.
+                crate::references::RefShape::Callout { min, max } => {
+                    let corners = [*min, *max, Pt::new(min.x, max.y), Pt::new(max.x, min.y)]
+                        .map(|p| x.apply(p));
+                    *min = corners
+                        .iter()
+                        .fold(corners[0], |m, p| Pt::new(m.x.min(p.x), m.y.min(p.y)));
+                    *max = corners
+                        .iter()
+                        .fold(corners[0], |m, p| Pt::new(m.x.max(p.x), m.y.max(p.y)));
+                }
+            }
+        }
         ElementData::DetailComponent {
             view,
             start,

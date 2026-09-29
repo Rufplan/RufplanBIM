@@ -7,6 +7,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
 import type { CategoryChoice } from "./bindings/CategoryChoice";
 import type { SheetCopy } from "./bindings/SheetCopy";
+import type { RefShape } from "./bindings/RefShape";
+import type { RefTarget } from "./bindings/RefTarget";
 import type { ComponentTypeInfo } from "./bindings/ComponentTypeInfo";
 import type { Leader } from "./bindings/Leader";
 import type { TextAlign } from "./bindings/TextAlign";
@@ -299,6 +301,12 @@ export const ipc = {
   createRoomSeparator: (view: ElementId, start: Pt, end: Pt): S =>
     invoke("create_room_separator", { view, start, end }),
   createCallout: (view: ElementId, a: Pt, b: Pt): S => invoke("create_callout", { view, a, b }),
+  // Reference sections and callouts (ADR-076).
+  referenceTargets: (view: ElementId, callout: boolean) =>
+    invoke<RefTarget[]>("reference_targets", { view, callout }),
+  createReference: (view: ElementId, shape: RefShape, target: ElementId | null): S =>
+    invoke("create_reference", { view, shape, target }),
+  referenceTarget: (id: ElementId) => invoke<ElementId | null>("reference_target", { id }),
   setSectionBox: (view: ElementId, min: number[], max: number[]): S =>
     invoke("set_section_box", { view, min, max }),
   createMaterial: (from: ElementId | null): S => invoke("create_material", { from }),

@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Reference sections and callouts: Reference Other View on Section and Callout, pointing at
+  typical details in drafting views or other sections and callouts (ADR-076).
 - Arrow keys nudge the selection, Shift+arrow farther, the step following the zoom (ADR-075).
 - Project browser right-click menus (Duplicate View/Sheet, Rename, Delete, Properties) and New
   View first on the View tab; Modify/Move/Delete only on the Modify tab (ADR-074).

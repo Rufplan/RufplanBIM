@@ -121,3 +121,46 @@ pub fn create_material(
         Ok(())
     })
 }
+
+// Reference sections and callouts (ADR-076).
+
+/// The views a section (`callout` false) or callout drawn in `view` can reference.
+#[tauri::command]
+pub fn reference_targets(
+    view: ElementId,
+    callout: bool,
+    state: State<'_, SessionState>,
+) -> Result<Vec<studio_core::references::RefTarget>, CommandError> {
+    let session = lock(&state)?;
+    Ok(studio_core::references::targets(
+        session.doc()?,
+        view,
+        callout,
+    ))
+}
+
+/// Draws a reference section or callout in `view` pointing at `target` (None: a new
+/// drafting view).
+#[tauri::command]
+pub fn create_reference(
+    view: ElementId,
+    shape: studio_core::references::RefShape,
+    target: Option<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        s.edit(|d| studio_core::references::create(d, view, shape, target))?;
+        Ok(())
+    })
+}
+
+/// The view a reference points at, if `id` is one (double-clicking its head opens it).
+#[tauri::command]
+pub fn reference_target(
+    id: ElementId,
+    state: State<'_, SessionState>,
+) -> Result<Option<ElementId>, CommandError> {
+    let session = lock(&state)?;
+    Ok(studio_core::references::target_of(session.doc()?, id))
+}

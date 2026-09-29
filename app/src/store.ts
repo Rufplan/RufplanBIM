@@ -192,6 +192,10 @@ export interface ToolOptions {
   componentKey: string;
   componentRotation: number;
   componentFlip: boolean;
+  /** Section and Callout (ADR-076): Reference Other View, and the view ("" for a new
+   * drafting view). */
+  refOther: boolean;
+  refTarget: string;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -459,6 +463,8 @@ export const useAppStore = create<UiState>((set, get) => ({
     componentKey: "lum-2x6",
     componentRotation: 0,
     componentFlip: false,
+    refOther: false,
+    refTarget: "",
   },
   paramsOpen: false,
   sketchUi: {

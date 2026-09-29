@@ -16,6 +16,7 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { keyForControl, nudgeDirection, nudgeStep } from "../nudge";
+import { referenceChoice } from "./ReferenceOptions";
 import { drawOptions, editBoundary, filletRadius, startWallOpening } from "../sketch";
 import { lineOptions } from "../lines";
 import {
@@ -1200,7 +1201,14 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       case "callout": {
         if (from && Math.abs(from.x - p.x) > 1 && Math.abs(from.y - p.y) > 1) {
           pts.current = [];
-          if (await apply(() => ipc.createCallout(view.id, from, p))) s.setTool("select");
+          // Reference Other View (ADR-076): a mark pointing at a view already made.
+          const ref = referenceChoice();
+          const made = ref
+            ? await apply(() =>
+                ipc.createReference(view.id, { Callout: { min: from, max: p } }, ref.target),
+              )
+            : await apply(() => ipc.createCallout(view.id, from, p));
+          if (made) s.setTool("select");
         } else if (!from) {
           pts.current = [p];
         }
@@ -1567,7 +1575,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         pts.current = [p];
       } else if (!samePt(from, p)) {
         pts.current = [];
-        await apply(() => ipc.createSection(from, p));
+        const ref = referenceChoice();
+        if (ref)
+          await apply(() =>
+            ipc.createReference(view.id, { Section: { start: from, end: p } }, ref.target),
+          );
+        else await apply(() => ipc.createSection(from, p));
       }
       s.setPrompt(promptFor(s.tool, pts.current.length, view.viewType));
       redraw();
@@ -1757,6 +1770,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     const id = await ipc.pick(view.id, at, 6 / cam.current.zoom);
     if (!id) return;
+    // A reference section or callout opens the view it points at (ADR-076).
+    const referenced = await ipc.referenceTarget(id).catch(() => null);
+    if (referenced) {
+      s.openView(referenced);
+      return;
+    }
     // Double-clicking a text note edits its text in place, as in Revit (ADR-070).
     const cats: string[] = await ipc.selectionCategories([id]).catch(() => []);
     if (cats.includes("TextNote")) {
