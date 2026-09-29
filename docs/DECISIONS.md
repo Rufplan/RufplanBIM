@@ -2726,3 +2726,22 @@ coursing along a line".
   They can be deleted with a two-click Delete, not a pop-up.
 - **Tests:** studio-core gains `serde_json` as a dev-dependency only, for the file
   round-trip test.
+
+## ADR-074 Project browser menus and the Create commands — Accepted (2026-09-28)
+- **Ribbon.** Modify, Move and Delete show on the Modify tab only; Esc and MD still return to
+  Modify from any tab. The View tab starts with **New View** (Floor Plan and Reflected
+  Ceiling Plan of any level, 3D View, Section, Elevation, Callout, Drafting View, Duplicate
+  View). The Sheets tab starts with New Sheet.
+- **Right-click on a view or sheet** in the project browser (components/ContextMenu.tsx):
+  Open, Close, Duplicate View ▸ (Duplicate, Duplicate with Detailing) or Duplicate Sheet ▸
+  (Duplicate Empty Sheet, Duplicate with Detailing, Duplicate with Views), Save to Library
+  (drafting views), Rename, Delete, Properties.
+- **Rust** (studio-core `views`): `create_plan`, `create_3d`, `duplicate_view`,
+  `duplicate_sheet`. Names follow Revit: "Level 1 (1)", "3D View 1", "North Copy 1".
+  - Detailing means the view's annotations: text, detail lines, filled regions, components,
+    dimensions (re-anchored to the copies), tags, spots, north arrows, graphic scales.
+    3D views and schedules have none, so only Duplicate is offered for them.
+  - Duplicate with Views places a copy of each view, with its detailing, on the new sheet at
+    the same spot, because a view can be on only one sheet. Schedules, which can be on many
+    sheets, are placed as they are.
+- **Rename** is Revit's dialog: a name for a view, a number and name for a sheet.

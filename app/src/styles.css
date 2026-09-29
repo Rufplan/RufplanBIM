@@ -3948,3 +3948,54 @@ button:disabled {
   gap: 2px;
   padding: 0 4px;
 }
+
+/* ---------- Right-click menus (ADR-074) ---------- */
+.ctx-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 200px;
+  padding: 4px 0;
+  background: var(--white, #fff);
+  border: 1px solid var(--border-strong, #c9ccd0);
+  box-shadow: 0 6px 18px rgba(10, 10, 10, 0.18);
+  font-size: 13px;
+}
+.ctx-row {
+  position: relative;
+}
+.ctx-row.sep {
+  border-top: 1px solid var(--border, #e3e6e9);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.ctx-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 14px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.ctx-item:hover:not(:disabled),
+.ctx-item[aria-expanded="true"] {
+  background: var(--cyan-soft);
+}
+.ctx-item:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.ctx-caret {
+  font-size: 10px;
+  color: var(--muted);
+}
+.ctx-sub {
+  position: absolute;
+  left: 100%;
+  top: -5px;
+}

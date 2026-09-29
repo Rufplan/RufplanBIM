@@ -1,5 +1,9 @@
 import { useState, type ReactNode } from "react";
 import type { ViewType } from "../bindings/ViewType";
+import type { ViewInfo } from "../bindings/ViewInfo";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { RenameDialog } from "./RenameDialog";
+import { deleteView, duplicateSheet, duplicateView, viewProperties } from "../views";
 import { useAppStore } from "../store";
 
 function Section({
@@ -41,7 +45,77 @@ export function ProjectBrowser() {
   const select = useAppStore((s) => s.select);
   // "all" or a stage id: show only the sheets in that stage's deliverable set.
   const [stageFilter, setStageFilter] = useState("all");
+  // Revit's right-click menu on views and sheets (ADR-074), and its Rename dialog.
+  const [menu, setMenu] = useState<{ x: number; y: number; view: ViewInfo } | null>(null);
+  const [renaming, setRenaming] = useState<ViewInfo | null>(null);
+  const openViews = useAppStore((s) => s.openViews);
   if (!app) return null;
+  const menuItems = (v: ViewInfo): MenuItem[] => {
+    const isSheet = v.viewType === "Sheet";
+    const open = openViews.includes(v.id);
+    const common: MenuItem[] = [
+      { label: "Open", onClick: () => openView(v.id) },
+      {
+        label: "Close",
+        disabled: !open,
+        onClick: () => useAppStore.getState().closeView(v.id),
+      },
+    ];
+    const dup: MenuItem = isSheet
+      ? {
+          label: "Duplicate Sheet",
+          separator: true,
+          items: [
+            { label: "Duplicate Empty Sheet", onClick: () => void duplicateSheet(v.id, "Empty") },
+            {
+              label: "Duplicate with Detailing",
+              onClick: () => void duplicateSheet(v.id, "WithDetailing"),
+            },
+            {
+              label: "Duplicate with Views",
+              onClick: () => void duplicateSheet(v.id, "WithViews"),
+            },
+          ],
+        }
+      : {
+          label: "Duplicate View",
+          separator: true,
+          items: [
+            { label: "Duplicate", onClick: () => void duplicateView(v.id, false) },
+            {
+              label: "Duplicate with Detailing",
+              disabled: v.viewType === "Schedule" || v.viewType === "ThreeD",
+              onClick: () => void duplicateView(v.id, true),
+            },
+          ],
+        };
+    const extra: MenuItem[] =
+      v.viewType === "Drafting"
+        ? [
+            {
+              label: "Save to Library…",
+              onClick: () => {
+                openView(v.id);
+                useAppStore.getState().setUi({ viewDialog: "saveDetail" });
+              },
+            },
+          ]
+        : [];
+    return [
+      ...common,
+      dup,
+      ...extra,
+      { label: "Rename…", separator: true, onClick: () => setRenaming(v) },
+      { label: isSheet ? "Delete Sheet" : "Delete", onClick: () => void deleteView(v.id) },
+      { label: "Properties", separator: true, onClick: () => viewProperties(v.id) },
+    ];
+  };
+  const onMenu = (e: React.MouseEvent, id: string) => {
+    const v = app.views.find((x) => x.id === id);
+    if (!v) return;
+    e.preventDefault();
+    setMenu({ x: e.clientX, y: e.clientY, view: v });
+  };
   const sheets = app.views.filter(
     (v) => v.viewType === "Sheet" && (stageFilter === "all" || v.stages.includes(stageFilter)),
   );
@@ -51,6 +125,7 @@ export function ProjectBrowser() {
       key={id}
       className={`pb-item${active ? " active" : ""}`}
       onClick={onClick}
+      onContextMenu={(e) => onMenu(e, id)}
       title={label}
     >
       <span className="pb-label">{label}</span>
@@ -60,6 +135,16 @@ export function ProjectBrowser() {
 
   return (
     <aside className="panel browser" aria-label="Project browser">
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          label={`${menu.view.name} menu`}
+          items={menuItems(menu.view)}
+          onClose={() => setMenu(null)}
+        />
+      )}
+      {renaming && <RenameDialog view={renaming} onClose={() => setRenaming(null)} />}
       <div className="panel-title">Project Browser</div>
       <div className="panel-body">
         <Section title="Views">

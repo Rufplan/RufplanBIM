@@ -6,6 +6,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
 import type { CategoryChoice } from "./bindings/CategoryChoice";
+import type { SheetCopy } from "./bindings/SheetCopy";
 import type { ComponentTypeInfo } from "./bindings/ComponentTypeInfo";
 import type { Leader } from "./bindings/Leader";
 import type { TextAlign } from "./bindings/TextAlign";
@@ -345,6 +346,14 @@ export const ipc = {
   createDraftingView: (name: string, scale: number) =>
     invoke<[ElementId, AppState | null]>("create_drafting_view", { name, scale }),
   sketchSetPattern: (pattern: FillPattern): S => invoke("sketch_set_pattern", { pattern }),
+  // Views and sheets (ADR-074).
+  createPlanView: (level: ElementId, ceiling: boolean) =>
+    invoke<[ElementId, AppState | null]>("create_plan_view", { level, ceiling }),
+  create3dView: () => invoke<[ElementId, AppState | null]>("create_3d_view"),
+  duplicateView: (view: ElementId, detailing: boolean) =>
+    invoke<[ElementId, AppState | null]>("duplicate_view", { view, detailing }),
+  duplicateSheet: (sheet: ElementId, how: SheetCopy) =>
+    invoke<[ElementId, AppState | null]>("duplicate_sheet", { sheet, how }),
   // Your details (ADR-073).
   detailSave: (view: ElementId, name: string, category: string, description: string) =>
     invoke<DetailInfo>("detail_save", { view, name, category, description }),

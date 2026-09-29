@@ -18,6 +18,7 @@ import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
 import { InPlaceRibbon } from "./InPlaceRibbon";
 import { TextRibbon } from "./TextRibbon";
+import { NewViewMenu } from "./NewViewMenu";
 import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
 import { startComponent } from "../components";
@@ -229,9 +230,9 @@ export function Ribbon() {
         ))}
       </div>
       <div className="rb-body">
-        {tab === "Standards" ? (
-          <StandardsRibbon />
-        ) : (
+        {tab === "Standards" && <StandardsRibbon />}
+        {/* Modify, Move and Delete live on the Modify tab only (Esc still returns to Modify). */}
+        {tab === "Modify" && (
           <Group title="Select">
             <ToolButton tool="select" label="Modify" icon={Icons.select} keys="MD / Esc" />
           </Group>
@@ -718,7 +719,7 @@ export function Ribbon() {
             </Group>
           </>
         )}
-        {tab !== "Standards" && (
+        {tab === "Modify" && (
           <Group title="Move">
             <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
             <button
@@ -879,6 +880,9 @@ export function Ribbon() {
         )}
         {tab === "View" && (
           <>
+            <Group title="Create">
+              <NewViewMenu />
+            </Group>
             <Group title="View">
               <ToolButton
                 tool="section"

@@ -34,6 +34,7 @@ pub mod structure;
 pub mod symbols;
 pub mod text;
 pub mod units;
+pub mod views;
 pub mod visibility;
 pub mod wall_opening;
 pub mod windows;

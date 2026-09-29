@@ -222,3 +222,55 @@ pub fn create_drafting_view(
     let view = session.edit(|d| details::create_drafting_view(d, &name, scale))?;
     Ok((view, finish(&window, &session)?))
 }
+
+// Views and sheets in the project browser (ADR-074).
+
+/// View > Plan Views: a new floor plan (or reflected ceiling plan) of `level`.
+#[tauri::command]
+pub fn create_plan_view(
+    level: ElementId,
+    ceiling: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> CommandResult<(ElementId, Option<AppState>)> {
+    let mut session = lock(&state)?;
+    let view = session.edit(|d| studio_core::views::create_plan(d, level, ceiling))?;
+    Ok((view, finish(&window, &session)?))
+}
+
+/// View > 3D View: a new 3D view.
+#[tauri::command]
+pub fn create_3d_view(
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> CommandResult<(ElementId, Option<AppState>)> {
+    let mut session = lock(&state)?;
+    let view = session.edit(studio_core::views::create_3d)?;
+    Ok((view, finish(&window, &session)?))
+}
+
+/// Duplicate View (with or without its detailing).
+#[tauri::command]
+pub fn duplicate_view(
+    view: ElementId,
+    detailing: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> CommandResult<(ElementId, Option<AppState>)> {
+    let mut session = lock(&state)?;
+    let copy = session.edit(|d| studio_core::views::duplicate_view(d, view, detailing))?;
+    Ok((copy, finish(&window, &session)?))
+}
+
+/// Duplicate Sheet: empty, with detailing, or with its views.
+#[tauri::command]
+pub fn duplicate_sheet(
+    sheet: ElementId,
+    how: studio_core::views::SheetCopy,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> CommandResult<(ElementId, Option<AppState>)> {
+    let mut session = lock(&state)?;
+    let copy = session.edit(|d| studio_core::views::duplicate_sheet(d, sheet, how))?;
+    Ok((copy, finish(&window, &session)?))
+}

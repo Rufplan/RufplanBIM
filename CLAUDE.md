@@ -151,6 +151,9 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Project browser menus (ADR-074): studio-core `views` (create_plan, create_3d, duplicate_view,
+  duplicate_sheet); app/src/views.ts; components/ContextMenu.tsx, NewViewMenu.tsx, RenameDialog.tsx.
+  Modify/Move/Delete only on the Modify tab.
 - Box selection and Filter (ADR-066): studio-views `pick_in_rect`; app `pick_in_rect`,
   `element_categories`; ViewCanvas `boxSelect`; components/FilterDialog.tsx; status-bar funnel.
 - D5 look (ADR-065): studio-core `grass` (GrassKind, GrassSpec, GrassPatch paint/erase); studio-views

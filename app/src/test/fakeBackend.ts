@@ -739,6 +739,33 @@ export function installFakeBackend(): FakeBackend {
               },
             ],
           };
+        case "create_plan_view":
+        case "create_3d_view":
+        case "duplicate_view":
+        case "duplicate_sheet": {
+          // Views and sheets (ADR-074): named as Revit names them.
+          if (!fake.state) return [null, null];
+          const views = fake.state.views;
+          const src =
+            cmd === "create_3d_view"
+              ? views.find((v) => v.viewType === "ThreeD")!
+              : cmd === "create_plan_view"
+                ? views.find((v) => v.viewType === (a.ceiling ? "CeilingPlan" : "Plan"))!
+                : views.find((v) => v.id === (a.view ?? a.sheet))!;
+          const id = `00000000-0000-7000-8000-0000000008${String(views.length).padStart(2, "0")}`;
+          const name =
+            cmd === "create_3d_view"
+              ? "3D View 1"
+              : cmd === "create_plan_view"
+                ? `${src.name} (1)`
+                : `${src.name} Copy 1`;
+          fake.state = {
+            ...fake.state,
+            revision: fake.state.revision + 1,
+            views: [...views, { ...src, id, name }],
+          };
+          return [id, fake.state];
+        }
         case "detail_insert":
         case "create_drafting_view": {
           if (!fake.state) return [null, null];

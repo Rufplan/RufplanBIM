@@ -345,6 +345,13 @@ export const Icons = {
       <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
     </I>
   ),
+  newView: (
+    <I>
+      <rect x="3" y="5" width="14" height="14" />
+      <path d="M6 15l3-4 3 3 2-2 3 3" strokeWidth="1.2" />
+      <path d="M19 3v6M16 6h6" />
+    </I>
+  ),
   saveDetail: (
     <I>
       <path d="M5 3h11l3 3v15H5z" />
