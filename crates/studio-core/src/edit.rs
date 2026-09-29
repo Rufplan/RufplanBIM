@@ -185,6 +185,11 @@ fn transformed(
             *start = x.apply(*start);
             *end = x.apply(*end);
         }
+        ElementData::InPlace { forms, .. } => {
+            for f in forms.iter_mut() {
+                f.map(&|p| x.apply(p), mirror);
+            }
+        }
         ElementData::TextNote { view, at, .. }
         | ElementData::SpotSlope { view, at, .. }
         | ElementData::NorthArrow { view, at }

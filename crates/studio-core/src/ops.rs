@@ -2137,6 +2137,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         | ElementData::Planting { .. }
         | ElementData::GroundRegion { .. } => crate::planting::properties(doc, id, &mut props),
         ElementData::GrassPatch { .. } => crate::grass::properties(doc, id, &mut props),
+        ElementData::InPlace { .. } => crate::inplace::properties(doc, id, &mut props),
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2397,6 +2398,9 @@ pub fn set_property(
     }
     if matches!(data, ElementData::GrassPatch { .. }) {
         return crate::grass::set_property(doc, id, key, value);
+    }
+    if matches!(data, ElementData::InPlace { .. }) {
+        return crate::inplace::set_property(doc, id, key, value);
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -2821,6 +2825,7 @@ pub fn set_property(
         | ElementData::Planting { .. }
         | ElementData::GroundRegion { .. }
         | ElementData::GrassPatch { .. }
+        | ElementData::InPlace { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

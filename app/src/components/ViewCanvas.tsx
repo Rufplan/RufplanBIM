@@ -27,6 +27,7 @@ import {
   type ActiveViewport,
 } from "../store";
 import { placePlant } from "../vegetation";
+import { editInPlace } from "../inplace";
 import type { Reference } from "../bindings/Reference";
 import type { PickCandidate } from "../bindings/PickCandidate";
 import {
@@ -1600,6 +1601,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     const target = asView ?? levelPlan;
     if (target && target.id !== view.id) s.openView(target.id);
     else if (!target) {
+      // Double-clicking an in-place element opens it in the In-Place Editor (ADR-068).
+      const inPlace = await ipc.inPlaceOf([id]).catch(() => []);
+      if (inPlace.length > 0) {
+        await editInPlace(id);
+        return;
+      }
       // Double-clicking a floor or ceiling edits its boundary, as in Revit.
       const sheet = await ipc.properties(id).catch(() => null);
       if (

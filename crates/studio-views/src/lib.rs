@@ -17,6 +17,7 @@ pub mod doors;
 pub mod edges;
 pub mod foliage;
 pub mod handles;
+mod inplace;
 pub mod lighting;
 mod plan_parts;
 pub mod plants;
@@ -714,6 +715,8 @@ fn plan(
         opening_symbol(b, Some(o.id), o);
     }
     plan_parts::columns_in_plan(b, model, elev, cut, &joined_ids);
+    // Model In-Place elements (ADR-068), cut or seen by their category.
+    inplace::in_plan(doc, b, elev, cut, ceiling);
     lighting::plan_symbols(doc, b, level, ceiling);
     if !ceiling {
         plants::plan_regions(doc, b, level, site_view);
@@ -2124,6 +2127,29 @@ fn projected(
         }
         push(outline.iter().map(place).collect(), d - r * 0.5);
     }
+    // Model In-Place elements (ADR-068): silhouettes among the faces, cut where a section
+    // passes through them.
+    for s in inplace::in_view(doc, origin, right, look, cut.map(|c| (c.length, c.depth))) {
+        for poly in s.silhouettes {
+            let r = poly.outer;
+            faces.push(Face {
+                el: s.id,
+                u0: r.iter().map(|q| q.x).fold(f64::INFINITY, f64::min),
+                u1: r.iter().map(|q| q.x).fold(f64::NEG_INFINITY, f64::max),
+                z0: r.iter().map(|q| q.y).fold(f64::INFINITY, f64::min),
+                z1: r.iter().map(|q| q.y).fold(f64::NEG_INFINITY, f64::max),
+                near: s.near,
+                mid: s.mid,
+                fill: s.fill,
+                detail: None,
+                poly: Some(r),
+                lines: vec![],
+            });
+        }
+        for p in s.cut {
+            cut_polys.push((s.id, p.outer));
+        }
+    }
     // Painter's algorithm: farthest first so nearer faces cover what they hide. Mitered
     // corners make side walls reach as near as the facade, so ties break on average depth.
     faces.sort_by(|a, b| b.near.total_cmp(&a.near).then(b.mid.total_cmp(&a.mid)));
@@ -3343,6 +3369,11 @@ pub fn pick_candidates(doc: &Document, hits: &[ElementId]) -> Vec<PickCandidate>
 
 /// "Wall : Generic - 8\"", as Revit's status bar names what's under the cursor.
 fn pick_label(doc: &Document, data: &ElementData) -> String {
+    // Revit: "Casework : Model In-Place : Casework 1" (ADR-068).
+    if let ElementData::InPlace { category, name, .. } = data {
+        let cat = studio_core::inplace::label(*category).unwrap_or("Generic Models");
+        return format!("{cat} : Model In-Place : {name}");
+    }
     let mut cat = String::new();
     for (i, ch) in data.category().as_str().chars().enumerate() {
         if i > 0 && ch.is_uppercase() {
@@ -3686,6 +3717,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     lighting::meshes(doc, &mut out);
     plants::meshes(doc, &mut out);
+    inplace::meshes(doc, &mut out);
     plants::region_meshes(doc, &mut out);
     plants::grass_meshes(doc, &mut out);
     out
@@ -5432,17 +5464,16 @@ mod tests {
             of(&doc, Category::Window),
         );
         assert!(!doors.is_empty() && !windows.is_empty());
-        let count = |dl: &DisplayList,
-                     ids: &std::collections::HashSet<ElementId>,
-                     w: Option<u8>| {
-            dl.items
+        let count =
+            |dl: &DisplayList, ids: &std::collections::HashSet<ElementId>, w: Option<u8>| {
+                dl.items
                 .iter()
                 .filter(|i| i.el.is_some_and(|e| ids.contains(&e)))
                 .filter(
                     |i| matches!(&i.prim, Prim::Line { w: lw, .. } if w.is_none_or(|w| *lw == w)),
                 )
                 .count()
-        };
+            };
         let solid = |dl: &DisplayList| {
             dl.items.iter().any(|i| {
                 i.el.is_some_and(|e| walls.contains(&e))

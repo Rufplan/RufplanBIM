@@ -2483,3 +2483,85 @@ of walls, doors, windows, equipment etc.: coarse, medium and fine", per the desi
   Keyboard Shortcuts: **DC** Coarse, **DD** Medium, **DF** Fine.
 - **Not yet:** equipment, furniture and other families have no level-specific geometry yet.
   3D views keep their Visual Style and have no Detail Level.
+
+## ADR-068 Model In-Place, after Revit — Accepted (2026-09-28)
+Owner request (2026-09-28): "create an option like Revit has and model objects in place like
+custom objects, also define what type of object it is, window, door, wall, ceiling, floor,
+etc... similar to how Revit does it".
+
+- **The element.** `ElementData::InPlace` has a name, a category, a level, an optional
+  material and a list of forms (studio-core `inplace`).
+  - Its category is the one chosen, so it truly is a wall, a door or casework to everything
+    that goes by category. That covers Visibility/Graphics and Hide Category, the Filter
+    dialog, the contextual Modify tab, the pick label ("Casework : Model In-Place :
+    Kitchen Counter") and IFC.
+  - The categories are those of Revit's Family Category and Parameters dialog: Casework,
+    Ceilings, Columns, Doors, Floors, Furniture, Generic Models, Lighting Fixtures,
+    Planting, Plumbing Fixtures, Railings, Roofs, Specialty Equipment, Stairs, Structural
+    Framing, Walls and Windows.
+  - Five categories are new (Generic Models, Furniture, Casework, Specialty Equipment,
+    Plumbing Fixtures); only in-place elements use them yet.
+  - The category can be changed later in Properties.
+- **Forms.** Heights are measured from the element's level.
+  - **Extrusion:** closed loops from a start height to an end height.
+  - **Blend:** from a base loop to a top loop.
+    - The loops are matched corner to corner when they have as many corners, so a tapered
+      box keeps its corners. Otherwise both are resampled evenly.
+  - **Sweep:** a rectangle or round profile along a sketched path, which may be open or
+    closed. Corners are mitred.
+  - **Void Extrusion:** cuts the element's solid extrusions.
+    - The solid is split where voids start and stop, and each layer loses the voids that
+      pass through it.
+- **Solids** are built in studio-regen `inplace`, as closed triangle meshes for each piece
+  of a form. Tests check volumes: the box with its notch, the frustum, and a mitred L sweep.
+  Sections cut each piece on its own and join the cuts, so forms that overlap stay solid.
+- **Views** (studio-views `inplace`):
+  - **Plans** cut elements of cuttable categories where the cut plane passes through them.
+    - Walls, columns, framing, floors, roofs and stairs get solid poché; other categories a
+      lighter fill.
+    - Anything below the cut shows as its outline.
+    - Furniture, fixtures, equipment and planting are never cut, as in Revit.
+  - **Elevations** show each element's silhouette among the model's faces; windows are
+    drawn as glass.
+  - **Sections** also cut it where the section plane passes through it.
+  - **3D** shows a mesh in its category and material.
+  - **IFC:** the element is exported tessellated, as its category's class:
+    - IfcWall, IfcDoor, IfcWindow, IfcSlab, IfcCovering, IfcRoof, IfcColumn, IfcBeam,
+      IfcStair and IfcRailing;
+    - IfcFurniture for furniture and casework;
+    - IfcLightFixture and IfcSanitaryTerminal for lighting and plumbing fixtures;
+    - IfcBuildingElementProxy for everything else.
+    - Its ObjectType is 'Model In-Place'.
+- **The workflow** follows Revit:
+  - Architecture > Build > **Model In-Place** opens the Family Category and Parameters
+    dialog, with a filterable list and a Name that follows the category ("Casework 1").
+  - The **In-Place Editor** tab then replaces the ribbon:
+    - Forms: Extrusion, Blend, Sweep. Void Forms: Void Extrusion.
+    - The model's forms, each with Edit Sketch and Delete.
+    - Finish Model and Cancel Model.
+  - A form is sketched with the usual sketch tools, in plan or in 3D on the level's work
+    plane. From an elevation or section, the level's plan opens.
+    - The sketch tab shows the form's settings: extrusion start and end, blend base and top,
+      and a sweep's profile, size and elevation.
+    - A blend's Finish goes from its base on to its top.
+  - Each form is saved when it's finished.
+    - **Finish Model** folds everything done in the editor into one undo step ("Model
+      In-Place" or "Edit In-Place").
+    - **Cancel Model** undoes back to where the editor opened.
+  - **Edit In-Place** reopens the editor: on the contextual Modify tab, or by double-clicking
+    the element.
+- **Editing.** Move, Copy, Rotate, Mirror and Array transform every form's sketch. Each
+  form's heights and profile are also in Properties.
+- **The sample house** has a kitchen counter modelled in place as Casework, 3' high with a
+  sink cut by a void. CI's IfcOpenShell check now expects one IfcFurniture.
+- **File format:** a new element variant and five new categories. Files without in-place
+  elements are unchanged and older files open as before. A file with in-place elements
+  won't open in an older build of the app.
+- **Not yet:**
+  - Revolves and swept blends.
+  - Voids cutting blends and sweeps.
+  - Sketching on vertical work planes (for example a profile in an elevation).
+  - Sweeps with sketched profiles.
+  - Schedules listing in-place elements.
+  - In-place walls bounding rooms or hosting doors and windows (Revit doesn't host in them
+    either).

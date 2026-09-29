@@ -115,6 +115,8 @@ pub struct AppState {
     pub param_defs: Vec<studio_core::ParamDef>,
     /// The boundary sketch in progress, if any.
     pub sketch: Option<crate::sketching::SketchInfo>,
+    /// The in-place element being modelled (ADR-068), if the In-Place Editor is open.
+    pub in_place: Option<crate::inplace_cmds::InPlaceInfo>,
     /// The site's lot, once found (ADR-023).
     pub site: Option<SiteSummary>,
 }
@@ -139,6 +141,8 @@ pub struct Session {
     revision: u64,
     /// A floor or ceiling boundary sketch in progress (ADR-021).
     sketch: Option<crate::sketching::SketchSession>,
+    /// The In-Place Editor (ADR-068): the element and the undo mark it opened at.
+    pub in_place: Option<crate::inplace_cmds::InPlaceEdit>,
 }
 
 impl Session {
@@ -362,6 +366,10 @@ impl Session {
             rufplan: ops::rufplan_link(doc),
             param_defs: studio_core::params::defs(doc),
             sketch: self.sketch.as_ref().map(|s| s.info()),
+            in_place: self
+                .in_place
+                .as_ref()
+                .and_then(|e| crate::inplace_cmds::info(doc, e)),
             site: doc.of(Category::Site).next().and_then(|e| match &e.data {
                 ElementData::Site {
                     address,
@@ -403,6 +411,7 @@ impl Session {
         doc.mark_saved();
         self.project = Some(Project::new(app_version, doc));
         self.sketch = None;
+        self.in_place = None;
         self.path = None;
         self.revision += 1;
         Ok(())
@@ -446,6 +455,7 @@ impl Session {
         doc.mark_saved();
         self.project = Some(Project::new(app_version, doc));
         self.sketch = None;
+        self.in_place = None;
         self.path = None;
         self.revision += 1;
         Ok(report)
@@ -545,6 +555,7 @@ impl Session {
         }
         self.project = Some(project);
         self.sketch = None;
+        self.in_place = None;
         self.path = Some(path.to_owned());
         self.revision += 1;
         Ok(())
@@ -743,6 +754,45 @@ fn build_sample(doc: &mut Document) -> anyhow::Result<()> {
             -slope.tan() * overhang,
             studio_geom::offset_ring(&outer, overhang),
             slope,
+        )?;
+    }
+
+    // A kitchen counter modelled in place as Casework (ADR-068): 3' high along the north
+    // wall, a sink cut into it by a void.
+    {
+        use studio_core::inplace::{add_form, create, Form, FormKind};
+        use studio_core::sketch::SketchCurve;
+        let rect = |x0: f64, y0: f64, x1: f64, y1: f64| -> Vec<Vec<SketchCurve>> {
+            let p = [ft(x0, y0), ft(x1, y0), ft(x1, y1), ft(x0, y1)];
+            vec![(0..4)
+                .map(|i| SketchCurve::line(p[i], p[(i + 1) % 4]))
+                .collect()]
+        };
+        let inner = 30.0 - 4.0 / 12.0;
+        let counter = create(doc, Category::Casework, Some("Kitchen Counter"), l1)?;
+        add_form(
+            doc,
+            counter,
+            Form {
+                kind: FormKind::Extrusion {
+                    start: 0.0,
+                    end: 3.0 * MM_PER_FT,
+                },
+                sketch: rect(22.0, inner - 2.0, 36.0, inner),
+                void: false,
+            },
+        )?;
+        add_form(
+            doc,
+            counter,
+            Form {
+                kind: FormKind::Extrusion {
+                    start: 2.25 * MM_PER_FT,
+                    end: 3.5 * MM_PER_FT,
+                },
+                sketch: rect(27.75, inner - 1.6, 30.25, inner - 0.35),
+                void: true,
+            },
         )?;
     }
     build_sample_documents(doc, ft)

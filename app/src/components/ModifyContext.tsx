@@ -7,6 +7,7 @@ import { ipc } from "../ipc";
 import { activeViewInfo, LINE_STYLES, useAppStore } from "../store";
 import { openPicker, runAction } from "../actions";
 import { editBoundary } from "../sketch";
+import { editInPlace } from "../inplace";
 import { Icons } from "./Icons";
 
 // Revit's contextual Modify tab (ADR-055): selecting elements turns the Modify tab into
@@ -48,6 +49,12 @@ const PLURAL: Partial<Record<Category, string>> = {
   Planting: "Planting",
   GroundRegion: "Ground Regions",
   GrassPatch: "Painted Grass",
+  // Categories of in-place elements (ADR-068).
+  GenericModel: "Generic Models",
+  Furniture: "Furniture",
+  Casework: "Casework",
+  SpecialtyEquipment: "Specialty Equipment",
+  PlumbingFixture: "Plumbing Fixtures",
 };
 
 /** A category's name in the Filter dialog: Revit's plural, else its words spaced out. */
@@ -243,8 +250,36 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
   const has = (...c: Category[]) => cats.some((x) => c.includes(x));
   const only = (...c: Category[]) => cats.length > 0 && cats.every((x) => c.includes(x));
   const [lineStyle, setStyle] = useState<LineStyle | "">("");
+  // In-place elements (ADR-068) among the selection, for Edit In-Place.
+  const key = selection.join(",");
+  const [inPlace, setInPlace] = useState<{ key: string; ids: ElementId[] }>({
+    key: "",
+    ids: [],
+  });
+  useEffect(() => {
+    if (!key) return;
+    let live = true;
+    ipc.inPlaceOf(key.split(",")).then(
+      (ids) => live && setInPlace({ key, ids }),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [key]);
+  const inPlaceIds = inPlace.key === key ? inPlace.ids : [];
   return (
     <>
+      {one && inPlaceIds.length === 1 && (
+        <Group title="Model">
+          <Btn
+            label="Edit In-Place"
+            icon={Icons.inPlace}
+            title="Edit In-Place: add, change or delete its forms (or double-click it)"
+            onClick={() => void editInPlace(inPlaceIds[0]!)}
+          />
+        </Group>
+      )}
       {selection.length > 1 && (
         <Group title="Selection">
           <Btn

@@ -74,6 +74,11 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     *start = start.add(delta);
                     *end = end.add(delta);
                 }
+                ElementData::InPlace { forms, .. } => {
+                    for f in forms.iter_mut() {
+                        f.map(&|p| p.add(delta), false);
+                    }
+                }
                 ElementData::DetailLine { curve, .. } | ElementData::ModelLine { curve, .. } => {
                     *curve = curve.mapped(&|p| p.add(delta), false);
                 }

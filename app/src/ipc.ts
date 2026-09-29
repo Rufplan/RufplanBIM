@@ -5,6 +5,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
+import type { CategoryChoice } from "./bindings/CategoryChoice";
+import type { FormKind } from "./bindings/FormKind";
 import type { Category } from "./bindings/Category";
 import type { Handles } from "./bindings/Handles";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
@@ -321,6 +323,24 @@ export const ipc = {
   sketchSetType: (typeId: ElementId): S => invoke("sketch_set_type", { typeId }),
   sketchFinish: (): S => invoke("sketch_finish"),
   sketchCancel: (): S => invoke("sketch_cancel"),
+  /** The options bar's settings for the in-place form being sketched (ADR-068). */
+  sketchSetForm: (kind: FormKind): S => invoke("sketch_set_form", { kind }),
+  // Model In-Place (ADR-068).
+  inPlaceCategories: () => invoke<CategoryChoice[]>("in_place_categories"),
+  inPlaceDefaultName: (category: Category) => invoke<string>("in_place_default_name", { category }),
+  inPlaceOf: (ids: ElementId[]) => invoke<ElementId[]>("in_place_of", { ids }),
+  inPlaceBegin: (
+    view: ElementId,
+    category: Category,
+    name: string | null,
+    level: ElementId | null,
+  ): S => invoke("in_place_begin", { view, category, name, level }),
+  inPlaceEdit: (id: ElementId): S => invoke("in_place_edit", { id }),
+  inPlaceFinish: (): S => invoke("in_place_finish"),
+  inPlaceCancel: (): S => invoke("in_place_cancel"),
+  inPlaceFormBegin: (view: ElementId, kind: string, index: number | null): S =>
+    invoke("in_place_form_begin", { view, kind, index }),
+  inPlaceDeleteForm: (index: number): S => invoke("in_place_delete_form", { index }),
   sketchPreview: (
     mode: string,
     pts: Pt[],

@@ -9,6 +9,7 @@ import {
 } from "../sketch";
 import { activeViewInfo, useAppStore, type SketchMode } from "../store";
 import { Icons } from "./Icons";
+import { FormPanel, formTitle } from "./FormPanel";
 
 // Revit's contextual tab in sketch mode (ADR-021): Mode (Finish / Cancel), Draw (the
 // boundary line tools) and Modify.
@@ -119,12 +120,12 @@ const TRIM = (
     <path d="M13 12h7" strokeDasharray="1.5 1.5" />
   </I>
 );
-const CHECK = (
+export const CHECK = (
   <I>
     <path d="M4 12l5 5L20 6" strokeWidth="3" stroke="#2f9a3a" />
   </I>
 );
-const CROSS = (
+export const CROSS = (
   <I>
     <path d="M5 5l14 14M19 5L5 19" strokeWidth="3" stroke="#c0352b" />
   </I>
@@ -150,13 +151,15 @@ export function SketchRibbon() {
       : sketch.kind === "GroundRegion"
         ? "Ground Region"
         : "Ceiling";
-  const title = onWall
-    ? sketch.target
-      ? "Modify | Wall Openings > Edit Sketch"
-      : "Modify | Create Wall Opening Sketch"
-    : sketch.target
-      ? `Modify | ${what}s > Edit Boundary`
-      : `Modify | Create ${what} Boundary`;
+  const title = sketch.form
+    ? formTitle(sketch.form)
+    : onWall
+      ? sketch.target
+        ? "Modify | Wall Openings > Edit Sketch"
+        : "Modify | Create Wall Opening Sketch"
+      : sketch.target
+        ? `Modify | ${what}s > Edit Boundary`
+        : `Modify | Create ${what} Boundary`;
   const draw = onWall ? DRAW.filter(([m]) => m !== "PickWalls" && m !== "PickLines") : DRAW;
   const mode = (m: SketchMode, label: string, icon: ReactNode) => (
     <button
@@ -199,6 +202,7 @@ export function SketchRibbon() {
           </div>
           <div className="rb-title">Mode</div>
         </div>
+        {sketch.form && <FormPanel form={sketch.form} />}
         <div className="rb-group">
           <div className="rb-items">
             {mode("Modify", "Modify", Icons.select)}
@@ -218,7 +222,13 @@ export function SketchRibbon() {
           <div className="rb-items rb-draw">
             {draw.map(([m, label, icon]) => mode(m, label, icon))}
           </div>
-          <div className="rb-title">{onWall ? "Draw — Opening" : "Draw — Boundary Line"}</div>
+          <div className="rb-title">
+            {onWall
+              ? "Draw — Opening"
+              : sketch.form && "Sweep" in sketch.form.kind
+                ? "Draw — Path"
+                : "Draw — Boundary Line"}
+          </div>
         </div>
         {onWall && in3d && (
           <div className="rb-group">

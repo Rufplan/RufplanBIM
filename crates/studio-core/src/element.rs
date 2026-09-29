@@ -104,6 +104,12 @@ pub enum Category {
     GroundRegion,
     /// Painted grass (ADR-065).
     GrassPatch,
+    /// Categories only in-place families have yet (ADR-068).
+    GenericModel,
+    Furniture,
+    Casework,
+    SpecialtyEquipment,
+    PlumbingFixture,
 }
 
 impl Category {
@@ -160,6 +166,11 @@ impl Category {
             Category::Planting => "Planting",
             Category::GroundRegion => "GroundRegion",
             Category::GrassPatch => "GrassPatch",
+            Category::GenericModel => "GenericModel",
+            Category::Furniture => "Furniture",
+            Category::Casework => "Casework",
+            Category::SpecialtyEquipment => "SpecialtyEquipment",
+            Category::PlumbingFixture => "PlumbingFixture",
         }
     }
 }
@@ -1349,6 +1360,17 @@ pub enum ElementData {
         dabs: Vec<[f64; 4]>,
         spec: crate::grass::GrassSpec,
     },
+    /// Model In-Place (ADR-068): a one-off element modelled from forms (extrusions, blends,
+    /// sweeps and voids), in the category chosen for it: it is a wall, a door, furniture…
+    /// for visibility, filters, schedules and IFC, as in Revit.
+    InPlace {
+        name: String,
+        category: Category,
+        level: ElementId,
+        #[serde(default)]
+        material: Option<ElementId>,
+        forms: Vec<crate::inplace::Form>,
+    },
     /// A north arrow (ADR-048) in a plan or on a sheet, centered at `at`.
     NorthArrow {
         view: ElementId,
@@ -1456,6 +1478,7 @@ impl ElementData {
             ElementData::Planting { .. } => Category::Planting,
             ElementData::GroundRegion { .. } => Category::GroundRegion,
             ElementData::GrassPatch { .. } => Category::GrassPatch,
+            ElementData::InPlace { category, .. } => *category,
         }
     }
 
@@ -1546,6 +1569,9 @@ impl ElementData {
             ElementData::GroundRegion { level, .. } | ElementData::GrassPatch { level, .. } => {
                 vec![*level]
             }
+            ElementData::InPlace {
+                level, material, ..
+            } => std::iter::once(*level).chain(*material).collect(),
             ElementData::Dimension { view, .. }
             | ElementData::AngularDimension { view, .. }
             | ElementData::TextNote { view, .. }
@@ -1637,6 +1663,7 @@ impl ElementData {
             ElementData::Planting { .. } => "Planting".into(),
             ElementData::GroundRegion { .. } => "Ground Region".into(),
             ElementData::GrassPatch { spec, .. } => format!("Grass: {}", spec.kind.label()),
+            ElementData::InPlace { name, .. } => name.clone(),
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),
@@ -1664,7 +1691,8 @@ impl ElementData {
             | ElementData::LightingFixture { level, .. }
             | ElementData::Planting { level, .. }
             | ElementData::GroundRegion { level, .. }
-            | ElementData::GrassPatch { level, .. } => Some(*level),
+            | ElementData::GrassPatch { level, .. }
+            | ElementData::InPlace { level, .. } => Some(*level),
             ElementData::Stair { base_level, .. } | ElementData::Column { base_level, .. } => {
                 Some(*base_level)
             }

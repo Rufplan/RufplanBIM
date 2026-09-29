@@ -3769,3 +3769,100 @@ button:disabled {
 .status-filter:hover {
   color: var(--cyan);
 }
+
+/* ---------- Model In-Place (ADR-068) ---------- */
+.rb-field input {
+  font: inherit;
+  font-size: 12px;
+  width: 78px;
+  padding: 2px 4px;
+  text-align: center;
+}
+.rb-form {
+  align-items: center;
+}
+.rb-hint {
+  max-width: 150px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+  padding: 0 6px;
+}
+.inplace-forms {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  max-height: 72px;
+  overflow-y: auto;
+  min-width: 150px;
+}
+.inplace-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 1px 4px;
+}
+.inplace-form span {
+  flex: 1;
+  white-space: nowrap;
+}
+.btn-mini {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.btn-mini:hover {
+  border-color: var(--border);
+  background: var(--light);
+}
+.btn-mini svg {
+  width: 14px;
+  height: 14px;
+}
+.modal.inplace-dialog {
+  width: min(440px, 94vw);
+}
+.inplace-dialog h2 {
+  margin: 0 0 6px;
+}
+.inplace-dialog .muted {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+.inplace-filter,
+.inplace-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.inplace-name {
+  margin: 10px 0 0;
+}
+.inplace-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+}
+.inplace-cat {
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.inplace-cat:hover {
+  background: var(--light);
+}
+.inplace-cat.on {
+  background: var(--cyan-soft);
+  box-shadow: inset 3px 0 var(--cyan);
+  font-weight: 600;
+}

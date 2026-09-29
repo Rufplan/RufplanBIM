@@ -329,6 +329,37 @@ export const Icons = {
       <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3z" />
     </I>
   ),
+  inPlace: (
+    <I>
+      <path d="M4 8l7-4 7 4v8l-7 4-7-4z" />
+      <path d="M4 8l7 4 7-4M11 12v8" />
+      <path d="M15 21l6-6 2 2-6 6h-2z" strokeWidth="1.2" />
+    </I>
+  ),
+  extrusion: (
+    <I>
+      <path d="M5 16l5 3 9-4-5-3z" />
+      <path d="M5 16V8l5 3v8M10 11l9-4v8M5 8l9-4 5 3" />
+    </I>
+  ),
+  blend: (
+    <I>
+      <path d="M4 18l8 3 8-3-8-3z" />
+      <path d="M4 18l5-11h6l5 11M9 7l3 1 3-1" />
+    </I>
+  ),
+  sweep: (
+    <I>
+      <path d="M3 18c4 0 6-2 8-6s4-6 10-6" strokeDasharray="2 2" />
+      <path d="M3 15h3v6H3zM18 3h3v6h-3z" />
+      <path d="M6 15c3-1 5-3 6-6s3-4 6-6M6 21c4 0 7-2 8-6s3-6 7-6" />
+    </I>
+  ),
+  voidExtrusion: (
+    <I>
+      <path d="M5 16l5 3 9-4-5-3zM5 16V8l5 3v8M10 11l9-4v8M5 8l9-4 5 3" strokeDasharray="2 1.6" />
+    </I>
+  ),
   column: (
     <I>
       <path d="M8 3h8M8 21h8M10 3v18M14 3v18" strokeWidth="1.8" />

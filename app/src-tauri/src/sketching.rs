@@ -2,6 +2,7 @@
 //! the session until Finish. Thin wrappers over `studio_core::sketch`.
 
 use serde::Serialize;
+use studio_core::inplace::{self, Form, FormKind};
 use studio_core::sketch::{self, DrawOptions, DrawTool, SketchCurve, SketchKind};
 use studio_core::wall_opening::{self, WallFrame};
 use studio_core::{Category, Document, ElementData, ElementId, ViewKind};
@@ -37,6 +38,53 @@ pub struct SketchSession {
     pub error: Option<String>,
     /// A wall opening's work plane: the wall face it's sketched on (ADR-058).
     pub wall: Option<WallPlane>,
+    /// An in-place element's form being sketched (ADR-068).
+    pub form: Option<FormDraft>,
+}
+
+/// The form an in-place sketch makes (ADR-068), with the options bar's settings.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct FormDraft {
+    pub kind: FormKind,
+    pub void: bool,
+    /// The form being edited (Edit Sketch); None for a new one.
+    pub index: Option<usize>,
+    /// A blend's top is being sketched (its base is done).
+    pub top: bool,
+    #[serde(skip)]
+    #[ts(skip)]
+    pub base: Option<Vec<Vec<SketchCurve>>>,
+}
+
+impl SketchSession {
+    /// A sketch of an in-place element's form on `level` (at `elevation` in 3D).
+    #[allow(clippy::too_many_arguments)]
+    pub fn for_form(
+        view: ElementId,
+        level: ElementId,
+        element: ElementId,
+        elevation: f64,
+        curves: Vec<SketchCurve>,
+        form: FormDraft,
+    ) -> Self {
+        Self {
+            kind: SketchKind::InPlace,
+            view,
+            level,
+            target: Some(element),
+            type_id: element,
+            elevation,
+            curves,
+            undo: vec![],
+            redo: vec![],
+            bad: vec![],
+            error: None,
+            wall: None,
+            form: Some(form),
+        }
+    }
 }
 
 /// A wall face as the sketch's work plane (ADR-058), and how the sketch's coordinates map
@@ -93,6 +141,7 @@ pub struct SketchInfo {
     pub can_undo: bool,
     pub can_redo: bool,
     pub wall: Option<WallPlane>,
+    pub form: Option<FormDraft>,
 }
 
 impl SketchSession {
@@ -118,6 +167,7 @@ impl SketchSession {
             can_undo: !self.undo.is_empty(),
             can_redo: !self.redo.is_empty(),
             wall: self.wall,
+            form: self.form.clone(),
         }
     }
 }
@@ -148,7 +198,7 @@ fn default_type(doc: &Document, kind: SketchKind) -> Option<ElementId> {
     let cat = match kind {
         SketchKind::Floor => Category::FloorType,
         SketchKind::Ceiling => Category::CeilingType,
-        SketchKind::WallOpening => return None,
+        SketchKind::WallOpening | SketchKind::InPlace => return None,
         // A new ground region takes the base ground's material, else the first one.
         SketchKind::GroundRegion => {
             return studio_core::planting::ground(doc)
@@ -239,6 +289,7 @@ pub fn sketch_begin(
         bad: vec![],
         error: None,
         wall: None,
+        form: None,
     }));
     finish(&window, &session)
 }
@@ -311,6 +362,7 @@ fn wall_sketch(
         bad: vec![],
         error: None,
         wall: Some(plane),
+        form: None,
     })
 }
 
@@ -517,6 +569,121 @@ pub fn sketch_set_type(
     finish(&window, &session)
 }
 
+/// The options bar's settings for the form being sketched (ADR-068): its heights, or a
+/// sweep's profile. A blend keeps the top it has.
+#[tauri::command]
+pub fn sketch_set_form(
+    kind: FormKind,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut session = lock(&state)?;
+    let (doc, sk) = session.doc_and_sketch()?;
+    let f = sk
+        .form
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("no form is being sketched"))?;
+    f.kind = match (kind, &f.kind) {
+        (FormKind::Blend { base, top, .. }, FormKind::Blend { top_sketch, .. }) => {
+            FormKind::Blend {
+                base,
+                top,
+                top_sketch: top_sketch.clone(),
+            }
+        }
+        (k, _) => k,
+    };
+    sk.elevation = doc.level_elevation(sk.level)? + form_z(f);
+    finish(&window, &session)
+}
+
+/// The height above the level the form's sketch is drawn at.
+fn form_z(f: &FormDraft) -> f64 {
+    match &f.kind {
+        FormKind::Blend { top, .. } if f.top => *top,
+        FormKind::Blend { base, .. } => *base,
+        FormKind::Extrusion { start, .. } => *start,
+        FormKind::Sweep { elevation, .. } => *elevation,
+    }
+}
+
+/// Finish (✓) of an in-place form (ADR-068): a blend's base goes on to its top; otherwise
+/// the form is added to (or replaces its old self in) the element.
+fn finish_form(session: &mut Session, sk: SketchSession) -> anyhow::Result<()> {
+    let draft = sk
+        .form
+        .clone()
+        .ok_or_else(|| anyhow::anyhow!("no form is being sketched"))?;
+    let element = sk.type_id;
+    let doc = session.doc()?;
+    let checked = inplace::sketch_for(doc, &draft.kind, draft.top, &sk.curves);
+    let form = match (checked, &draft.kind) {
+        (Err(e), _) => Err(e),
+        (Ok(loops), FormKind::Blend { top, .. }) if !draft.top => {
+            // The base is done: sketch the top (the one it had, when editing).
+            let old_top: Vec<SketchCurve> = match (draft.index, &draft.kind) {
+                (Some(_), FormKind::Blend { top_sketch, .. }) => top_sketch.clone(),
+                _ => vec![],
+            };
+            let z = doc.level_elevation(sk.level)? + top;
+            let (_, s) = session.doc_and_sketch()?;
+            if let Some(f) = s.form.as_mut() {
+                f.base = Some(loops);
+                f.top = true;
+            }
+            s.curves = old_top;
+            s.undo.clear();
+            s.redo.clear();
+            s.bad.clear();
+            s.error = None;
+            s.elevation = z;
+            return Ok(());
+        }
+        (Ok(loops), &FormKind::Blend { base, top, .. }) => Ok(Form {
+            kind: FormKind::Blend {
+                base,
+                top,
+                top_sketch: loops.into_iter().next().unwrap_or_default(),
+            },
+            sketch: draft.base.clone().unwrap_or_default(),
+            void: false,
+        }),
+        (Ok(loops), k) => Ok(Form {
+            kind: k.clone(),
+            sketch: loops,
+            void: draft.void,
+        }),
+    };
+    let result = match form {
+        Ok(form) => session
+            .edit(|d| match draft.index {
+                Some(i) => inplace::set_form(d, element, i, form),
+                None => inplace::add_form(d, element, form).map(|_| ()),
+            })
+            .map_err(|e| e.to_string()),
+        Err(e) => Err(e.message),
+    };
+    match result {
+        Ok(()) => session.set_sketch(None),
+        Err(message) => {
+            if let Ok((_, s)) = session.doc_and_sketch() {
+                s.error = Some(message);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Finish of the sketch in progress as an in-place form (for tests).
+#[cfg(test)]
+pub(crate) fn finish_form_for_test(session: &mut Session) -> anyhow::Result<()> {
+    let sk = session
+        .sketch()
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("no sketch"))?;
+    finish_form(session, sk)
+}
+
 /// Finish (✓): creates the floor or ceiling, or explains what's wrong with the sketch
 /// (the state's `sketch.error`, with the curves to highlight).
 #[tauri::command]
@@ -525,6 +692,10 @@ pub fn sketch_finish(window: WebviewWindow, state: State<'_, SessionState>) -> S
     let Some(sk) = session.sketch().cloned() else {
         return finish(&window, &session);
     };
+    if sk.kind == SketchKind::InPlace {
+        finish_form(&mut session, sk)?;
+        return finish(&window, &session);
+    }
     let result = session.edit(|d| {
         Ok(match sk.wall {
             // A wall opening (ADR-058): the sketch onto its wall.

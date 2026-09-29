@@ -6,6 +6,7 @@ mod detailing;
 mod door_cmds;
 mod editing;
 mod generate_cmds;
+mod inplace_cmds;
 mod lighting_cmds;
 mod lines_cmds;
 mod material_cmds;
@@ -232,6 +233,16 @@ pub fn run() -> anyhow::Result<()> {
             sketching::sketch_finish,
             sketching::sketch_cancel,
             sketching::sketch_preview,
+            sketching::sketch_set_form,
+            inplace_cmds::in_place_categories,
+            inplace_cmds::in_place_of,
+            inplace_cmds::in_place_default_name,
+            inplace_cmds::in_place_begin,
+            inplace_cmds::in_place_edit,
+            inplace_cmds::in_place_finish,
+            inplace_cmds::in_place_cancel,
+            inplace_cmds::in_place_form_begin,
+            inplace_cmds::in_place_delete_form,
             editing::add_project_parameter,
             editing::remove_project_parameter,
             cloud::cloud_status,

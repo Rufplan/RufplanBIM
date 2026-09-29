@@ -20,6 +20,7 @@ import { LightPicker } from "./LightPicker";
 import { AssetLibrary } from "./AssetLibrary";
 import { GroundDialog } from "./GroundDialog";
 import { FilterDialog } from "./FilterDialog";
+import { InPlaceDialog } from "./InPlaceDialog";
 import { ArtificialLightsDialog, SunSettingsDialog } from "./LightingDialogs";
 
 // Keyboard Shortcuts (KS) and Visibility/Graphics (VV) dialogs (ADR-024).
@@ -55,6 +56,7 @@ export function ViewDialogs() {
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "ground") return <GroundDialog onClose={close} />;
   if (which === "filter") return <FilterDialog onClose={close} />;
+  if (which === "inPlace") return <InPlaceDialog onClose={close} />;
   if (which === "generate") return <GenerateDialog onClose={close} />;
   if (which === "plans") return <PlansDialog onClose={close} />;
   if (which === "sheetSets") return <SheetSetsDialog onClose={close} />;

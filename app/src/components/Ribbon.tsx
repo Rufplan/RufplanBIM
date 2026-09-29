@@ -16,6 +16,8 @@ import { setSeason } from "../vegetation";
 import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
+import { InPlaceRibbon } from "./InPlaceRibbon";
+import { modelInPlace } from "../inplace";
 import { StandardsRibbon } from "./Standards";
 import {
   ContextPanels,
@@ -181,6 +183,8 @@ export function Ribbon() {
   useContextualSwitch(ctxLabel);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
+  // So does the In-Place Editor (ADR-068).
+  if (app?.inPlace) return <InPlaceRibbon />;
   const sketchButton = (
     kind: "Floor" | "Ceiling",
     label: string,
@@ -255,6 +259,15 @@ export function Ribbon() {
                 keys="CL — auto room"
               />
               {sketchButton("Ceiling", "Sketch Ceiling", Icons.floor, "CS")}
+              <button
+                className="rb-btn"
+                onClick={modelInPlace}
+                disabled={!app}
+                title="Model In-Place: model a one-off element (a counter, a curved wall, a canopy…) from extrusions, blends and sweeps, as a wall, door, furniture or any category"
+              >
+                {Icons.inPlace}
+                <span>Model In-Place</span>
+              </button>
             </Group>
             <Group title="Model">
               <ToolButton

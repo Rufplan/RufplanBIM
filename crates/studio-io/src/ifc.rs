@@ -293,6 +293,8 @@ pub struct IfcSummary {
     pub lights: usize,
     /// Sketched wall openings' holes (ADR-058).
     pub wall_openings: usize,
+    /// Model In-Place elements (ADR-068), each as its category's IFC class.
+    pub in_place: usize,
 }
 
 /// Writes the model as an IFC4 STEP file. `timestamp` is ISO 8601 (for the header).
@@ -857,6 +859,60 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         summary.railings += 1;
     }
 
+    // Model In-Place elements (ADR-068): tessellated, as the IFC class of their category.
+    for sol in studio_regen::inplace::solids(doc) {
+        let Some((_, storey, splace, elev)) = storey_of(sol.level) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let shape = w.tessellation(body, &sol.triangles(), elev);
+        let (guid, name) = (
+            s(&ifc_guid(sol.id.0)),
+            s(&doc.data(sol.id).map(|d| d.name()).unwrap_or_default()),
+        );
+        let (height, width) = (sol.z1 - sol.z0, {
+            let xs = sol.triangles();
+            let (lo, hi) = xs
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| {
+                    (a.min(f64::from(v[0])), b.max(f64::from(v[0])))
+                });
+            (hi - lo).max(0.0)
+        });
+        let head = format!("{guid},$,{name},$,'Model In-Place',#{place},#{shape},$");
+        let entity = match sol.category {
+            Category::Wall => format!("IFCWALL({head},.NOTDEFINED.)"),
+            Category::Door => format!(
+                "IFCDOOR({head},{},{},.DOOR.,.NOTDEFINED.,$)",
+                r(height),
+                r(width)
+            ),
+            Category::Window => format!(
+                "IFCWINDOW({head},{},{},.WINDOW.,.NOTDEFINED.,$)",
+                r(height),
+                r(width)
+            ),
+            Category::Floor => format!("IFCSLAB({head},.FLOOR.)"),
+            Category::Ceiling => format!("IFCCOVERING({head},.CEILING.)"),
+            Category::Roof => format!("IFCROOF({head},.NOTDEFINED.)"),
+            Category::Column => format!("IFCCOLUMN({head},.COLUMN.)"),
+            Category::Beam => format!("IFCBEAM({head},.BEAM.)"),
+            Category::Stair => format!("IFCSTAIR({head},.NOTDEFINED.)"),
+            Category::Railing => format!("IFCRAILING({head},.NOTDEFINED.)"),
+            Category::Furniture | Category::Casework => {
+                format!("IFCFURNITURE({head},.NOTDEFINED.)")
+            }
+            Category::LightingFixture => format!("IFCLIGHTFIXTURE({head},.NOTDEFINED.)"),
+            Category::PlumbingFixture => format!("IFCSANITARYTERMINAL({head},.NOTDEFINED.)"),
+            _ => format!("IFCBUILDINGELEMENTPROXY({head},.NOTDEFINED.)"),
+        };
+        let e = w.add(entity);
+        contained.entry(storey).or_default().push(e);
+        summary.in_place += 1;
+    }
+
     // Rooms as spaces: their enclosed area, from the level up to the level above.
     let levels = doc.levels();
     for room in &model.rooms {
@@ -1001,6 +1057,49 @@ mod tests {
     use super::*;
     use studio_core::units::MM_PER_FT;
     use studio_core::Category;
+
+    #[test]
+    fn in_place_elements_export_as_their_categorys_class() {
+        use studio_core::inplace::{add_form, create, Form, FormKind};
+        use studio_core::sketch::SketchCurve;
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let p = [
+            Pt::new(0.0, 0.0),
+            Pt::new(2000.0, 0.0),
+            Pt::new(2000.0, 600.0),
+            Pt::new(0.0, 600.0),
+        ];
+        let sketch = vec![(0..4)
+            .map(|i| SketchCurve::line(p[i], p[(i + 1) % 4]))
+            .collect()];
+        for cat in [Category::Casework, Category::Wall, Category::GenericModel] {
+            let id = create(&mut doc, cat, None, l1).unwrap();
+            let form = Form {
+                kind: FormKind::Extrusion {
+                    start: 0.0,
+                    end: 900.0,
+                },
+                sketch: sketch.clone(),
+                void: false,
+            };
+            add_form(&mut doc, id, form).unwrap();
+        }
+        let (ifc, sum) = export_ifc(&doc, "test", "2026-09-28T00:00:00");
+        assert_eq!(sum.in_place, 3);
+        for e in [
+            "IFCFURNITURE(",
+            "IFCBUILDINGELEMENTPROXY(",
+            "'Casework 1'",
+            "'Model In-Place'",
+        ] {
+            assert!(ifc.contains(e), "missing {e}");
+        }
+        assert!(ifc
+            .lines()
+            .any(|l| l.contains("IFCWALL(") && l.contains("'Walls 1'")));
+    }
 
     #[test]
     fn guid_encoding_is_22_chars_from_the_ifc_alphabet() {
@@ -1158,6 +1257,7 @@ mod tests {
                 railings: 2,
                 lights: 2,
                 wall_openings: 1,
+                in_place: 0,
             }
         );
         assert!(ifc.contains(".DIRECTIONSOURCE.)") && ifc.contains(".SECURITYLIGHTING.)"));

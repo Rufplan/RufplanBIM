@@ -133,6 +133,11 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Model In-Place (ADR-068): studio-core `inplace` (Form, FormKind, CATEGORIES, create, add_form),
+  ElementData::InPlace (category = the chosen one) and five new categories; studio-regen
+  `inplace` (solids: extrusions with voids, blends, sweeps); studio-views `inplace` (plan cut or
+  outline, elevation silhouettes, section cuts, meshes); app `inplace_cmds` (editor, undo mark),
+  sketching `FormDraft`; inplace.ts, components/InPlaceDialog.tsx, InPlaceRibbon.tsx, FormPanel.tsx.
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.

@@ -21,6 +21,7 @@ EXPECTED = {
     "IfcStair": 1,
     "IfcMaterialLayerSet": 4,
     "IfcRailing": 2,
+    "IfcFurniture": 1,
     "IfcArbitraryProfileDefWithVoids": 2,
 }
 

@@ -1,6 +1,8 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import type { AppState } from "../ipc";
 import type { DetailLevel } from "../bindings/DetailLevel";
+import type { FormKind } from "../bindings/FormKind";
+import type { Category } from "../bindings/Category";
 import type { Standards } from "../bindings/Standards";
 
 /** A small Asset Library: a maple in two seasons and a boxwood. */
@@ -207,8 +209,12 @@ export function appState(path: string | null, dirty = false): AppState {
       { id: "00000000-0000-7000-8000-000000000051", name: "Concrete" },
     ],
     paramDefs: [],
+    inPlace: null,
   };
 }
+
+/** The fake in-place element (ADR-068). */
+export const IN_PLACE_ID = "00000000-0000-7000-8000-000000000070";
 
 const appearance = {
   preset: "wood-white-oak-floor",
@@ -646,8 +652,106 @@ export function installFakeBackend(): FakeBackend {
                 error: null,
                 canUndo: false,
                 canRedo: false,
+                form: null,
               },
             };
+          return fake.state;
+        // Model In-Place (ADR-068).
+        case "in_place_categories":
+          return [
+            { category: "Casework", label: "Casework" },
+            { category: "Door", label: "Doors" },
+            { category: "Furniture", label: "Furniture" },
+            { category: "GenericModel", label: "Generic Models" },
+            { category: "Wall", label: "Walls" },
+          ];
+        case "in_place_default_name":
+          return `${a.category === "GenericModel" ? "Generic Models" : (a.category as string)} 1`;
+        case "in_place_of":
+          return (a.ids as string[]).filter((i) => i === IN_PLACE_ID);
+        case "in_place_begin":
+        case "in_place_edit":
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              inPlace: {
+                id: IN_PLACE_ID,
+                name: (a.name as string | null) ?? "Generic Models 1",
+                category: (a.category as Category | undefined) ?? "Casework",
+                categoryLabel:
+                  a.category === "Wall" ? "Walls" : ((a.category as string) ?? "Casework"),
+                forms: cmd === "in_place_edit" ? ["Extrusion 1"] : [],
+                isNew: cmd === "in_place_begin",
+              },
+            };
+          return fake.state;
+        case "in_place_form_begin":
+          if (fake.state?.inPlace) {
+            const kind = a.kind as string;
+            fake.state = {
+              ...fake.state,
+              sketch: {
+                kind: "InPlace",
+                view: a.view === ids.v3d ? ids.plan1 : (a.view as string),
+                wall: null,
+                level: ids.l1,
+                elevation: 0,
+                target: IN_PLACE_ID,
+                typeId: IN_PLACE_ID,
+                curves: [],
+                bad: [],
+                error: null,
+                canUndo: false,
+                canRedo: false,
+                form: {
+                  kind:
+                    kind === "Sweep"
+                      ? {
+                          Sweep: {
+                            elevation: 0,
+                            profile: { Rectangle: { width: 152.4, height: 152.4 } },
+                          },
+                        }
+                      : kind === "Blend"
+                        ? { Blend: { base: 0, top: 304.8, top_sketch: [] } }
+                        : { Extrusion: { start: 0, end: 304.8 } },
+                  void: kind === "VoidExtrusion",
+                  index: (a.index as number | null) ?? null,
+                  top: false,
+                },
+              },
+            };
+          }
+          return fake.state;
+        case "sketch_set_form":
+          if (fake.state?.sketch?.form)
+            fake.state = {
+              ...fake.state,
+              sketch: {
+                ...fake.state.sketch,
+                form: { ...fake.state.sketch.form, kind: a.kind as FormKind },
+              },
+            };
+          return fake.state;
+        case "in_place_delete_form":
+          if (fake.state?.inPlace)
+            fake.state = {
+              ...fake.state,
+              inPlace: {
+                ...fake.state.inPlace,
+                forms: fake.state.inPlace.forms.filter((_, i) => i !== a.index),
+              },
+            };
+          return fake.state;
+        case "in_place_finish":
+          if (fake.state?.inPlace?.forms.length === 0)
+            throw {
+              message: "Add a form (Extrusion, Blend or Sweep) to the model, or Cancel Model.",
+            };
+          if (fake.state) fake.state = { ...fake.state, inPlace: null };
+          return fake.state;
+        case "in_place_cancel":
+          if (fake.state) fake.state = { ...fake.state, inPlace: null, sketch: null };
           return fake.state;
         case "sketch_draw":
           if (fake.state?.sketch) {
@@ -663,6 +767,28 @@ export function installFakeBackend(): FakeBackend {
           }
           return fake.state;
         case "sketch_finish":
+          // An in-place form (ADR-068): added to the model's forms.
+          if (fake.state?.sketch?.form && fake.state.inPlace && fake.state.sketch.curves.length) {
+            const f = fake.state.sketch.form;
+            const label =
+              "Sweep" in f.kind
+                ? "Sweep"
+                : "Blend" in f.kind
+                  ? "Blend"
+                  : f.void
+                    ? "Void Extrusion"
+                    : "Extrusion";
+            const n = fake.state.inPlace.forms.filter((l) => l.startsWith(label + " ")).length + 1;
+            fake.state = {
+              ...fake.state,
+              sketch: null,
+              inPlace: {
+                ...fake.state.inPlace,
+                forms: [...fake.state.inPlace.forms, `${label} ${n}`],
+              },
+            };
+            return fake.state;
+          }
           if (fake.state?.sketch) {
             fake.state =
               fake.state.sketch.curves.length === 0
@@ -953,7 +1079,13 @@ export function installFakeBackend(): FakeBackend {
         }
         case "selection_categories": {
           // From the categories the test gave, else the view's (w… walls, d… doors).
-          const known: Record<string, string> = { w1: "Wall", w2: "Wall", w3: "Wall", d1: "Door" };
+          const known: Record<string, string> = {
+            w1: "Wall",
+            w2: "Wall",
+            w3: "Wall",
+            d1: "Door",
+            [IN_PLACE_ID]: "Casework",
+          };
           const cats = (a.ids as string[])
             .map((id) => fake.properties?.[id]?.category ?? known[id])
             .filter(Boolean);
