@@ -345,6 +345,25 @@ export const Icons = {
       <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
     </I>
   ),
+  detailComponent: (
+    <I>
+      <rect x="4" y="6" width="7" height="12" />
+      <path d="M4 6l7 12M11 6l-7 12" strokeWidth="1" />
+      <path d="M14 12h7M14 12l2-3M21 12l-2 3" />
+    </I>
+  ),
+  repeatingDetail: (
+    <I>
+      <rect x="3" y="8" width="5" height="8" />
+      <rect x="9.5" y="8" width="5" height="8" />
+      <rect x="16" y="8" width="5" height="8" />
+    </I>
+  ),
+  insulation: (
+    <I>
+      <path d="M3 17c2-10 4-10 4 0s2-10 4 0 2-10 4 0 2-10 4 0 2-10 2-4" strokeWidth="1.3" />
+    </I>
+  ),
   filledRegion: (
     <I>
       <path d="M4 18l3-12 13 3-4 11z" />

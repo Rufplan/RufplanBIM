@@ -62,6 +62,7 @@ export type Tool =
   | "text"
   | "spotElevation"
   | "detailLine"
+  | "component"
   | "modelLine"
   | "spotSlope"
   | "northArrow"
@@ -117,6 +118,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   text: "Text",
   spotElevation: "Spot Elevation",
   detailLine: "Detail Line",
+  component: "Detail Component",
   modelLine: "Model Line",
   spotSlope: "Spot Slope",
   northArrow: "North Arrow",
@@ -186,6 +188,10 @@ export interface ToolOptions {
   textSize: number;
   textLeader: LeaderMode;
   textAlign: TextAlign;
+  /** Detail Component (ADR-071): the type, a point-based one's rotation, and flipped. */
+  componentKey: string;
+  componentRotation: number;
+  componentFlip: boolean;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -449,6 +455,9 @@ export const useAppStore = create<UiState>((set, get) => ({
     textSize: 2.4,
     textLeader: "None",
     textAlign: "Left",
+    componentKey: "lum-2x6",
+    componentRotation: 0,
+    componentFlip: false,
   },
   paramsOpen: false,
   sketchUi: {

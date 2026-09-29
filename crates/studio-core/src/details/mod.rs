@@ -6,6 +6,7 @@
 //! drawn at; inserting one makes a drafting view of it, every line and region its own
 //! element to edit.
 
+pub mod components;
 mod library;
 
 use serde::{Deserialize, Serialize};
@@ -36,10 +37,12 @@ pub enum FillPattern {
     RigidInsulation,
     Wood,
     Steel,
+    /// Revit's masking region: paper white, hiding what's behind.
+    Masking,
 }
 
 impl FillPattern {
-    pub const ALL: [FillPattern; 12] = [
+    pub const ALL: [FillPattern; 13] = [
         Self::Solid,
         Self::Gray,
         Self::Diagonal,
@@ -52,6 +55,7 @@ impl FillPattern {
         Self::RigidInsulation,
         Self::Wood,
         Self::Steel,
+        Self::Masking,
     ];
 
     pub fn label(self) -> &'static str {
@@ -68,6 +72,7 @@ impl FillPattern {
             Self::RigidInsulation => "Rigid Insulation",
             Self::Wood => "Wood - Finish",
             Self::Steel => "Steel",
+            Self::Masking => "<Masking> (hides what's behind)",
         }
     }
 }
@@ -409,6 +414,141 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
         }
         Ok(view)
     })
+}
+
+/// Detail Component (ADR-071): a detail item of type `key` in `view`, from `start` to
+/// `end` (line-based) or at `start` turned toward `end` (point-based).
+pub fn create_component(
+    doc: &mut Document,
+    view: ElementId,
+    key: &str,
+    start: Pt,
+    end: Pt,
+    flip: bool,
+) -> CoreResult<ElementId> {
+    let t = components::type_of(key)
+        .ok_or_else(|| CoreError::Invalid("pick a detail component type".into()))?;
+    if t.family.line_based() && start.dist(end) < 1.0 {
+        return Err(CoreError::Invalid("click its start, then its end".into()));
+    }
+    let end = if !t.family.line_based() && start.dist(end) < 1e-6 {
+        start.add(Pt::new(100.0, 0.0))
+    } else {
+        end
+    };
+    let label = format!("Place {}", t.family.label());
+    doc.transact(&label, |tx| {
+        Ok(tx.insert(ElementData::DetailComponent {
+            view,
+            type_key: key.to_owned(),
+            start,
+            end,
+            flip,
+        }))
+    })
+}
+
+/// A component's geometry, from its element.
+pub fn component_parts(data: &ElementData) -> Option<components::Parts> {
+    match data {
+        ElementData::DetailComponent {
+            type_key,
+            start,
+            end,
+            flip,
+            ..
+        } => Some(components::parts(
+            components::type_of(type_key)?,
+            *start,
+            *end,
+            *flip,
+        )),
+        _ => None,
+    }
+}
+
+pub(crate) fn component_properties(
+    doc: &Document,
+    id: ElementId,
+    props: &mut Vec<crate::ops::Property>,
+) {
+    use crate::ops::{choice, ro, PropOption};
+    let Ok(ElementData::DetailComponent {
+        type_key,
+        start,
+        end,
+        flip,
+        ..
+    }) = doc.data(id)
+    else {
+        return;
+    };
+    let Some(t) = components::type_of(type_key) else {
+        return;
+    };
+    props.push(ro(
+        "family",
+        "Family",
+        "Identity Data",
+        t.family.label().into(),
+    ));
+    props.push(choice(
+        "type",
+        "Type",
+        "Identity Data",
+        type_key.clone(),
+        components::TYPES
+            .iter()
+            .filter(|o| o.family == t.family)
+            .map(|o| PropOption {
+                id: o.key.into(),
+                label: o.name.into(),
+            })
+            .collect(),
+    ));
+    props.push(choice(
+        "flip",
+        "Flipped",
+        "Graphics",
+        if *flip { "yes" } else { "no" }.into(),
+        crate::ops::yes_no_options(),
+    ));
+    if t.family.line_based() {
+        props.push(ro(
+            "length",
+            "Length",
+            "Dimensions",
+            crate::units::format_ft_in(start.dist(*end)),
+        ));
+    }
+}
+
+pub(crate) fn set_component_property(
+    doc: &mut Document,
+    id: ElementId,
+    key: &str,
+    value: &str,
+) -> CoreResult<()> {
+    let mut d = doc.data(id)?.clone();
+    let unknown = || CoreError::Invalid(format!("unknown property {key}"));
+    let ElementData::DetailComponent { type_key, flip, .. } = &mut d else {
+        return Err(unknown());
+    };
+    match key {
+        "type" => {
+            let (now, next) = (
+                components::type_of(type_key).ok_or_else(unknown)?,
+                components::type_of(value).ok_or_else(unknown)?,
+            );
+            if now.family != next.family {
+                return Err(CoreError::Invalid("pick a type of the same family".into()));
+            }
+            *type_key = value.to_owned();
+        }
+        "flip" => *flip = value == "yes",
+        _ => return Err(unknown()),
+    }
+    doc.transact("Change Detail Component", |tx| tx.set(id, d))
 }
 
 /// A filled region's boundary as sketch lines (Edit Boundary).

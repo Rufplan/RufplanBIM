@@ -18,6 +18,7 @@ import type { DrawTool } from "../bindings/DrawTool";
 import type { LineStyle } from "../bindings/LineStyle";
 import { DRAW_TOOLS } from "../lines";
 import { DRAW } from "./SketchRibbon";
+import { ComponentOptions } from "./ComponentOptions";
 
 type Choices = [[string, string][], [string, string][]];
 
@@ -156,6 +157,8 @@ export function OptionsBar() {
         )}
       </>
     );
+  } else if (tool === "component") {
+    body = <ComponentOptions />;
   } else if (tool === "sketch") {
     const m = ui.mode;
     const radius = (

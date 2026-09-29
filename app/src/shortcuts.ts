@@ -189,6 +189,13 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     command: t("spotElevation"),
   },
   {
+    id: "component",
+    label: "Detail Component",
+    group: "Annotate",
+    keys: ["CM"],
+    command: t("component"),
+  },
+  {
     id: "detailLine",
     label: "Detail Line",
     group: "Annotate",

@@ -29,6 +29,7 @@ import {
 import { placePlant } from "../vegetation";
 import { editInPlace } from "../inplace";
 import { TextEditor } from "./TextEditor";
+import { componentTypes, rotationDir } from "../components";
 import { leaderClicks, leadersFrom, textPrompt } from "../text";
 import type { Leader } from "../bindings/Leader";
 import type { TextAlign } from "../bindings/TextAlign";
@@ -228,6 +229,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const linePreview = useRef<Pt[][]>([]);
   // The Text tool's rubber bands: the leader so far, or the text box being dragged.
   const textGhost = useRef<Pt[][]>([]);
+  // Detail Component (ADR-071): a line-based one's start, and the ghost under the cursor.
+  const compStart = useRef<Pt | null>(null);
+  const compGhost = useRef<Pt[][]>([]);
   const sketchFirst = useRef<{ i: number; at: Pt } | null>(null);
   const vertexDrag = useRef<{ from: Pt; to: Pt | null } | null>(null);
   const sketchMode = useAppStore((s) => s.sketchUi.mode);
@@ -421,6 +425,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         drawSketch(ctx, cam.current, w, h, [], new Set(), new Set(), linePreview.current, []);
       if (s.tool === "text" && textGhost.current.length)
         drawSketch(ctx, cam.current, w, h, [], new Set(), new Set(), textGhost.current, []);
+      if (s.tool === "component" && compGhost.current.length)
+        drawSketch(ctx, cam.current, w, h, [], new Set(), new Set(), compGhost.current, []);
       const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
         const sn = snapRef.current;
@@ -581,6 +587,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     firstPick.current = null;
     textPts.current = [];
     textGhost.current = [];
+    compStart.current = null;
+    compGhost.current = [];
   }, []);
   const resetTool = useCallback(() => {
     resetRefs();
@@ -1485,6 +1493,27 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     const from = pts.current[pts.current.length - 1] ?? null;
     const p = (await ipc.snap(view.id, raw, from, tol)).pt;
+    if (s.tool === "component") {
+      // Detail Component (ADR-071): point-based at one click; line-based from two.
+      const key = s.options.componentKey;
+      const t = (await componentTypes()).find((c) => c.key === key);
+      if (!t) return;
+      if (t.lineBased && !compStart.current) {
+        compStart.current = p;
+        s.setPrompt(promptFor("component", 1, view.viewType));
+        return;
+      }
+      const start = t.lineBased ? compStart.current! : p;
+      const d = rotationDir(s.options.componentRotation);
+      const end = t.lineBased ? p : { x: p.x + d.x * 100, y: p.y + d.y * 100 };
+      compStart.current = null;
+      compGhost.current = [];
+      await apply(() =>
+        ipc.createDetailComponent(view.id, key, start, end, s.options.componentFlip),
+      );
+      s.setPrompt(promptFor("component", 0, view.viewType));
+      return;
+    }
     if (s.tool === "text") {
       // Revit's Text: the leader's arrowhead (and elbow) first, then where the text goes.
       const mode = s.options.textLeader;
@@ -1650,6 +1679,20 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     });
   }
 
+  // Detail Component: Space turns a point-based one 90°, as in Revit.
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      const s = useAppStore.getState();
+      if (s.tool !== "component" || e.key !== " ") return;
+      const t = e.target as HTMLElement | null;
+      if (t && /input|textarea|select/i.test(t.tagName)) return;
+      e.preventDefault();
+      s.setOption("componentRotation", (s.options.componentRotation + 90) % 360);
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
+
   // Modify | Text Notes > Edit Text (ADR-070).
   const editTextRef = useRef(editText);
   editTextRef.current = editText;
@@ -1797,6 +1840,27 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             return;
           }
           const d = drag.current;
+          // Detail Component (ADR-071): the component as it would go in.
+          if (useAppStore.getState().tool === "component" && cam.current) {
+            const st = useAppStore.getState();
+            const p = modelAt(sx, sy);
+            void componentTypes().then(async (types) => {
+              const t = types.find((c) => c.key === st.options.componentKey);
+              if (!t) return;
+              const start = t.lineBased ? compStart.current : p;
+              if (!start) {
+                compGhost.current = [];
+                redraw();
+                return;
+              }
+              const dir = rotationDir(st.options.componentRotation);
+              const end = t.lineBased ? p : { x: p.x + dir.x * 100, y: p.y + dir.y * 100 };
+              compGhost.current = await ipc
+                .detailComponentPreview(t.key, start, end, st.options.componentFlip)
+                .catch(() => []);
+              redraw();
+            });
+          }
           // Text (ADR-070): the leader rubber band, or the box a drag gives the text.
           if (useAppStore.getState().tool === "text" && cam.current) {
             const p = modelAt(sx, sy);

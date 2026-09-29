@@ -198,6 +198,23 @@ fn transformed(
                 *p = x.apply(*p);
             }
         }
+        ElementData::DetailComponent {
+            view,
+            start,
+            end,
+            flip,
+            ..
+        } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            *start = x.apply(*start);
+            *end = x.apply(*end);
+            // Mirrored, it faces the other way across its line.
+            if mirror {
+                *flip = !*flip;
+            }
+        }
         ElementData::TextNote {
             view, at, leaders, ..
         } => {
@@ -852,6 +869,25 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                 }
             })
         }),
+        // Detail components (ADR-071): a line-based one's ends; a point-based one moves.
+        (ElementData::DetailComponent { start, end, .. }, "start" | "end" | "move") => doc
+            .transact("Edit detail component", |tx| {
+                tx.modify(id, |d| {
+                    if let ElementData::DetailComponent {
+                        start: s, end: e, ..
+                    } = d
+                    {
+                        match key {
+                            "start" => *s = to,
+                            "end" => *e = to,
+                            _ => {
+                                *s = to;
+                                *e = to.add(end.sub(start));
+                            }
+                        }
+                    }
+                })
+            }),
         // Text notes (ADR-070): the text itself (its leaders' arrowheads stay), a leader's
         // arrowhead or elbow, and the wrap width.
         (ElementData::TextNote { .. }, k)

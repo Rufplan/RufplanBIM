@@ -20,6 +20,7 @@ import { InPlaceRibbon } from "./InPlaceRibbon";
 import { TextRibbon } from "./TextRibbon";
 import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
+import { startComponent } from "../components";
 import { StandardsRibbon } from "./Standards";
 import {
   ContextPanels,
@@ -784,6 +785,30 @@ export function Ribbon() {
                 icon={Icons.detailLine}
                 keys="DL — this view only"
               />
+              <ToolButton
+                tool="component"
+                label="Detail Component"
+                icon={Icons.detailComponent}
+                keys="CM — break lines, lumber, sheathing, steel…"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => startComponent("brick-mod")}
+                disabled={!app}
+                title="Repeating Detail: brick or CMU coursing along a line"
+              >
+                {Icons.repeatingDetail}
+                <span>Repeating Detail</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => startComponent("batt-55")}
+                disabled={!app}
+                title="Insulation: batt insulation along a line, at a width"
+              >
+                {Icons.insulation}
+                <span>Insulation</span>
+              </button>
               <button
                 className="rb-btn"
                 onClick={() => void startFilledRegion()}

@@ -1206,6 +1206,36 @@ export function installFakeBackend(): FakeBackend {
         }
         case "snap":
           return { pt: a.point, kind: "None", label: null };
+        // Detail components (ADR-071).
+        case "detail_component_types":
+          return [
+            {
+              key: "lum-2x6",
+              family: "CutLumber",
+              familyLabel: "Nominal Cut Lumber-Section",
+              name: "2x6",
+              lineBased: false,
+            },
+            {
+              key: "brick-mod",
+              family: "BrickCoursing",
+              familyLabel: "Brick-Standard-Section (Repeating)",
+              name: 'Modular (3 5/8")',
+              lineBased: true,
+            },
+            {
+              key: "batt-55",
+              family: "BattInsulation",
+              familyLabel: "Insulation-Batt",
+              name: '5 1/2" Batt',
+              lineBased: true,
+            },
+          ];
+        case "detail_component_preview":
+          return [[a.start, a.end]];
+        case "create_detail_component":
+          if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+          return fake.state;
         // Revit's Text (ADR-070).
         case "create_text_note":
         case "add_text_leader":

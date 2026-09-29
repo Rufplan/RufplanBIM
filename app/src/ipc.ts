@@ -6,6 +6,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
 import type { CategoryChoice } from "./bindings/CategoryChoice";
+import type { ComponentTypeInfo } from "./bindings/ComponentTypeInfo";
 import type { Leader } from "./bindings/Leader";
 import type { TextAlign } from "./bindings/TextAlign";
 import type { TextNoteInfo } from "./bindings/TextNoteInfo";
@@ -331,6 +332,12 @@ export const ipc = {
   /** The options bar's settings for the in-place form being sketched (ADR-068). */
   sketchSetForm: (kind: FormKind): S => invoke("sketch_set_form", { kind }),
   // Model In-Place (ADR-068).
+  // Detail components (ADR-071).
+  detailComponentTypes: () => invoke<ComponentTypeInfo[]>("detail_component_types"),
+  detailComponentPreview: (key: string, start: Pt, end: Pt, flip: boolean) =>
+    invoke<Pt[][]>("detail_component_preview", { key, start, end, flip }),
+  createDetailComponent: (view: ElementId, key: string, start: Pt, end: Pt, flip: boolean): S =>
+    invoke("create_detail_component", { view, key, start, end, flip }),
   // The Details tab (ADR-069).
   detailLibrary: () => invoke<DetailInfo[]>("detail_library"),
   detailPreview: (id: string) => invoke<DisplayList>("detail_preview", { id }),

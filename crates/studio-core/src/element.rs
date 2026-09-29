@@ -112,6 +112,8 @@ pub enum Category {
     PlumbingFixture,
     /// Filled regions in drafting views and details (ADR-069).
     FilledRegion,
+    /// Detail components (ADR-071).
+    DetailComponent,
 }
 
 impl Category {
@@ -174,6 +176,7 @@ impl Category {
             Category::SpecialtyEquipment => "SpecialtyEquipment",
             Category::PlumbingFixture => "PlumbingFixture",
             Category::FilledRegion => "FilledRegion",
+            Category::DetailComponent => "DetailComponent",
         }
     }
 }
@@ -1388,6 +1391,17 @@ pub enum ElementData {
         #[serde(default)]
         outline: Option<crate::lines::LineStyle>,
     },
+    /// A detail component (ADR-071), after Revit's detail items: a 2D family of type
+    /// `type_key` (studio-core `details::components`), from `start` to `end`, or at
+    /// `start` turned toward `end`.
+    DetailComponent {
+        view: ElementId,
+        type_key: String,
+        start: Pt,
+        end: Pt,
+        #[serde(default)]
+        flip: bool,
+    },
     /// Model In-Place (ADR-068): a one-off element modelled from forms (extrusions, blends,
     /// sweeps and voids), in the category chosen for it: it is a wall, a door, furniture…
     /// for visibility, filters, schedules and IFC, as in Revit.
@@ -1508,6 +1522,7 @@ impl ElementData {
             ElementData::GrassPatch { .. } => Category::GrassPatch,
             ElementData::InPlace { category, .. } => *category,
             ElementData::FilledRegion { .. } => Category::FilledRegion,
+            ElementData::DetailComponent { .. } => Category::DetailComponent,
         }
     }
 
@@ -1608,6 +1623,7 @@ impl ElementData {
             | ElementData::SpotSlope { view, .. }
             | ElementData::DetailLine { view, .. }
             | ElementData::FilledRegion { view, .. }
+            | ElementData::DetailComponent { view, .. }
             | ElementData::ModelLine { level: view, .. }
             | ElementData::NorthArrow { view, .. }
             | ElementData::GraphicScale { view, .. }
@@ -1696,6 +1712,12 @@ impl ElementData {
             ElementData::InPlace { name, .. } => name.clone(),
             ElementData::FilledRegion { pattern, .. } => {
                 format!("Filled Region: {}", pattern.label())
+            }
+            ElementData::DetailComponent { type_key, .. } => {
+                match crate::details::components::type_of(type_key) {
+                    Some(t) => format!("{} : {}", t.family.label(), t.name),
+                    None => "Detail Component".into(),
+                }
             }
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),

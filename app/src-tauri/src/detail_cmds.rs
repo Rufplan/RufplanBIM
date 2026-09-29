@@ -3,6 +3,7 @@
 
 use studio_core::details::{self, DetailInfo};
 use studio_core::ElementId;
+use studio_geom::Pt;
 use studio_views::DisplayList;
 use tauri::{State, WebviewWindow};
 
@@ -10,6 +11,51 @@ use crate::commands::{finish, lock, CommandError, SessionState};
 use crate::session::AppState;
 
 type CommandResult<T> = Result<T, CommandError>;
+
+/// Detail Component (ADR-071): the types, as the type selector lists them.
+#[tauri::command]
+pub fn detail_component_types() -> Vec<studio_core::details::components::ComponentTypeInfo> {
+    studio_core::details::components::catalog()
+}
+
+/// What a component of `key` would draw from `start` to `end`, as polylines (the
+/// placement preview).
+#[tauri::command]
+pub fn detail_component_preview(key: String, start: Pt, end: Pt, flip: bool) -> Vec<Vec<Pt>> {
+    use studio_core::details::components::{parts, type_of};
+    type_of(&key)
+        .map(|t| {
+            let p = parts(t, start, end, flip);
+            p.lines
+                .into_iter()
+                .map(|l| {
+                    let mut pts = l.pts;
+                    if l.closed {
+                        if let Some(f) = pts.first().copied() {
+                            pts.push(f);
+                        }
+                    }
+                    pts
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn create_detail_component(
+    view: ElementId,
+    key: String,
+    start: Pt,
+    end: Pt,
+    flip: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> Result<Option<AppState>, CommandError> {
+    let mut session = lock(&state)?;
+    session.edit(|d| details::create_component(d, view, &key, start, end, flip))?;
+    finish(&window, &session)
+}
 
 #[tauri::command]
 pub fn detail_library() -> Vec<DetailInfo> {

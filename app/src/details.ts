@@ -70,4 +70,5 @@ export const FILL_PATTERNS: [FillPattern, string][] = [
   ["RigidInsulation", "Rigid Insulation"],
   ["Wood", "Wood - Finish"],
   ["Steel", "Steel"],
+  ["Masking", "<Masking> (hides what's behind)"],
 ];

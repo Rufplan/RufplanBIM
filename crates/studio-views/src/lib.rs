@@ -2982,6 +2982,13 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
             } if *v == view => {
                 text_note(b, Some(e.id), *at, text, *size, leaders, *align, *width);
             }
+            // Detail components (ADR-071), in their place in the view's drawing order: a
+            // break line's mask hides what was drawn before it.
+            ElementData::DetailComponent { view: v, .. } if *v == view => {
+                if let Some(p) = studio_core::details::component_parts(&e.data) {
+                    drafting::component(b, Some(e.id), &p);
+                }
+            }
             ElementData::DetailLine {
                 view: v,
                 curve,

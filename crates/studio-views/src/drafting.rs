@@ -113,6 +113,7 @@ pub(crate) fn region(
     let deg = |d: f64| d.to_radians();
     let fill = match pattern {
         FillPattern::Solid => FillKind::Ink,
+        FillPattern::Masking => FillKind::Paper,
         FillPattern::Gray => FillKind::PocheLight,
         _ => FillKind::Paper,
     };
@@ -176,6 +177,21 @@ pub(crate) fn region(
         for r in rings {
             b.line(el, r, true, w, dash);
         }
+    }
+}
+
+/// A detail component's regions (masks and patterns) under its lines (ADR-071).
+pub(crate) fn component(
+    b: &mut Builder,
+    el: Option<ElementId>,
+    p: &studio_core::details::components::Parts,
+) {
+    for (rings, pattern) in &p.regions {
+        region(b, el, rings, *pattern, None);
+    }
+    for l in &p.lines {
+        let (w, dash) = line_style(l.style);
+        b.line(el, &l.pts, l.closed, w, dash);
     }
 }
 
@@ -322,6 +338,96 @@ mod tests {
         // Its extent holds the drawing and its notes: a few feet across at 1 1/2".
         let w = dl.bounds[2] - dl.bounds[0];
         assert!(w > 1500.0 && w < 12000.0, "{w}");
+    }
+
+    #[test]
+    fn detail_components_draw_in_their_view_and_mirror_flips_them() {
+        use crate::{display_list, Prim};
+        use studio_core::ElementData;
+        let mut doc = studio_core::Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let v = details::create_drafting_view(&mut doc, "D", 4).unwrap();
+        // A line under a break line: the break line's mask comes after it, covering it.
+        doc.transact("line", |tx| {
+            tx.insert(ElementData::DetailLine {
+                view: v,
+                curve: studio_core::sketch::SketchCurve::line(
+                    Pt::new(0.0, 100.0),
+                    Pt::new(1000.0, 100.0),
+                ),
+                style: studio_core::lines::LineStyle::Wide,
+            });
+            Ok(())
+        })
+        .unwrap();
+        let brk = details::create_component(
+            &mut doc,
+            v,
+            "break",
+            Pt::new(0.0, 0.0),
+            Pt::new(1000.0, 0.0),
+            false,
+        )
+        .unwrap();
+        let lum = details::create_component(
+            &mut doc,
+            v,
+            "lum-2x6",
+            Pt::new(2000.0, 0.0),
+            Pt::new(2100.0, 0.0),
+            false,
+        )
+        .unwrap();
+        assert!(details::create_component(
+            &mut doc,
+            v,
+            "break",
+            Pt::new(0.0, 0.0),
+            Pt::new(0.0, 0.0),
+            false
+        )
+        .is_err());
+        assert!(details::create_component(
+            &mut doc,
+            v,
+            "nope",
+            Pt::new(0.0, 0.0),
+            Pt::new(9.0, 0.0),
+            false
+        )
+        .is_err());
+        let dl = display_list(&doc, v).unwrap();
+        let mask = dl
+            .items
+            .iter()
+            .position(|i| {
+                i.el == Some(brk)
+                    && matches!(
+                        i.prim,
+                        Prim::Fill {
+                            fill: FillKind::Paper,
+                            ..
+                        }
+                    )
+            })
+            .unwrap();
+        let line = dl
+            .items
+            .iter()
+            .position(|i| matches!(&i.prim, Prim::Line { w, .. } if *w >= 4) && i.el != Some(brk))
+            .unwrap();
+        assert!(line < mask, "the mask is drawn over the older line");
+        assert!(dl.items.iter().filter(|i| i.el == Some(lum)).count() >= 4);
+        // Mirrored, a line-based component flips to the other side of its line.
+        let x = studio_core::edit::Xform::mirror(Pt::new(0.0, 500.0), Pt::new(1000.0, 500.0));
+        studio_core::edit::transform_elements(&mut doc, &[brk], x, "Mirror").unwrap();
+        assert!(matches!(
+            doc.data(brk).unwrap(),
+            ElementData::DetailComponent { flip: true, .. }
+        ));
+        // Properties: the type changes within its family only.
+        studio_core::ops::set_property(&mut doc, lum, "type", "lum-2x10", 0).unwrap();
+        assert!(studio_core::ops::set_property(&mut doc, lum, "type", "break", 0).is_err());
     }
 
     #[test]

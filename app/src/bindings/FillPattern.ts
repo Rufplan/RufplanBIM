@@ -4,4 +4,4 @@
  * A filled region's pattern (Revit's drafting patterns), drawn at a paper size so it reads
  * the same at any scale.
  */
-export type FillPattern = "Solid" | "Gray" | "Diagonal" | "CrossHatch" | "Concrete" | "Earth" | "Gravel" | "Sand" | "Masonry" | "RigidInsulation" | "Wood" | "Steel";
+export type FillPattern = "Solid" | "Gray" | "Diagonal" | "CrossHatch" | "Concrete" | "Earth" | "Gravel" | "Sand" | "Masonry" | "RigidInsulation" | "Wood" | "Steel" | "Masking";

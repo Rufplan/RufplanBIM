@@ -508,6 +508,39 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     });
                 }
             }
+            // A detail component (ADR-071): a line-based one's ends; a point-based one
+            // drags by itself.
+            ElementData::DetailComponent {
+                type_key,
+                start,
+                end,
+                ..
+            } => {
+                let line = studio_core::details::components::type_of(type_key)
+                    .is_some_and(|t| t.family.line_based());
+                if line {
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: "start".into(),
+                        at: *start,
+                        anchor: Some(*end),
+                    });
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: "end".into(),
+                        at: *end,
+                        anchor: Some(*start),
+                    });
+                } else if let Some((min, max)) = drawn_extent(doc, view, *id) {
+                    out.areas.push(DragArea {
+                        id: *id,
+                        key: "move".into(),
+                        min,
+                        max,
+                        at: *start,
+                    });
+                }
+            }
             // A text note (ADR-070): drag the text (its arrowheads stay), each leader's
             // arrowhead and elbow (a straight leader's middle bends it), and the wrap width.
             ElementData::TextNote {

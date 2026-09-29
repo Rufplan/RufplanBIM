@@ -114,6 +114,9 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
       "detailLine",
       "text",
       "sketch",
+      "component",
+      "dimension",
+      "dimensionLinear",
       "move",
       "copy",
       "rotate",
@@ -121,6 +124,9 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
       "array",
       "offset",
     ].includes(tool);
+  // Detail components go in any 2D view (ADR-071).
+  if (tool === "component")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   // A filled region is sketched in any 2D view.
   if (tool === "sketch" && useAppStore.getState().app?.sketch?.region)
     return view !== "ThreeD" && view !== "Schedule";
@@ -336,6 +342,10 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
           : "Click inside the angle to place the arc.";
     case "text":
       return textPrompt(useAppStore.getState().options.textLeader, n);
+    case "component":
+      return n === 0
+        ? "Click to place the component (Space rotates 90°); line-based ones: click its start"
+        : "Click its end";
     case "spotElevation":
       return n === 0
         ? "Click the point to measure (a floor, the ground, or any height in an elevation or section)."

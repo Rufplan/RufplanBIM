@@ -84,6 +84,10 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                         *p = p.add(delta);
                     }
                 }
+                ElementData::DetailComponent { start, end, .. } => {
+                    *start = start.add(delta);
+                    *end = end.add(delta);
+                }
                 ElementData::DetailLine { curve, .. } | ElementData::ModelLine { curve, .. } => {
                     *curve = curve.mapped(&|p| p.add(delta), false);
                 }
