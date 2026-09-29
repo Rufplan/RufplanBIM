@@ -1,4 +1,5 @@
 import { activeViewInfo, useAppStore } from "../store";
+import { ActiveWorkset } from "./Worksets";
 import { ViewCanvas } from "./ViewCanvas";
 import { View3D } from "./View3D";
 import { ScheduleView } from "./ScheduleView";
@@ -100,6 +101,7 @@ export function StatusBar() {
           {selected}
         </button>
       )}
+      <ActiveWorkset compact />
       {view && <span className="status-scale">{view.scaleLabel}</span>}
     </footer>
   );

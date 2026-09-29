@@ -138,7 +138,9 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             ground: None,
         });
         Ok(())
-    })
+    })?;
+    // Worksharing on from the start, with Revit's standard worksets (ADR-079).
+    crate::worksets::ensure_worksets(doc)
 }
 
 /// Built-in door and window types (inches: width × height, sill).
@@ -2350,6 +2352,45 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::details::component_properties(doc, id, &mut props)
         }
         ElementData::ViewReference { .. } => crate::references::properties(doc, id, &mut props),
+        ElementData::Workset {
+            name,
+            visible_in_all_views,
+            ..
+        } => {
+            props.push(text("name", "Name", "Identity Data", name));
+            props.push(ro(
+                "visible_in_all_views",
+                "Visible in All Views",
+                "Identity Data",
+                if *visible_in_all_views { "Yes" } else { "No" }.into(),
+            ));
+        }
+        ElementData::StructuralScheme { settings, layout } => {
+            props.push(ro(
+                "scheme",
+                "Scheme",
+                "Identity Data",
+                settings.kind.label().into(),
+            ));
+            props.push(ro(
+                "lateral",
+                "Lateral System",
+                "Identity Data",
+                settings.lateral.label().into(),
+            ));
+            props.push(ro(
+                "members",
+                "Members",
+                "Identity Data",
+                layout.members.len().to_string(),
+            ));
+            props.push(ro(
+                "note",
+                "Status",
+                "Identity Data",
+                crate::structural::DISCLAIMER.into(),
+            ));
+        }
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2440,6 +2481,10 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         }
     }
     crate::params::param_properties(doc, id, &mut props);
+    // Worksets (ADR-079): which one it's on.
+    if let Some(w) = crate::worksets::property(doc, id) {
+        props.push(w);
+    }
     if let Some(m) = crate::paint::paint_of(doc, id) {
         let name = doc.data(m).map(|d| d.name()).unwrap_or_default();
         props.push(ro("paint", "Paint", "Materials and Finishes", name.clone()));
@@ -2492,6 +2537,12 @@ pub fn set_property(
     }
     if let Some(pkey) = key.strip_prefix("param:") {
         return crate::params::set_value(doc, id, pkey, value);
+    }
+    if key == "workset" {
+        return crate::worksets::set_workset(doc, &[id], parse_id(value)?).map(|_| ());
+    }
+    if let (ElementData::Workset { .. }, "name") = (&data, key) {
+        return crate::worksets::rename(doc, id, value);
     }
     if key == "unpaint" {
         return crate::paint::paint(doc, &[id], None).map(|_| ());
@@ -3080,6 +3131,8 @@ pub fn set_property(
         | ElementData::FilledRegion { .. }
         | ElementData::DetailComponent { .. }
         | ElementData::ViewReference { .. }
+        | ElementData::Workset { .. }
+        | ElementData::StructuralScheme { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

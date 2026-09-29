@@ -116,6 +116,10 @@ pub enum Category {
     DetailComponent,
     /// Reference sections and callouts (ADR-076).
     ViewReference,
+    /// Worksets (ADR-079).
+    Workset,
+    /// The structural layer (ADR-080).
+    StructuralScheme,
 }
 
 impl Category {
@@ -180,6 +184,8 @@ impl Category {
             Category::FilledRegion => "FilledRegion",
             Category::DetailComponent => "DetailComponent",
             Category::ViewReference => "ViewReference",
+            Category::Workset => "Workset",
+            Category::StructuralScheme => "StructuralScheme",
         }
     }
 }
@@ -996,6 +1002,9 @@ pub enum ElementData {
         /// Detail Level (ADR-067); None follows the scale ([`DetailLevel::for_scale`]).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         detail_level: Option<DetailLevel>,
+        /// Visibility/Graphics > Worksets: worksets hidden in this view (ADR-079).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        hidden_worksets: Vec<ElementId>,
     },
     ProjectInfo {
         name: String,
@@ -1414,6 +1423,18 @@ pub enum ElementData {
         #[serde(default)]
         flip: bool,
     },
+    /// A workset (ADR-079), as Revit's user-created worksets.
+    Workset {
+        name: String,
+        role: crate::worksets::WorksetRole,
+        visible_in_all_views: bool,
+    },
+    /// The structural layer (ADR-080): the scheme picked from Suggest Structure, its
+    /// settings and the preliminary layout generated for it, on the Structural workset.
+    StructuralScheme {
+        settings: crate::structural::SchemeSettings,
+        layout: crate::structural::StructLayout,
+    },
     /// Revit's reference section or callout (ADR-076): a mark drawn in `view` that points
     /// at `target`, a view already made (a drafting view, section or callout), instead of
     /// making a new one. Its head shows where the target is placed on the sheets.
@@ -1544,6 +1565,8 @@ impl ElementData {
             ElementData::FilledRegion { .. } => Category::FilledRegion,
             ElementData::DetailComponent { .. } => Category::DetailComponent,
             ElementData::ViewReference { .. } => Category::ViewReference,
+            ElementData::Workset { .. } => Category::Workset,
+            ElementData::StructuralScheme { .. } => Category::StructuralScheme,
         }
     }
 
@@ -1742,6 +1765,10 @@ impl ElementData {
                     None => "Detail Component".into(),
                 }
             }
+            ElementData::Workset { name, .. } => name.clone(),
+            ElementData::StructuralScheme { settings, .. } => {
+                format!("Structural Layer: {}", settings.kind.label())
+            }
             ElementData::ViewReference { shape, .. } => match shape {
                 crate::references::RefShape::Section { .. } => "Reference Section".into(),
                 crate::references::RefShape::Callout { .. } => "Reference Callout".into(),
@@ -1822,6 +1849,7 @@ impl ElementData {
             camera: None,
             level_ends: vec![],
             detail_level: None,
+            hidden_worksets: vec![],
         }
     }
 

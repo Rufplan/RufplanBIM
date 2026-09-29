@@ -156,6 +156,7 @@ export function appState(path: string | null, dirty = false): AppState {
     calloutOf: null,
     hiddenCategories: [],
     hiddenCount: 0,
+    hiddenWorksets: [] as string[],
     site: false,
     camera: null as AppState["views"][number]["camera"],
     detailLevel: (viewType === "ThreeD" ? null : "Fine") as DetailLevel | null,
@@ -211,8 +212,27 @@ export function appState(path: string | null, dirty = false): AppState {
     ],
     paramDefs: [],
     inPlace: null,
+    worksets: FAKE_WORKSETS.map(({ id, name }) => ({ id, name })),
+    activeWorkset: FAKE_WORKSETS[0]!.id,
   };
 }
+
+/** Revit's standard worksets (ADR-079). */
+export const FAKE_WORKSETS = [
+  ["Architecture", "Default"],
+  ["Shared Levels and Grids", "LevelsGrids"],
+  ["Structural", "Structural"],
+  ["Interiors", "Other"],
+  ["Site", "Other"],
+  ["MEP", "Other"],
+  ["Linked Models", "Other"],
+].map(([name, role], i) => ({
+  id: `00000000-0000-7000-8000-0000000007${String(i).padStart(2, "0")}`,
+  name: name!,
+  role: role as "Default" | "LevelsGrids" | "Structural" | "Other",
+  visibleInAllViews: true,
+  count: i === 0 ? 4 : 0,
+}));
 
 /** The fake Detail Library (ADR-069). */
 export const FAKE_DETAILS = [
@@ -739,6 +759,36 @@ export function installFakeBackend(): FakeBackend {
               },
             ],
           };
+        // Worksets (ADR-079).
+        case "worksets_list":
+          return FAKE_WORKSETS;
+        case "element_worksets":
+          return [["w1", FAKE_WORKSETS[0]!.id]];
+        case "set_active_workset":
+          if (fake.state) fake.state = { ...fake.state, activeWorkset: a.ws as string };
+          return fake.state;
+        case "create_workset":
+        case "rename_workset":
+        case "delete_workset":
+        case "set_workset_visible_in_all_views":
+        case "set_elements_workset":
+          return fake.state;
+        case "set_workset_visible_in_view":
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              views: fake.state.views.map((v) =>
+                v.id === a.view
+                  ? {
+                      ...v,
+                      hiddenWorksets: a.visible
+                        ? v.hiddenWorksets.filter((w) => w !== a.ws)
+                        : [...v.hiddenWorksets, a.ws as string],
+                    }
+                  : v,
+              ),
+            };
+          return fake.state;
         // Reference sections and callouts (ADR-076).
         case "reference_targets":
           return (fake.state?.views ?? [])

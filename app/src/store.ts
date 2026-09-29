@@ -324,6 +324,7 @@ interface UiState {
     | "details"
     | "draftingView"
     | "saveDetail"
+    | "worksets"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
@@ -367,6 +368,9 @@ interface UiState {
   /** The ribbon tab shown; Standards replaces the workspace (ADR-047). */
   ribbonTab: string;
   setRibbonTab: (tab: string) => void;
+  /** Collaborate > Gray Inactive Workset Graphics (ADR-079). */
+  grayInactive: boolean;
+  setGrayInactive: (on: boolean) => void;
   /** The project's drawing-set standards (ADR-047). */
   standards: Standards | null;
   setStandards: (s: Standards | null) => void;
@@ -484,6 +488,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setElevationType: (elevationType) => set({ elevationType }),
   ribbonTab: "Architecture",
   setRibbonTab: (ribbonTab) => set({ ribbonTab }),
+  grayInactive: false,
+  setGrayInactive: (grayInactive) => set({ grayInactive }),
   standards: null,
   setStandards: (standards) => set({ standards }),
   standardsUi: { category: "sheet", item: 0, filter: "all" },

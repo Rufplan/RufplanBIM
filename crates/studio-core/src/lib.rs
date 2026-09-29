@@ -31,6 +31,7 @@ pub mod sketch;
 pub mod slope;
 pub mod standards;
 pub mod standards_catalog;
+pub mod structural;
 pub mod structure;
 pub mod symbols;
 pub mod text;
@@ -39,6 +40,7 @@ pub mod views;
 pub mod visibility;
 pub mod wall_opening;
 pub mod windows;
+pub mod worksets;
 
 pub use document::{ChangeSet, CoreError, CoreResult, DerivedCache, Document, Tx};
 pub use element::{

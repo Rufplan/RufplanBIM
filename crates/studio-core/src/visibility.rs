@@ -233,6 +233,9 @@ pub fn hidden_in(doc: &Document, view: &ElementData, el: ElementId) -> bool {
     if hidden.contains(&el) {
         return true;
     }
+    if crate::worksets::hidden_by_workset(doc, view, el) {
+        return true;
+    }
     !hidden_categories.is_empty()
         && doc
             .data(el)

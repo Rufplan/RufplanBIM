@@ -54,4 +54,8 @@ inPlace: InPlaceInfo | null,
 /**
  * The site's lot, once found (ADR-023).
  */
-site: SiteSummary | null, };
+site: SiteSummary | null, 
+/**
+ * Worksets (ADR-079), in the Worksets dialog's order, and the active one.
+ */
+worksets: Array<NamedItem>, activeWorkset: ElementId | null, };

@@ -9,6 +9,7 @@ import type { CategoryChoice } from "./bindings/CategoryChoice";
 import type { SheetCopy } from "./bindings/SheetCopy";
 import type { RefShape } from "./bindings/RefShape";
 import type { RefTarget } from "./bindings/RefTarget";
+import type { WorksetInfo } from "./bindings/WorksetInfo";
 import type { ComponentTypeInfo } from "./bindings/ComponentTypeInfo";
 import type { Leader } from "./bindings/Leader";
 import type { TextAlign } from "./bindings/TextAlign";
@@ -301,6 +302,19 @@ export const ipc = {
   createRoomSeparator: (view: ElementId, start: Pt, end: Pt): S =>
     invoke("create_room_separator", { view, start, end }),
   createCallout: (view: ElementId, a: Pt, b: Pt): S => invoke("create_callout", { view, a, b }),
+  // Worksets (ADR-079).
+  worksetsList: () => invoke<WorksetInfo[]>("worksets_list"),
+  setActiveWorkset: (ws: ElementId): S => invoke("set_active_workset", { ws }),
+  createWorkset: (name: string, visible: boolean): S => invoke("create_workset", { name, visible }),
+  renameWorkset: (ws: ElementId, name: string): S => invoke("rename_workset", { ws, name }),
+  deleteWorkset: (ws: ElementId, moveTo: ElementId): S => invoke("delete_workset", { ws, moveTo }),
+  setWorksetVisibleInAllViews: (ws: ElementId, visible: boolean): S =>
+    invoke("set_workset_visible_in_all_views", { ws, visible }),
+  setWorksetVisibleInView: (view: ElementId, ws: ElementId, visible: boolean): S =>
+    invoke("set_workset_visible_in_view", { view, ws, visible }),
+  setElementsWorkset: (ids: ElementId[], ws: ElementId): S =>
+    invoke("set_elements_workset", { ids, ws }),
+  elementWorksets: () => invoke<[ElementId, ElementId][]>("element_worksets"),
   // Reference sections and callouts (ADR-076).
   referenceTargets: (view: ElementId, callout: boolean) =>
     invoke<RefTarget[]>("reference_targets", { view, callout }),

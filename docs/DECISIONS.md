@@ -2825,3 +2825,35 @@ coursing along a line".
   component type exists) and `slab`.
 - The levels follow the usual accessible-route limits: at most 1/4" vertical, bevelled 1:2
   up to 1/2". They are starting points to edit, not code review.
+
+## ADR-079 Worksets — Accepted (2026-09-28)
+- **Worksharing is on from the start, set up as a Revit office template.** Every project
+  has these user-created worksets (studio-core `worksets`, `ElementData::Workset`):
+  - **Architecture:** the default (Revit's renamed Workset1).
+  - **Shared Levels and Grids**, **Structural**, **Interiors**, **Site**, **MEP** and
+    **Linked Models**.
+  - Older projects get them when opened, with no undo step and no unsaved changes.
+- **Assignment** is an element's `rufplan.workset` parameter, like Paint, so no element
+  kind changes. Model elements, levels and grids carry one.
+  - Without one, an element falls back by category: levels and grids to Shared Levels and
+    Grids, the structural layer (ADR-080) to Structural, everything else to Architecture.
+  - Views, annotations and types sit on Revit's system worksets: `View "…"` and Project
+    Standards, read-only.
+- **Active workset:** per session, as in Revit, and not saved. Collaborate > Active Workset
+  and the status bar set it.
+  - While it is anything but the default, new elements go on it. They are stamped as the
+    transaction commits, so it is the same undo step (`Document::active_workset`).
+  - With the default active, the category fallbacks apply.
+- **Worksets dialog** (Collaborate > Worksets), with Revit's columns: Name, Editable,
+  Owner, Opened, Visible in all views, and an element count.
+  - New, Rename, and Delete, which moves the elements to a workset you pick. The default
+    workset can't be deleted.
+  - Show: User-Created, Families, Project Standards, Views.
+- **Visibility:** Visible in all views (global) and Visibility/Graphics > Worksets (per
+  view, `View.hidden_worksets`), in plans, elevations, sections and 3D (`hidden_in`).
+- **Gray Inactive Workset Graphics** halftones what isn't on the active workset in 2D
+  views (canvas `Highlight.grayed`).
+- **Properties:** a Workset row. It is a choice for model elements and read-only for the
+  rest.
+- There is no worksharing server yet: Owner is you and every workset is editable.
+  Borrowing and central models come with sync (M6+).

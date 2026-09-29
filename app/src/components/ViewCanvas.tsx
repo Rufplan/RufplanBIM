@@ -267,6 +267,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const frame = useRef(0);
   const redrawRef = useRef<() => void>(() => {});
 
+  /** What draws grayed: elements off the active workset (Gray Inactive). */
+  const grayedFn = (active: string | null) => {
+    const ws = worksetOf.current;
+    if (!ws || !active) return undefined;
+    return (el: string | null) => el !== null && ws.has(el) && ws.get(el) !== active;
+  };
   const redraw = useCallback(() => {
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
@@ -297,6 +303,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         hidden: sk?.target ?? null,
         visible,
         thin: s.thinLines,
+        grayed: grayedFn(s.app?.activeWorkset ?? null),
         underlay:
           imagery.current || around
             ? (c, S) => {
@@ -495,6 +502,28 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       live = false;
     };
   }, [satellite, revision]);
+  // Gray Inactive Workset Graphics (ADR-079): each element's workset, while it's on.
+  const grayInactive = useAppStore((s) => s.grayInactive);
+  const worksetOf = useRef<Map<string, string> | null>(null);
+  useEffect(() => {
+    if (!grayInactive) {
+      worksetOf.current = null;
+      redrawRef.current();
+      return;
+    }
+    let live = true;
+    ipc.elementWorksets().then(
+      (pairs) => {
+        if (!live) return;
+        worksetOf.current = new Map(pairs);
+        redrawRef.current();
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [grayInactive, revision]);
   useLayoutEffect(() => {
     redrawRef.current = redraw;
   });

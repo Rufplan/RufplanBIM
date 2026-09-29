@@ -385,6 +385,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     // Hide in View (ADR-024).
     let vdata = doc.data(view).ok()?.clone();
     if matches!(&vdata, ElementData::View { hidden, hidden_categories, .. } if !hidden.is_empty() || !hidden_categories.is_empty())
+        || studio_core::worksets::any_hidden(doc, &vdata)
     {
         b.items.retain(|i| {
             !i.el

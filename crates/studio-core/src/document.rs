@@ -121,6 +121,9 @@ pub struct Document {
     /// same content, so derived data (regenerated geometry, display lists) is cached by it.
     stamp: u64,
     derived: DerivedCache,
+    /// The session's active workset (ADR-079): new elements go on it unless it is the
+    /// default one. Not saved; each user has their own, as in Revit.
+    active_workset: Option<ElementId>,
 }
 
 impl Default for Document {
@@ -133,6 +136,7 @@ impl Default for Document {
             dirty: false,
             stamp: fresh_stamp(),
             derived: DerivedCache::default(),
+            active_workset: None,
         }
     }
 }
@@ -242,6 +246,15 @@ impl Document {
 
     /// Runs `f` as one undoable transaction. If `f` or validation fails, every change is
     /// rolled back and the document is unchanged.
+    /// Sets the active workset (Collaborate > Active Workset).
+    pub fn set_active_workset(&mut self, ws: Option<ElementId>) {
+        self.active_workset = ws;
+    }
+
+    pub fn active_workset(&self) -> Option<ElementId> {
+        self.active_workset
+    }
+
     pub fn transact<T>(
         &mut self,
         name: &str,
@@ -255,8 +268,35 @@ impl Document {
         };
         let result = f(&mut tx).and_then(|v| tx.validate().map(|_| v));
         let Tx { before, order, .. } = tx;
+        // New elements go on the active workset, unless it's the default (their category's
+        // default then applies: levels and grids to Shared Levels and Grids).
+        let stamp_ws = self.active_workset.filter(|w| {
+            !matches!(
+                self.elements.get(w).map(|e| &e.data),
+                Some(ElementData::Workset {
+                    role: crate::worksets::WorksetRole::Default,
+                    ..
+                })
+            ) && self.elements.contains_key(w)
+        });
         match result {
             Ok(v) => {
+                if let Some(ws) = stamp_ws {
+                    for id in &order {
+                        if before.get(id).is_some_and(|b| b.is_none()) {
+                            if let Some(e) = self.elements.get_mut(id) {
+                                if crate::worksets::carries_workset(&e.data)
+                                    && !e.params.contains_key(crate::worksets::KEY)
+                                {
+                                    e.params.insert(
+                                        crate::worksets::KEY.into(),
+                                        ParamValue::Text(ws.to_string()),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
                 let mut entries = vec![];
                 for id in order {
                     let prev = before.get(&id).cloned().flatten();

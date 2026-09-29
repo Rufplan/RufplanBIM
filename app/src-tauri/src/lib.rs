@@ -25,6 +25,7 @@ mod standards_cmds;
 mod structure;
 mod symbols_cmds;
 mod window_cmds;
+mod workset_cmds;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
@@ -144,6 +145,15 @@ pub fn run() -> anyhow::Result<()> {
             detailing::reference_targets,
             detailing::create_reference,
             detailing::reference_target,
+            workset_cmds::worksets_list,
+            workset_cmds::set_active_workset,
+            workset_cmds::create_workset,
+            workset_cmds::rename_workset,
+            workset_cmds::delete_workset,
+            workset_cmds::set_workset_visible_in_all_views,
+            workset_cmds::set_workset_visible_in_view,
+            workset_cmds::set_elements_workset,
+            workset_cmds::element_worksets,
             detailing::create_elevation_marker,
             detailing::opening_preview_3d,
             detailing::set_section_box,

@@ -10,6 +10,7 @@ import {
   saveOverrides,
 } from "../shortcuts";
 import { activeViewInfo, useAppStore } from "../store";
+import { VisibilityWorksets, WorksetsDialog } from "./Worksets";
 import { GenerateDialog } from "./GenerateDialog";
 import { PlansDialog } from "./PlansDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
@@ -53,6 +54,7 @@ export function ViewDialogs() {
     );
   if (which === "keyboard") return <KeyboardDialog onClose={close} />;
   if (which === "visibility") return <VisibilityDialog onClose={close} />;
+  if (which === "worksets") return <WorksetsDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "ground") return <GroundDialog onClose={close} />;
@@ -150,6 +152,7 @@ function KeyboardDialog({ onClose }: { onClose: () => void }) {
 
 function VisibilityDialog({ onClose }: { onClose: () => void }) {
   const view = useAppStore((s) => activeViewInfo(s));
+  const [vvTab, setVvTab] = useState<"Model Categories" | "Worksets">("Model Categories");
   const [present, setPresent] = useState<string[]>([]);
   useEffect(() => {
     if (!view) return;
@@ -168,28 +171,48 @@ function VisibilityDialog({ onClose }: { onClose: () => void }) {
   );
   if (!view) return null;
   const hidden = new Set<string>(view.hiddenCategories);
+  const hasWorksets = (useAppStore.getState().app?.worksets.length ?? 0) > 0;
   const label = (c: string) => c.replace(/([a-z])([A-Z])/g, "$1 $2");
   return (
     <div className="modal-backdrop" role="dialog" aria-label="Visibility/Graphics">
       <div className="modal vv-dialog">
         <h2>Visibility/Graphics — {view.name}</h2>
-        <div className="vv-list">
-          {cats.map((c) => (
-            <label key={c} className="ob-check">
-              <input
-                type="checkbox"
-                checked={!hidden.has(c)}
-                onChange={(e) =>
-                  void apply(() =>
-                    ipc.setCategoryVisible(view.id, [c as Category], e.target.checked),
-                  )
-                }
-              />
-              {label(c)}
-            </label>
-          ))}
-          {cats.length === 0 && <p className="muted">Nothing in this view yet.</p>}
-        </div>
+        {hasWorksets && (
+          <div className="vv-tabs" role="tablist" aria-label="Visibility/Graphics tabs">
+            {(["Model Categories", "Worksets"] as const).map((t) => (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={vvTab === t}
+                className={vvTab === t ? "on" : ""}
+                onClick={() => setVvTab(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+        {vvTab === "Worksets" && hasWorksets ? (
+          <VisibilityWorksets view={view} />
+        ) : (
+          <div className="vv-list">
+            {cats.map((c) => (
+              <label key={c} className="ob-check">
+                <input
+                  type="checkbox"
+                  checked={!hidden.has(c)}
+                  onChange={(e) =>
+                    void apply(() =>
+                      ipc.setCategoryVisible(view.id, [c as Category], e.target.checked),
+                    )
+                  }
+                />
+                {label(c)}
+              </label>
+            ))}
+            {cats.length === 0 && <p className="muted">Nothing in this view yet.</p>}
+          </div>
+        )}
         <div className="modal-actions">
           <button
             className="btn-ghost"

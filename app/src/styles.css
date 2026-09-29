@@ -3999,3 +3999,90 @@ button:disabled {
   left: 100%;
   top: -5px;
 }
+
+/* ---------- Worksets (ADR-079) ---------- */
+.worksets-dialog {
+  width: min(760px, 94vw);
+}
+.ws-active {
+  margin: 4px 0 10px;
+}
+.ws-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ws-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border, #e3e6e9);
+  padding: 4px 8px;
+}
+.ws-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border, #e3e6e9);
+}
+.ws-table tr.on td {
+  background: var(--cyan-soft);
+}
+.ws-table tr.system td {
+  color: var(--muted);
+}
+.ws-table tbody tr:not(.system) {
+  cursor: pointer;
+}
+.ws-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+}
+.ws-show {
+  display: flex;
+  gap: 12px;
+  border: 1px solid var(--border, #e3e6e9);
+  padding: 4px 10px 8px;
+}
+.ws-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.ws-inline {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 10px;
+}
+.rb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+.status-workset select {
+  font-size: 12px;
+  border: 1px solid var(--border, #e3e6e9);
+  background: transparent;
+  max-width: 180px;
+}
+.vv-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border, #e3e6e9);
+}
+.vv-tabs button {
+  border: 0;
+  background: none;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+  color: var(--muted);
+}
+.vv-tabs button.on {
+  color: var(--ink);
+  border-bottom: 2px solid var(--cyan);
+}

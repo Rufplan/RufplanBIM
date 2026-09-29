@@ -96,6 +96,11 @@ export interface Highlight {
   thin?: boolean;
   /** Drawn on the paper, under everything (the satellite overlay, ADR-026). */
   underlay?: (ctx: CanvasRenderingContext2D, S: (x: number, y: number) => [number, number]) => void;
+  /** Drawn grayed out (halftone): Gray Inactive Workset Graphics, and the architecture
+   * under the structural overlay (ADR-079, ADR-080). */
+  grayed?: (el: string | null) => boolean;
+  /** Drawn over everything at full strength (the structural overlay, ADR-080). */
+  overlay?: (ctx: CanvasRenderingContext2D, S: (x: number, y: number) => [number, number]) => void;
 }
 
 export function draw(
@@ -117,12 +122,14 @@ export function draw(
     hl.underlay(ctx, S);
     ctx.restore();
   }
-  if (hl.faded) ctx.globalAlpha = 0.4;
+  const base = hl.faded ? 0.4 : 1;
+  ctx.globalAlpha = base;
 
   for (const item of dl.items) {
     const el = item.el;
     if (hl.hidden && el === hl.hidden) continue;
     if (hl.visible && !hl.visible(el)) continue;
+    if (hl.grayed) ctx.globalAlpha = hl.grayed(el) ? base * 0.3 : base;
     const isSel = el !== null && hl.selected.has(el);
     const isHover =
       !isSel &&
@@ -208,6 +215,11 @@ export function draw(
         break;
       }
     }
+  }
+  if (hl.overlay) {
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+    hl.overlay(ctx, S);
   }
   ctx.restore();
 }

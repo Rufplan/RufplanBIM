@@ -38,4 +38,8 @@ camera: CameraPose | null,
 /**
  * Drawn views (plans, elevations, sections): their Detail Level (ADR-067).
  */
-detailLevel: DetailLevel | null, };
+detailLevel: DetailLevel | null, 
+/**
+ * Visibility/Graphics > Worksets: worksets hidden in this view (ADR-079).
+ */
+hiddenWorksets: Array<ElementId>, };

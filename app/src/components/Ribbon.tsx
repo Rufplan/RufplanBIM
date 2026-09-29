@@ -19,6 +19,7 @@ import { SketchRibbon } from "./SketchRibbon";
 import { InPlaceRibbon } from "./InPlaceRibbon";
 import { TextRibbon } from "./TextRibbon";
 import { NewViewMenu } from "./NewViewMenu";
+import { ActiveWorkset } from "./Worksets";
 import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
 import { startComponent } from "../components";
@@ -92,6 +93,38 @@ async function newMaterial(from: string | null) {
   }
 }
 
+/** Collaborate (ADR-079): Revit's Manage Collaboration panel. */
+function CollaborateRibbon() {
+  const has = useAppStore((s) => (s.app?.worksets.length ?? 0) > 0);
+  const gray = useAppStore((s) => s.grayInactive);
+  const setGray = useAppStore((s) => s.setGrayInactive);
+  const setUi = useAppStore((s) => s.setUi);
+  return (
+    <Group title="Manage Collaboration">
+      <button
+        className="rb-btn"
+        disabled={!has}
+        title="Worksets: new, rename, delete, visibility"
+        onClick={() => setUi({ viewDialog: "worksets" })}
+      >
+        {Icons.worksets}
+        <span>Worksets</span>
+      </button>
+      <ActiveWorkset />
+      <button
+        className={`rb-btn${gray ? " active" : ""}`}
+        aria-pressed={gray}
+        disabled={!has}
+        title="Gray Inactive Workset Graphics: fade what isn't on the active workset"
+        onClick={() => setGray(!gray)}
+      >
+        {Icons.grayInactive}
+        <span>Gray Inactive</span>
+      </button>
+    </Group>
+  );
+}
+
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rb-group">
@@ -116,6 +149,7 @@ type Tab =
   | "Details"
   | "View"
   | "Sheets"
+  | "Collaborate"
   | "Manage"
   | "Rufplan";
 const TABS: Tab[] = [
@@ -133,6 +167,7 @@ const TABS: Tab[] = [
   "Details",
   "View",
   "Sheets",
+  "Collaborate",
   "Manage",
   "Rufplan",
 ];
@@ -986,6 +1021,7 @@ export function Ribbon() {
             </Group>
           </>
         )}
+        {tab === "Collaborate" && <CollaborateRibbon />}
         {tab === "Sheets" && (
           <>
             <Group title="Sheet Composition">

@@ -54,6 +54,8 @@ pub struct ViewInfo {
     pub camera: Option<studio_core::camera::CameraPose>,
     /// Drawn views (plans, elevations, sections): their Detail Level (ADR-067).
     pub detail_level: Option<studio_core::DetailLevel>,
+    /// Visibility/Graphics > Worksets: worksets hidden in this view (ADR-079).
+    pub hidden_worksets: Vec<ElementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -119,6 +121,9 @@ pub struct AppState {
     pub in_place: Option<crate::inplace_cmds::InPlaceInfo>,
     /// The site's lot, once found (ADR-023).
     pub site: Option<SiteSummary>,
+    /// Worksets (ADR-079), in the Worksets dialog's order, and the active one.
+    pub worksets: Vec<NamedItem>,
+    pub active_workset: Option<ElementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -241,6 +246,7 @@ impl Session {
                     hidden_categories,
                     site,
                     camera,
+                    hidden_worksets,
                     ..
                 } => {
                     let (view_type, level) = match kind {
@@ -270,6 +276,7 @@ impl Session {
                         callout_of: *callout_of,
                         hidden_categories: hidden_categories.clone(),
                         hidden_count: hidden.len(),
+                        hidden_worksets: hidden_worksets.clone(),
                         site: *site,
                         camera: camera.map(|c| studio_core::camera::pose(doc, &c)),
                         detail_level: e.data.detail_level().filter(|_| {
@@ -293,6 +300,7 @@ impl Session {
                     callout_of: None,
                     hidden_categories: vec![],
                     hidden_count: 0,
+                    hidden_worksets: vec![],
                     site: false,
                     camera: None,
                     detail_level: None,
@@ -320,7 +328,13 @@ impl Session {
             }) => (*current_stage, name.clone()),
             _ => (None, String::new()),
         };
+        let worksets = studio_core::worksets::worksets(doc)
+            .into_iter()
+            .map(|w| NamedItem { id: w.0, name: w.1 })
+            .collect();
         Some(AppState {
+            worksets,
+            active_workset: doc.active_workset(),
             project,
             revision: self.revision,
             views,
@@ -413,6 +427,7 @@ impl Session {
         ops::seed_default_project(&mut doc)?;
         doc.clear_history();
         doc.mark_saved();
+        doc.set_active_workset(studio_core::worksets::default_workset(&doc));
         self.project = Some(Project::new(app_version, doc));
         self.sketch = None;
         self.in_place = None;
@@ -448,6 +463,8 @@ impl Session {
         let text = String::from_utf8_lossy(&text);
         let (mut doc, report) = studio_io::ifc_import::import(&text)
             .map_err(|e| anyhow::anyhow!("could not import {}: {e}", path.display()))?;
+        studio_core::worksets::ensure_worksets(&mut doc)?;
+        doc.set_active_workset(studio_core::worksets::default_workset(&doc));
         let name = path
             .file_stem()
             .map(|s| s.to_string_lossy().into_owned())
@@ -557,6 +574,18 @@ impl Session {
                 }
             }
         }
+        // Worksharing (ADR-079): older projects get Revit's standard worksets, without an
+        // undo step or unsaved changes.
+        if project.doc.count(Category::Workset) == 0 {
+            let dirty = project.doc.is_dirty();
+            studio_core::worksets::ensure_worksets(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
+        let active = studio_core::worksets::default_workset(&project.doc);
+        project.doc.set_active_workset(active);
         self.project = Some(project);
         self.sketch = None;
         self.in_place = None;

@@ -345,6 +345,32 @@ export const Icons = {
       <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
     </I>
   ),
+  worksets: (
+    <I>
+      <rect x="3" y="4" width="11" height="8" />
+      <rect x="7" y="8" width="11" height="8" />
+      <rect x="10" y="12" width="11" height="8" />
+    </I>
+  ),
+  grayInactive: (
+    <I>
+      <rect x="3" y="5" width="8" height="14" />
+      <rect x="13" y="5" width="8" height="14" strokeDasharray="2 2" />
+    </I>
+  ),
+  structureSuggest: (
+    <I>
+      <path d="M4 20V8M12 20V8M20 20V8M3 8h18M3 14h18" />
+      <circle cx="18" cy="5" r="2.5" />
+    </I>
+  ),
+  structureOverlay: (
+    <I>
+      <rect x="3" y="3" width="18" height="18" strokeDasharray="2 2" />
+      <path d="M3 12h18M12 3v18" />
+      <rect x="10" y="10" width="4" height="4" />
+    </I>
+  ),
   newView: (
     <I>
       <rect x="3" y="5" width="14" height="14" />
