@@ -111,6 +111,21 @@ pub struct Note {
     pub to: Pt,
     pub text: String,
     pub align: crate::text::TextAlign,
+    /// The leader's shoulder: level with the text, so the leader angles down from it to
+    /// its arrowhead, as drafted in Revit.
+    pub elbow: Option<Pt>,
+}
+
+/// A detail component of a library detail (ADR-071), placed like one you draw.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DComp {
+    pub key: &'static str,
+    pub start: Pt,
+    pub end: Pt,
+    pub flip: bool,
+    /// Drawn after this many of the drawing's lines, keeping the order it was drafted in
+    /// (a component's mask hides what came before it).
+    pub after: usize,
 }
 
 /// A detail's drawing (model mm), before it becomes elements.
@@ -118,7 +133,35 @@ pub struct Note {
 pub struct Drawing {
     pub lines: Vec<DLine>,
     pub regions: Vec<(Vec<Pt>, FillPattern)>,
+    pub components: Vec<DComp>,
     pub notes: Vec<Note>,
+}
+
+impl Drawing {
+    /// Each component's geometry, for extents and previews.
+    pub fn component_parts(&self) -> Vec<components::Parts> {
+        self.components
+            .iter()
+            .filter_map(|c| {
+                Some(components::parts(
+                    components::type_of(c.key)?,
+                    c.start,
+                    c.end,
+                    c.flip,
+                ))
+            })
+            .collect()
+    }
+}
+
+/// The type of `family` whose size is within `tol` inches of `a` (and `b`), nearest first.
+fn type_near(family: components::Family, a: f64, b: Option<f64>, tol: f64) -> Option<&'static str> {
+    components::TYPES
+        .iter()
+        .filter(|t| t.family == family)
+        .filter(|t| (t.a - a).abs() <= tol && b.is_none_or(|b| (t.b - b).abs() <= tol))
+        .min_by(|x, y| (x.a - a).abs().total_cmp(&(y.a - a).abs()))
+        .map(|t| t.key)
 }
 
 /// Draws in inches (x right, y up), as details are dimensioned.
@@ -164,35 +207,98 @@ impl D {
     pub fn region_rect(&mut self, x0: f64, y0: f64, x1: f64, y1: f64, pattern: FillPattern) {
         self.region(&[(x0, y0), (x1, y0), (x1, y1), (x0, y1)], pattern);
     }
+    /// A detail component of type `key` from `a` to `b` (inches): along the line for
+    /// line-based ones, at `a` turned toward `b` for point-based ones.
+    pub fn comp(&mut self, key: &'static str, a: (f64, f64), b: (f64, f64), flip: bool) {
+        self.d.components.push(DComp {
+            key,
+            start: p(a.0, a.1),
+            end: p(b.0, b.1),
+            flip,
+            after: self.d.lines.len(),
+        });
+    }
+    /// A sheet-like component (sheathing, gypsum, side lumber, rigid insulation) filling the
+    /// rectangle when its thin side matches a type; false when none does.
+    fn sheet_comp(
+        &mut self,
+        family: components::Family,
+        x0: f64,
+        y0: f64,
+        x1: f64,
+        y1: f64,
+    ) -> bool {
+        let (xa, xb, ya, yb) = (x0.min(x1), x0.max(x1), y0.min(y1), y0.max(y1));
+        let (w, h) = (xb - xa, yb - ya);
+        // Horizontal: along +x, its thickness up. Vertical: down its left side, thickness
+        // to the right.
+        if w >= h {
+            if let Some(k) = type_near(family, h, None, 0.02) {
+                self.comp(k, (xa, ya), (xb, ya), false);
+                return true;
+            }
+        } else if let Some(k) = type_near(family, w, None, 0.02) {
+            self.comp(k, (xa, yb), (xa, ya), false);
+            return true;
+        }
+        false
+    }
     /// Cut material: its pattern inside a wide outline.
     pub fn cut(&mut self, pts: &[(f64, f64)], pattern: FillPattern) {
         self.region(pts, pattern);
         self.poly(pts, LineStyle::Wide);
     }
     pub fn cut_rect(&mut self, x0: f64, y0: f64, x1: f64, y1: f64, pattern: FillPattern) {
+        if pattern == FillPattern::RigidInsulation
+            && self.sheet_comp(components::Family::RigidInsulation, x0, y0, x1, y1)
+        {
+            return;
+        }
         self.cut(&[(x0, y0), (x1, y0), (x1, y1), (x0, y1)], pattern);
     }
     /// Lumber cut across its length: the outline with an X (Revit's wood blocking).
     pub fn lumber(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
+        let (w, h) = ((x1 - x0).abs(), (y1 - y0).abs());
+        let c = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+        let fam = components::Family::CutLumber;
+        if let Some(k) = type_near(fam, w, Some(h), 0.05) {
+            return self.comp(k, c, (c.0 + 1.0, c.1), false);
+        }
+        if let Some(k) = type_near(fam, h, Some(w), 0.05) {
+            return self.comp(k, c, (c.0, c.1 + 1.0), false);
+        }
         self.rect(x0, y0, x1, y1, LineStyle::Medium);
         self.line(&[(x0, y0), (x1, y1)], LineStyle::Thin);
         self.line(&[(x0, y1), (x1, y0)], LineStyle::Thin);
     }
     /// Lumber seen along its length (a stud or joist in elevation).
     pub fn board(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
+        if self.sheet_comp(components::Family::LumberSide, x0, y0, x1, y1) {
+            return;
+        }
         self.rect(x0, y0, x1, y1, LineStyle::Medium);
     }
     /// Sheathing or plywood cut: a thin outline with a single diagonal line inside.
     pub fn sheet(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
+        if self.sheet_comp(components::Family::Plywood, x0, y0, x1, y1) {
+            return;
+        }
         self.rect(x0, y0, x1, y1, LineStyle::Medium);
     }
     /// Gypsum board cut: outline with a sand stipple.
     pub fn gyp(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
+        if self.sheet_comp(components::Family::Gypsum, x0, y0, x1, y1) {
+            return;
+        }
         self.region_rect(x0, y0, x1, y1, FillPattern::Sand);
         self.rect(x0, y0, x1, y1, LineStyle::Medium);
     }
     /// Batt insulation between `a` and `b`, `w` thick: Revit's zigzag.
     pub fn batt(&mut self, a: (f64, f64), b: (f64, f64), w: f64) {
+        // Revit's Insulation: the batt type nearest the cavity.
+        if let Some(k) = type_near(components::Family::BattInsulation, w, None, 1.0) {
+            return self.comp(k, a, b, false);
+        }
         let (dx, dy) = (b.0 - a.0, b.1 - a.1);
         let len = (dx * dx + dy * dy).sqrt();
         if len < 1e-6 {
@@ -214,6 +320,10 @@ impl D {
     }
     /// A break line from `a` to `b`, with its zig in the middle.
     pub fn brk(&mut self, a: (f64, f64), b: (f64, f64)) {
+        // Revit's Break Line, without a mask: the drawing simply stops at it.
+        if ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt() > 1e-6 {
+            return self.comp("break-open", a, b, false);
+        }
         let (dx, dy) = (b.0 - a.0, b.1 - a.1);
         let len = (dx * dx + dy * dy).sqrt();
         let (ux, uy) = (dx / len, dy / len);
@@ -238,6 +348,9 @@ impl D {
     }
     /// A reinforcing bar cut: a small solid dot.
     pub fn rebar(&mut self, x: f64, y: f64, dia: f64) {
+        if let Some(k) = type_near(components::Family::Rebar, dia, None, 0.15) {
+            return self.comp(k, (x, y), (x + 1.0, y), false);
+        }
         let r = dia / 2.0;
         let ring: Vec<(f64, f64)> = (0..10)
             .map(|i| {
@@ -268,12 +381,19 @@ impl D {
     /// The drawing with its notes set out in columns either side of it, text `size` paper
     /// mm at 1:`scale`, leaders to their targets.
     pub fn finish(mut self, scale: u32, size: f64) -> Drawing {
+        let parts = self.d.component_parts();
         let pts: Vec<Pt> = self
             .d
             .lines
             .iter()
             .flat_map(|l| l.pts.iter().copied())
             .chain(self.d.regions.iter().flat_map(|r| r.0.iter().copied()))
+            .chain(parts.iter().flat_map(|p| {
+                p.lines
+                    .iter()
+                    .flat_map(|l| l.pts.iter().copied())
+                    .chain(p.regions.iter().flat_map(|r| r.0.iter().flatten().copied()))
+            }))
             .collect();
         let Some((lo, hi)) = studio_geom::bounds_of(&pts) else {
             return self.d;
@@ -286,11 +406,14 @@ impl D {
             let to = p(x, y);
             sides[usize::from(to.x >= mid)].push((to, text));
         }
+        let h = size * s;
         for (side, notes) in sides.iter_mut().enumerate() {
-            notes.sort_by(|a, b| b.0.y.total_cmp(&a.0.y));
-            let mut last = f64::INFINITY;
+            // From the bottom up, each note at least a row above its target, so every
+            // leader angles down to it (Revit's drafting convention).
+            notes.sort_by(|a, b| a.0.y.total_cmp(&b.0.y));
+            let mut last = f64::NEG_INFINITY;
             for (to, text) in notes.iter() {
-                let y = to.y.min(last - row);
+                let y = (to.y + row).max(last + row);
                 last = y;
                 // The text on its side of the drawing; its leader (a text note's own,
                 // ADR-070) runs from the facing side to the target.
@@ -299,11 +422,17 @@ impl D {
                 } else {
                     (Pt::new(lo.x - gap, y), crate::text::TextAlign::Right)
                 };
+                // The shoulder: level from where the leader leaves the text (see
+                // `text::attach`), a quarter of the way toward the target.
+                let toward = if side == 1 { -1.0 } else { 1.0 };
+                let from = at.x + toward * h * 0.4;
+                let shoulder = ((from - to.x).abs() * 0.25).clamp(3.0 * s, 10.0 * s);
                 self.d.notes.push(Note {
                     at,
                     to: *to,
                     text: text.clone(),
                     align,
+                    elbow: Some(Pt::new(from + toward * shoulder, y)),
                 });
             }
         }
@@ -387,7 +516,19 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
                 outline: None,
             });
         }
-        for l in &drawing.lines {
+        let comp = |tx: &mut crate::document::Tx<'_>, c: &DComp| {
+            tx.insert(ElementData::DetailComponent {
+                view,
+                type_key: c.key.into(),
+                start: c.start,
+                end: c.end,
+                flip: c.flip,
+            });
+        };
+        for (i, l) in drawing.lines.iter().enumerate() {
+            for c in drawing.components.iter().filter(|c| c.after == i) {
+                comp(tx, c);
+            }
             let n = l.pts.len();
             let segs = if l.closed { n } else { n.saturating_sub(1) };
             for i in 0..segs {
@@ -401,6 +542,13 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
                 }
             }
         }
+        for c in drawing
+            .components
+            .iter()
+            .filter(|c| c.after >= drawing.lines.len())
+        {
+            comp(tx, c);
+        }
         for note in &drawing.notes {
             tx.insert(ElementData::TextNote {
                 view,
@@ -409,7 +557,7 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
                 size: TEXT_SIZE,
                 leaders: vec![crate::text::Leader {
                     end: note.to,
-                    elbow: None,
+                    elbow: note.elbow,
                     arc: false,
                 }],
                 align: note.align,
@@ -734,20 +882,51 @@ mod tests {
             );
             let (scale, d) = drawing(&info.id).unwrap();
             assert_eq!(scale, info.scale);
-            assert!(d.lines.len() > 6, "{} has {} lines", info.id, d.lines.len());
-            assert!(!d.regions.is_empty() || d.lines.len() > 20, "{}", info.id);
+            let drawn = d.lines.len() + d.components.len();
+            assert!(drawn > 6, "{} has {drawn} lines and components", info.id);
             assert!(d.notes.len() >= 3, "{}", info.id);
+            // Built from detail components (ADR-071) where a type fits, every one real.
+            assert!(!d.components.is_empty(), "{} has no components", info.id);
+            assert!(
+                d.components
+                    .iter()
+                    .all(|c| components::type_of(c.key).is_some()),
+                "{}",
+                info.id
+            );
+            assert_eq!(d.component_parts().len(), d.components.len());
             // Notes sit outside the drawing's own extent and never overlap each other.
+            let parts = d.component_parts();
             let geo: Vec<Pt> = d
                 .lines
                 .iter()
                 .filter(|l| l.style != LineStyle::Thin || l.pts.len() > 2)
                 .flat_map(|l| l.pts.iter().copied())
+                .chain(
+                    parts
+                        .iter()
+                        .flat_map(|p| p.lines.iter().flat_map(|l| l.pts.iter().copied())),
+                )
                 .collect();
             let (lo, hi) = studio_geom::bounds_of(&geo).unwrap();
             let row = TEXT_SIZE * f64::from(scale) * 1.9;
             for (i, n) in d.notes.iter().enumerate() {
                 assert!(n.at.x > hi.x || n.at.x < lo.x, "{}: {}", info.id, n.text);
+                // Every leader leaves level (its shoulder), then angles down to its target.
+                let e = n.elbow.unwrap();
+                assert_eq!(e.y, n.at.y, "{}: {}", info.id, n.text);
+                assert!(n.to.y < n.at.y, "{}: {} points up", info.id, n.text);
+                let right = n.at.x > hi.x;
+                assert!(
+                    if right {
+                        e.x < n.at.x && e.x > n.to.x
+                    } else {
+                        e.x > n.at.x && e.x < n.to.x
+                    },
+                    "{}: {}",
+                    info.id,
+                    n.text
+                );
                 for m in &d.notes[i + 1..] {
                     let same_side = (n.at.x > hi.x) == (m.at.x > hi.x);
                     assert!(!same_side || (n.at.y - m.at.y).abs() >= row, "{}", info.id);
@@ -773,8 +952,9 @@ mod tests {
         assert_eq!(*scale, 4, "window heads are drawn at 3\" = 1'-0\"");
         assert_eq!(name, "Window Head - Wood Frame");
         let owned = |cat: Category| doc.of(cat).filter(|e| e.data.refs().contains(&v)).count();
-        assert!(owned(Category::DetailLine) > 20);
-        assert!(owned(Category::FilledRegion) > 2);
+        assert!(owned(Category::DetailLine) > 10);
+        // Sheathing, gypsum, lumber, insulation and break lines are detail components.
+        assert!(owned(Category::DetailComponent) > 5);
         assert!(owned(Category::TextNote) >= 3);
         // A second copy gets its own name.
         let v2 = insert(&mut doc, "window-head").unwrap();

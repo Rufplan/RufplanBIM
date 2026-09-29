@@ -2784,3 +2784,28 @@ coursing along a line".
 - **Opening:** double-clicking the mark opens the view it points at.
 - **File format:** adding the variant is additive. Older builds can't read a project that
   has one.
+
+## ADR-077 Library details built from components, leaders angled down — Accepted (2026-09-28)
+- **The 22 typical details (ADR-069) now use the detailing tools of ADR-070–071.** A
+  library helper places a real detail component whenever a type fits the size it draws
+  (studio-core `details::D`). Other shapes stay lines and filled regions:
+  - Cut lumber: `lumber`, 2x4 through 6x6, turned to fit.
+  - Side lumber: `board`.
+  - Plywood and OSB: `sheet`.
+  - Gypsum board: `gyp`.
+  - Rigid insulation: `cut_rect` with the rigid pattern.
+  - Batt insulation: `batt`, the nearest batt within 1".
+  - Break lines: `brk`.
+  - Rebar: `rebar`.
+  - Brick and CMU coursing, the repeating details, in Brick Veneer at Foundation and CMU
+    Wall at Slab.
+- **Draw order is kept.** `Drawing.components` records each component's place among the
+  lines (`DComp.after`). Inserting a detail and its library thumbnail draw them in that
+  order, so a component's mask covers what was drafted before it, as in Revit. The batts
+  in the plan details go before the studs for that reason.
+- **New type:** Break Line - No Mask (`break-open`). The library's break lines mark where
+  the drawing stops, with nothing to hide.
+- **Leaders angle down, as drafted in Revit.** Each note is set at least a row above its
+  target, laid out bottom-up so notes never overlap. Its leader leaves the text level (a
+  shoulder a quarter of the way over, 3–10 mm on paper), then angles down to the arrowhead:
+  `Note.elbow`, inserted as the text note's two-segment leader.

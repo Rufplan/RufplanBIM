@@ -106,6 +106,7 @@ use Family as F;
 pub static TYPES: &[ComponentType] = &[
     t("break", F::BreakLine, "Break Line", 12.0, 0.0),
     t("break-small", F::BreakLine, "Break Line - Small", 3.0, 0.0),
+    t("break-open", F::BreakLine, "Break Line - No Mask", 0.0, 0.0),
     t("ply-716", F::Plywood, "7/16\" OSB", 0.4375, 0.0),
     t("ply-12", F::Plywood, "1/2\" Plywood", 0.5, 0.0),
     t("ply-58", F::Plywood, "5/8\" Plywood", 0.625, 0.0),
@@ -292,7 +293,9 @@ pub fn parts(t: &ComponentType, start: Pt, end: Pt, flip: bool) -> Parts {
             // Masks a band `a` deep on its left, under the zigzag in its middle.
             let m = l / 2.0;
             let z = (l * 0.05).clamp(0.5, 3.0);
-            p.region_rect(0.0, 0.0, l, a, Masking);
+            if a > 0.0 {
+                p.region_rect(0.0, 0.0, l, a, Masking);
+            }
             p.line(
                 &[
                     (-0.5, 0.0),

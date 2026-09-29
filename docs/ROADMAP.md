@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Library details drawn with detail components (lumber, sheathing, gypsum, batt and rigid
+  insulation, brick/CMU coursing, break lines, rebar), notes with Revit-style leaders angled
+  down from a shoulder (ADR-077).
 - Reference sections and callouts: Reference Other View on Section and Callout, pointing at
   typical details in drafting views or other sections and callouts (ADR-076).
 - Arrow keys nudge the selection, Shift+arrow farther, the step following the zoom (ADR-075).

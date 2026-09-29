@@ -1,9 +1,7 @@
 //! The typical details (ADR-069), drawn in inches with the exterior to the left (sections)
 //! or up (plans). Light-frame US residential construction, as a starting point to edit.
 
-use super::FillPattern::{
-    Concrete, CrossHatch, Gravel, Masonry, RigidInsulation, Sand, Solid, Steel, Wood,
-};
+use super::FillPattern::{Concrete, Gravel, RigidInsulation, Sand, Solid, Steel, Wood};
 use super::D;
 use crate::lines::LineStyle::{Beyond, Hidden, Medium, Thin, Wide};
 
@@ -507,12 +505,13 @@ fn wall_plan() -> D {
     let mut d = D::new();
     // Interior at the bottom (y 0), exterior up.
     d.gyp(-6.0, 0.0, 30.0, 0.5);
-    for x in [0.0, 16.0] {
-        d.lumber(x, 0.5, x + 1.5, 6.0);
-    }
+    // Batts first: the studs mask their ends, as Revit draws insulation behind framing.
     d.batt((-6.0, 3.25), (0.0, 3.25), 5.5);
     d.batt((1.5, 3.25), (16.0, 3.25), 5.5);
     d.batt((17.5, 3.25), (30.0, 3.25), 5.5);
+    for x in [0.0, 16.0] {
+        d.lumber(x, 0.5, x + 1.5, 6.0);
+    }
     d.sheet(-6.0, 6.0, 30.0, 6.4375);
     d.line(&[(-6.0, 6.55), (30.0, 6.55)], Hidden);
     d.rect(-6.0, 6.6, 30.0, 7.2, Medium);
@@ -546,15 +545,9 @@ fn brick_base() -> D {
     wall_2x6(&mut d, 1.5, 32.0, 32.0);
     d.sheet(-0.5, -0.5, 0.0, 1.5);
     d.line(&[(-0.6, -0.5), (-0.6, 32.0)], Hidden);
-    // Brick in courses (2 2/3" each) on the flashing, 1" air space behind.
-    let (bx0, bx1, by0) = (-5.1, -1.5, -3.6);
-    d.region(&[(bx0, by0), (bx1, by0), (bx1, 32.0), (bx0, 32.0)], Masonry);
-    d.rect(bx0, by0, bx1, 32.0, Wide);
-    let mut y = by0 + 2.667;
-    while y < 32.0 {
-        d.line(&[(bx0, y), (bx1, y)], Thin);
-        y += 2.667;
-    }
+    // Modular brick coursing (a repeating detail, 2 2/3" courses) on the flashing, 1"
+    // air space behind.
+    d.comp("brick-mod", (-1.5, -3.6), (-1.5, 32.0), false);
     d.flashing(&[(-0.6, 8.0), (-0.6, -3.7), (-5.6, -3.7), (-6.1, -4.3)]);
     for y in [7.0, 23.0] {
         d.line(&[(-0.6, y), (-3.3, y), (-3.3, y + 0.8)], Medium);
@@ -586,16 +579,8 @@ fn cmu_slab() -> D {
         &[(-4.0, -16.0), (12.0, -16.0), (12.0, -6.0), (-4.0, -6.0)],
         Concrete,
     );
-    d.region(
-        &[(0.0, -6.0), (7.625, -6.0), (7.625, 36.0), (0.0, 36.0)],
-        CrossHatch,
-    );
-    d.rect(0.0, -6.0, 7.625, 36.0, Wide);
-    let mut y = -6.0 + 8.0;
-    while y < 36.0 {
-        d.line(&[(0.0, y), (7.625, y)], Thin);
-        y += 8.0;
-    }
+    // 8" CMU coursing (a repeating detail, 8" courses).
+    d.comp("cmu-8", (7.625, -6.0), (7.625, 36.0), false);
     d.line(&[(3.8, 34.0), (3.8, -13.0), (8.0, -13.0)], Hidden);
     d.cut(
         &[(8.1, 0.0), (40.0, 0.0), (40.0, -4.0), (8.1, -4.0)],
@@ -743,9 +728,9 @@ fn window_jamb() -> D {
     let mut d = D::new();
     // Plan: interior at the bottom, exterior up; the opening to the right of x 0.
     d.gyp(-14.0, 0.0, 0.25, 0.5);
+    d.batt((-14.0, 3.25), (-3.0, 3.25), 5.5);
     d.lumber(-1.5, 0.5, 0.0, 6.0);
     d.lumber(-3.0, 0.5, -1.5, 6.0);
-    d.batt((-14.0, 3.25), (-3.0, 3.25), 5.5);
     d.sheet(-14.0, 6.0, 0.0, 6.5);
     d.line(&[(-14.0, 6.6), (-3.2, 6.6)], Hidden);
     d.rect(-14.0, 6.6, -3.25, 7.2, Medium);

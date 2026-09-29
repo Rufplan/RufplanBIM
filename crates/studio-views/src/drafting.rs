@@ -202,14 +202,25 @@ pub fn detail_preview(id: &str) -> Option<DisplayList> {
     for (ring_pts, pattern) in &d.regions {
         region(&mut b, None, std::slice::from_ref(ring_pts), *pattern, None);
     }
-    for l in &d.lines {
+    // Components among the lines in the order they were drafted, as inserted.
+    let parts = d.component_parts();
+    let comps = |b: &mut Builder, when: &dyn Fn(usize) -> bool| {
+        for (c, p) in d.components.iter().zip(&parts) {
+            if when(c.after) {
+                component(b, None, p);
+            }
+        }
+    };
+    for (i, l) in d.lines.iter().enumerate() {
+        comps(&mut b, &|after| after == i);
         let (w, dash) = line_style(l.style);
         b.line(None, &l.pts, l.closed, w, dash);
     }
+    comps(&mut b, &|after| after >= d.lines.len());
     for n in &d.notes {
         let leader = studio_core::text::Leader {
             end: n.to,
-            elbow: None,
+            elbow: n.elbow,
             arc: false,
         };
         super::text_note(

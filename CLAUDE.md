@@ -151,6 +151,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Library details from components (ADR-077): `details::D` helpers place DetailComponents
+  (`Drawing.components`, `DComp.after` keeps draw order); notes carry `elbow` shoulders.
 - Reference sections/callouts (ADR-076): studio-core `references` (RefShape, targets, create,
   placement), ElementData::ViewReference; studio-views `reference_marks`; app detailing
   `reference_targets`/`create_reference`/`reference_target`; components/ReferenceOptions.tsx.
