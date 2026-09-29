@@ -2565,3 +2565,68 @@ etc... similar to how Revit does it".
   - Schedules listing in-place elements.
   - In-place walls bounding rooms or hosting doors and windows (Revit doesn't host in them
     either).
+
+## ADR-069 Drafting views, filled regions and the Detail Library — Accepted (2026-09-28)
+Owner request (2026-09-28): "create a new tab for details and have it act like the door or
+window library grid of details, but for typical details, and have each detail drawn at a
+typical scale for that type of detail. If you need to create a detail view like Revit has
+first, please do. I think we should have detail views anyway."
+
+- **Drafting views.** `ViewKind::Drafting` is Revit's drafting view: a 2D-only view at a
+  scale, holding its own detail lines, filled regions and text, with no model in it.
+  - The project browser lists them under Drafting Views, and they go on sheets like any
+    view.
+  - Their extent is whatever is drawn in them.
+  - Tools there are the 2D ones: Detail Line, Text, Filled Region, Move, Copy, Rotate,
+    Mirror, Array and Offset.
+  - Revit's model detail views are our callouts (ADR-020); the Details tab offers Callout
+    too.
+- **Filled regions.** `ElementData::FilledRegion` has a view, its loops (the first is the
+  outline, the rest are holes), a pattern and an optional outline line style.
+  - They are sketched in sketch mode (`SketchKind::FilledRegion`) in any 2D view, with the
+    pattern picked on the sketch tab. Double-click one to edit its boundary; change its
+    pattern and outline in Properties.
+  - **Patterns** are Revit's drafting patterns, sized in paper mm so they read the same at
+    any scale: Solid, Gray, Diagonal, Crosshatch, Concrete (aggregate stipple), Earth,
+    Gravel, Sand/Gypsum, Masonry, Rigid Insulation, Wood and Steel (studio-views
+    `drafting`).
+  - The pattern is clipped to the region's even-odd area, holes included.
+  - Regions draw over the model and under the view's lines and text.
+- **The Detail Library.** 22 typical details for US light-frame construction (studio-core
+  `details`), each drawn at the scale that kind of detail is usually drawn at:
+  - **Foundations:** thickened slab edge, stem wall at crawlspace, basement wall with
+    footing drain (3/4" = 1'-0"); interior spread footing (1" = 1'-0").
+  - **Walls:** exterior wall assembly in plan (3" = 1'-0"); brick veneer at foundation and
+    CMU wall at slab (1 1/2" = 1'-0").
+  - **Openings:** window head, sill and jamb, and interior door jamb (3" = 1'-0"); exterior
+    door threshold (6" = 1'-0", a new scale).
+  - **Roofs:** eave with gutter, rake, parapet with coping and ridge vent
+    (1 1/2" = 1'-0").
+  - **Floors & Stairs:** rim joist and deck guardrail (1 1/2" = 1'-0"); stair tread and
+    riser, and handrail at wall (3" = 1'-0").
+  - **Interiors:** base cabinet (1 1/2" = 1'-0"); acoustical ceiling at wall and partition
+    head (3" = 1'-0").
+  - **How they're drawn:** a small builder draws in inches, with parts for cut lumber (the
+    X), boards, sheathing, gypsum, batts (Revit's zigzag), break lines, rebar, flashing,
+    earth and lap siding.
+    - Cut material has a wide outline over its pattern.
+    - Notes are set out in columns on either side, spaced so they never overlap, each with a
+      leader and a solid arrowhead.
+    - A test checks every detail's scale, lines, regions and notes.
+- **Inserting a detail** makes a drafting view at the detail's scale in one undo step.
+  - Every line, region and note becomes its own element to edit.
+  - A second copy is named "(2)".
+- **The Details tab** comes after Annotate:
+  - Create: Drafting View (name and scale), Detail Library and Callout.
+  - Detail: Detail Line, Filled Region and Text.
+  - **The Detail Library window** is laid out like the door and window libraries:
+    - Categories with counts, and a search box.
+    - A grid of drawn thumbnails (the view's display list drawn as SVG) showing each
+      detail's scale.
+    - The chosen detail larger with its notes, and Insert Detail (or double-click a card).
+- **Not yet:**
+  - Saving your own details to the library.
+  - Detail components (Revit's repeating 2D families, such as brick or CMU coursing along a
+    line).
+  - Dimensions in drafting views (they measure model elements).
+  - Revit's Insulation tool, which draws a batt along a line with a width.

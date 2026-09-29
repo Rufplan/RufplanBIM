@@ -29,6 +29,7 @@ const VIEW_GROUPS: [ViewType, string][] = [
   ["Elevation", "Elevations"],
   ["Section", "Sections"],
   ["ThreeD", "3D Views"],
+  ["Drafting", "Drafting Views"],
   ["Schedule", "Schedules"],
 ];
 

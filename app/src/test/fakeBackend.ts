@@ -2,6 +2,7 @@ import { mockIPC } from "@tauri-apps/api/mocks";
 import type { AppState } from "../ipc";
 import type { DetailLevel } from "../bindings/DetailLevel";
 import type { FormKind } from "../bindings/FormKind";
+import type { FillPattern } from "../bindings/FillPattern";
 import type { Category } from "../bindings/Category";
 import type { Standards } from "../bindings/Standards";
 
@@ -212,6 +213,34 @@ export function appState(path: string | null, dirty = false): AppState {
     inPlace: null,
   };
 }
+
+/** The fake Detail Library (ADR-069). */
+export const FAKE_DETAILS = [
+  {
+    id: "slab-edge",
+    name: "Thickened Slab Edge",
+    category: "Foundations",
+    scale: 16,
+    scaleLabel: `3/4" = 1'-0"`,
+    description: "Slab-on-grade with a thickened edge.",
+  },
+  {
+    id: "window-head",
+    name: "Window Head - Wood Frame",
+    category: "Openings",
+    scale: 4,
+    scaleLabel: `3" = 1'-0"`,
+    description: "Flanged window under an insulated header.",
+  },
+  {
+    id: "eave",
+    name: "Eave with Gutter",
+    category: "Roofs",
+    scale: 8,
+    scaleLabel: `1 1/2" = 1'-0"`,
+    description: "6:12 truss roof eave.",
+  },
+];
 
 /** The fake in-place element (ADR-068). */
 export const IN_PLACE_ID = "00000000-0000-7000-8000-000000000070";
@@ -620,7 +649,7 @@ export function installFakeBackend(): FakeBackend {
             fake.state = {
               ...fake.state,
               sketch: {
-                kind: a.kind as "Floor" | "Ceiling" | "WallOpening",
+                kind: a.kind as "Floor" | "Ceiling" | "WallOpening" | "FilledRegion",
                 // From 3D, the sketch goes through the level's plan (ADR-025); a wall
                 // opening's stays in its view, on the wall's face (ADR-058).
                 view:
@@ -653,7 +682,90 @@ export function installFakeBackend(): FakeBackend {
                 canUndo: false,
                 canRedo: false,
                 form: null,
+                region: a.kind === "FilledRegion" ? "Diagonal" : null,
               },
+            };
+          return fake.state;
+        // The Details tab (ADR-069).
+        case "detail_library":
+          return FAKE_DETAILS;
+        case "detail_preview":
+          return {
+            viewType: "Drafting",
+            scale: 4,
+            bounds: [0, 0, 1000, 600],
+            items: [
+              {
+                el: null,
+                prim: {
+                  t: "Fill",
+                  rings: [
+                    [
+                      [0, 0],
+                      [500, 0],
+                      [500, 200],
+                    ],
+                  ],
+                  fill: "Paper",
+                },
+              },
+              {
+                el: null,
+                prim: {
+                  t: "Line",
+                  pts: [
+                    [0, 0],
+                    [900, 500],
+                  ],
+                  closed: false,
+                  w: 3,
+                  dash: "Solid",
+                },
+              },
+              { el: null, prim: { t: "Circle", c: [300, 300], r: 20, w: 1, filled: true } },
+              {
+                el: null,
+                prim: {
+                  t: "Text",
+                  at: [600, 100],
+                  text: "NOTE",
+                  size: 10,
+                  anchor: "Left",
+                  angle: 0,
+                },
+              },
+            ],
+          };
+        case "detail_insert":
+        case "create_drafting_view": {
+          if (!fake.state) return [null, null];
+          const info = FAKE_DETAILS.find((d) => d.id === a.id);
+          const id = `00000000-0000-7000-8000-0000000009${String(fake.state.views.length).padStart(2, "0")}`;
+          const name = cmd === "detail_insert" ? info!.name : (a.name as string) || "Drafting 1";
+          fake.state = {
+            ...fake.state,
+            revision: fake.state.revision + 1,
+            views: [
+              ...fake.state.views,
+              {
+                ...fake.state.views[0]!,
+                id,
+                name,
+                viewType: "Drafting",
+                level: null,
+                scale: cmd === "detail_insert" ? info!.scale : (a.scale as number),
+                scaleLabel: cmd === "detail_insert" ? info!.scaleLabel : "",
+                detailLevel: null,
+              },
+            ],
+          };
+          return [id, fake.state];
+        }
+        case "sketch_set_pattern":
+          if (fake.state?.sketch)
+            fake.state = {
+              ...fake.state,
+              sketch: { ...fake.state.sketch, region: a.pattern as FillPattern },
             };
           return fake.state;
         // Model In-Place (ADR-068).
@@ -719,6 +831,7 @@ export function installFakeBackend(): FakeBackend {
                   index: (a.index as number | null) ?? null,
                   top: false,
                 },
+                region: null,
               },
             };
           }

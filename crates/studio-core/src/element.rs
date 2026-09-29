@@ -110,6 +110,8 @@ pub enum Category {
     Casework,
     SpecialtyEquipment,
     PlumbingFixture,
+    /// Filled regions in drafting views and details (ADR-069).
+    FilledRegion,
 }
 
 impl Category {
@@ -171,6 +173,7 @@ impl Category {
             Category::Casework => "Casework",
             Category::SpecialtyEquipment => "SpecialtyEquipment",
             Category::PlumbingFixture => "PlumbingFixture",
+            Category::FilledRegion => "FilledRegion",
         }
     }
 }
@@ -838,6 +841,9 @@ pub enum ViewKind {
         marker: ElementId,
         facing: Compass,
     },
+    /// Revit's drafting view (ADR-069): a 2D sheet of detail lines, filled regions and
+    /// text at a scale, with no model in it (typical details).
+    Drafting,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1360,6 +1366,17 @@ pub enum ElementData {
         dabs: Vec<[f64; 4]>,
         spec: crate::grass::GrassSpec,
     },
+    /// A filled region (ADR-069): an area of a view hatched with a pattern (concrete, earth,
+    /// insulation…), its first loop the outline and the rest holes.
+    FilledRegion {
+        view: ElementId,
+        boundary: Vec<Vec<Pt>>,
+        pattern: crate::details::FillPattern,
+        /// Its boundary drawn in this line style; None: invisible, as Revit's detail
+        /// components mostly are.
+        #[serde(default)]
+        outline: Option<crate::lines::LineStyle>,
+    },
     /// Model In-Place (ADR-068): a one-off element modelled from forms (extrusions, blends,
     /// sweeps and voids), in the category chosen for it: it is a wall, a door, furniture…
     /// for visibility, filters, schedules and IFC, as in Revit.
@@ -1479,6 +1496,7 @@ impl ElementData {
             ElementData::GroundRegion { .. } => Category::GroundRegion,
             ElementData::GrassPatch { .. } => Category::GrassPatch,
             ElementData::InPlace { category, .. } => *category,
+            ElementData::FilledRegion { .. } => Category::FilledRegion,
         }
     }
 
@@ -1578,6 +1596,7 @@ impl ElementData {
             | ElementData::SpotElevation { view, .. }
             | ElementData::SpotSlope { view, .. }
             | ElementData::DetailLine { view, .. }
+            | ElementData::FilledRegion { view, .. }
             | ElementData::ModelLine { level: view, .. }
             | ElementData::NorthArrow { view, .. }
             | ElementData::GraphicScale { view, .. }
@@ -1664,6 +1683,9 @@ impl ElementData {
             ElementData::GroundRegion { .. } => "Ground Region".into(),
             ElementData::GrassPatch { spec, .. } => format!("Grass: {}", spec.kind.label()),
             ElementData::InPlace { name, .. } => name.clone(),
+            ElementData::FilledRegion { pattern, .. } => {
+                format!("Filled Region: {}", pattern.label())
+            }
             ElementData::Sheet { number, name, .. } => format!("{number} - {name}"),
             ElementData::Viewport { .. } => "Viewport".into(),
             ElementData::Tag { .. } => "Tag".into(),

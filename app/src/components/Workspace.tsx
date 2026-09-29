@@ -12,6 +12,7 @@ const TYPE_LABEL = {
   Section: "Section",
   Schedule: "Schedule",
   Sheet: "Sheet",
+  Drafting: "Drafting View",
 } as const;
 
 export function Workspace() {

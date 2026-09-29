@@ -30,6 +30,8 @@ pub const SCALES: &[(u32, &str)] = &[
     (12, "1\" = 1'-0\""),
     (8, "1 1/2\" = 1'-0\""),
     (4, "3\" = 1'-0\""),
+    // Large details: thresholds, flashing (ADR-069).
+    (2, "6\" = 1'-0\""),
     // Engineering scales for site plans (ADR-023).
     (120, "1\" = 10'-0\""),
     (240, "1\" = 20'-0\""),
@@ -1618,7 +1620,10 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 ));
             }
             // Revit's Detail Level (ADR-067), for the drawn views.
-            if !matches!(kind, ViewKind::Schedule { .. } | ViewKind::ThreeD) {
+            if !matches!(
+                kind,
+                ViewKind::Schedule { .. } | ViewKind::ThreeD | ViewKind::Drafting
+            ) {
                 props.push(choice(
                     "detail_level",
                     "Detail Level",
@@ -1645,6 +1650,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 ViewKind::Section { .. } => "Section",
                 ViewKind::Schedule { .. } => "Schedule",
                 ViewKind::MarkerElevation { .. } => "Elevation",
+                ViewKind::Drafting => "Drafting View",
             };
             if let ViewKind::Section { depth, .. } = kind {
                 props.push(len("depth", "Far Clip Offset", "Extents", *depth));
@@ -2138,6 +2144,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         | ElementData::GroundRegion { .. } => crate::planting::properties(doc, id, &mut props),
         ElementData::GrassPatch { .. } => crate::grass::properties(doc, id, &mut props),
         ElementData::InPlace { .. } => crate::inplace::properties(doc, id, &mut props),
+        ElementData::FilledRegion { .. } => crate::details::properties(doc, id, &mut props),
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
@@ -2401,6 +2408,9 @@ pub fn set_property(
     }
     if matches!(data, ElementData::InPlace { .. }) {
         return crate::inplace::set_property(doc, id, key, value);
+    }
+    if matches!(data, ElementData::FilledRegion { .. }) {
+        return crate::details::set_property(doc, id, key, value);
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -2826,6 +2836,7 @@ pub fn set_property(
         | ElementData::GroundRegion { .. }
         | ElementData::GrassPatch { .. }
         | ElementData::InPlace { .. }
+        | ElementData::FilledRegion { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

@@ -806,6 +806,7 @@ pub fn inventory(doc: &Document, ctx: &EditContext) -> String {
                     ViewKind::Section { .. } => "section",
                     ViewKind::ThreeD => "3D",
                     ViewKind::Schedule { .. } => "schedule",
+                    ViewKind::Drafting => "drafting view",
                 };
                 let active = if ctx.view == Some(e.id) {
                     " (active)"

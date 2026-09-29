@@ -10,6 +10,8 @@ import {
 import { activeViewInfo, useAppStore, type SketchMode } from "../store";
 import { Icons } from "./Icons";
 import { FormPanel, formTitle } from "./FormPanel";
+import { FILL_PATTERNS, setRegionPattern } from "../details";
+import type { FillPattern } from "../bindings/FillPattern";
 
 // Revit's contextual tab in sketch mode (ADR-021): Mode (Finish / Cancel), Draw (the
 // boundary line tools) and Modify.
@@ -151,15 +153,19 @@ export function SketchRibbon() {
       : sketch.kind === "GroundRegion"
         ? "Ground Region"
         : "Ceiling";
-  const title = sketch.form
-    ? formTitle(sketch.form)
-    : onWall
-      ? sketch.target
-        ? "Modify | Wall Openings > Edit Sketch"
-        : "Modify | Create Wall Opening Sketch"
-      : sketch.target
-        ? `Modify | ${what}s > Edit Boundary`
-        : `Modify | Create ${what} Boundary`;
+  const title = sketch.region
+    ? sketch.target
+      ? "Modify | Filled Region > Edit Boundary"
+      : "Modify | Create Filled Region Boundary"
+    : sketch.form
+      ? formTitle(sketch.form)
+      : onWall
+        ? sketch.target
+          ? "Modify | Wall Openings > Edit Sketch"
+          : "Modify | Create Wall Opening Sketch"
+        : sketch.target
+          ? `Modify | ${what}s > Edit Boundary`
+          : `Modify | Create ${what} Boundary`;
   const draw = onWall ? DRAW.filter(([m]) => m !== "PickWalls" && m !== "PickLines") : DRAW;
   const mode = (m: SketchMode, label: string, icon: ReactNode) => (
     <button
@@ -203,6 +209,27 @@ export function SketchRibbon() {
           <div className="rb-title">Mode</div>
         </div>
         {sketch.form && <FormPanel form={sketch.form} />}
+        {sketch.region && (
+          <div className="rb-group">
+            <div className="rb-items">
+              <label className="rb-field">
+                <span>Fill Pattern</span>
+                <select
+                  aria-label="Fill Pattern"
+                  value={sketch.region}
+                  onChange={(e) => void setRegionPattern(e.target.value as FillPattern)}
+                >
+                  {FILL_PATTERNS.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="rb-title">Filled Region</div>
+          </div>
+        )}
         <div className="rb-group">
           <div className="rb-items">
             {mode("Modify", "Modify", Icons.select)}

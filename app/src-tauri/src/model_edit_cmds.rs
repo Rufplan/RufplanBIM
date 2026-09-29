@@ -65,6 +65,7 @@ fn context(doc: &studio_core::Document, view: ElementId, selection: Vec<ElementI
                 ViewKind::Section { .. } => "section",
                 ViewKind::ThreeD => "3D view",
                 ViewKind::Schedule { .. } => "schedule",
+                ViewKind::Drafting => "drafting view",
             };
             (format!("{name} ({kind_name})"), level, drawn)
         }

@@ -2,6 +2,7 @@
 //! the session until Finish. Thin wrappers over `studio_core::sketch`.
 
 use serde::Serialize;
+use studio_core::details::FillPattern;
 use studio_core::inplace::{self, Form, FormKind};
 use studio_core::sketch::{self, DrawOptions, DrawTool, SketchCurve, SketchKind};
 use studio_core::wall_opening::{self, WallFrame};
@@ -40,6 +41,8 @@ pub struct SketchSession {
     pub wall: Option<WallPlane>,
     /// An in-place element's form being sketched (ADR-068).
     pub form: Option<FormDraft>,
+    /// A filled region's pattern (ADR-069).
+    pub region: Option<FillPattern>,
 }
 
 /// The form an in-place sketch makes (ADR-068), with the options bar's settings.
@@ -83,6 +86,7 @@ impl SketchSession {
             error: None,
             wall: None,
             form: Some(form),
+            region: None,
         }
     }
 }
@@ -142,6 +146,7 @@ pub struct SketchInfo {
     pub can_redo: bool,
     pub wall: Option<WallPlane>,
     pub form: Option<FormDraft>,
+    pub region: Option<FillPattern>,
 }
 
 impl SketchSession {
@@ -168,6 +173,7 @@ impl SketchSession {
             can_redo: !self.redo.is_empty(),
             wall: self.wall,
             form: self.form.clone(),
+            region: self.region,
         }
     }
 }
@@ -198,7 +204,7 @@ fn default_type(doc: &Document, kind: SketchKind) -> Option<ElementId> {
     let cat = match kind {
         SketchKind::Floor => Category::FloorType,
         SketchKind::Ceiling => Category::CeilingType,
-        SketchKind::WallOpening | SketchKind::InPlace => return None,
+        SketchKind::WallOpening | SketchKind::InPlace | SketchKind::FilledRegion => return None,
         // A new ground region takes the base ground's material, else the first one.
         SketchKind::GroundRegion => {
             return studio_core::planting::ground(doc)
@@ -227,6 +233,11 @@ pub fn sketch_begin(
     let mut session = lock(&state)?;
     if kind == SketchKind::WallOpening {
         let sk = wall_sketch(&session, view, target, host, toward)?;
+        session.set_sketch(Some(sk));
+        return finish(&window, &session);
+    }
+    if kind == SketchKind::FilledRegion {
+        let sk = region_sketch(&session, view, target)?;
         session.set_sketch(Some(sk));
         return finish(&window, &session);
     }
@@ -290,7 +301,67 @@ pub fn sketch_begin(
         error: None,
         wall: None,
         form: None,
+        region: None,
     }));
+    finish(&window, &session)
+}
+
+/// A filled region's sketch (ADR-069), in the view it's drawn in (any 2D view); or
+/// `target`'s boundary to edit.
+pub(crate) fn region_sketch(
+    session: &Session,
+    view: ElementId,
+    target: Option<ElementId>,
+) -> anyhow::Result<SketchSession> {
+    let doc = session.doc()?;
+    let (view, curves, pattern) = match target {
+        Some(id) => studio_core::details::region_curves(doc, id)?,
+        None => (view, vec![], FillPattern::Diagonal),
+    };
+    if matches!(
+        doc.data(view)?,
+        ElementData::View {
+            kind: ViewKind::ThreeD | ViewKind::Schedule { .. },
+            ..
+        }
+    ) {
+        anyhow::bail!(
+            "Filled regions go in 2D views: plans, sections, elevations and drafting views."
+        );
+    }
+    let level = doc
+        .levels()
+        .first()
+        .map(|l| l.0)
+        .ok_or_else(|| anyhow::anyhow!("the project has no levels"))?;
+    Ok(SketchSession {
+        kind: SketchKind::FilledRegion,
+        view,
+        level,
+        target,
+        type_id: view,
+        elevation: 0.0,
+        curves,
+        undo: vec![],
+        redo: vec![],
+        bad: vec![],
+        error: None,
+        wall: None,
+        form: None,
+        region: Some(pattern),
+    })
+}
+
+/// The pattern of the filled region being sketched.
+#[tauri::command]
+pub fn sketch_set_pattern(
+    pattern: FillPattern,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut session = lock(&state)?;
+    let (_, sk) = session.doc_and_sketch()?;
+    sk.region = Some(pattern);
     finish(&window, &session)
 }
 
@@ -363,6 +434,7 @@ fn wall_sketch(
         error: None,
         wall: Some(plane),
         form: None,
+        region: None,
     })
 }
 
@@ -704,6 +776,13 @@ pub fn sketch_finish(window: WebviewWindow, state: State<'_, SessionState>) -> S
                     sk.curves.iter().map(|c| plane.onto_wall(c)).collect();
                 wall_opening::finish(d, sk.target, plane.frame.wall, &curves)
             }
+            None if sk.kind == SketchKind::FilledRegion => studio_core::details::finish_region(
+                d,
+                sk.view,
+                sk.target,
+                sk.region.unwrap_or_default(),
+                &sk.curves,
+            ),
             None => sketch::finish(d, sk.kind, sk.target, sk.type_id, sk.level, &sk.curves),
         })
     })?;

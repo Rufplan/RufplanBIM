@@ -251,6 +251,7 @@ impl Session {
                         ViewKind::Section { .. } => (ViewType::Section, None),
                         ViewKind::Schedule { .. } => (ViewType::Schedule, None),
                         ViewKind::MarkerElevation { .. } => (ViewType::Elevation, None),
+                        ViewKind::Drafting => (ViewType::Drafting, None),
                     };
                     Some(ViewInfo {
                         id: e.id,
@@ -272,7 +273,10 @@ impl Session {
                         site: *site,
                         camera: camera.map(|c| studio_core::camera::pose(doc, &c)),
                         detail_level: e.data.detail_level().filter(|_| {
-                            !matches!(kind, ViewKind::ThreeD | ViewKind::Schedule { .. })
+                            !matches!(
+                                kind,
+                                ViewKind::ThreeD | ViewKind::Schedule { .. } | ViewKind::Drafting
+                            )
                         }),
                     })
                 }

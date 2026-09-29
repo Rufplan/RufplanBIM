@@ -79,7 +79,7 @@ fn is_plan_view(tx: &Tx<'_>, view: ElementId) -> bool {
     matches!(
         tx.data(view),
         Ok(ElementData::View {
-            kind: ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. },
+            kind: ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. } | ViewKind::Drafting,
             ..
         })
     )
@@ -188,6 +188,14 @@ fn transformed(
         ElementData::InPlace { forms, .. } => {
             for f in forms.iter_mut() {
                 f.map(&|p| x.apply(p), mirror);
+            }
+        }
+        ElementData::FilledRegion { view, boundary, .. } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            for p in boundary.iter_mut().flatten() {
+                *p = x.apply(*p);
             }
         }
         ElementData::TextNote { view, at, .. }

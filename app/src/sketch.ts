@@ -60,6 +60,11 @@ export async function editBoundary(id: ElementId) {
       await editWallOpening(id);
       return;
     }
+    if (sheet.category === "FilledRegion" && v) {
+      s.setSketchUi({ mode: "Modify", sel: [], tab: false });
+      await apply(() => ipc.sketchBegin(v.id, "FilledRegion", id, null));
+      return;
+    }
     if (sheet.category === "GroundRegion" && v) {
       s.setSketchUi({ mode: "Modify", sel: [], tab: false });
       await apply(() => ipc.sketchBegin(v.id, "GroundRegion", id, null));

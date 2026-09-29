@@ -14,6 +14,7 @@ use ts_rs::TS;
 
 pub mod caps;
 pub mod doors;
+pub mod drafting;
 pub mod edges;
 pub mod foliage;
 pub mod handles;
@@ -130,6 +131,8 @@ pub enum ViewType {
     Section,
     Schedule,
     Sheet,
+    /// Drafting views (ADR-069).
+    Drafting,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -351,6 +354,9 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
                 ),
             }
         }
+        // Drafting views hold only their own lines, regions and text (ADR-069): their
+        // extent is found once those are drawn.
+        ViewKind::Drafting => (ViewType::Drafting, [0.0; 4]),
         ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
     };
     if let ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } = kind {
@@ -363,6 +369,11 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         view_room_tags(doc, &model, &mut b, view);
     }
     annotations(doc, &mut b, view);
+    let bounds = if matches!(kind, ViewKind::Drafting) {
+        drafting::drafting_bounds(&b, 12.0)
+    } else {
+        bounds
+    };
     if let Ok(ElementData::View { level_ends, .. }) = doc.data(view) {
         apply_level_ends(&mut b.items, level_ends);
     }
@@ -2945,6 +2956,7 @@ fn plan_model_lines(doc: &Document, b: &mut Builder, level: ElementId) {
 
 /// Dimensions, text notes and symbols (ADR-048) owned by `view`.
 pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
+    let start = b.items.len();
     for e in doc.iter() {
         match &e.data {
             ElementData::Dimension {
@@ -2978,6 +2990,23 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
             _ => {}
         }
     }
+    // Filled regions go under the lines and text of the view (ADR-069).
+    let at = b.items.len();
+    for e in doc.of(Category::FilledRegion) {
+        if let ElementData::FilledRegion {
+            view: v,
+            boundary,
+            pattern,
+            outline,
+        } = &e.data
+        {
+            if *v == view {
+                drafting::region(b, Some(e.id), boundary, *pattern, *outline);
+            }
+        }
+    }
+    let regions: Vec<Item> = b.items.drain(at..).collect();
+    b.items.splice(start..start, regions);
     symbols::draw_symbols(doc, b, view);
 }
 

@@ -72,7 +72,7 @@ pub fn spot_height(doc: &Document, model: &Model, view: ElementId, at: Pt) -> Op
         ViewKind::Elevation { .. }
         | ViewKind::Section { .. }
         | ViewKind::MarkerElevation { .. } => Some(at.y),
-        ViewKind::ThreeD | ViewKind::Schedule { .. } => None,
+        ViewKind::ThreeD | ViewKind::Schedule { .. } | ViewKind::Drafting => None,
     }
 }
 

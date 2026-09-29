@@ -2,6 +2,7 @@
 
 mod cloud;
 mod commands;
+mod detail_cmds;
 mod detailing;
 mod door_cmds;
 mod editing;
@@ -234,6 +235,11 @@ pub fn run() -> anyhow::Result<()> {
             sketching::sketch_cancel,
             sketching::sketch_preview,
             sketching::sketch_set_form,
+            sketching::sketch_set_pattern,
+            detail_cmds::detail_library,
+            detail_cmds::detail_preview,
+            detail_cmds::detail_insert,
+            detail_cmds::create_drafting_view,
             inplace_cmds::in_place_categories,
             inplace_cmds::in_place_of,
             inplace_cmds::in_place_default_name,

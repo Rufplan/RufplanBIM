@@ -4,6 +4,7 @@ pub mod build;
 pub mod camera;
 pub mod compound;
 pub mod detail;
+pub mod details;
 pub mod dimension;
 pub mod document;
 pub mod doors;

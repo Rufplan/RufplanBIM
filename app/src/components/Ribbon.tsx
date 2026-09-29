@@ -18,6 +18,7 @@ import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
 import { InPlaceRibbon } from "./InPlaceRibbon";
 import { modelInPlace } from "../inplace";
+import { startFilledRegion } from "../details";
 import { StandardsRibbon } from "./Standards";
 import {
   ContextPanels,
@@ -109,6 +110,7 @@ type Tab =
   | "Structure"
   | "Modify"
   | "Annotate"
+  | "Details"
   | "View"
   | "Sheets"
   | "Manage"
@@ -125,6 +127,7 @@ const TABS: Tab[] = [
   "Structure",
   "Modify",
   "Annotate",
+  "Details",
   "View",
   "Sheets",
   "Manage",
@@ -741,6 +744,54 @@ export function Ribbon() {
               <span>Tag All</span>
             </button>
           </Group>
+        )}
+        {tab === "Details" && (
+          <>
+            <Group title="Create">
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "draftingView" })}
+                disabled={!app}
+                title="Drafting View: a new 2D view for details, drawn with detail lines, filled regions and text at a scale"
+              >
+                {Icons.draftingView}
+                <span>Drafting View</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "details" })}
+                disabled={!app}
+                title="Detail Library: typical construction details, each drawn at its usual scale; insert one as a drafting view to edit"
+              >
+                {Icons.detailLibrary}
+                <span>Detail Library</span>
+              </button>
+              <ToolButton
+                tool="callout"
+                label="Callout"
+                icon={Icons.callout}
+                keys="a detail view of the model"
+              />
+            </Group>
+            <Group title="Detail">
+              <ToolButton
+                tool="detailLine"
+                label="Detail Line"
+                icon={Icons.detailLine}
+                keys="DL — this view only"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => void startFilledRegion()}
+                disabled={!app}
+                title="Filled Region: sketch an area and fill it with a pattern (concrete, earth, insulation…)"
+              >
+                {Icons.filledRegion}
+                <span>Filled Region</span>
+              </button>
+              <ToolButton tool="text" label="Text" icon={Icons.text} keys="TX" />
+            </Group>
+          </>
         )}
         {tab === "Annotate" && (
           <Group title="Detail">

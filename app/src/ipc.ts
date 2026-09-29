@@ -6,6 +6,8 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
 import type { CategoryChoice } from "./bindings/CategoryChoice";
+import type { DetailInfo } from "./bindings/DetailInfo";
+import type { FillPattern } from "./bindings/FillPattern";
 import type { FormKind } from "./bindings/FormKind";
 import type { Category } from "./bindings/Category";
 import type { Handles } from "./bindings/Handles";
@@ -326,6 +328,13 @@ export const ipc = {
   /** The options bar's settings for the in-place form being sketched (ADR-068). */
   sketchSetForm: (kind: FormKind): S => invoke("sketch_set_form", { kind }),
   // Model In-Place (ADR-068).
+  // The Details tab (ADR-069).
+  detailLibrary: () => invoke<DetailInfo[]>("detail_library"),
+  detailPreview: (id: string) => invoke<DisplayList>("detail_preview", { id }),
+  detailInsert: (id: string) => invoke<[ElementId, AppState | null]>("detail_insert", { id }),
+  createDraftingView: (name: string, scale: number) =>
+    invoke<[ElementId, AppState | null]>("create_drafting_view", { name, scale }),
+  sketchSetPattern: (pattern: FillPattern): S => invoke("sketch_set_pattern", { pattern }),
   inPlaceCategories: () => invoke<CategoryChoice[]>("in_place_categories"),
   inPlaceDefaultName: (category: Category) => invoke<string>("in_place_default_name", { category }),
   inPlaceOf: (ids: ElementId[]) => invoke<ElementId[]>("in_place_of", { ids }),

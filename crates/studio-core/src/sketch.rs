@@ -1211,6 +1211,8 @@ pub enum SketchKind {
     GroundRegion,
     /// A form of an in-place element (ADR-068; finished by the In-Place Editor).
     InPlace,
+    /// A filled region in any 2D view (ADR-069).
+    FilledRegion,
 }
 
 /// The curves to edit for an existing floor or ceiling (its sketch, or its outline as
@@ -1252,7 +1254,10 @@ pub fn finish(
     level: ElementId,
     curves: &[SketchCurve],
 ) -> Result<ElementId, SketchError> {
-    if matches!(kind, SketchKind::WallOpening | SketchKind::InPlace) {
+    if matches!(
+        kind,
+        SketchKind::WallOpening | SketchKind::InPlace | SketchKind::FilledRegion
+    ) {
         return Err(SketchError::new(
             "That sketch is finished by its own editor.",
             vec![],
@@ -1266,9 +1271,13 @@ pub fn finish(
     let fail = |e: CoreError| SketchError::new(&e.to_string(), vec![]);
     let label = match (kind, target) {
         (SketchKind::Floor, None) => "Create floor",
-        (SketchKind::Ceiling | SketchKind::WallOpening | SketchKind::InPlace, None) => {
-            "Create ceiling"
-        }
+        (
+            SketchKind::Ceiling
+            | SketchKind::WallOpening
+            | SketchKind::InPlace
+            | SketchKind::FilledRegion,
+            None,
+        ) => "Create ceiling",
         (SketchKind::GroundRegion, None) => "Create ground region",
         (_, Some(_)) => "Edit boundary",
     };
@@ -1304,9 +1313,10 @@ pub fn finish(
         let want = match kind {
             SketchKind::Floor => Category::FloorType,
             SketchKind::GroundRegion => Category::Material,
-            SketchKind::Ceiling | SketchKind::WallOpening | SketchKind::InPlace => {
-                Category::CeilingType
-            }
+            SketchKind::Ceiling
+            | SketchKind::WallOpening
+            | SketchKind::InPlace
+            | SketchKind::FilledRegion => Category::CeilingType,
         };
         if tx.data(type_id)?.category() != want {
             return Err(CoreError::Invalid("pick a type for the sketch".into()));
@@ -1327,16 +1337,17 @@ pub fn finish(
                 sketch: loops.clone(),
                 slope: Default::default(),
             },
-            SketchKind::Ceiling | SketchKind::WallOpening | SketchKind::InPlace => {
-                ElementData::Ceiling {
-                    type_id,
-                    level,
-                    height: crate::ops::DEFAULT_CEILING_HEIGHT,
-                    boundary: outer.clone(),
-                    bound: crate::element::SlabBound::Sketch,
-                    sketch: loops.clone(),
-                }
-            }
+            SketchKind::Ceiling
+            | SketchKind::WallOpening
+            | SketchKind::InPlace
+            | SketchKind::FilledRegion => ElementData::Ceiling {
+                type_id,
+                level,
+                height: crate::ops::DEFAULT_CEILING_HEIGHT,
+                boundary: outer.clone(),
+                bound: crate::element::SlabBound::Sketch,
+                sketch: loops.clone(),
+            },
         }))
     })
     .map_err(fail)
@@ -1368,7 +1379,9 @@ pub fn plan_for(doc: &Document, level: ElementId, kind: SketchKind) -> Option<El
     }
     match kind {
         SketchKind::Floor | SketchKind::GroundRegion | SketchKind::InPlace => floor.or(ceiling),
-        SketchKind::Ceiling | SketchKind::WallOpening => ceiling.or(floor),
+        SketchKind::Ceiling | SketchKind::WallOpening | SketchKind::FilledRegion => {
+            ceiling.or(floor)
+        }
     }
 }
 
@@ -1385,7 +1398,8 @@ pub fn work_plane_z(
         SketchKind::Floor
         | SketchKind::WallOpening
         | SketchKind::GroundRegion
-        | SketchKind::InPlace => z,
+        | SketchKind::InPlace
+        | SketchKind::FilledRegion => z,
         SketchKind::Ceiling => {
             let h = target
                 .and_then(|id| match doc.data(id) {

@@ -3,4 +3,4 @@
 /**
  * Which slab a sketch makes.
  */
-export type SketchKind = "Floor" | "Ceiling" | "WallOpening" | "GroundRegion" | "InPlace";
+export type SketchKind = "Floor" | "Ceiling" | "WallOpening" | "GroundRegion" | "InPlace" | "FilledRegion";

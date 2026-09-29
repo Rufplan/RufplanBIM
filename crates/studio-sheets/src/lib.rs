@@ -53,6 +53,38 @@ mod tests {
     }
 
     #[test]
+    fn a_library_detail_goes_on_a_sheet_at_its_scale() {
+        let (mut doc, _, _) = project();
+        let detail = studio_core::details::insert(&mut doc, "window-head").unwrap();
+        let sheet = ops::create_sheet(&mut doc, "Details", SheetSize::ArchD).unwrap();
+        let empty = sheet_display_list(&doc, sheet, "2026-09-28")
+            .unwrap()
+            .items
+            .len();
+        let vp = ops::place_view(&mut doc, sheet, detail, Pt::new(200.0, 300.0)).unwrap();
+        let dl = sheet_display_list(&doc, sheet, "2026-09-28").unwrap();
+        // The detail's lines are on the sheet at 3" = 1'-0" (1:4): its 18" wide head
+        // assembly is about 114 paper mm wide, with its notes beside it.
+        let lines: Vec<&Prim> = dl.items[..dl.items.len() - empty]
+            .iter()
+            .map(|i| &i.prim)
+            .collect();
+        assert!(lines.len() > 50, "{}", lines.len());
+        let xs: Vec<f64> = lines
+            .iter()
+            .filter_map(|p| match p {
+                Prim::Line { pts, .. } => Some(pts.iter().map(|q| q[0])),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        let span = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
+            - xs.iter().cloned().fold(f64::INFINITY, f64::min);
+        assert!(span > 100.0 && span < 500.0, "{span}");
+        assert!(title_line(&doc, vp).is_some());
+    }
+
+    #[test]
     fn a_view_title_rule_stretches_and_is_kept() {
         let (mut doc, _, plan) = project();
         let sheet = ops::create_sheet(&mut doc, "Floor Plan", SheetSize::ArchD).unwrap();

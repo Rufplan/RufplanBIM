@@ -107,6 +107,22 @@ export const POINT_TOOLS: Tool[] = [
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (tool === "paint") return view !== "Sheet" && view !== "Schedule";
+  // Drafting views hold only 2D detailing (ADR-069).
+  if (view === "Drafting")
+    return [
+      "detailLine",
+      "text",
+      "sketch",
+      "move",
+      "copy",
+      "rotate",
+      "mirror",
+      "array",
+      "offset",
+    ].includes(tool);
+  // A filled region is sketched in any 2D view.
+  if (tool === "sketch" && useAppStore.getState().app?.sketch?.region)
+    return view !== "ThreeD" && view !== "Schedule";
   if (view === "ThreeD") return TOOLS_3D.includes(tool);
   if (tool === "level") return view === "Elevation" || view === "Section";
   if (tool === "room" || tool === "section" || tool === "stair" || tool === "camera")

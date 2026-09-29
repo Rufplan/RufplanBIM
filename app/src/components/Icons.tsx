@@ -329,6 +329,28 @@ export const Icons = {
       <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3z" />
     </I>
   ),
+  draftingView: (
+    <I>
+      <rect x="3" y="4" width="18" height="16" rx="1" />
+      <path d="M6 16h6l3-5h3M6 12h4" />
+      <path d="M13 16l2 2" strokeWidth="1" />
+    </I>
+  ),
+  detailLibrary: (
+    <I>
+      <rect x="3" y="3" width="8" height="8" />
+      <rect x="13" y="3" width="8" height="8" />
+      <rect x="3" y="13" width="8" height="8" />
+      <rect x="13" y="13" width="8" height="8" />
+      <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
+    </I>
+  ),
+  filledRegion: (
+    <I>
+      <path d="M4 18l3-12 13 3-4 11z" />
+      <path d="M6 13l5-6M5.5 17l9-10.5M9 19l8-9.5M13 19.5l5-6" strokeWidth="0.9" />
+    </I>
+  ),
   inPlace: (
     <I>
       <path d="M4 8l7-4 7 4v8l-7 4-7-4z" />
