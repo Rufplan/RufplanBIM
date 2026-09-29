@@ -16,6 +16,9 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { keyForControl, nudgeDirection, nudgeStep } from "../nudge";
+import type { OverlayPrim } from "../bindings/OverlayPrim";
+import { drawStructural } from "../render/structural";
+import { StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralOverlay";
 import { referenceChoice } from "./ReferenceOptions";
 import { drawOptions, editBoundary, filletRadius, startWallOpening } from "../sketch";
 import { lineOptions } from "../lines";
@@ -303,7 +306,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         hidden: sk?.target ?? null,
         visible,
         thin: s.thinLines,
-        grayed: grayedFn(s.app?.activeWorkset ?? null),
+        // Under the structural overlay the architecture is greyed out (ADR-080).
+        grayed: structural.current ? () => true : grayedFn(s.app?.activeWorkset ?? null),
+        overlay: structural.current
+          ? (c, S) => drawStructural(c, S, structural.current!, s.structuralAlpha)
+          : undefined,
         underlay:
           imagery.current || around
             ? (c, S) => {
@@ -502,6 +509,61 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       live = false;
     };
   }, [satellite, revision]);
+  // The structural overlay (ADR-080): its pieces for this plan, while it's on.
+  const structuralOn = useAppStore((s) => s.structuralOverlay && !!s.app?.structuralLayer);
+  const structuralAlpha = useAppStore((s) => s.structuralAlpha);
+  const structural = useRef<OverlayPrim[] | null>(null);
+  const [stInfo, setStInfo] = useState<InfoAt | null>(null);
+  const planLike = view.viewType === "Plan" || view.viewType === "CeilingPlan";
+  useEffect(() => {
+    if (!structuralOn || !planLike) {
+      structural.current = null;
+      redrawRef.current();
+      return;
+    }
+    let live = true;
+    ipc.structuralOverlay2d(view.id).then(
+      (prims) => {
+        if (!live) return;
+        structural.current = prims;
+        redrawRef.current();
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [structuralOn, planLike, view.id, revision]);
+  useEffect(() => redrawRef.current(), [structuralAlpha]);
+  const stHover = useRef(0);
+  const stLast = useRef(0);
+  const stPinned = useRef(false);
+  stPinned.current = !!stInfo?.pinned;
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setStInfo(null);
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
+  /** The overlay piece under the cursor, shown as a card (pinned on click). */
+  const structuralAt = async (sx: number, sy: number, pinned: boolean) => {
+    if (!structural.current || !cam.current) return false;
+    if (!pinned) {
+      // Hover: throttled, and a pinned card stays until closed.
+      const now = performance.now();
+      if (stPinned.current || now - stLast.current < 60) return false;
+      stLast.current = now;
+    }
+    const n = ++stHover.current;
+    const hit = await ipc
+      .structuralPick(view.id, modelAt(sx, sy), 8 / cam.current.zoom)
+      .catch(() => null);
+    if (n !== stHover.current) return !!hit;
+    if (hit) setStInfo({ info: hit, x: sx, y: sy, pinned });
+    else if (!stPinned.current || pinned) setStInfo(null);
+    return !!hit;
+  };
   // Gray Inactive Workset Graphics (ADR-079): each element's workset, while it's on.
   const grayInactive = useAppStore((s) => s.grayInactive);
   const worksetOf = useRef<Map<string, string> | null>(null);
@@ -1384,6 +1446,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   async function click(sx: number, sy: number, shift: boolean) {
     const s = useAppStore.getState();
     if (!cam.current) return;
+    // With the structural overlay on, clicking a member or flag explains it.
+    if (s.tool === "select" && structural.current && (await structuralAt(sx, sy, true))) return;
     const raw = modelAt(sx, sy);
     const tol = 12 / cam.current.zoom;
     if (s.tool === "select") {
@@ -1852,6 +1916,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       data-tool={tool}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {structuralOn && planLike && <StructuralLegend />}
+      {structuralOn && planLike && stInfo && (
+        <StructuralInfoCard at={stInfo} onClose={() => setStInfo(null)} />
+      )}
       {view.site && (
         // Site plans: grids on or off (ADR-046), as Visibility/Graphics would.
         <button
@@ -1919,6 +1987,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         }}
         onMouseMove={(e) => {
           const [sx, sy] = local(e);
+          if (structural.current && useAppStore.getState().tool === "select" && !drag.current)
+            void structuralAt(sx, sy, false);
           const zr = zoomRegion.current;
           if (zr.armed && zr.from) {
             zr.to = [sx, sy];

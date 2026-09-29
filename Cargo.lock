@@ -3649,6 +3649,7 @@ dependencies = [
  "studio-io",
  "studio-regen",
  "studio-sheets",
+ "studio-structural",
  "studio-sync",
  "studio-views",
  "tauri",
@@ -4398,6 +4399,19 @@ dependencies = [
  "thiserror 2.0.21",
  "ts-rs",
  "ttf-parser",
+]
+
+[[package]]
+name = "studio-structural"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "studio-core",
+ "studio-geom",
+ "studio-regen",
+ "toml 0.9.12+spec-1.1.0",
+ "ts-rs",
 ]
 
 [[package]]

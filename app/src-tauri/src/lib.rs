@@ -22,6 +22,7 @@ mod shortcut_cmds;
 mod site_cmds;
 mod sketching;
 mod standards_cmds;
+mod structural_cmds;
 mod structure;
 mod symbols_cmds;
 mod window_cmds;
@@ -154,6 +155,16 @@ pub fn run() -> anyhow::Result<()> {
             workset_cmds::set_workset_visible_in_view,
             workset_cmds::set_elements_workset,
             workset_cmds::element_worksets,
+            structural_cmds::structural_suggest,
+            structural_cmds::structural_generate,
+            structural_cmds::structural_layer,
+            structural_cmds::structural_overlay_2d,
+            structural_cmds::structural_overlay_3d,
+            structural_cmds::structural_pick,
+            structural_cmds::structural_info,
+            structural_cmds::structural_export_json,
+            structural_cmds::structural_export_ifc,
+            structural_cmds::structural_edit_rules,
             detailing::create_elevation_marker,
             detailing::opening_preview_3d,
             detailing::set_section_box,

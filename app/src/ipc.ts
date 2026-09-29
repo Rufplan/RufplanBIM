@@ -10,6 +10,13 @@ import type { SheetCopy } from "./bindings/SheetCopy";
 import type { RefShape } from "./bindings/RefShape";
 import type { RefTarget } from "./bindings/RefTarget";
 import type { WorksetInfo } from "./bindings/WorksetInfo";
+import type { Seismic } from "./bindings/Seismic";
+import type { StructuralProposal } from "./bindings/StructuralProposal";
+import type { SchemeSettings } from "./bindings/SchemeSettings";
+import type { StructuralLayer } from "./bindings/StructuralLayer";
+import type { OverlayPrim } from "./bindings/OverlayPrim";
+import type { OverlayMesh } from "./bindings/OverlayMesh";
+import type { OverlayInfo } from "./bindings/OverlayInfo";
 import type { ComponentTypeInfo } from "./bindings/ComponentTypeInfo";
 import type { Leader } from "./bindings/Leader";
 import type { TextAlign } from "./bindings/TextAlign";
@@ -302,6 +309,21 @@ export const ipc = {
   createRoomSeparator: (view: ElementId, start: Pt, end: Pt): S =>
     invoke("create_room_separator", { view, start, end }),
   createCallout: (view: ElementId, a: Pt, b: Pt): S => invoke("create_callout", { view, a, b }),
+  // Suggest Structure and the structural overlay (ADR-080).
+  structuralSuggest: (seismic: Seismic) =>
+    invoke<StructuralProposal>("structural_suggest", { seismic }),
+  structuralGenerate: (settings: SchemeSettings): S => invoke("structural_generate", { settings }),
+  structuralLayer: () => invoke<StructuralLayer | null>("structural_layer"),
+  structuralOverlay2d: (view: ElementId) =>
+    invoke<OverlayPrim[]>("structural_overlay_2d", { view }),
+  structuralOverlay3d: () => invoke<OverlayMesh[]>("structural_overlay_3d"),
+  structuralPick: (view: ElementId, at: Pt, tol: number) =>
+    invoke<OverlayInfo | null>("structural_pick", { view, at, tol }),
+  structuralInfo: (member: number | null, flag: number | null) =>
+    invoke<OverlayInfo | null>("structural_info", { member, flag }),
+  structuralExportJson: (path: string) => invoke<string>("structural_export_json", { path }),
+  structuralExportIfc: (path: string) => invoke<string>("structural_export_ifc", { path }),
+  structuralEditRules: () => invoke<string>("structural_edit_rules"),
   // Worksets (ADR-079).
   worksetsList: () => invoke<WorksetInfo[]>("worksets_list"),
   setActiveWorkset: (ws: ElementId): S => invoke("set_active_workset", { ws }),
@@ -641,6 +663,8 @@ export const dialogs = {
     });
     return typeof picked === "string" ? picked : null;
   },
+  pickJsonLocation: (defaultName: string): Promise<string | null> =>
+    save({ defaultPath: `${defaultName}.json`, filters: [{ name: "JSON", extensions: ["json"] }] }),
   pickIfcLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.ifc`, filters: [{ name: "IFC", extensions: ["ifc"] }] }),
 };

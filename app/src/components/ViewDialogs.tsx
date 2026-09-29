@@ -11,6 +11,7 @@ import {
 } from "../shortcuts";
 import { activeViewInfo, useAppStore } from "../store";
 import { VisibilityWorksets, WorksetsDialog } from "./Worksets";
+import { StructuralDialog } from "./StructuralDialog";
 import { GenerateDialog } from "./GenerateDialog";
 import { PlansDialog } from "./PlansDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
@@ -55,6 +56,7 @@ export function ViewDialogs() {
   if (which === "keyboard") return <KeyboardDialog onClose={close} />;
   if (which === "visibility") return <VisibilityDialog onClose={close} />;
   if (which === "worksets") return <WorksetsDialog onClose={close} />;
+  if (which === "structure") return <StructuralDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "ground") return <GroundDialog onClose={close} />;

@@ -295,10 +295,24 @@ pub struct IfcSummary {
     pub wall_openings: usize,
     /// Model In-Place elements (ADR-068), each as its category's IFC class.
     pub in_place: usize,
+    /// Preliminary structural layer members (ADR-080), when exported with it.
+    pub structural: usize,
 }
 
 /// Writes the model as an IFC4 STEP file. `timestamp` is ISO 8601 (for the header).
 pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String, IfcSummary) {
+    export_ifc_with(doc, app_version, timestamp, false)
+}
+
+/// [`export_ifc`], with the preliminary structural layer (ADR-080) as IfcColumn, IfcBeam,
+/// IfcWall and IfcMember elements when `structural` is set. Each carries a
+/// Rufplan_Preliminary property set saying it is not engineered.
+pub fn export_ifc_with(
+    doc: &Document,
+    app_version: &str,
+    timestamp: &str,
+    structural: bool,
+) -> (String, IfcSummary) {
     let model = regenerate(doc);
     let mut w = Writer { lines: vec![] };
     let mut summary = IfcSummary::default();
@@ -824,6 +838,90 @@ pub fn export_ifc(doc: &Document, app_version: &str, timestamp: &str) -> (String
         materials.entry(type_material(beam.id)).or_default().push(e);
         summary.beams += 1;
     }
+    // The preliminary structural layer (ADR-080), only when asked for.
+    let layer = doc
+        .of(Category::StructuralScheme)
+        .find_map(|e| match &e.data {
+            ElementData::StructuralScheme { layout, .. } if structural => Some((e.id, layout)),
+            _ => None,
+        });
+    if let Some((sid, layout)) = layer {
+        use studio_core::structural::{MemberKind, DISCLAIMER};
+        for (i, m) in layout.members.iter().enumerate() {
+            let Some((_, storey, splace, elev)) = storey_of(m.level) else {
+                continue;
+            };
+            let footprint = |w: f64| -> Poly {
+                if m.start.dist(m.end) < 1.0 {
+                    let h = w / 2.0;
+                    let c = m.start;
+                    Poly::simple(vec![
+                        Pt::new(c.x - h, c.y - h),
+                        Pt::new(c.x + h, c.y - h),
+                        Pt::new(c.x + h, c.y + h),
+                        Pt::new(c.x - h, c.y + h),
+                    ])
+                } else {
+                    let d = m.end.sub(m.start);
+                    let n = d.scale(1.0 / d.len()).perp().scale(w / 2.0);
+                    Poly::simple(vec![
+                        m.start.add(n),
+                        m.end.add(n),
+                        m.end.sub(n),
+                        m.start.sub(n),
+                    ])
+                }
+            };
+            let (entity, kind, base, top, wd) = match m.kind {
+                MemberKind::Span => continue,
+                MemberKind::Column => ("IFCCOLUMN", ".COLUMN.", m.base, m.top, m.width.max(150.0)),
+                MemberKind::BearingWall => {
+                    ("IFCWALL", ".SOLIDWALL.", m.base, m.top, m.width.max(100.0))
+                }
+                MemberKind::ShearWall => ("IFCWALL", ".SHEAR.", m.base, m.top, m.width.max(100.0)),
+                MemberKind::BracedFrame => ("IFCMEMBER", ".BRACE.", m.base, m.top, 150.0),
+                _ => (
+                    "IFCBEAM",
+                    ".BEAM.",
+                    m.top - m.depth.max(150.0),
+                    m.top,
+                    m.width.max(100.0),
+                ),
+            };
+            let place = w.placement(Some(splace), 0.0);
+            let shape = w.extrusions(body, &[(footprint(wd), base - elev, (top - base).max(1.0))]);
+            let name = format!("{} {}", m.kind.label(), m.size);
+            let guid = derived(sid.0, &format!("member-{i}"));
+            let e = w.add(format!(
+                "{entity}({},$,{},{},$,#{place},#{shape},$,{kind})",
+                s(&ifc_guid(guid)),
+                s(&name),
+                s("Preliminary structural layer")
+            ));
+            contained.entry(storey).or_default().push(e);
+            let status = w.add(format!(
+                "IFCPROPERTYSINGLEVALUE('Status',$,IFCTEXT({}),$)",
+                s(DISCLAIMER)
+            ));
+            let size = w.add(format!(
+                "IFCPROPERTYSINGLEVALUE('PreliminarySize',$,IFCLABEL({}),$)",
+                s(&m.size)
+            ));
+            let rule = w.add(format!(
+                "IFCPROPERTYSINGLEVALUE('Rule',$,IFCTEXT({}),$)",
+                s(&m.rule)
+            ));
+            let pset = w.add(format!(
+                "IFCPROPERTYSET({},$,'Rufplan_Preliminary',$,(#{status},#{size},#{rule}))",
+                s(&ifc_guid(derived(guid, "pset")))
+            ));
+            w.add(format!(
+                "IFCRELDEFINESBYPROPERTIES({},$,$,$,(#{e}),#{pset})",
+                s(&ifc_guid(derived(guid, "pset-rel")))
+            ));
+            summary.structural += 1;
+        }
+    }
     for rail in &model.railings {
         let Some((_, storey, splace, elev)) = storey_of(rail.level) else {
             continue;
@@ -1258,6 +1356,7 @@ mod tests {
                 lights: 2,
                 wall_openings: 1,
                 in_place: 0,
+                structural: 0,
             }
         );
         assert!(ifc.contains(".DIRECTIONSOURCE.)") && ifc.contains(".SECURITYLIGHTING.)"));
@@ -1319,5 +1418,80 @@ mod tests {
         assert_eq!(guids.len(), before, "duplicate GlobalIds");
         // Stable: exporting again gives the same file.
         assert_eq!(export_ifc(&doc, "0.0.1", "2026-09-24T00:00:00").0, ifc);
+    }
+
+    #[test]
+    fn the_structural_layer_exports_only_when_asked_and_says_it_is_preliminary() {
+        use studio_core::structural::*;
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let levels = doc.levels();
+        let (l1, e1, e2) = (levels[0].0, levels[0].2, levels[1].2);
+        let m = |kind, a: Pt, b: Pt| StructMember {
+            kind,
+            level: l1,
+            start: a,
+            end: b,
+            base: e1,
+            top: e2,
+            size: "Test (prelim.)".into(),
+            depth: 300.0,
+            width: 200.0,
+            span: 3000.0,
+            rule: "Rule.".into(),
+        };
+        let layout = StructLayout {
+            members: vec![
+                m(MemberKind::Column, Pt::new(0.0, 0.0), Pt::new(0.0, 0.0)),
+                m(MemberKind::Girder, Pt::new(0.0, 0.0), Pt::new(6000.0, 0.0)),
+                m(
+                    MemberKind::ShearWall,
+                    Pt::new(0.0, 0.0),
+                    Pt::new(0.0, 3000.0),
+                ),
+                m(
+                    MemberKind::BracedFrame,
+                    Pt::new(0.0, 3000.0),
+                    Pt::new(6000.0, 3000.0),
+                ),
+                m(
+                    MemberKind::Span,
+                    Pt::new(0.0, 1000.0),
+                    Pt::new(6000.0, 1000.0),
+                ),
+            ],
+            ..Default::default()
+        };
+        doc.transact("layer", |tx| {
+            tx.insert(ElementData::StructuralScheme {
+                settings: SchemeSettings {
+                    kind: SchemeKind::SteelFrame,
+                    seismic: Seismic::Moderate,
+                    grid_x: 9000.0,
+                    grid_y: 9000.0,
+                    lateral: LateralKind::BracedFrames,
+                    span_dir: SpanDir::Auto,
+                },
+                layout,
+            });
+            Ok(())
+        })
+        .unwrap();
+        let (plain, s0) = export_ifc(&doc, "0.0.1", "2026-09-29T00:00:00");
+        assert_eq!(s0.structural, 0);
+        assert!(!plain.contains("Rufplan_Preliminary"));
+        let (ifc, s1) = export_ifc_with(&doc, "0.0.1", "2026-09-29T00:00:00", true);
+        // Everything but the joist/deck arrow.
+        assert_eq!(s1.structural, 4);
+        for part in [
+            ".SHEAR.)",
+            ".BRACE.)",
+            "IFCCOLUMN(",
+            "IFCBEAM(",
+            "Rufplan_Preliminary",
+        ] {
+            assert!(ifc.contains(part), "{part}");
+        }
+        assert!(ifc.contains("not engineered"));
     }
 }

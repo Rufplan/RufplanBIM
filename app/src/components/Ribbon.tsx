@@ -9,7 +9,7 @@ import {
   placeOnActiveSheet,
   tagAll,
 } from "../fileActions";
-import { ipc } from "../ipc";
+import { dialogs, errorMessage, ipc } from "../ipc";
 import { refreshCloud } from "../rufplan";
 import { activeViewInfo, styleOf, useAppStore, type Tool } from "../store";
 import { setSeason } from "../vegetation";
@@ -91,6 +91,80 @@ async function newMaterial(from: string | null) {
     const made = s.app?.materials.find((m) => !before.has(m.id));
     if (made) s.select([made.id]);
   }
+}
+
+/** Structure > Analyze (ADR-080): Suggest Structure and the structural overlay. */
+function StructureAnalyze() {
+  const app = useAppStore((s) => s.app);
+  const has = !!app?.structuralLayer;
+  const on = useAppStore((s) => s.structuralOverlay);
+  const alpha = useAppStore((s) => s.structuralAlpha);
+  const setOn = useAppStore((s) => s.setStructuralOverlay);
+  const setAlpha = useAppStore((s) => s.setStructuralAlpha);
+  const setUi = useAppStore((s) => s.setUi);
+  const exportAs = async (kind: "json" | "ifc") => {
+    const s = useAppStore.getState();
+    const name = `${app?.projectName || "Project"} Structure (Preliminary)`;
+    const path =
+      kind === "json" ? await dialogs.pickJsonLocation(name) : await dialogs.pickIfcLocation(name);
+    if (!path) return;
+    try {
+      const done =
+        kind === "json"
+          ? await ipc.structuralExportJson(path)
+          : await ipc.structuralExportIfc(path);
+      s.setPrompt(`Exported the preliminary structural layer: ${done}`);
+    } catch (e) {
+      s.setError(errorMessage(e));
+    }
+  };
+  return (
+    <Group title="Analyze">
+      <button
+        className="rb-btn"
+        disabled={!app}
+        title="Suggest Structure: score six structural systems against this model (preliminary)"
+        onClick={() => setUi({ viewDialog: "structure" })}
+      >
+        {Icons.structureSuggest}
+        <span>Suggest Structure</span>
+      </button>
+      <button
+        className={`rb-btn${on ? " active" : ""}`}
+        aria-pressed={on}
+        disabled={!has}
+        title={
+          has
+            ? "Show the structural layer over the greyed-out architecture"
+            : "Generate a layer from Suggest Structure first"
+        }
+        onClick={() => setOn(!on)}
+      >
+        {Icons.structureOverlay}
+        <span>Overlay</span>
+      </button>
+      <label className="rb-field" title="Overlay transparency">
+        <span>Opacity</span>
+        <input
+          type="range"
+          aria-label="Overlay opacity"
+          min={20}
+          max={100}
+          value={Math.round(alpha * 100)}
+          disabled={!has}
+          onChange={(e) => setAlpha(Number(e.target.value) / 100)}
+        />
+      </label>
+      <div className="rb-stack">
+        <button className="rb-text" disabled={!has} onClick={() => void exportAs("json")}>
+          Export JSON
+        </button>
+        <button className="rb-text" disabled={!has} onClick={() => void exportAs("ifc")}>
+          Export IFC
+        </button>
+      </div>
+    </Group>
+  );
 }
 
 /** Collaborate (ADR-079): Revit's Manage Collaboration panel. */
@@ -721,6 +795,7 @@ export function Ribbon() {
             <ToolButton tool="beam" label="Beam" icon={Icons.beam} keys="BM" />
           </Group>
         )}
+        {tab === "Structure" && <StructureAnalyze />}
         {tab === "Modify" && (
           <>
             {ctxLabel && <ContextPropertiesGroup />}

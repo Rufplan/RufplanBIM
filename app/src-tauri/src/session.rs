@@ -124,6 +124,8 @@ pub struct AppState {
     /// Worksets (ADR-079), in the Worksets dialog's order, and the active one.
     pub worksets: Vec<NamedItem>,
     pub active_workset: Option<ElementId>,
+    /// The structural layer (ADR-080), once generated.
+    pub structural_layer: Option<ElementId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -333,6 +335,7 @@ impl Session {
             .map(|w| NamedItem { id: w.0, name: w.1 })
             .collect();
         Some(AppState {
+            structural_layer: doc.of(Category::StructuralScheme).next().map(|e| e.id),
             worksets,
             active_workset: doc.active_workset(),
             project,

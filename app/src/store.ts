@@ -325,6 +325,7 @@ interface UiState {
     | "draftingView"
     | "saveDetail"
     | "worksets"
+    | "structure"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
@@ -371,6 +372,12 @@ interface UiState {
   /** Collaborate > Gray Inactive Workset Graphics (ADR-079). */
   grayInactive: boolean;
   setGrayInactive: (on: boolean) => void;
+  /** The structural overlay (ADR-080): shown over the greyed-out architecture, and how
+   * opaque it is (0.2–1). */
+  structuralOverlay: boolean;
+  structuralAlpha: number;
+  setStructuralOverlay: (on: boolean) => void;
+  setStructuralAlpha: (a: number) => void;
   /** The project's drawing-set standards (ADR-047). */
   standards: Standards | null;
   setStandards: (s: Standards | null) => void;
@@ -490,6 +497,11 @@ export const useAppStore = create<UiState>((set, get) => ({
   setRibbonTab: (ribbonTab) => set({ ribbonTab }),
   grayInactive: false,
   setGrayInactive: (grayInactive) => set({ grayInactive }),
+  structuralOverlay: false,
+  structuralAlpha: 0.85,
+  setStructuralOverlay: (structuralOverlay) => set({ structuralOverlay }),
+  setStructuralAlpha: (structuralAlpha) =>
+    set({ structuralAlpha: Math.min(1, Math.max(0.2, structuralAlpha)) }),
   standards: null,
   setStandards: (standards) => set({ standards }),
   standardsUi: { category: "sheet", item: 0, filter: "all" },

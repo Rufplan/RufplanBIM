@@ -26,6 +26,7 @@ pub mod site_plan;
 pub mod slopes;
 pub mod snap;
 pub mod standards_preview;
+pub mod structural;
 pub mod symbols;
 pub mod terrain;
 pub mod texgen;

@@ -214,8 +214,47 @@ export function appState(path: string | null, dirty = false): AppState {
     inPlace: null,
     worksets: FAKE_WORKSETS.map(({ id, name }) => ({ id, name })),
     activeWorkset: FAKE_WORKSETS[0]!.id,
+    structuralLayer: null,
   };
 }
+
+/** A Suggest Structure answer (ADR-080). */
+export const FAKE_PROPOSAL = (seismic: string) => {
+  const scheme = (kind: string, label: string, score: number) => ({
+    kind,
+    label,
+    score,
+    ruledOut: false,
+    criteria: [{ name: "Height", score: 1, note: "Within its limits." }],
+    rationale: `${label} scores ${score}/100.`,
+    grid: "Bearing walls about 16' apart",
+    memberDepths: ['Joists: 11-7/8" I-joist @ 16" o.c.'],
+    redFlags:
+      kind === "LightWood" ? ["Transfer beams likely at Level 2 (1 wall doesn't stack)."] : [],
+    settings: {
+      kind,
+      seismic,
+      gridX: 4876.8,
+      gridY: 4876.8,
+      lateral: kind === "SteelFrame" ? "BracedFrames" : "WoodShearWalls",
+      spanDir: "Auto",
+    },
+    laterals: kind === "SteelFrame" ? ["BracedFrames", "MomentFrames"] : ["WoodShearWalls"],
+  });
+  return {
+    disclaimer: "Preliminary — not engineered. Requires review by a licensed structural engineer.",
+    seismic,
+    schemes: [
+      scheme("LightWood", "Light Wood Frame + Wood Shear Walls", 88),
+      scheme("ColdFormedSteel", "Cold-Formed Steel Bearing Walls", 80),
+      scheme("SteelFrame", "Steel Frame on Composite Deck", 71),
+      scheme("MassTimber", "Mass Timber (Glulam + CLT)", 64),
+    ],
+    assumptions: ["Seismic region: " + seismic.toLowerCase() + " (your setting)."],
+    questions: ["Is the site in a low, moderate or high seismic region?"],
+    summary: ["3 stories, 30' to the top of the walls."],
+  };
+};
 
 /** Revit's standard worksets (ADR-079). */
 export const FAKE_WORKSETS = [
@@ -759,6 +798,45 @@ export function installFakeBackend(): FakeBackend {
               },
             ],
           };
+        // Suggest Structure (ADR-080).
+        case "structural_suggest":
+          return FAKE_PROPOSAL(a.seismic as string);
+        case "structural_generate":
+          if (fake.state) fake.state = { ...fake.state, structuralLayer: "layer-1" };
+          return fake.state;
+        case "structural_overlay_2d":
+          return fake.state?.structuralLayer
+            ? [
+                {
+                  kind: "Column",
+                  member: 0,
+                  fill: [
+                    [
+                      [0, 0],
+                      [300, 0],
+                      [300, 300],
+                      [0, 300],
+                    ],
+                  ],
+                  lines: [],
+                },
+              ]
+            : [];
+        case "structural_overlay_3d":
+          return [];
+        case "structural_pick":
+          return fake.state?.structuralLayer
+            ? {
+                kind: "Column",
+                title: "Column — W10x49 (prelim.)",
+                lines: ["Height: 10'-0\"", "Rule: At a grid intersection."],
+              }
+            : null;
+        case "structural_export_json":
+        case "structural_export_ifc":
+          return a.path;
+        case "structural_edit_rules":
+          return "C:/data/structural_rules.toml";
         // Worksets (ADR-079).
         case "worksets_list":
           return FAKE_WORKSETS;

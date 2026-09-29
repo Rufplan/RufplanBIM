@@ -58,4 +58,8 @@ site: SiteSummary | null,
 /**
  * Worksets (ADR-079), in the Worksets dialog's order, and the active one.
  */
-worksets: Array<NamedItem>, activeWorkset: ElementId | null, };
+worksets: Array<NamedItem>, activeWorkset: ElementId | null, 
+/**
+ * The structural layer (ADR-080), once generated.
+ */
+structuralLayer: ElementId | null, };

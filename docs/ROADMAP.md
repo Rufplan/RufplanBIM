@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Suggest Structure: preliminary scheme ranking, structural layer overlay (plans + 3D), flags,
+  JSON/IFC export, TOML rules (ADR-080).
+- Worksets as Revit sets them up; Collaborate tab; Gray Inactive; per-view workset visibility (ADR-079).
 - Casework, base and floor transition details in the library (ADR-078).
 - Library details drawn with detail components (lumber, sheathing, gypsum, batt and rigid
   insulation, brick/CMU coursing, break lines, rebar), notes with Revit-style leaders angled

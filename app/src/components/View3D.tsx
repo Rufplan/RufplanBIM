@@ -15,6 +15,8 @@ import {
   editWallOpening,
   startWallOpening,
 } from "../sketch";
+import { buildStructural3d, disposeGroup, ghostArchitecture } from "../render/structural";
+import { StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralOverlay";
 import { litOf, styleOf, useAppStore } from "../store";
 import { placePlant } from "../vegetation";
 import { samePt, sketchPrompt } from "../tools";
@@ -362,6 +364,62 @@ export function View3D({ view }: { view: ViewInfo }) {
   // Bumped when the meshes are rebuilt; Realistic's materials are loaded for them.
   const [meshRev, setMeshRev] = useState(0);
   const real = useRef<{ rev: number; map: Map<string, RealMaterial> } | null>(null);
+  // The structural overlay (ADR-080): coloured members over the ghosted architecture.
+  const structuralOn = useAppStore((s) => s.structuralOverlay && !!s.app?.structuralLayer);
+  const structuralAlpha = useAppStore((s) => s.structuralAlpha);
+  const revision3d = useAppStore((s) => s.app?.revision ?? 0);
+  const [stInfo, setStInfo] = useState<InfoAt | null>(null);
+  useEffect(() => {
+    const t = three.current;
+    if (!t) return;
+    const old = t.scene.getObjectByName("structural-overlay") as THREE.Group | undefined;
+    if (old) {
+      t.scene.remove(old);
+      disposeGroup(old);
+    }
+    ghostArchitecture(t.group, structuralOn);
+    if (!structuralOn) return;
+    let live = true;
+    ipc.structuralOverlay3d().then(
+      (meshes) => {
+        const t2 = three.current;
+        if (!live || !t2) return;
+        t2.scene.add(buildStructural3d(meshes, structuralAlpha));
+        ghostArchitecture(t2.group, true);
+      },
+      () => {},
+    );
+    // Clicking a member or flag explains it.
+    const canvas = t.renderer.domElement;
+    const onClick = (e: MouseEvent) => {
+      const t3 = three.current;
+      const g = t3?.scene.getObjectByName("structural-overlay");
+      if (!t3 || !g) return;
+      const r = canvas.getBoundingClientRect();
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(
+        new THREE.Vector2(
+          ((e.clientX - r.left) / r.width) * 2 - 1,
+          -((e.clientY - r.top) / r.height) * 2 + 1,
+        ),
+        t3.camera,
+      );
+      const hit = ray.intersectObjects(g.children, false)[0];
+      if (!hit) {
+        setStInfo(null);
+        return;
+      }
+      const u = hit.object.userData as { member: number | null; flag: number | null };
+      void ipc.structuralInfo(u.member, u.flag).then((info) => {
+        if (info) setStInfo({ info, x: e.clientX - r.left, y: e.clientY - r.top, pinned: true });
+      });
+    };
+    canvas.addEventListener("click", onClick);
+    return () => {
+      live = false;
+      canvas.removeEventListener("click", onClick);
+    };
+  }, [structuralOn, structuralAlpha, revision3d, meshRev]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -2154,6 +2212,8 @@ export function View3D({ view }: { view: ViewInfo }) {
   return (
     <div ref={wrapRef} className={`canvas-wrap view3d${temp ? " temp-hide" : ""}`} data-tool={tool}>
       <ViewCubeOverlay cube={cube} viewId={view.id} />
+      {structuralOn && <StructuralLegend />}
+      {structuralOn && stInfo && <StructuralInfoCard at={stInfo} onClose={() => setStInfo(null)} />}
       <div className="view3d-top">
         <SunPanel />
         <NavBar />
@@ -2280,6 +2340,9 @@ function applyDisplay(
       child.visible = lastMesh.visible && !realistic;
     }
   }
+  // Under the structural overlay the architecture stays ghosted (ADR-080).
+  const st = useAppStore.getState();
+  if (st.structuralOverlay && st.app?.structuralLayer) ghostArchitecture(group, true);
 }
 
 /** A fixture's light in the z-up 3D view (ADR-063), in the render's units: candela over

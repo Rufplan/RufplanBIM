@@ -4086,3 +4086,233 @@ button:disabled {
   color: var(--ink);
   border-bottom: 2px solid var(--cyan);
 }
+
+/* ---------- Suggest Structure (ADR-080) ---------- */
+.rb-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 4px;
+}
+.rb-text {
+  border: 1px solid var(--border, #e3e6e9);
+  background: var(--white, #fff);
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.rb-text:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+.structural-dialog {
+  width: min(1080px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+.st-disclaimer {
+  background: #fff4e0;
+  border-left: 3px solid #ef6c00;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin: 4px 0 10px;
+}
+.st-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+.st-body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+}
+.st-side h4 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.st-side ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.st-questions li {
+  color: var(--ink);
+  font-weight: 500;
+}
+.st-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.st-card {
+  border: 1px solid var(--border, #e3e6e9);
+  padding: 10px 14px;
+  font-size: 13px;
+}
+.st-card.out {
+  opacity: 0.7;
+}
+.st-card header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.st-card h3 {
+  margin: 0;
+  font-size: 15px;
+  flex: 1;
+}
+.st-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--white, #fff);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.st-score {
+  position: relative;
+  width: 90px;
+  height: 18px;
+  background: var(--border, #e3e6e9);
+  font-size: 11px;
+  text-align: right;
+  padding-right: 4px;
+  line-height: 18px;
+}
+.st-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--cyan);
+  opacity: 0.5;
+}
+.st-badge {
+  font-size: 11px;
+  color: #b71c1c;
+  border: 1px solid #b71c1c;
+  padding: 1px 6px;
+}
+.st-facts {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 4px 10px;
+  margin: 6px 0;
+}
+.st-facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.st-facts dd {
+  margin: 0;
+}
+.st-facts ul {
+  margin: 0;
+  padding-left: 16px;
+}
+.st-flags li {
+  color: #b71c1c;
+}
+.st-criteria {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+  margin: 6px 0;
+}
+.st-criteria th {
+  text-align: left;
+  width: 120px;
+  font-weight: 600;
+}
+.st-criteria td,
+.st-criteria th {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border, #e3e6e9);
+}
+.st-c {
+  width: 40px;
+  text-align: right;
+}
+.st-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+}
+.st-settings label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 2px;
+}
+.st-settings input {
+  width: 80px;
+}
+.st-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.st-info {
+  position: absolute;
+  z-index: 12;
+  max-width: 340px;
+  background: var(--white, #fff);
+  border: 1px solid var(--border-strong, #c9ccd0);
+  box-shadow: 0 6px 18px rgba(10, 10, 10, 0.16);
+  padding: 8px 10px;
+  font-size: 12px;
+  pointer-events: none;
+}
+.st-info.pinned {
+  pointer-events: auto;
+}
+.st-info h5 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.st-info p {
+  margin: 2px 0;
+}
+.st-info p:last-child {
+  color: #8a4b00;
+  font-size: 11px;
+}
+.st-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border, #e3e6e9);
+  padding: 6px 10px;
+  font-size: 11px;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 10px;
+}
+.st-legend b {
+  grid-column: 1 / -1;
+  font-weight: 600;
+}
+.st-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.st-legend small {
+  grid-column: 1 / -1;
+  color: #8a4b00;
+  max-width: 260px;
+}

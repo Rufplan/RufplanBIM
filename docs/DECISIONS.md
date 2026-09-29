@@ -2857,3 +2857,74 @@ coursing along a line".
   rest.
 - There is no worksharing server yet: Owner is you and every workset is editable.
   Borrowing and central models come with sync (M6+).
+
+## ADR-080 Suggest Structure and the structural overlay — Accepted (2026-09-29)
+- **Owner's brief (approved plan).**
+  - Analyze the architectural model and suggest a preliminary structural system.
+  - Draw it as a separate layer over the greyed-out architecture.
+  - Never modify the architecture.
+  - Every output says: "Preliminary — not engineered. Requires review by a licensed
+    structural engineer." Nothing claims code compliance.
+- **New crate `studio-structural`** (the brief's `structural/`), pure deterministic stages,
+  each unit-tested:
+  - `extract` (features): levels, floor-to-floor heights, story count, total height;
+    outlines, footprint and aspect ratio.
+    - Walls: exterior or interior, length, thickness, openings, opening-free segments, and
+      whether they stack (a stacking ratio per level).
+    - Cores (stairs, and rooms named for elevators or shafts). Open and column-free zones
+      by room name or area, with their spans.
+    - Discontinuities: non-stacking walls, cantilevers, setbacks, possible soft/weak
+      stories, re-entrant corners.
+    - Uses (residential, office, retail…) are read from room names.
+  - `schemes` scores six systems: light wood, CFS bearing walls, podium, steel frame with
+    composite deck, concrete flat plate, mass timber.
+    - Criteria: height and stories (a hard limit, plus an economical minimum), span, wall
+      stacking, use, discontinuities, and seismic region (your setting).
+    - Output (`StructuralProposal`): the ranking, template-written rationale, typical grid,
+      member depths, red flags (e.g. "Transfer beams likely at Level 2"), assumptions, and
+      up to 3 questions.
+  - `layout` generates:
+    - **Grid:** from the model's grids, then aligned and stacking walls, filled to the target
+      spacing.
+    - **Gravity system:** columns at intersections, moved onto a nearby wall out of rooms
+      and clear of openings, or flagged. Girders, beams, infill beams and deck, or a two-way
+      flat plate. Bearing walls with joists between them, a beam line where a bay is too
+      long, transfer beams under walls that don't stack. The podium frames its levels and
+      carries walls above on its transfer slab.
+    - **Lateral system:** shear walls in solid, stacking segments, core and perimeter
+      first, stacked over the level below, balanced side to side. Braced frames in
+      perimeter bays inside solid walls; moment frames on the perimeter.
+    - **Checks:** the length each way against the rules' share of the building, and the
+      centre of rigidity against the centre of mass.
+    - **Flags:** transfers, spans out of range, non-stacking lateral elements, columns in
+      rooms, a short lateral direction, torsion, and the model's discontinuities.
+  - `sizing`: span/depth ratios and tributary-area tables (steel W-shapes, joists, CLT,
+    flat plate, columns, glulam).
+  - **Rules (`structural_rules.toml`):** every threshold, weight and table.
+    - The built-in copy is written to the app data folder, where Edit Rules… opens it; it is
+      re-read each time.
+    - New dependency: `toml` (approved).
+  - **Test models:** a 3-story wood box, a podium building, a non-stacking wall, and a
+    lopsided box.
+- **Saved** as one `ElementData::StructuralScheme { settings, layout }`.
+  - It falls back to the Structural workset (ADR-079).
+  - Generating again replaces it, in one undo step. The architecture is untouched.
+  - This adds to the file format (approved).
+- **UI (Structure > Analyze):**
+  - **Suggest Structure** dialog: seismic region, what the model shows, assumptions,
+    questions, and the top 3 schemes (or all 6), each with scoring, adjustable grid,
+    lateral system and joist direction, and **Generate overlay**.
+  - **Overlay** toggle, **Opacity**, **Export JSON**, **Export IFC**.
+  - The IFC export is the model plus the layer as IfcColumn, IfcBeam, IfcWall (SHEAR) and
+    IfcMember (BRACE), with a Rufplan_Preliminary property set.
+    `studio_io::ifc::export_ifc_with`.
+- **Overlay:** studio-views `structural`: plan pieces per level with S-prefixed grid
+  bubbles, 3D boxes and struts, picking and info.
+  - Plans: the architecture greyed (canvas `Highlight.grayed`), the layer in a colour per
+    type (render/structural.ts) with a legend.
+  - Hover shows a member's type, preliminary size, span or height, the rule that placed it,
+    and the disclaimer. Clicking pins it. Flags are clickable markers with their
+    explanation.
+  - 3D: the architecture ghosted, the layer as coloured boxes; click for the same card.
+- The rationale is templated from the scores. No LLM is used, so nothing can invent
+  geometry or sizes. Claude narration may come later as an option.

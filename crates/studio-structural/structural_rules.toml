@@ -1,0 +1,220 @@
+# Suggest Structure rules (ADR-080). Rules of thumb for a PRELIMINARY scheme only.
+# Preliminary — not engineered. Requires review by a licensed structural engineer.
+#
+# Edit this file (the copy in the app's data folder) to tune the scoring, layout and
+# sizing without rebuilding. Lengths are feet unless a key says inches (_in).
+
+[general]
+# Rooms that want long, column-free spans.
+open_zone_keywords = ["assembly", "gym", "gymnasium", "auditorium", "theater", "theatre",
+  "parking", "garage", "retail", "sanctuary", "ballroom", "multipurpose", "multi-purpose",
+  "warehouse", "arena", "pool", "natatorium", "cafeteria", "showroom", "worship"]
+# Of those, rooms that must be column-free (retail and parking take columns on a grid).
+column_free_keywords = ["assembly", "gym", "gymnasium", "auditorium", "theater", "theatre",
+  "sanctuary", "ballroom", "multipurpose", "multi-purpose", "arena", "pool", "natatorium",
+  "worship"]
+# Any room at least this big (sf) counts as an open zone too.
+open_zone_min_area_sf = 1500.0
+# Rooms that make a core.
+stair_keywords = ["stair"]
+elevator_keywords = ["elev", "elevator", "lift"]
+shaft_keywords = ["shaft", "chase", "mech shaft", "trash"]
+# A wall stacks when walls on the level below lie within this distance of its line and
+# cover this share of its length.
+stack_tolerance_in = 6.0
+stack_overlap = 0.8
+# A level with less than this share of the wall length of the level above may be soft.
+soft_story_ratio = 0.7
+# A level whose footprint is less than this share of the one below is set back.
+setback_ratio = 0.85
+# A level reaching past the one below by more than this cantilevers.
+cantilever_ft = 2.0
+# Re-entrant corners count when both legs exceed this share of the plan dimension.
+reentrant_share = 0.15
+# A column falling in a room moves onto a wall within this distance, when there is one.
+column_snap_ft = 2.0
+# Lateral elements: centre of rigidity further than this share of the plan dimension from
+# the centre of mass is flagged.
+torsion_share = 0.15
+
+[occupancy]
+residential = ["bed", "bath", "kitchen", "living", "unit", "apt", "apartment", "dwelling",
+  "closet", "laundry", "family", "dining", "den"]
+office = ["office", "conference", "meeting", "workstation", "open office", "work"]
+retail = ["retail", "shop", "store", "sales", "showroom", "market"]
+parking = ["parking", "garage", "car"]
+assembly = ["assembly", "gym", "auditorium", "theater", "theatre", "sanctuary", "worship",
+  "ballroom", "multipurpose", "multi-purpose", "arena", "event"]
+education = ["classroom", "class", "lab", "library", "school"]
+
+# Scoring weights (they need not add to 1).
+[weights]
+height = 3.0
+span = 2.5
+stacking = 2.0
+occupancy = 2.0
+discontinuities = 1.5
+seismic = 1.0
+
+# One table per scheme. uses: how well it suits each use (0-1). seismic: suitability by
+# region. lateral_ratio: lateral element length each way as a share of the building's
+# length that way, by seismic region.
+[schemes.light_wood]
+max_stories = 5
+# Below this many stories the system is usually uneconomical (scored down, not ruled out).
+economical_min_stories = 1
+max_height_ft = 70.0
+span_min_ft = 10.0
+span_max_ft = 24.0
+grid_ft = 16.0
+bearing_walls = true
+lateral = "WoodShearWalls"
+material = "wood"
+uses = { residential = 1.0, office = 0.5, retail = 0.3, parking = 0.0, assembly = 0.3, education = 0.6 }
+seismic = { low = 1.0, moderate = 1.0, high = 0.9 }
+lateral_ratio = { low = 0.25, moderate = 0.35, high = 0.5 }
+# Shear walls need a height:length of at most this.
+shear_aspect = 3.5
+
+[schemes.cold_formed_steel]
+max_stories = 9
+economical_min_stories = 3
+max_height_ft = 95.0
+span_min_ft = 12.0
+span_max_ft = 26.0
+grid_ft = 18.0
+bearing_walls = true
+lateral = "CfsShearWalls"
+material = "cfs"
+uses = { residential = 0.9, office = 0.5, retail = 0.3, parking = 0.0, assembly = 0.3, education = 0.7 }
+seismic = { low = 1.0, moderate = 0.95, high = 0.85 }
+lateral_ratio = { low = 0.2, moderate = 0.3, high = 0.45 }
+shear_aspect = 2.0
+
+[schemes.podium]
+max_stories = 7
+economical_min_stories = 3
+max_height_ft = 85.0
+span_min_ft = 16.0
+span_max_ft = 30.0
+grid_ft = 24.0
+bearing_walls = true
+lateral = "WoodShearWalls"
+material = "podium"
+# Concrete levels at the bottom.
+podium_levels = 1
+uses = { residential = 1.0, office = 0.4, retail = 0.8, parking = 0.9, assembly = 0.4, education = 0.4 }
+seismic = { low = 1.0, moderate = 0.95, high = 0.85 }
+lateral_ratio = { low = 0.25, moderate = 0.35, high = 0.5 }
+shear_aspect = 3.5
+min_stories = 3
+
+[schemes.steel_frame]
+max_stories = 30
+economical_min_stories = 1
+max_height_ft = 400.0
+span_min_ft = 20.0
+span_max_ft = 45.0
+grid_ft = 30.0
+bearing_walls = false
+lateral = "BracedFrames"
+material = "steel"
+uses = { residential = 0.35, office = 1.0, retail = 0.9, parking = 0.7, assembly = 1.0, education = 0.9 }
+seismic = { low = 1.0, moderate = 1.0, high = 0.95 }
+lateral_ratio = { low = 0.1, moderate = 0.15, high = 0.2 }
+shear_aspect = 2.0
+
+[schemes.concrete_flat_plate]
+max_stories = 40
+economical_min_stories = 5
+max_height_ft = 450.0
+span_min_ft = 18.0
+span_max_ft = 30.0
+grid_ft = 24.0
+bearing_walls = false
+lateral = "ConcreteShearWalls"
+material = "concrete"
+uses = { residential = 1.0, office = 0.7, retail = 0.7, parking = 0.9, assembly = 0.5, education = 0.7 }
+seismic = { low = 1.0, moderate = 0.95, high = 0.9 }
+lateral_ratio = { low = 0.1, moderate = 0.15, high = 0.2 }
+shear_aspect = 3.0
+
+[schemes.mass_timber]
+max_stories = 18
+economical_min_stories = 3
+max_height_ft = 270.0
+span_min_ft = 15.0
+span_max_ft = 30.0
+grid_ft = 24.0
+bearing_walls = false
+lateral = "BracedFrames"
+material = "timber"
+uses = { residential = 0.8, office = 1.0, retail = 0.7, parking = 0.1, assembly = 0.8, education = 1.0 }
+seismic = { low = 1.0, moderate = 0.95, high = 0.85 }
+lateral_ratio = { low = 0.1, moderate = 0.15, high = 0.2 }
+shear_aspect = 2.0
+
+# Sizing: span/depth ratios and tables, smallest first. Column tables are keyed by the
+# tributary area times the floors above (sf).
+[sizing.wood]
+# [max span ft, size, depth in]
+joists = [[13.0, "2x10 @ 16\" o.c.", 9.25], [16.0, "11-7/8\" I-joist @ 16\" o.c.", 11.875],
+  [19.0, "14\" I-joist @ 16\" o.c.", 14.0], [22.0, "16\" I-joist @ 16\" o.c.", 16.0],
+  [28.0, "18\" open-web wood truss @ 24\" o.c.", 18.0]]
+beam_span_depth = 12.0
+beam_width_in = 5.25
+beam_name = "LVL/glulam beam"
+# [max trib sf x floors, size, width in]
+posts = [[300.0, "6x6 post", 5.5], [700.0, "6x8 post", 7.5], [1500.0, "8x8 post", 7.5],
+  [100000000.0, "steel HSS 6x6 post", 6.0]]
+shear_wall = "7/16\" OSB shear wall"
+bearing_wall = "2x6 @ 16\" o.c. bearing wall"
+wall_width_in = 5.5
+
+[sizing.cfs]
+joists = [[16.0, "10\" CFS joist @ 16\" o.c.", 10.0], [20.0, "12\" CFS joist @ 16\" o.c.", 12.0],
+  [24.0, "14\" CFS joist @ 16\" o.c.", 14.0], [30.0, "12\" CFS truss @ 24\" o.c.", 12.0]]
+beam_span_depth = 14.0
+beam_width_in = 4.0
+beam_name = "built-up CFS header"
+posts = [[500.0, "(3) 6\" CFS stud post", 6.0], [1500.0, "HSS 6x6 post", 6.0],
+  [100000000.0, "HSS 8x8 post", 8.0]]
+shear_wall = "CFS shear wall w/ steel sheet or straps"
+bearing_wall = "6\" 16 ga. studs @ 16\" o.c. bearing wall"
+wall_width_in = 6.0
+
+[sizing.steel]
+beam_span_depth = 24.0
+girder_span_depth = 20.0
+beam_spacing_ft = 10.0
+# [name, depth in, flange width in]
+shapes = [["W8x18", 8.1, 5.25], ["W10x22", 10.2, 5.75], ["W12x26", 12.2, 6.49],
+  ["W14x30", 13.8, 6.73], ["W16x31", 15.9, 5.53], ["W18x35", 17.7, 6.0], ["W21x44", 20.7, 6.5],
+  ["W24x55", 23.6, 7.01], ["W27x84", 26.7, 10.0], ["W30x99", 29.7, 10.5], ["W33x118", 32.9, 11.5],
+  ["W36x150", 35.9, 12.0]]
+columns = [[1500.0, "W10x33", 9.7], [3000.0, "W10x49", 10.0], [6000.0, "W12x65", 12.1],
+  [12000.0, "W14x90", 14.0], [100000000.0, "W14x145", 14.8]]
+deck = "3\" composite deck + 3-1/4\" LW concrete"
+deck_depth_in = 6.25
+brace = "HSS 6x6 brace"
+moment_frame = "moment frame (deeper beams at frame lines)"
+
+[sizing.concrete]
+slab_span_depth = 30.0
+slab_min_in = 8.0
+columns = [[2000.0, "16\" sq. column", 16.0], [5000.0, "20\" sq. column", 20.0],
+  [10000.0, "24\" sq. column", 24.0], [100000000.0, "30\" sq. column", 30.0]]
+shear_wall_in = 12.0
+transfer_span_depth = 10.0
+transfer_width_in = 30.0
+
+[sizing.timber]
+# [max span ft, panel, depth in]
+panels = [[14.0, "5-ply CLT (6-7/8\")", 6.875], [18.0, "7-ply CLT (9-5/8\")", 9.625],
+  [22.0, "9-ply CLT (12-3/8\")", 12.375]]
+beam_span_depth = 16.0
+beam_width_in = 8.75
+columns = [[1500.0, "10-3/4\" x 10-1/2\" glulam column", 10.75],
+  [4000.0, "12-1/4\" x 12\" glulam column", 12.25], [100000000.0, "14-1/4\" x 13-1/2\" glulam column", 14.25]]
+brace = "glulam or steel brace"
+clt_wall = "CLT shear wall"

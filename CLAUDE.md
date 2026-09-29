@@ -70,6 +70,7 @@ Read these before writing code:
 │  ├─ studio-views/    # plan/section/elevation generation, annotations, graphics
 │  ├─ studio-sheets/   # sheets, title blocks, viewports, schedules, PDF export
 │  ├─ studio-io/       # .rfproj persistence (SQLite), IFC export
+│  ├─ studio-structural/ # Suggest Structure: features, schemes, layout, sizing (ADR-080)
 │  └─ studio-sync/     # Supabase client, publish, (later) worksharing
 ├─ app/
 │  ├─ src-tauri/       # Tauri shell, IPC commands only
@@ -151,6 +152,14 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Suggest Structure (ADR-080): crate studio-structural (extract, schemes, layout, sizing, rules from
+  structural_rules.toml, copied to app data; Edit Rules… opens it), ElementData::StructuralScheme on
+  the Structural workset; studio-views `structural` (overlay_2d/3d, pick, info); studio-io
+  `export_ifc_with`; app structural_cmds; components/StructuralDialog.tsx, StructuralOverlay.tsx,
+  render/structural.ts; Structure > Analyze. Always labelled Preliminary — not engineered.
+- Worksets (ADR-079): studio-core `worksets` (Revit's standard set, `rufplan.workset` parameter,
+  category fallbacks, Document::active_workset stamping), View.hidden_worksets; app workset_cmds;
+  components/Worksets.tsx; Collaborate tab, status-bar Active Workset, Gray Inactive.
 - Casework, Base & Trim, Floor Transitions details (ADR-078), 33 in the library.
 - Library details from components (ADR-077): `details::D` helpers place DetailComponents
   (`Drawing.components`, `DComp.after` keeps draw order); notes carry `elbow` shoulders.
