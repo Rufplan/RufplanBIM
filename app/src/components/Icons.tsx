@@ -345,6 +345,12 @@ export const Icons = {
       <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
     </I>
   ),
+  saveDetail: (
+    <I>
+      <path d="M5 3h11l3 3v15H5z" />
+      <path d="M8 3v5h7V3M8 21v-7h8v7" />
+    </I>
+  ),
   detailComponent: (
     <I>
       <rect x="4" y="6" width="7" height="12" />

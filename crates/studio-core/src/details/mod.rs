@@ -8,6 +8,7 @@
 
 pub mod components;
 mod library;
+pub mod user;
 
 use serde::{Deserialize, Serialize};
 use studio_geom::Pt;
@@ -89,6 +90,8 @@ pub struct DetailInfo {
     pub scale: u32,
     pub scale_label: String,
     pub description: String,
+    /// One you saved (ADR-073), which you can delete.
+    pub user: bool,
 }
 
 /// A line of a detail, in model mm.
@@ -319,6 +322,7 @@ pub fn catalog() -> Vec<DetailInfo> {
             scale: d.scale,
             scale_label: crate::ops::scale_label(d.scale),
             description: d.description.into(),
+            user: false,
         })
         .collect()
 }

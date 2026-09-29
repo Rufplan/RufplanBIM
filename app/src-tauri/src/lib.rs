@@ -247,6 +247,8 @@ pub fn run() -> anyhow::Result<()> {
             detail_cmds::detail_preview,
             detail_cmds::detail_insert,
             detail_cmds::create_drafting_view,
+            detail_cmds::detail_save,
+            detail_cmds::detail_delete,
             inplace_cmds::in_place_categories,
             inplace_cmds::in_place_of,
             inplace_cmds::in_place_default_name,

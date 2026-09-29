@@ -4340,6 +4340,7 @@ name = "studio-core"
 version = "0.0.1"
 dependencies = [
  "serde",
+ "serde_json",
  "studio-geom",
  "thiserror 2.0.21",
  "ts-rs",

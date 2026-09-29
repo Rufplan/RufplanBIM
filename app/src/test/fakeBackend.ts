@@ -223,6 +223,7 @@ export const FAKE_DETAILS = [
     scale: 16,
     scaleLabel: `3/4" = 1'-0"`,
     description: "Slab-on-grade with a thickened edge.",
+    user: false,
   },
   {
     id: "window-head",
@@ -231,6 +232,7 @@ export const FAKE_DETAILS = [
     scale: 4,
     scaleLabel: `3" = 1'-0"`,
     description: "Flanged window under an insulated header.",
+    user: false,
   },
   {
     id: "eave",
@@ -239,6 +241,7 @@ export const FAKE_DETAILS = [
     scale: 8,
     scaleLabel: `1 1/2" = 1'-0"`,
     description: "6:12 truss roof eave.",
+    user: false,
   },
 ];
 
@@ -760,6 +763,24 @@ export function installFakeBackend(): FakeBackend {
             ],
           };
           return [id, fake.state];
+        }
+        case "detail_save": {
+          const d = {
+            id: "user:u1",
+            name: a.name as string,
+            category: a.category as string,
+            scale: 4,
+            scaleLabel: `3" = 1'-0"`,
+            description: a.description as string,
+            user: true,
+          };
+          FAKE_DETAILS.push(d);
+          return d;
+        }
+        case "detail_delete": {
+          const i = FAKE_DETAILS.findIndex((d) => d.id === a.id);
+          if (i >= 0) FAKE_DETAILS.splice(i, 1);
+          return null;
         }
         case "sketch_set_pattern":
           if (fake.state?.sketch)

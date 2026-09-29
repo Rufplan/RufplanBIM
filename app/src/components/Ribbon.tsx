@@ -169,6 +169,7 @@ export function Ribbon() {
     return t === "Plan" || t === "CeilingPlan" || t === "ThreeD";
   });
   const activeIs3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
+  const activeIsDrafting = useAppStore((s) => activeViewInfo(s)?.viewType === "Drafting");
   const grid3d = useAppStore((s) => s.grid3d);
   const activeTool = useAppStore((s) => s.tool);
   const setGrid3d = useAppStore((s) => s.setGrid3d);
@@ -770,6 +771,15 @@ export function Ribbon() {
               >
                 {Icons.detailLibrary}
                 <span>Detail Library</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "saveDetail" })}
+                disabled={!activeIsDrafting}
+                title="Save to Library: keep this drafting view as one of your details, to insert in any project"
+              >
+                {Icons.saveDetail}
+                <span>Save to Library</span>
               </button>
               <ToolButton
                 tool="callout"

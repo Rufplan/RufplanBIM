@@ -7,4 +7,8 @@ export type DetailInfo = { id: string, name: string, category: string,
 /**
  * Drawing scale denominator: the scale this kind of detail is usually drawn at.
  */
-scale: number, scaleLabel: string, description: string, };
+scale: number, scaleLabel: string, description: string, 
+/**
+ * One you saved (ADR-073), which you can delete.
+ */
+user: boolean, };

@@ -2630,3 +2630,99 @@ first, please do. I think we should have detail views anyway."
     line).
   - Dimensions in drafting views (they measure model elements).
   - Revit's Insulation tool, which draws a batt along a line with a width.
+
+## ADR-070 Revit's Text tool, leaders and in-place editing — Accepted (2026-09-28)
+Owner request (2026-09-28): "creating a text note with a leader and try and copy Revit's text
+tool and leader as closely as possible. Right now there is a pop up that's not styled when
+the text command is entered; this should be changed to match how Revit does it."
+
+- **The note.** `TextNote` gains `leaders`, `align` (Left, Center or Right) and `width`
+  (a wrap width in paper mm). All are serde defaults, so older files open unchanged.
+  - `at` is where the first line sits, at the line's vertical middle.
+  - Lines split at typed line breaks and wrap at word breaks.
+  - The layout is studio-core `text` (`layout`, `wrap`, `attach`, `leader_points`,
+    `arrowhead`).
+- **Leaders** are Revit's: one segment, two segments (through an elbow) or curved.
+  - They leave the side of the text nearer their arrowhead, at the first line.
+  - Each ends in Revit's "Arrow Filled 30 Degree", 2.4 paper mm long.
+  - The note draws an invisible box so the whole note can be picked.
+- **The Text tool (TX)** replaces the ribbon with Revit's "Modify | Place Text" tab:
+  - The text type: 3/32", 1/8", 3/16", 1/4" or 1/2" Arial.
+  - The leader (No Leader, One Segment, Two Segments, Curved) and the alignment.
+  - Placing: leader clicks come first (the arrowhead, then the elbow), then a click for the
+    text, or a drag that also sets its width.
+  - The text is typed in an on-canvas editor in the note's own font and size at the view's
+    zoom. This replaces the browser's unstyled `window.prompt`.
+  - Enter starts a new line; clicking outside, Esc or Ctrl+Enter finishes. An empty note is
+    dropped, as in Revit.
+- **Editing.** Double-click a note to edit its text in place.
+  - Grips drag each leader's arrowhead and elbow; dragging a straight leader's middle bends
+    it.
+  - Another grip sets the wrap width, and dragging the text moves it while its arrowheads
+    stay.
+  - Modify | Text Notes has Add Left Leader, Add Right Leader, Remove Last Leader and Edit
+    Text.
+  - Move, Rotate and Mirror carry the leaders with the note.
+- **The Detail Library's notes** are now leadered text notes. Earlier they were text plus
+  separate lines and arrowhead regions.
+
+## ADR-071 Detail components, Repeating Detail and Insulation — Accepted (2026-09-28)
+Owner request (same day): "make components that are typical in Revit like break lines,
+plywood, gyp board, header block, etc.… all typical components you see in Revit", plus
+"Revit's Insulation tool" and "detail components, Revit's repeating 2D pieces such as brick
+coursing along a line".
+
+- **The element.** `ElementData::DetailComponent` has a view, a `type_key`, a start, an end
+  and a flip flag.
+  - Line-based components run from start to end. Point-based ones sit at the start, turned
+    toward the end.
+  - Geometry is built in the component's own frame, in inches (studio-core
+    `details::components`).
+- **Families** (17, with 52 types in all), named as in Revit's Detail Items library:
+  - Break Line, which masks the band beside it.
+  - Plywood/OSB sections (with ply lines) and Gypsum Wallboard.
+  - Nominal Cut Lumber (with its X) and Nominal Lumber side views.
+  - Wood Header: (2) with a 1/2" spacer, or (3).
+  - Batt Insulation (Revit's loops) and Rigid Insulation.
+  - Brick and CMU coursing, as repeating units with joints; CMU units have hollow cells.
+  - Metal Flashing with a hem, and Anchor Bolts with hook, nut and washer.
+  - Sealant with Backer Rod, and Rebar.
+  - W wide flanges, metal studs and angles.
+- **A Masking fill pattern** (paper white) lets break lines and lumber hide what's behind
+  them. Filled regions can use it too.
+- **Placing.**
+  - **Detail Component (CM)**, Revit's Component shortcut, works in any 2D view.
+    - The options bar has a type selector grouped by family, rotation and Flip; Space turns
+      a point-based component 90°.
+    - A preview follows the cursor.
+  - **Repeating Detail** starts with brick coursing, and **Insulation** with a 5 1/2" batt.
+- **Editing.** Grips drag a line-based component's ends; a point-based one drags as a whole.
+  Properties change the type (within its family) and Flip. Mirror flips it.
+- **Draw order.** Components draw in the view's order, so a break line masks what was drawn
+  before it.
+
+## ADR-072 Dimensions in drafting views — Accepted (2026-09-28)
+- **The tools.** Aligned and Linear dimensions work in drafting views, on detail lines and
+  detail components. Drafting views snap to their lines' ends, midpoints and crossings,
+  without the elevations' height labels.
+- **New anchors:**
+  - `Anchor::DetailLine`: a fraction along the line.
+  - `Anchor::Component`: a point in the component's own frame.
+- **Behaviour:**
+  - Dimensions stretch when what they measure moves, as in Revit.
+  - Copies re-link their anchors.
+  - Align can move detail lines and components.
+
+## ADR-073 Saving your own details to the library — Accepted (2026-09-28)
+- **Save to Library** (Details tab, with a drafting view active) saves the view's detail
+  lines, filled regions, components, text notes and dimensions, with a name, a category
+  ("My Details" by default, or any library category) and a description.
+  - The file is `my-details.json` in the app's local data folder, one per computer (studio-core
+    `details::user`, app `detail_cmds`).
+  - Saving again with the same name and category replaces it.
+- **Inserting** makes a drafting view with copies of the elements. Dimensions' anchors are
+  pointed at the copies.
+- **In the library**, your details show alongside the built-in ones, drawn in the grid.
+  They can be deleted with a two-click Delete, not a pop-up.
+- **Tests:** studio-core gains `serde_json` as a dev-dependency only, for the file
+  round-trip test.

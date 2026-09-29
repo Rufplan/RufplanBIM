@@ -104,3 +104,37 @@ describe("Details tab (ADR-069)", () => {
     expect(toolAllowed("door", "Drafting")).toBe(false);
   });
 });
+
+describe("Your details (ADR-073)", () => {
+  it("saves a drafting view to the library and deletes it again", async () => {
+    await openDetailsTab();
+    // Save to Library needs a drafting view open: insert one first.
+    expect(screen.getByRole("button", { name: /Save to Library/ })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /Detail Library/ }));
+    let dialog = await screen.findByRole("dialog", { name: "Detail Library" });
+    await within(dialog).findByText("Eave with Gutter");
+    await userEvent.click(within(dialog).getByText("Eave with Gutter"));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Insert Detail" }));
+    await waitFor(() => expect(activeViewInfo(useAppStore.getState())?.viewType).toBe("Drafting"));
+    await userEvent.click(screen.getByRole("button", { name: /Save to Library/ }));
+    const save = await screen.findByRole("dialog", { name: "Save to Library" });
+    expect(within(save).getByLabelText("Name")).toHaveValue("Eave with Gutter");
+    const name = within(save).getByLabelText("Name");
+    await userEvent.clear(name);
+    await userEvent.type(name, "Our Eave");
+    await userEvent.click(within(save).getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(argsOf("detail_save")[0]).toMatchObject({ name: "Our Eave", category: "My Details" }),
+    );
+    // It's in the library under My Details, and can be deleted (two clicks, no pop-up).
+    await userEvent.click(screen.getByRole("button", { name: /Detail Library/ }));
+    dialog = await screen.findByRole("dialog", { name: "Detail Library" });
+    await userEvent.click(await within(dialog).findByRole("button", { name: /^My Details/ }));
+    await userEvent.click(within(dialog).getByText("Our Eave"));
+    const del = within(dialog).getByRole("button", { name: "Delete from Library" });
+    await userEvent.click(del);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Click again to delete" }));
+    await waitFor(() => expect(argsOf("detail_delete")[0]).toEqual({ id: "user:u1" }));
+    await waitFor(() => expect(within(dialog).queryByText("Our Eave")).toBeNull());
+  });
+});

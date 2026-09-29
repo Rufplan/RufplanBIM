@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Revit Text with leaders and in-place editing; detail components (break lines, sheathing, lumber,
+  headers, insulation, brick/CMU coursing, steel…); dimensions in drafting views; saving your own
+  details to the library (ADR-070–073).
 - Details tab: drafting views, filled regions and a 22-detail library of typical details, each at
   its usual scale (ADR-069).
 - Model In-Place: in-place elements in any of 17 Revit categories from extrusions, blends,

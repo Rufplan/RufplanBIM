@@ -345,6 +345,10 @@ export const ipc = {
   createDraftingView: (name: string, scale: number) =>
     invoke<[ElementId, AppState | null]>("create_drafting_view", { name, scale }),
   sketchSetPattern: (pattern: FillPattern): S => invoke("sketch_set_pattern", { pattern }),
+  // Your details (ADR-073).
+  detailSave: (view: ElementId, name: string, category: string, description: string) =>
+    invoke<DetailInfo>("detail_save", { view, name, category, description }),
+  detailDelete: (id: string) => invoke<void>("detail_delete", { id }),
   // Revit's Text (ADR-070).
   createTextNote: (
     view: ElementId,

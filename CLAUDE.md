@@ -133,6 +133,12 @@ Read these before writing code:
   TypePicker (rendered thumbnails, app/src/render/thumbs.ts) replaces the Window Library.
 - Terrain (ADR-045): studio-regen `SiteSolid::skirt`, studio-views `terrain`; the 3D view's
   TerrainBar (earth depth, contours, labels, interval).
+- Text and detailing round (ADR-070–073): studio-core `text` (Leader, TextAlign, layout), TextNote
+  leaders/align/width, ops `create_text_note`/`text_note_box`/`add_leader`; studio-views `text_note`;
+  components/TextRibbon.tsx, TextEditor.tsx, text.ts. `details::components` (17 families,
+  DetailComponent, Masking), components.ts, ComponentOptions.tsx, tool `component` (CM).
+  Anchor::DetailLine / Anchor::Component. `details::user` (SavedDetail, capture, insert_saved),
+  app `detail_save`/`detail_delete` (my-details.json in app local data).
 - Details (ADR-069): ViewKind::Drafting, ElementData::FilledRegion; studio-core `details` (FillPattern,
   22-detail `library` drawn in inches, insert, create_drafting_view, finish_region); studio-views
   `drafting` (hatch patterns, detail_preview); app `detail_cmds`, sketching region sketches;

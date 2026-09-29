@@ -70,11 +70,15 @@ import {
 // Cameras survive tab switches.
 const cameras = new Map<string, Camera>();
 
-/** The wall or grid a reference is on (null for a loose point). */
+/** The element a reference is on: a wall, grid, detail line or detail component (null for
+ * a loose point). */
 function elementOf(r: Reference): string | null {
   const a = r.anchor;
   if (!a) return null;
-  return "Wall" in a ? a.Wall.wall : a.Grid.grid;
+  if ("Wall" in a) return a.Wall.wall;
+  if ("Grid" in a) return a.Grid.grid;
+  if ("DetailLine" in a) return a.DetailLine.line;
+  return a.Component.component;
 }
 
 /** View types that can be activated on a sheet and drawn in (ADR-039). */

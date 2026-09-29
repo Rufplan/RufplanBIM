@@ -11,6 +11,11 @@ import { DetailThumb } from "./DetailThumb";
 // drafting view of it at that scale.
 
 let library: Promise<DetailInfo[]> | null = null;
+
+/** Forgets the library so it's fetched again (after Save to Library or a delete). */
+export function reloadLibrary() {
+  library = null;
+}
 const previews = new Map<string, Promise<DisplayList>>();
 
 function preview(id: string) {
@@ -45,6 +50,7 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
   const [cat, setCat] = useState("All");
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   useEffect(() => {
     library ??= ipc.detailLibrary();
     library.then(
@@ -142,12 +148,109 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
                   <button className="btn-cyan" onClick={() => void insert(chosen.id)}>
                     Insert Detail
                   </button>
+                  {chosen.user && (
+                    <button
+                      className="btn-outline"
+                      onClick={() => {
+                        if (deleting !== chosen.id) {
+                          setDeleting(chosen.id);
+                          return;
+                        }
+                        void ipc.detailDelete(chosen.id).then(
+                          () => {
+                            reloadLibrary();
+                            setDeleting(null);
+                            setDetails((d) => d.filter((x) => x.id !== chosen.id));
+                            setCurrent(null);
+                          },
+                          (e) => useAppStore.getState().setError(errorMessage(e)),
+                        );
+                      }}
+                    >
+                      {deleting === chosen.id ? "Click again to delete" : "Delete from Library"}
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
               <p className="muted">Pick a detail.</p>
             )}
           </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Save to Library (ADR-073): the active drafting view as one of your details. */
+export function SaveDetailDialog({ onClose }: { onClose: () => void }) {
+  const view = useAppStore((s) => s.app?.views.find((v) => v.id === s.activeView) ?? null);
+  const [name, setName] = useState(view?.name ?? "");
+  const [category, setCategory] = useState("My Details");
+  const [description, setDescription] = useState("");
+  const [cats, setCats] = useState<string[]>([]);
+  useEffect(() => {
+    library ??= ipc.detailLibrary();
+    library.then(
+      (d) => setCats([...new Set(["My Details", ...d.map((x) => x.category)])]),
+      () => {},
+    );
+  }, []);
+  const ok = async () => {
+    const s = useAppStore.getState();
+    if (!view || view.viewType !== "Drafting") {
+      s.setError("Open the drafting view to save to the library.");
+      return;
+    }
+    try {
+      await ipc.detailSave(view.id, name, category, description);
+      reloadLibrary();
+      onClose();
+    } catch (e) {
+      s.setError(errorMessage(e));
+    }
+  };
+  return (
+    <div className="modal-backdrop" role="dialog" aria-label="Save to Library">
+      <div className="modal drafting-dialog">
+        <h2>Save to Library</h2>
+        <p className="muted">
+          Saves this drafting view&apos;s lines, regions, components, notes and dimensions as a
+          detail on this computer, to insert in any project.
+        </p>
+        <label className="inplace-name">
+          Name
+          <input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="inplace-name">
+          Category
+          <input
+            aria-label="Category"
+            list="detail-categories"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+          <datalist id="detail-categories">
+            {cats.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </label>
+        <label className="inplace-name">
+          Description
+          <input
+            aria-label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+        <div className="mb-actions">
+          <button className="btn-cyan" onClick={() => void ok()}>
+            Save
+          </button>
+          <button className="btn-outline" onClick={onClose}>
+            Cancel
+          </button>
         </div>
       </div>
     </div>
