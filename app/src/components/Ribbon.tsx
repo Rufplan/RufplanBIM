@@ -17,6 +17,7 @@ import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
 import { InPlaceRibbon } from "./InPlaceRibbon";
+import { TextRibbon } from "./TextRibbon";
 import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
 import { StandardsRibbon } from "./Standards";
@@ -168,6 +169,7 @@ export function Ribbon() {
   });
   const activeIs3d = useAppStore((s) => activeViewInfo(s)?.viewType === "ThreeD");
   const grid3d = useAppStore((s) => s.grid3d);
+  const activeTool = useAppStore((s) => s.tool);
   const setGrid3d = useAppStore((s) => s.setGrid3d);
   const setUi = useAppStore((s) => s.setUi);
   const satellite = useAppStore((s) => s.satellite);
@@ -188,6 +190,8 @@ export function Ribbon() {
   if (app?.sketch) return <SketchRibbon />;
   // So does the In-Place Editor (ADR-068).
   if (app?.inPlace) return <InPlaceRibbon />;
+  // Text's contextual tab (ADR-070).
+  if (activeTool === "text") return <TextRibbon />;
   const sketchButton = (
     kind: "Floor" | "Ceiling",
     label: string,

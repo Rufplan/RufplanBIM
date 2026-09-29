@@ -3923,3 +3923,28 @@ button:disabled {
 .detail-library .mb-detail {
   width: 380px;
 }
+
+/* ---------- Revit's in-place text editor (ADR-070) ---------- */
+.text-editor {
+  position: absolute;
+  z-index: 6;
+  min-width: 3em;
+  padding: 0 2px;
+  margin: 0;
+  border: 1px solid var(--cyan);
+  outline: 1px dashed rgba(62, 207, 247, 0.6);
+  outline-offset: 2px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-family: "Barlow Condensed", "Barlow", sans-serif;
+  font-weight: 600;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px rgba(10, 10, 10, 0.12);
+}
+.rb-seg {
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+}

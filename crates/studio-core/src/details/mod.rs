@@ -97,9 +97,12 @@ pub struct DLine {
 /// A note with its leader: the text starts at `at`, the leader runs to `to`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Note {
+    /// The first line's anchor: its left end (notes right of the drawing) or right end
+    /// (notes left of it), so the leader leaves the side facing the drawing.
     pub at: Pt,
     pub to: Pt,
     pub text: String,
+    pub align: crate::text::TextAlign,
 }
 
 /// A detail's drawing (model mm), before it becomes elements.
@@ -268,9 +271,8 @@ impl D {
             return self.d;
         };
         let s = f64::from(scale);
-        let (h, gap, row) = (size * s, 10.0 * s, size * s * 2.0);
+        let (gap, row) = (10.0 * s, size * s * 2.0);
         let mid = (lo.x + hi.x) / 2.0;
-        let char_w = size * s * 0.62;
         let mut sides: [Vec<(Pt, String)>; 2] = [vec![], vec![]];
         for ((x, y), text) in self.notes.drain(..) {
             let to = p(x, y);
@@ -282,32 +284,18 @@ impl D {
             for (to, text) in notes.iter() {
                 let y = to.y.min(last - row);
                 last = y;
-                let w = text.chars().count() as f64 * char_w;
-                let (at, end) = if side == 1 {
-                    let x = hi.x + gap;
-                    (Pt::new(x, y - h / 2.0), Pt::new(x - s * 1.5, y))
+                // The text on its side of the drawing; its leader (a text note's own,
+                // ADR-070) runs from the facing side to the target.
+                let (at, align) = if side == 1 {
+                    (Pt::new(hi.x + gap, y), crate::text::TextAlign::Left)
                 } else {
-                    let x = lo.x - gap - w;
-                    (Pt::new(x, y - h / 2.0), Pt::new(lo.x - gap + s * 1.5, y))
+                    (Pt::new(lo.x - gap, y), crate::text::TextAlign::Right)
                 };
-                // The leader, with a small solid arrowhead at the target.
-                self.d.lines.push(DLine {
-                    pts: vec![end, *to],
-                    closed: false,
-                    style: LineStyle::Thin,
-                });
-                let dir = to.sub(end).norm();
-                let (len, half) = (s * 1.8, s * 0.45);
-                let base = to.sub(dir.scale(len));
-                let n = dir.perp();
-                self.d.regions.push((
-                    vec![*to, base.add(n.scale(half)), base.sub(n.scale(half))],
-                    FillPattern::Solid,
-                ));
                 self.d.notes.push(Note {
                     at,
                     to: *to,
                     text: text.clone(),
+                    align,
                 });
             }
         }
@@ -410,6 +398,13 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
                 at: note.at,
                 text: note.text.clone(),
                 size: TEXT_SIZE,
+                leaders: vec![crate::text::Leader {
+                    end: note.to,
+                    elbow: None,
+                    arc: false,
+                }],
+                align: note.align,
+                width: None,
             });
         }
         Ok(view)
@@ -595,13 +590,8 @@ mod tests {
             );
             let (scale, d) = drawing(&info.id).unwrap();
             assert_eq!(scale, info.scale);
-            assert!(
-                d.lines.len() > 10,
-                "{} has {} lines",
-                info.id,
-                d.lines.len()
-            );
-            assert!(!d.regions.is_empty(), "{}", info.id);
+            assert!(d.lines.len() > 6, "{} has {} lines", info.id, d.lines.len());
+            assert!(!d.regions.is_empty() || d.lines.len() > 20, "{}", info.id);
             assert!(d.notes.len() >= 3, "{}", info.id);
             // Notes sit outside the drawing's own extent and never overlap each other.
             let geo: Vec<Pt> = d

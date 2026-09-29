@@ -32,6 +32,7 @@ pub mod standards;
 pub mod standards_catalog;
 pub mod structure;
 pub mod symbols;
+pub mod text;
 pub mod units;
 pub mod visibility;
 pub mod wall_opening;

@@ -198,8 +198,19 @@ fn transformed(
                 *p = x.apply(*p);
             }
         }
-        ElementData::TextNote { view, at, .. }
-        | ElementData::SpotSlope { view, at, .. }
+        ElementData::TextNote {
+            view, at, leaders, ..
+        } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            *at = x.apply(*at);
+            for l in leaders.iter_mut() {
+                l.end = x.apply(l.end);
+                l.elbow = l.elbow.map(|e| x.apply(e));
+            }
+        }
+        ElementData::SpotSlope { view, at, .. }
         | ElementData::NorthArrow { view, at }
         | ElementData::GraphicScale { view, at } => {
             if !is_plan_view(tx, *view) {
@@ -841,6 +852,54 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                 }
             })
         }),
+        // Text notes (ADR-070): the text itself (its leaders' arrowheads stay), a leader's
+        // arrowhead or elbow, and the wrap width.
+        (ElementData::TextNote { .. }, k)
+            if k == "text_move" || k == "text_width" || k.starts_with("leader:") =>
+        {
+            let (tb, _, scale) = crate::ops::text_note_box(doc, id)?;
+            doc.transact("Edit text note", |tx| {
+                tx.modify(id, |d| {
+                    let ElementData::TextNote {
+                        at,
+                        leaders,
+                        align,
+                        width,
+                        ..
+                    } = d
+                    else {
+                        return;
+                    };
+                    match k {
+                        "text_move" => *at = to,
+                        "text_width" => {
+                            let w = match align {
+                                crate::text::TextAlign::Left => to.x - tb.min.x,
+                                crate::text::TextAlign::Right => tb.max.x - to.x,
+                                crate::text::TextAlign::Center => 2.0 * (to.x - at.x).abs(),
+                            };
+                            *width = Some((w / scale).max(tb.height / scale * 2.0));
+                        }
+                        _ => {
+                            let mut parts = k.split(':').skip(1);
+                            let (Some(i), Some(what)) = (
+                                parts.next().and_then(|s| s.parse::<usize>().ok()),
+                                parts.next(),
+                            ) else {
+                                return;
+                            };
+                            if let Some(l) = leaders.get_mut(i) {
+                                match what {
+                                    "end" => l.end = to,
+                                    "elbow" => l.elbow = Some(to),
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                })
+            })
+        }
         // Dragging a selected tag (ADR-060): `to` is its new offset from its element.
         (ElementData::Tag { .. }, "tag") => doc.transact("Move tag", |tx| {
             tx.modify(id, |d| {

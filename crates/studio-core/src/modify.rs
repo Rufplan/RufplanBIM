@@ -87,8 +87,14 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                 ElementData::DetailLine { curve, .. } | ElementData::ModelLine { curve, .. } => {
                     *curve = curve.mapped(&|p| p.add(delta), false);
                 }
-                ElementData::TextNote { at, .. }
-                | ElementData::SpotSlope { at, .. }
+                ElementData::TextNote { at, leaders, .. } => {
+                    *at = at.add(delta);
+                    for l in leaders.iter_mut() {
+                        l.end = l.end.add(delta);
+                        l.elbow = l.elbow.map(|e| e.add(delta));
+                    }
+                }
+                ElementData::SpotSlope { at, .. }
                 | ElementData::NorthArrow { at, .. }
                 | ElementData::GraphicScale { at, .. }
                 | ElementData::KeyPlan { at, .. } => *at = at.add(delta),

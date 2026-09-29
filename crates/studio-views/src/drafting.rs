@@ -6,7 +6,7 @@ use studio_core::lines::LineStyle;
 use studio_core::ElementId;
 use studio_geom::{point_in_ring, Pt};
 
-use super::{line_style, ring, Anchor, Builder, DisplayList, FillKind, ViewType};
+use super::{line_style, ring, Builder, DisplayList, FillKind, ViewType};
 
 /// Most hatch lines or marks one region draws (a huge region stays drawable).
 const MAX_MARKS: usize = 3000;
@@ -191,7 +191,21 @@ pub fn detail_preview(id: &str) -> Option<DisplayList> {
         b.line(None, &l.pts, l.closed, w, dash);
     }
     for n in &d.notes {
-        b.text(None, n.at, n.text.clone(), details::TEXT_SIZE, Anchor::Left);
+        let leader = studio_core::text::Leader {
+            end: n.to,
+            elbow: None,
+            arc: false,
+        };
+        super::text_note(
+            &mut b,
+            None,
+            n.at,
+            &n.text,
+            details::TEXT_SIZE,
+            &[leader],
+            n.align,
+            None,
+        );
     }
     let bounds = drafting_bounds(&b, 6.0);
     Some(DisplayList {
@@ -290,7 +304,15 @@ mod tests {
         let last_fill = dl
             .items
             .iter()
-            .rposition(|i| matches!(i.prim, Prim::Fill { .. }))
+            .rposition(|i| {
+                matches!(i.prim, Prim::Fill { .. })
+                    && i.el.is_some_and(|e| {
+                        matches!(
+                            doc.data(e),
+                            Ok(studio_core::ElementData::FilledRegion { .. })
+                        )
+                    })
+            })
             .unwrap();
         assert!(last_fill < first_line, "regions under the detail lines");
         assert!(dl

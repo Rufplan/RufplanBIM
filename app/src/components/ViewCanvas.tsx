@@ -28,6 +28,10 @@ import {
 } from "../store";
 import { placePlant } from "../vegetation";
 import { editInPlace } from "../inplace";
+import { TextEditor } from "./TextEditor";
+import { leaderClicks, leadersFrom, textPrompt } from "../text";
+import type { Leader } from "../bindings/Leader";
+import type { TextAlign } from "../bindings/TextAlign";
 import type { Reference } from "../bindings/Reference";
 import type { PickCandidate } from "../bindings/PickCandidate";
 import {
@@ -171,6 +175,18 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const [dl, setDl] = useState<DisplayList | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [editor, setEditor] = useState<Editor | null>(null);
+  // Revit's Text (ADR-070): the leader clicks so far, and the note being typed (a new one,
+  // or an existing one's text).
+  const textPts = useRef<Pt[]>([]);
+  const [textEdit, setTextEdit] = useState<{
+    id: string | null;
+    at: Pt;
+    size: number;
+    align: TextAlign;
+    width: number | null;
+    leaders: Leader[];
+    text: string;
+  } | null>(null);
   // Activated on a sheet, the camera follows the sheet's (below).
   const cam = useRef<Camera | null>(onSheet ? null : (cameras.get(view.id) ?? null));
   // The rest of the sheet, drawn faded around an activated view.
@@ -210,6 +226,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   const sketchPreview = useRef<Pt[][]>([]);
   /** Detail/model lines the draw tool would make for the cursor (ADR-054). */
   const linePreview = useRef<Pt[][]>([]);
+  // The Text tool's rubber bands: the leader so far, or the text box being dragged.
+  const textGhost = useRef<Pt[][]>([]);
   const sketchFirst = useRef<{ i: number; at: Pt } | null>(null);
   const vertexDrag = useRef<{ from: Pt; to: Pt | null } | null>(null);
   const sketchMode = useAppStore((s) => s.sketchUi.mode);
@@ -401,6 +419,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       }
       if (LINE_TOOLS.includes(s.tool) && linePreview.current.length)
         drawSketch(ctx, cam.current, w, h, [], new Set(), new Set(), linePreview.current, []);
+      if (s.tool === "text" && textGhost.current.length)
+        drawSketch(ctx, cam.current, w, h, [], new Set(), new Set(), textGhost.current, []);
       const drawing = s.tool !== "select" && !placing && toolAllowed(s.tool, view.viewType);
       if (drawing) {
         const sn = snapRef.current;
@@ -559,6 +579,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     preview.current = null;
     refLine.current = null;
     firstPick.current = null;
+    textPts.current = [];
+    textGhost.current = [];
   }, []);
   const resetTool = useCallback(() => {
     resetRefs();
@@ -1464,8 +1486,14 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     const from = pts.current[pts.current.length - 1] ?? null;
     const p = (await ipc.snap(view.id, raw, from, tol)).pt;
     if (s.tool === "text") {
-      const text = window.prompt("Text note", "");
-      if (text !== null) await apply(() => ipc.createText(view.id, raw, text));
+      // Revit's Text: the leader's arrowhead (and elbow) first, then where the text goes.
+      const mode = s.options.textLeader;
+      if (textPts.current.length < leaderClicks(mode)) {
+        textPts.current = [...textPts.current, p];
+        s.setPrompt(textPrompt(mode, textPts.current.length));
+        return;
+      }
+      openText(raw, null);
       return;
     }
     if (LINE_TOOLS.includes(s.tool)) {
@@ -1571,6 +1599,69 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     redraw();
   }
 
+  /** Opens the in-place editor for a new note at `at` (`width` paper mm, if dragged). */
+  function openText(at: Pt, width: number | null) {
+    const s = useAppStore.getState();
+    const mode = s.options.textLeader;
+    setTextEdit({
+      id: null,
+      at,
+      size: s.options.textSize,
+      align: s.options.textAlign,
+      width,
+      leaders: leadersFrom(mode, textPts.current),
+      text: "",
+    });
+    textPts.current = [];
+    textGhost.current = [];
+    redraw();
+  }
+
+  /** Finishes typing: creates the note, or changes an existing one's text. */
+  async function commitText(value: string | null) {
+    const t = textEdit;
+    setTextEdit(null);
+    const s = useAppStore.getState();
+    s.setPrompt(textPrompt(s.options.textLeader, 0));
+    if (!t || value === null) return;
+    const text = value.replace(/\s+$/, "");
+    if (!text.trim()) return;
+    if (t.id) {
+      if (text !== t.text) await apply(() => ipc.setProperty(t.id!, "text", text));
+    } else {
+      await apply(() =>
+        ipc.createTextNote(view.id, t.at, text, t.size, t.leaders, t.align, t.width),
+      );
+    }
+  }
+
+  /** Edit Text: the in-place editor on an existing note. */
+  async function editText(id: string) {
+    const info = await ipc.textNoteInfo(id).catch(() => null);
+    if (!info) return;
+    setTextEdit({
+      id,
+      at: info.at,
+      size: info.size,
+      align: info.align,
+      width: info.width,
+      leaders: [],
+      text: info.text,
+    });
+  }
+
+  // Modify | Text Notes > Edit Text (ADR-070).
+  const editTextRef = useRef(editText);
+  editTextRef.current = editText;
+  useEffect(() => {
+    const on = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (id) void editTextRef.current(id);
+    };
+    window.addEventListener("edit-text", on);
+    return () => window.removeEventListener("edit-text", on);
+  }, []);
+
   async function doubleClick(sx: number, sy: number) {
     const s = useAppStore.getState();
     if (s.tool !== "select" || !cam.current || !s.app) return;
@@ -1585,6 +1676,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     const id = await ipc.pick(view.id, at, 6 / cam.current.zoom);
     if (!id) return;
+    // Double-clicking a text note edits its text in place, as in Revit (ADR-070).
+    const cats: string[] = await ipc.selectionCategories([id]).catch(() => []);
+    if (cats.includes("TextNote")) {
+      await editText(id);
+      return;
+    }
     // On a sheet: double-clicking a viewport activates its view to work in (ADR-039).
     if (view.viewType === "Sheet") {
       const vp = await ipc.viewportInfo(id).catch(() => null);
@@ -1700,6 +1797,21 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             return;
           }
           const d = drag.current;
+          // Text (ADR-070): the leader rubber band, or the box a drag gives the text.
+          if (useAppStore.getState().tool === "text" && cam.current) {
+            const p = modelAt(sx, sy);
+            const tp = textPts.current;
+            if (d && d.button === 0 && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 6) {
+              d.moved = true;
+              const a = modelAt(d.x, d.y);
+              textGhost.current = [
+                [a, { x: p.x, y: a.y }, p, { x: a.x, y: p.y }, a],
+                ...(tp.length ? [[...tp].reverse().concat([a])] : []),
+              ];
+            } else textGhost.current = tp.length ? [[...tp].reverse().concat([p])] : [];
+            redraw();
+            if (d?.moved) return;
+          }
           // Box selection (Revit's): dragging from empty space in the Modify tool.
           if (
             d &&
@@ -1875,6 +1987,25 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             redraw();
             return;
           }
+          // Text dragged out: its box's width (Revit's drag to size the text).
+          if (
+            d?.moved &&
+            d.button === 0 &&
+            useAppStore.getState().tool === "text" &&
+            cam.current &&
+            textPts.current.length >= leaderClicks(useAppStore.getState().options.textLeader)
+          ) {
+            const [sx, sy] = local(e);
+            const a = modelAt(d.x, d.y);
+            const b = modelAt(sx, sy);
+            const size = useAppStore.getState().options.textSize * view.scale;
+            const top = Math.max(a.y, b.y);
+            openText(
+              { x: Math.min(a.x, b.x), y: top - size * 0.8 },
+              Math.abs(b.x - a.x) / view.scale,
+            );
+            return;
+          }
           if (!d || d.moved) return;
           const [sx, sy] = local(e);
           // A snap override (SE, SM…) lasts for one pick.
@@ -1908,6 +2039,30 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           redraw();
         }}
       />
+      {textEdit && cam.current && (
+        <TextEditor
+          key={`${textEdit.id ?? "new"}:${textEdit.at.x}:${textEdit.at.y}`}
+          x={
+            toScreen(cam.current, size.w, size.h, textEdit.at.x, textEdit.at.y)[0] -
+            (textEdit.align === "Right" && textEdit.width === null
+              ? 0
+              : textEdit.align === "Center" && textEdit.width !== null
+                ? (textEdit.width * view.scale * cam.current.zoom) / 2
+                : textEdit.align === "Right" && textEdit.width !== null
+                  ? textEdit.width * view.scale * cam.current.zoom
+                  : 0)
+          }
+          y={
+            toScreen(cam.current, size.w, size.h, textEdit.at.x, textEdit.at.y)[1] -
+            textEdit.size * view.scale * cam.current.zoom * 0.8
+          }
+          fontPx={textEdit.size * view.scale * cam.current.zoom}
+          widthPx={textEdit.width ? textEdit.width * view.scale * cam.current.zoom : null}
+          align={textEdit.align}
+          initial={textEdit.text}
+          onDone={(v) => void commitText(v)}
+        />
+      )}
       {editor && editor.tool === tool && (
         <input
           className={`canvas-input ${editor.kind}`}

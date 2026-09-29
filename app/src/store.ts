@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import type { GrassKind } from "./bindings/GrassKind";
+import type { TextAlign } from "./bindings/TextAlign";
+import type { LeaderMode } from "./text";
 import type { NavMode } from "./render/navigate";
 import type { SunSettings } from "./bindings/SunSettings";
 import type { AppState, CloudStatus, ElementId, Pt } from "./ipc";
@@ -180,6 +182,10 @@ export interface ToolOptions {
   grassBrush: number;
   grassDensity: number;
   grassErase: boolean;
+  /** Text (Revit's, ADR-070): its type (paper mm), leader and alignment. */
+  textSize: number;
+  textLeader: LeaderMode;
+  textAlign: TextAlign;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -440,6 +446,9 @@ export const useAppStore = create<UiState>((set, get) => ({
     grassBrush: 1200,
     grassDensity: 100,
     grassErase: false,
+    textSize: 2.4,
+    textLeader: "None",
+    textAlign: "Left",
   },
   paramsOpen: false,
   sketchUi: {

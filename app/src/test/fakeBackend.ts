@@ -1206,6 +1206,23 @@ export function installFakeBackend(): FakeBackend {
         }
         case "snap":
           return { pt: a.point, kind: "None", label: null };
+        // Revit's Text (ADR-070).
+        case "create_text_note":
+        case "add_text_leader":
+        case "remove_text_leader":
+          if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+          return fake.state;
+        case "text_note_info":
+          return {
+            text: "EXISTING NOTE",
+            at: { x: 1000, y: 1000 },
+            size: 2.4,
+            align: "Left",
+            width: null,
+            view: ids.plan1,
+            min: { x: 1000, y: 950 },
+            max: { x: 2000, y: 1050 },
+          };
         // Lighting (ADR-057).
         case "lighting_library":
           return FAKE_LIGHT_LIBRARY;

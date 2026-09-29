@@ -1251,6 +1251,9 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     at,
                     text,
                     size,
+                    leaders: vec![],
+                    align: Default::default(),
+                    width: None,
                 });
             };
             match &d.content {

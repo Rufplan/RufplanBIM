@@ -6,6 +6,9 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { AppState } from "./bindings/AppState";
 import type { CategoryChoice } from "./bindings/CategoryChoice";
+import type { Leader } from "./bindings/Leader";
+import type { TextAlign } from "./bindings/TextAlign";
+import type { TextNoteInfo } from "./bindings/TextNoteInfo";
 import type { DetailInfo } from "./bindings/DetailInfo";
 import type { FillPattern } from "./bindings/FillPattern";
 import type { FormKind } from "./bindings/FormKind";
@@ -335,6 +338,19 @@ export const ipc = {
   createDraftingView: (name: string, scale: number) =>
     invoke<[ElementId, AppState | null]>("create_drafting_view", { name, scale }),
   sketchSetPattern: (pattern: FillPattern): S => invoke("sketch_set_pattern", { pattern }),
+  // Revit's Text (ADR-070).
+  createTextNote: (
+    view: ElementId,
+    at: Pt,
+    text: string,
+    size: number,
+    leaders: Leader[],
+    align: TextAlign,
+    width: number | null,
+  ): S => invoke("create_text_note", { view, at, text, size, leaders, align, width }),
+  textNoteInfo: (id: ElementId) => invoke<TextNoteInfo>("text_note_info", { id }),
+  addTextLeader: (ids: ElementId[], left: boolean): S => invoke("add_text_leader", { ids, left }),
+  removeTextLeader: (ids: ElementId[]): S => invoke("remove_text_leader", { ids }),
   inPlaceCategories: () => invoke<CategoryChoice[]>("in_place_categories"),
   inPlaceDefaultName: (category: Category) => invoke<string>("in_place_default_name", { category }),
   inPlaceOf: (ids: ElementId[]) => invoke<ElementId[]>("in_place_of", { ids }),

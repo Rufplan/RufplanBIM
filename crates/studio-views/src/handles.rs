@@ -508,6 +508,52 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     });
                 }
             }
+            // A text note (ADR-070): drag the text (its arrowheads stay), each leader's
+            // arrowhead and elbow (a straight leader's middle bends it), and the wrap width.
+            ElementData::TextNote {
+                at, leaders, align, ..
+            } => {
+                let Ok((tb, lines, _)) = studio_core::ops::text_note_box(doc, *id) else {
+                    continue;
+                };
+                out.areas.push(DragArea {
+                    id: *id,
+                    key: "text_move".into(),
+                    min: tb.min,
+                    max: tb.max,
+                    at: *at,
+                });
+                for (i, (l, pts)) in leaders.iter().zip(&lines).enumerate() {
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: format!("leader:{i}:end"),
+                        at: l.end,
+                        anchor: pts.first().copied(),
+                    });
+                    let elbow = l.elbow.unwrap_or_else(|| match pts.as_slice() {
+                        [a, .., b] => a.lerp(*b, 0.5),
+                        _ => l.end,
+                    });
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: format!("leader:{i}:elbow"),
+                        at: elbow,
+                        anchor: None,
+                    });
+                }
+                let y = (tb.min.y + tb.max.y) / 2.0;
+                let x = if *align == studio_core::text::TextAlign::Right {
+                    tb.min.x
+                } else {
+                    tb.max.x
+                };
+                out.grips.push(Grip {
+                    id: *id,
+                    key: "text_width".into(),
+                    at: Pt::new(x, y),
+                    anchor: None,
+                });
+            }
             _ => {}
         }
     }

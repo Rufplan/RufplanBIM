@@ -714,6 +714,110 @@ pub fn create_text(
     })
 }
 
+/// Revit's Text (ADR-070): a note with its leaders, alignment and wrap width.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub fn create_text_note(
+    view: ElementId,
+    at: Pt,
+    text: String,
+    size: f64,
+    leaders: Vec<studio_core::text::Leader>,
+    align: studio_core::text::TextAlign,
+    width: Option<f64>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| ops::create_text_note(d, view, at, &text, size, leaders, align, width))
+    })
+}
+
+/// A text note as the in-place editor needs it (ADR-070).
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct TextNoteInfo {
+    pub text: String,
+    pub at: Pt,
+    /// Paper mm.
+    pub size: f64,
+    pub align: studio_core::text::TextAlign,
+    /// Paper mm.
+    pub width: Option<f64>,
+    pub view: ElementId,
+    /// The box, model mm.
+    pub min: Pt,
+    pub max: Pt,
+}
+
+#[tauri::command]
+pub fn text_note_info(
+    id: ElementId,
+    state: State<'_, SessionState>,
+) -> CommandResult<TextNoteInfo> {
+    let session = lock(&state)?;
+    let doc = session.doc()?;
+    let (tb, _, _) = ops::text_note_box(doc, id)?;
+    let studio_core::ElementData::TextNote {
+        view,
+        at,
+        text,
+        size,
+        align,
+        width,
+        ..
+    } = doc.data(id)?
+    else {
+        return Err(anyhow::anyhow!("select a text note").into());
+    };
+    Ok(TextNoteInfo {
+        text: text.clone(),
+        at: *at,
+        size: *size,
+        align: *align,
+        width: *width,
+        view: *view,
+        min: tb.min,
+        max: tb.max,
+    })
+}
+
+/// Add Leader (left or right) to text notes.
+#[tauri::command]
+pub fn add_text_leader(
+    ids: Vec<ElementId>,
+    left: bool,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| {
+            for id in &ids {
+                ops::add_leader(d, *id, left)?;
+            }
+            Ok(())
+        })
+    })
+}
+
+/// Remove Last Leader from text notes.
+#[tauri::command]
+pub fn remove_text_leader(
+    ids: Vec<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| {
+        s.edit(|d| {
+            for id in &ids {
+                ops::remove_leader(d, *id)?;
+            }
+            Ok(())
+        })
+    })
+}
+
 /// Creates a sheet with the next number.
 #[tauri::command]
 pub fn create_sheet(

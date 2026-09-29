@@ -389,18 +389,103 @@ pub fn create_text(
     at: Pt,
     text: &str,
 ) -> CoreResult<ElementId> {
+    create_text_note(
+        doc,
+        view,
+        at,
+        text,
+        3.0,
+        vec![],
+        crate::text::TextAlign::Left,
+        None,
+    )
+}
+
+/// Revit's Text (ADR-070): a note at `at` (`size` paper mm, wrapped at `width` paper
+/// mm), with its leaders.
+#[allow(clippy::too_many_arguments)]
+pub fn create_text_note(
+    doc: &mut Document,
+    view: ElementId,
+    at: Pt,
+    text: &str,
+    size: f64,
+    leaders: Vec<crate::text::Leader>,
+    align: crate::text::TextAlign,
+    width: Option<f64>,
+) -> CoreResult<ElementId> {
+    let text = text.trim_end();
     let text = if text.trim().is_empty() {
         "TEXT".to_owned()
     } else {
-        text.trim().to_owned()
+        text.to_owned()
     };
+    if !(0.5..=100.0).contains(&size) {
+        return Err(CoreError::Invalid("pick a text size".into()));
+    }
     doc.transact("Place text", |tx| {
         Ok(tx.insert(ElementData::TextNote {
             view,
             at,
             text,
-            size: 3.0,
+            size,
+            leaders,
+            align,
+            width: width.filter(|w| *w > 1.0),
         }))
+    })
+}
+
+/// A text note's box, lines and leader polylines in model mm (`scale`: its view's).
+pub fn text_note_box(
+    doc: &Document,
+    id: ElementId,
+) -> CoreResult<(crate::text::TextBox, Vec<Vec<Pt>>, f64)> {
+    let ElementData::TextNote {
+        view,
+        at,
+        text,
+        size,
+        leaders,
+        align,
+        width,
+    } = doc.data(id)?
+    else {
+        return Err(CoreError::Invalid("select a text note".into()));
+    };
+    let scale = match doc.data(*view)? {
+        ElementData::View { scale, .. } => f64::from(*scale),
+        _ => 1.0,
+    };
+    let tb = crate::text::layout(*at, text, size * scale, width.map(|w| w * scale), *align);
+    let lines = leaders
+        .iter()
+        .map(|l| crate::text::leader_points(&tb, l))
+        .collect();
+    Ok((tb, lines, scale))
+}
+
+/// Add Leader (ADR-070): another leader off the text's left or right side.
+pub fn add_leader(doc: &mut Document, id: ElementId, left: bool) -> CoreResult<()> {
+    let (tb, _, _) = text_note_box(doc, id)?;
+    let l = crate::text::default_leader(&tb, left);
+    doc.transact("Add leader", |tx| {
+        tx.modify(id, |d| {
+            if let ElementData::TextNote { leaders, .. } = d {
+                leaders.push(l);
+            }
+        })
+    })
+}
+
+/// Remove Last Leader.
+pub fn remove_leader(doc: &mut Document, id: ElementId) -> CoreResult<()> {
+    doc.transact("Remove leader", |tx| {
+        tx.modify(id, |d| {
+            if let ElementData::TextNote { leaders, .. } = d {
+                leaders.pop();
+            }
+        })
     })
 }
 
@@ -1804,8 +1889,40 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 format!("{attached} of 2 lines"),
             ));
         }
-        ElementData::TextNote { text: t, size, .. } => {
+        ElementData::TextNote {
+            text: t,
+            size,
+            align,
+            width,
+            leaders,
+            ..
+        } => {
             props.push(text("text", "Text", "Text", t));
+            props.push(choice(
+                "align",
+                "Horizontal Align",
+                "Graphics",
+                format!("{align:?}"),
+                ["Left", "Center", "Right"]
+                    .iter()
+                    .map(|a| PropOption {
+                        id: (*a).into(),
+                        label: (*a).into(),
+                    })
+                    .collect(),
+            ));
+            props.push(text(
+                "width",
+                "Width (paper mm)",
+                "Graphics",
+                &width.map(|w| format!("{w:.1}")).unwrap_or_default(),
+            ));
+            props.push(ro(
+                "leaders",
+                "Leaders",
+                "Graphics",
+                leaders.len().to_string(),
+            ));
             let current = TEXT_SIZES
                 .iter()
                 .min_by(|a, b| (a.0 - size).abs().total_cmp(&(b.0 - size).abs()))
@@ -2656,8 +2773,38 @@ pub fn set_property(
             "offset" => *offset = parse_len(value)?,
             _ => return Err(unknown()),
         },
-        ElementData::TextNote { text, size, .. } => match key {
+        ElementData::TextNote {
+            text,
+            size,
+            align,
+            width,
+            ..
+        } => match key {
             "text" => *text = non_empty(value)?,
+            "align" => {
+                *align = match value {
+                    "Left" => crate::text::TextAlign::Left,
+                    "Center" => crate::text::TextAlign::Center,
+                    "Right" => crate::text::TextAlign::Right,
+                    _ => return Err(unknown()),
+                }
+            }
+            "width" => {
+                *width = if value.trim().is_empty() {
+                    None
+                } else {
+                    Some(
+                        value
+                            .trim()
+                            .parse::<f64>()
+                            .ok()
+                            .filter(|w| *w > 1.0)
+                            .ok_or_else(|| {
+                                CoreError::Invalid("enter a width in paper mm".into())
+                            })?,
+                    )
+                }
+            }
             "size" => {
                 *size = value
                     .parse()

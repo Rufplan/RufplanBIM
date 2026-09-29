@@ -270,6 +270,40 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
   const inPlaceIds = inPlace.key === key ? inPlace.ids : [];
   return (
     <>
+      {only("TextNote") && (
+        <Group title="Leader">
+          <Btn
+            small
+            label="Add Left Leader"
+            icon={Icons.text}
+            title="Add a leader off the text's left side"
+            onClick={() => void apply(() => ipc.addTextLeader(selection, true))}
+          />
+          <Btn
+            small
+            label="Add Right Leader"
+            icon={Icons.text}
+            title="Add a leader off the text's right side"
+            onClick={() => void apply(() => ipc.addTextLeader(selection, false))}
+          />
+          <Btn
+            small
+            label="Remove Last Leader"
+            icon={Icons.del}
+            title="Remove the text's last leader"
+            onClick={() => void apply(() => ipc.removeTextLeader(selection))}
+          />
+          <Btn
+            label="Edit Text"
+            icon={Icons.text}
+            title="Edit the text in place (or double-click it)"
+            disabled={!one}
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("edit-text", { detail: selection[0] }))
+            }
+          />
+        </Group>
+      )}
       {one && inPlaceIds.length === 1 && (
         <Group title="Model">
           <Btn

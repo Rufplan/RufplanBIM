@@ -1,6 +1,7 @@
 // Tool helpers that don't touch React or IPC, so they're easy to test.
 import type { Pt } from "./bindings/Pt";
 import type { ViewType } from "./bindings/ViewType";
+import { textPrompt } from "./text";
 import { DEFAULT_SHORTCUTS, keyMap, type Action } from "./shortcuts";
 import { useAppStore, type SketchMode, type Tool } from "./store";
 
@@ -334,7 +335,7 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
           ? "Pick the second line."
           : "Click inside the angle to place the arc.";
     case "text":
-      return "Click where the text note goes.";
+      return textPrompt(useAppStore.getState().options.textLeader, n);
     case "spotElevation":
       return n === 0
         ? "Click the point to measure (a floor, the ground, or any height in an elevation or section)."

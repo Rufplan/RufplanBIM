@@ -1104,11 +1104,22 @@ pub enum ElementData {
     /// A text note in a view, `at` in the view's coordinates.
     TextNote {
         view: ElementId,
+        /// Its first line's anchor (left end, middle or right end by `align`), at the line's
+        /// vertical middle.
         at: Pt,
+        /// Lines are separated by \n; longer lines wrap at `width`.
         text: String,
         /// Printed text height, paper mm.
         #[serde(default = "default_text_size")]
         size: f64,
+        /// Revit's leaders (ADR-070).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        leaders: Vec<crate::text::Leader>,
+        #[serde(default)]
+        align: crate::text::TextAlign,
+        /// Wrap width, paper mm; None: the lines as typed.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        width: Option<f64>,
     },
     Sheet {
         number: String,

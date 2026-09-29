@@ -2976,8 +2976,11 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
                 at,
                 text,
                 size,
+                leaders,
+                align,
+                width,
             } if *v == view => {
-                b.text(Some(e.id), *at, text.clone(), *size, Anchor::Left);
+                text_note(b, Some(e.id), *at, text, *size, leaders, *align, *width);
             }
             ElementData::DetailLine {
                 view: v,
@@ -3008,6 +3011,46 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
     let regions: Vec<Item> = b.items.drain(at..).collect();
     b.items.splice(start..start, regions);
     symbols::draw_symbols(doc, b, view);
+}
+
+/// A text note (ADR-070): its lines (wrapped at `width` paper mm), its leaders with
+/// Revit's filled 30° arrowheads, and an invisible box so the whole note picks.
+#[allow(clippy::too_many_arguments)]
+pub fn text_note(
+    b: &mut Builder,
+    el: Option<ElementId>,
+    at: Pt,
+    text: &str,
+    size: f64,
+    leaders: &[studio_core::text::Leader],
+    align: studio_core::text::TextAlign,
+    width: Option<f64>,
+) {
+    use studio_core::text::{arrowhead, layout, leader_points, TextAlign};
+    let tb = layout(at, text, b.paper(size), width.map(|w| b.paper(w)), align);
+    let (lo, hi) = (tb.min, tb.max);
+    b.fill(
+        el,
+        vec![ring(&[lo, Pt::new(hi.x, lo.y), hi, Pt::new(lo.x, hi.y)])],
+        FillKind::Room,
+    );
+    let anchor = match align {
+        TextAlign::Left => Anchor::Left,
+        TextAlign::Center => Anchor::Center,
+        TextAlign::Right => Anchor::Right,
+    };
+    for (line, p) in tb.lines.iter().zip(&tb.line_at) {
+        if !line.is_empty() {
+            b.text(el, *p, line.clone(), size, anchor);
+        }
+    }
+    for l in leaders {
+        let pts = leader_points(&tb, l);
+        b.line(el, &pts, false, 1, Dash::Solid);
+        if let Some(tri) = arrowhead(&pts, b.paper(2.4)) {
+            b.fill(el, vec![ring(&tri)], FillKind::Ink);
+        }
+    }
 }
 
 /// An aligned dimension from `a` to `p2`: witness lines, dimension line with architectural
