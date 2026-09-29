@@ -17,6 +17,10 @@ import {
 import { apply } from "../fileActions";
 import { keyForControl, nudgeDirection, nudgeStep } from "../nudge";
 import type { OverlayPrim } from "../bindings/OverlayPrim";
+import type { KeynoteSource } from "../bindings/KeynoteSource";
+import type { Assignable } from "../bindings/Assignable";
+import { KeynotePicker } from "./KeynotePicker";
+import { ContextMenu } from "./ContextMenu";
 import { drawStructural } from "../render/structural";
 import { StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralOverlay";
 import { referenceChoice } from "./ReferenceOptions";
@@ -308,9 +312,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         thin: s.thinLines,
         // Under the structural overlay the architecture is greyed out (ADR-080).
         grayed: structural.current ? () => true : grayedFn(s.app?.activeWorkset ?? null),
-        overlay: structural.current
-          ? (c, S) => drawStructural(c, S, structural.current!, s.structuralAlpha)
-          : undefined,
+        overlay: (c, S) => {
+          if (structural.current) drawStructural(c, S, structural.current, s.structuralAlpha);
+          drawKeynotePreview(c, S);
+        },
         underlay:
           imagery.current || around
             ? (c, S) => {
@@ -509,6 +514,147 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       live = false;
     };
   }, [satellite, revision]);
+  // Keynotes (ADR-081): the leader's arrow picked and what the keynote will show, while
+  // placing; the keynote picker and material menu when a choice is needed.
+  const kn = useRef<{ source: KeynoteSource; arrow: Pt } | null>(null);
+  const knCursor = useRef<Pt | null>(null);
+  const [knAsk, setKnAsk] = useState<{
+    title: string;
+    subtitle: string;
+    onPick: (key: string) => void;
+  } | null>(null);
+  const [knMats, setKnMats] = useState<{
+    x: number;
+    y: number;
+    list: Assignable[];
+    choose: (m: Assignable) => void;
+  } | null>(null);
+  useEffect(() => {
+    kn.current = null;
+  }, [tool]);
+  /** A keynote tool's click: the leader's arrow (after choosing the keynote if needed),
+   * then the box. */
+  async function keynoteClick(raw: Pt, sx: number, sy: number) {
+    const s = useAppStore.getState();
+    const o = s.options;
+    const pending = kn.current;
+    if (pending) {
+      kn.current = null;
+      await apply(() =>
+        ipc.keynotePlace(view.id, pending.source, pending.arrow, raw, o.keynoteStyle),
+      );
+      s.setPrompt(promptFor(s.tool, 0, view.viewType));
+      redraw();
+      return;
+    }
+    const begin = (source: KeynoteSource) => {
+      if (!o.keynoteLeader) {
+        void apply(() => ipc.keynotePlace(view.id, source, null, raw, o.keynoteStyle));
+        return;
+      }
+      kn.current = { source, arrow: raw };
+      knCursor.current = raw;
+      useAppStore.getState().setPrompt(promptFor(s.tool, 1, view.viewType));
+      redraw();
+    };
+    if (s.tool === "keynoteUser") {
+      if (o.keynoteUserKey) begin({ User: { key: o.keynoteUserKey } });
+      else
+        setKnAsk({
+          title: "User Keynote",
+          subtitle: "The keynote to place (it stays chosen for the next ones).",
+          onPick: (key) => {
+            useAppStore.getState().setOption("keynoteUserKey", key);
+            setKnAsk(null);
+            begin({ User: { key } });
+          },
+        });
+      return;
+    }
+    if (!cam.current) return;
+    const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
+    if (!id) {
+      s.setError("Click an element to keynote, or use a User keynote.");
+      return;
+    }
+    const t = await ipc.keynoteTarget(id).catch(() => null);
+    if (!t) return;
+    if (s.tool === "keynoteElement") {
+      if (!t.typeId) {
+        s.setError("That element has no type to keynote. Use a User keynote instead.");
+        return;
+      }
+      if (t.typeKey) begin({ Element: { target: id } });
+      else
+        setKnAsk({
+          title: `Keynote for ${t.typeName}`,
+          subtitle:
+            "This type has no keynote yet. The one you pick goes on the type, so every element of it shares it.",
+          onPick: async (key) => {
+            setKnAsk(null);
+            if (await apply(() => ipc.keynoteAssign([t.typeId!], key)))
+              begin({ Element: { target: id } });
+          },
+        });
+      return;
+    }
+    if (t.materials.length === 0) {
+      s.setError(
+        "No material on that element. Give its type's layers materials, or use a User keynote.",
+      );
+      return;
+    }
+    const withMaterial = (m: Assignable) => {
+      if (m.key) begin({ Material: { target: id, material: m.id } });
+      else
+        setKnAsk({
+          title: `Keynote for ${m.name}`,
+          subtitle: "This material has no keynote yet. The one you pick goes on the material.",
+          onPick: async (key) => {
+            setKnAsk(null);
+            if (await apply(() => ipc.keynoteAssign([m.id], key)))
+              begin({ Material: { target: id, material: m.id } });
+          },
+        });
+    };
+    if (t.materials.length === 1) withMaterial(t.materials[0]!);
+    else
+      setKnMats({
+        x: sx,
+        y: sy,
+        list: t.materials,
+        choose: (m) => {
+          setKnMats(null);
+          withMaterial(m);
+        },
+      });
+  }
+  /** The keynote being placed: a rubber-band leader and a box at the cursor. */
+  const drawKeynotePreview = (
+    c: CanvasRenderingContext2D,
+    S: (x: number, y: number) => [number, number],
+  ) => {
+    const p = kn.current;
+    const q = knCursor.current;
+    if (!p || !q) return;
+    const [ax, ay] = S(p.arrow.x, p.arrow.y);
+    const [bx, by] = S(q.x, q.y);
+    c.save();
+    c.strokeStyle = THEME.cyan;
+    c.fillStyle = THEME.cyan;
+    c.lineWidth = 1.2;
+    c.setLineDash([5, 3]);
+    c.beginPath();
+    c.moveTo(ax, ay);
+    c.lineTo(bx, by);
+    c.stroke();
+    c.setLineDash([]);
+    c.beginPath();
+    c.arc(ax, ay, 3, 0, Math.PI * 2);
+    c.fill();
+    c.strokeRect(bx - 22, by - 9, 44, 18);
+    c.restore();
+  };
   // The structural overlay (ADR-080): its pieces for this plan, while it's on.
   const structuralOn = useAppStore((s) => s.structuralOverlay && !!s.app?.structuralLayer);
   const structuralAlpha = useAppStore((s) => s.structuralAlpha);
@@ -1063,6 +1209,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   useEffect(() => {
     const onCancel = () => {
       const s = useAppStore.getState();
+      if (kn.current) {
+        kn.current = null;
+        s.setPrompt(promptFor(s.tool, 0, view.viewType));
+        redraw();
+        return;
+      }
       if (REFERENCE_TOOLS.includes(s.tool) && dimRefs.current.length > 0) {
         dimRefs.current = [];
         preview.current = null;
@@ -1532,6 +1684,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       await apply(() => ipc.tagRoomInView(view.id, raw));
       return;
     }
+    if (s.tool === "keynoteElement" || s.tool === "keynoteMaterial" || s.tool === "keynoteUser") {
+      await keynoteClick(raw, sx, sy);
+      return;
+    }
     if (s.tool === "tag") {
       const id = await ipc.pick(view.id, raw, 6 / cam.current.zoom);
       if (!id) s.setError("Click a door, window, room, column or beam.");
@@ -1917,6 +2073,26 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       onContextMenu={(e) => e.preventDefault()}
     >
       {structuralOn && planLike && <StructuralLegend />}
+      {knAsk && (
+        <KeynotePicker
+          title={knAsk.title}
+          subtitle={knAsk.subtitle}
+          onPick={knAsk.onPick}
+          onCancel={() => setKnAsk(null)}
+        />
+      )}
+      {knMats && (
+        <ContextMenu
+          x={knMats.x}
+          y={knMats.y}
+          label="Which material?"
+          items={knMats.list.map((m) => ({
+            label: `${m.name}${m.key ? `  ·  ${m.key}` : "  ·  no keynote yet"}`,
+            onClick: () => knMats.choose(m),
+          }))}
+          onClose={() => setKnMats(null)}
+        />
+      )}
       {structuralOn && planLike && stInfo && (
         <StructuralInfoCard at={stInfo} onClose={() => setStInfo(null)} />
       )}
@@ -1989,6 +2165,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           const [sx, sy] = local(e);
           if (structural.current && useAppStore.getState().tool === "select" && !drag.current)
             void structuralAt(sx, sy, false);
+          if (kn.current && cam.current) {
+            knCursor.current = modelAt(sx, sy);
+            redraw();
+          }
           const zr = zoomRegion.current;
           if (zr.armed && zr.from) {
             zr.to = [sx, sy];

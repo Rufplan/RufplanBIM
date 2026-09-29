@@ -140,7 +140,9 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
         Ok(())
     })?;
     // Worksharing on from the start, with Revit's standard worksets (ADR-079).
-    crate::worksets::ensure_worksets(doc)
+    crate::worksets::ensure_worksets(doc)?;
+    // The starter keynote table (ADR-081).
+    crate::keynotes::ensure_table(doc)
 }
 
 /// Built-in door and window types (inches: width × height, sill).
@@ -2365,6 +2367,58 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 if *visible_in_all_views { "Yes" } else { "No" }.into(),
             ));
         }
+        ElementData::KeynoteTag {
+            view,
+            source,
+            style,
+            ..
+        } => {
+            let key = crate::keynotes::tag_key(doc, source);
+            props.push(ro(
+                "key",
+                "Key Value",
+                "Identity Data",
+                key.clone()
+                    .unwrap_or_else(|| "(none: assign one to its type)".into()),
+            ));
+            props.push(ro(
+                "key_text",
+                "Keynote Text",
+                "Identity Data",
+                key.and_then(|k| crate::keynotes::text_of(doc, &k))
+                    .unwrap_or_default(),
+            ));
+            props.push(ro(
+                "shows",
+                "Shows",
+                "Identity Data",
+                crate::keynotes::tag_label(doc, *view, source),
+            ));
+            props.push(choice(
+                "style",
+                "Type",
+                "Graphics",
+                format!("{style:?}"),
+                vec![
+                    PropOption {
+                        id: "Key".into(),
+                        label: "Keynote Tag - Boxed".into(),
+                    },
+                    PropOption {
+                        id: "KeyAndText".into(),
+                        label: "Keynote Tag - Boxed with Text".into(),
+                    },
+                ],
+            ));
+        }
+        ElementData::KeynoteTable { entries, .. } => {
+            props.push(ro(
+                "count",
+                "Keynotes",
+                "Identity Data",
+                entries.len().to_string(),
+            ));
+        }
         ElementData::StructuralScheme { settings, layout } => {
             props.push(ro(
                 "scheme",
@@ -2481,6 +2535,33 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         }
     }
     crate::params::param_properties(doc, id, &mut props);
+    // Keynotes (ADR-081): a type's or material's keynote.
+    if crate::keynotes::assignable(&el.data) {
+        let (entries, _) = crate::keynotes::table(doc);
+        let mut options = vec![PropOption {
+            id: String::new(),
+            label: "(none)".into(),
+        }];
+        // Only keynotes themselves: divisions and sections group them.
+        let parents: std::collections::HashSet<String> =
+            entries.iter().filter_map(|k| k.parent.clone()).collect();
+        options.extend(
+            crate::keynotes::sorted(&entries)
+                .into_iter()
+                .filter(|k| !parents.contains(&k.key))
+                .map(|k| PropOption {
+                    label: format!("{} — {}", k.key, k.text),
+                    id: k.key,
+                }),
+        );
+        props.push(choice(
+            "keynote",
+            "Keynote",
+            "Identity Data",
+            crate::keynotes::assigned(doc, id).unwrap_or_default(),
+            options,
+        ));
+    }
     // Worksets (ADR-079): which one it's on.
     if let Some(w) = crate::worksets::property(doc, id) {
         props.push(w);
@@ -2537,6 +2618,25 @@ pub fn set_property(
     }
     if let Some(pkey) = key.strip_prefix("param:") {
         return crate::params::set_value(doc, id, pkey, value);
+    }
+    if let (ElementData::KeynoteTag { .. }, "style") = (&data, key) {
+        let s = match value {
+            "Key" => crate::keynotes::KeynoteStyle::Key,
+            "KeyAndText" => crate::keynotes::KeynoteStyle::KeyAndText,
+            _ => return Err(CoreError::Invalid("pick a keynote tag type".into())),
+        };
+        return doc.transact("Keynote Tag Type", |tx| {
+            tx.modify(id, |d| {
+                if let ElementData::KeynoteTag { style, .. } = d {
+                    *style = s;
+                }
+            })
+        });
+    }
+    // A type's or material's keynote (Identity Data > Keynote).
+    if key == "keynote" {
+        let v = value.trim();
+        return crate::keynotes::assign(doc, &[id], (!v.is_empty()).then_some(v)).map(|_| ());
     }
     if key == "workset" {
         return crate::worksets::set_workset(doc, &[id], parse_id(value)?).map(|_| ());
@@ -3133,6 +3233,8 @@ pub fn set_property(
         | ElementData::ViewReference { .. }
         | ElementData::Workset { .. }
         | ElementData::StructuralScheme { .. }
+        | ElementData::KeynoteTable { .. }
+        | ElementData::KeynoteTag { .. }
         | ElementData::WallOpening { .. } => return Err(unknown()),
         ElementData::SpotSlope {
             format, triangle, ..

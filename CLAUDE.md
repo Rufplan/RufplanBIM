@@ -152,6 +152,10 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Keynotes (ADR-081): studio-core `keynotes` (KeynoteTable/KeynoteTag, keynotes_default.txt, parse/to_text,
+  assign via `rufplan.keynote`, tag_label, sheet_numbers, legend); studio-views `keynote_tag`; studio-sheets
+  `schedule_on` (Keynote Legend by sheet); app keynote_cmds; keynotes.ts, components/KeynotePicker.tsx,
+  KeynoteManager.tsx, KeynoteOptions.tsx; Annotate > Keynote (KE, KM, KU).
 - Suggest Structure (ADR-080): crate studio-structural (extract, schemes, layout, sizing, rules from
   structural_rules.toml, copied to app data; Edit Rules… opens it), ElementData::StructuralScheme on
   the Structural workset; studio-views `structural` (overlay_2d/3d, pick, info); studio-io

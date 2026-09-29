@@ -1,0 +1,213 @@
+# Rufplan Studio starter keynotes (ADR-081), in Revit's keynote file format:
+# key<TAB>text<TAB>parent. Organized by CSI MasterFormat divisions and sections.
+10	Specialties
+10 14 00	Signage	10
+10 14 00.A1	Room identification sign	10 14 00
+10 21 13	Toilet Compartments	10
+10 21 13.A1	Toilet partitions	10 21 13
+10 28 00	Toilet, Bath, and Laundry Accessories	10
+10 28 00.A1	Grab bars	10 28 00
+10 28 00.A2	Toilet accessories per schedule	10 28 00
+10 28 00.A3	Mirror	10 28 00
+10 44 00	Fire Protection Specialties	10
+10 44 00.A1	Fire extinguisher and cabinet	10 44 00
+11	Equipment
+11 31 00	Residential Appliances	11
+11 31 00.A1	Refrigerator	11 31 00
+11 31 00.A2	Range	11 31 00
+11 31 00.A3	Dishwasher	11 31 00
+11 31 00.A4	Washer and dryer	11 31 00
+12	Furnishings
+12 21 00	Window Blinds	12
+12 21 00.A1	Window blinds	12 21 00
+12 36 00	Countertops	12
+12 36 00.A1	Quartz countertop	12 36 00
+12 36 00.A2	Plastic laminate countertop	12 36 00
+14	Conveying Equipment
+14 21 00	Electric Traction Elevators	14
+14 21 00.A1	Elevator	14 21 00
+22	Plumbing
+22 40 00	Plumbing Fixtures	22
+22 40 00.A1	Water closet	22 40 00
+22 40 00.A2	Lavatory	22 40 00
+22 40 00.A3	Kitchen sink	22 40 00
+22 40 00.A4	Shower	22 40 00
+22 40 00.A5	Bathtub	22 40 00
+22 40 00.A6	Floor drain	22 40 00
+23	Heating, Ventilating, and Air Conditioning (HVAC)
+23 37 00	Air Outlets and Inlets	23
+23 37 00.A1	Supply diffuser	23 37 00
+23 37 00.A2	Return grille	23 37 00
+26	Electrical
+26 51 00	Interior Lighting	26
+26 51 00.A1	Light fixture per schedule	26 51 00
+26 51 00.A2	Recessed downlight	26 51 00
+31	Earthwork
+31 23 00	Excavation and Fill	31
+31 23 00.A1	Compacted fill	31 23 00
+31 23 00.A2	4" compacted gravel base	31 23 00
+32	Exterior Improvements
+32 13 13	Concrete Paving	32
+32 13 13.A1	Concrete paving	32 13 13
+32 31 00	Fences and Gates	32
+32 31 00.A1	Wood fence	32 31 00
+32 90 00	Planting	32
+32 90 00.A1	Lawn	32 90 00
+32 90 00.A2	Planting bed with mulch	32 90 00
+32 90 00.A3	Tree per landscape	32 90 00
+01	General Requirements
+01 41 00	Regulatory Requirements	01
+01 41 00.A1	Comply with all applicable codes and regulations	01 41 00
+01 41 00.A2	Verify all dimensions in field before fabrication	01 41 00
+01 73 00	Execution	01
+01 73 00.A1	Patch and repair adjacent surfaces to match existing	01 73 00
+01 73 00.A2	Protect existing to remain	01 73 00
+02	Existing Conditions
+02 41 19	Selective Demolition	02
+02 41 19.A1	Remove existing construction as indicated	02 41 19
+02 41 19.A2	Existing wall to remain	02 41 19
+02 41 19.A3	Existing door and frame to be removed	02 41 19
+03	Concrete
+03 11 00	Concrete Forming	03
+03 11 00.A1	Form ties and patch holes smooth	03 11 00
+03 20 00	Concrete Reinforcing	03
+03 20 00.A1	Reinforcing steel per structural drawings	03 20 00
+03 20 00.A2	Welded wire reinforcement	03 20 00
+03 30 00	Cast-in-Place Concrete	03
+03 30 00.A1	4" concrete slab on grade	03 30 00
+03 30 00.A2	Concrete footing per structural	03 30 00
+03 30 00.A3	Concrete foundation wall	03 30 00
+03 30 00.A4	Thickened slab edge	03 30 00
+03 30 00.A5	Concrete stem wall	03 30 00
+03 30 00.A6	Concrete sidewalk, broom finish	03 30 00
+03 35 00	Concrete Finishing	03
+03 35 00.A1	Sealed concrete floor	03 35 00
+03 35 00.A2	Polished concrete floor	03 35 00
+04	Masonry
+04 20 00	Unit Masonry	04
+04 20 00.A1	Brick veneer	04 20 00
+04 20 00.A2	8" concrete masonry unit	04 20 00
+04 20 00.A3	Masonry ties at 16" o.c. vertically	04 20 00
+04 20 00.A4	Weep vents at 24" o.c.	04 20 00
+04 40 00	Stone Assemblies	04
+04 40 00.A1	Stone veneer	04 40 00
+04 40 00.A2	Stone cap	04 40 00
+05	Metals
+05 12 00	Structural Steel Framing	05
+05 12 00.A1	Steel beam per structural	05 12 00
+05 12 00.A2	Steel column per structural	05 12 00
+05 40 00	Cold-Formed Metal Framing	05
+05 40 00.A1	Metal stud framing	05 40 00
+05 40 00.A2	Metal furring channel	05 40 00
+05 50 00	Metal Fabrications	05
+05 50 00.A1	Steel angle lintel	05 50 00
+05 50 00.A2	Steel handrail	05 50 00
+05 50 00.A3	Steel guardrail	05 50 00
+06	Wood, Plastics, and Composites
+06 10 00	Rough Carpentry	06
+06 10 00.A1	2x4 wood studs at 16" o.c.	06 10 00
+06 10 00.A2	2x6 wood studs at 16" o.c.	06 10 00
+06 10 00.A3	Pressure-treated sill plate	06 10 00
+06 10 00.A4	Solid blocking	06 10 00
+06 10 00.A5	Wood header per structural	06 10 00
+06 16 00	Sheathing	06
+06 16 00.A1	1/2" plywood sheathing	06 16 00
+06 16 00.A2	7/16" OSB sheathing	06 16 00
+06 16 00.A3	3/4" T&G plywood subfloor	06 16 00
+06 17 00	Shop-Fabricated Structural Wood	06
+06 17 00.A1	Engineered wood trusses	06 17 00
+06 17 00.A2	I-joists per structural	06 17 00
+06 17 00.A3	Glulam beam per structural	06 17 00
+06 20 00	Finish Carpentry	06
+06 20 00.A1	Wood base	06 20 00
+06 20 00.A2	Wood casing	06 20 00
+06 20 00.A3	Wood crown molding	06 20 00
+06 20 00.A4	Wood window stool and apron	06 20 00
+06 41 00	Architectural Wood Casework	06
+06 41 00.A1	Base cabinet	06 41 00
+06 41 00.A2	Upper cabinet	06 41 00
+06 41 00.A3	Tall cabinet	06 41 00
+06 41 00.A4	Solid surface countertop	06 41 00
+07	Thermal and Moisture Protection
+07 13 00	Sheet Waterproofing	07
+07 13 00.A1	Sheet waterproofing membrane	07 13 00
+07 21 00	Thermal Insulation	07
+07 21 00.A1	R-21 batt insulation	07 21 00
+07 21 00.A2	R-38 batt insulation	07 21 00
+07 21 00.A3	R-49 blown-in insulation	07 21 00
+07 21 00.A4	Continuous rigid insulation	07 21 00
+07 21 00.A5	Sound attenuation batts	07 21 00
+07 25 00	Weather Barriers	07
+07 25 00.A1	Weather-resistive barrier	07 25 00
+07 25 00.A2	Vapor retarder	07 25 00
+07 31 13	Asphalt Shingles	07
+07 31 13.A1	Asphalt shingles on underlayment	07 31 13
+07 31 13.A2	Ice and water shield	07 31 13
+07 41 13	Metal Roof Panels	07
+07 41 13.A1	Standing seam metal roof	07 41 13
+07 46 00	Siding	07
+07 46 00.A1	Fiber cement lap siding	07 46 00
+07 46 00.A2	Fiber cement panel siding	07 46 00
+07 46 00.A3	Wood siding	07 46 00
+07 54 00	Thermoplastic Membrane Roofing	07
+07 54 00.A1	TPO roofing membrane	07 54 00
+07 54 00.A2	Tapered insulation	07 54 00
+07 62 00	Sheet Metal Flashing and Trim	07
+07 62 00.A1	Sheet metal flashing	07 62 00
+07 62 00.A2	Drip edge	07 62 00
+07 62 00.A3	Metal coping	07 62 00
+07 62 00.A4	Gutter and downspout	07 62 00
+07 92 00	Joint Sealants	07
+07 92 00.A1	Sealant and backer rod	07 92 00
+07 92 00.A2	Acoustical sealant	07 92 00
+08	Openings
+08 11 13	Hollow Metal Doors and Frames	08
+08 11 13.A1	Hollow metal door and frame	08 11 13
+08 14 00	Wood Doors	08
+08 14 00.A1	Solid core wood door	08 14 00
+08 14 00.A2	Hollow core wood door	08 14 00
+08 36 00	Panel Doors	08
+08 36 00.A1	Overhead sectional door	08 36 00
+08 41 13	Aluminum-Framed Entrances and Storefronts	08
+08 41 13.A1	Aluminum storefront system	08 41 13
+08 50 00	Windows	08
+08 50 00.A1	Vinyl window	08 50 00
+08 50 00.A2	Fiberglass window	08 50 00
+08 50 00.A3	Aluminum-clad wood window	08 50 00
+08 71 00	Door Hardware	08
+08 71 00.A1	Door hardware per schedule	08 71 00
+08 80 00	Glazing	08
+08 80 00.A1	Insulated glass unit	08 80 00
+08 80 00.A2	Tempered glass	08 80 00
+09	Finishes
+09 22 16	Non-Structural Metal Framing	09
+09 22 16.A1	Metal stud partition	09 22 16
+09 22 16.A2	Metal furring	09 22 16
+09 29 00	Gypsum Board	09
+09 29 00.A1	1/2" gypsum board	09 29 00
+09 29 00.A2	5/8" Type X gypsum board	09 29 00
+09 29 00.A3	Moisture-resistant gypsum board	09 29 00
+09 29 00.A4	Gypsum board ceiling	09 29 00
+09 29 00.A5	Cement backer board	09 29 00
+09 30 00	Tiling	09
+09 30 00.A1	Porcelain floor tile	09 30 00
+09 30 00.A2	Ceramic wall tile	09 30 00
+09 30 00.A3	Ceramic cove base	09 30 00
+09 30 00.A4	Tile shower surround	09 30 00
+09 51 00	Acoustical Ceilings	09
+09 51 00.A1	2x4 acoustical ceiling tile and grid	09 51 00
+09 51 00.A2	2x2 acoustical ceiling tile and grid	09 51 00
+09 64 00	Wood Flooring	09
+09 64 00.A1	Hardwood flooring	09 64 00
+09 64 00.A2	Engineered wood flooring	09 64 00
+09 65 00	Resilient Flooring	09
+09 65 00.A1	Luxury vinyl tile	09 65 00
+09 65 00.A2	Rubber base	09 65 00
+09 65 00.A3	Sheet vinyl flooring	09 65 00
+09 68 00	Carpeting	09
+09 68 00.A1	Carpet tile	09 68 00
+09 68 00.A2	Broadloom carpet and pad	09 68 00
+09 91 00	Painting	09
+09 91 00.A1	Paint	09 91 00
+09 91 00.A2	Paint, eggshell finish	09 91 00
+09 91 00.A3	Paint, semi-gloss finish	09 91 00

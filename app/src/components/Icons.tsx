@@ -345,6 +345,39 @@ export const Icons = {
       <path d="M4 9l3-3 3 3M14 9h6M17 5v4M4 19h6M13.5 19l3-4 3 4" strokeWidth="1" />
     </I>
   ),
+  keynoteElement: (
+    <I>
+      <rect x="11" y="3" width="10" height="7" />
+      <path d="M11 7L4 17" />
+      <path d="M3 15h6v6H3z" strokeWidth="1.2" />
+    </I>
+  ),
+  keynoteMaterial: (
+    <I>
+      <rect x="11" y="3" width="10" height="7" />
+      <path d="M11 7L5 16" />
+      <path d="M2 14l6 6M2 18l3 3M5 14l4 4" strokeWidth="1.1" />
+    </I>
+  ),
+  keynoteUser: (
+    <I>
+      <rect x="11" y="3" width="10" height="7" />
+      <path d="M11 7L4 18" />
+      <circle cx="4" cy="19" r="1.5" />
+    </I>
+  ),
+  keynoteManager: (
+    <I>
+      <path d="M4 4h16v16H4z" />
+      <path d="M7 8h4M9 12h6M9 16h6M7 8v8" strokeWidth="1.2" />
+    </I>
+  ),
+  keynoteLegend: (
+    <I>
+      <rect x="4" y="3" width="16" height="18" />
+      <path d="M4 8h16M9 3v18M11 12h7M11 16h7" strokeWidth="1.1" />
+    </I>
+  ),
   worksets: (
     <I>
       <rect x="3" y="4" width="11" height="8" />

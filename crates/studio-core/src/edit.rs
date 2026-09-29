@@ -198,6 +198,15 @@ fn transformed(
                 *p = x.apply(*p);
             }
         }
+        ElementData::KeynoteTag {
+            view, at, arrow, ..
+        } => {
+            if !is_plan_view(tx, *view) {
+                return None;
+            }
+            *at = x.apply(*at);
+            *arrow = arrow.map(|a| x.apply(a));
+        }
         ElementData::ViewReference { view, shape, .. } => {
             if !is_plan_view(tx, *view) {
                 return None;

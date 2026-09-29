@@ -6,7 +6,7 @@ pub mod sets;
 pub mod sheet;
 
 pub use pdf::export_pdf;
-pub use schedule::{schedule, Table};
+pub use schedule::{schedule, schedule_on, Table};
 pub use sheet::{
     drag_title, drag_title_start, move_title, sheet_display_list, sheet_display_list_shared,
     sheet_handles, title_line,

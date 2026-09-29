@@ -2928,3 +2928,43 @@ coursing along a line".
   - 3D: the architecture ghosted, the layer as coloured boxes; click for the same card.
 - The rationale is templated from the scores. No LLM is used, so nothing can invent
   geometry or sizes. Claude narration may come later as an option.
+
+## ADR-081 Keynotes and the Keynote Manager — Accepted (2026-09-29)
+- **Revit's keynotes, filed under Annotate > Keynote.** The group has Element (KE), Material
+  (KM) and User (KU), plus Manager and Legend.
+- **The table** is kept in the project: `ElementData::KeynoteTable { entries, numbering }`,
+  studio-core `keynotes`.
+  - Each keynote is a key, its text and a parent, as in Revit's keynote file.
+  - New and opened projects get a starter table (`keynotes_default.txt`): CSI MasterFormat
+    divisions and sections with about 150 common keynotes, written for Rufplan.
+  - Revit keynote files (`.txt`, tab-delimited, UTF-8 or UTF-16) load by merge or replace,
+    and save back out.
+- **Assignment:** keynotes go on types and materials as the `rufplan.keynote` parameter, so
+  no type changes. Properties shows a Keynote choice on every type and material.
+- **Tags:** `ElementData::KeynoteTag { view, source, at, arrow, style }`.
+  - The source is Element (its type's keynote), Material (a material of the element), or
+    User (any keynote).
+  - The key is resolved when drawn, so re-keynoting a type updates every tag. A tag shows
+    "?" until its type has a keynote.
+  - Styles: Boxed key, or Boxed key with text. An optional leader ends in a filled arrow.
+  - Tags go with their view and target, and move, copy and duplicate with detailing.
+- **Numbering:** By keynote, or By sheet (1, 2, 3… in key order on each sheet, the key when
+  the view isn't placed).
+- **Keynote Legend:** `ScheduleKind::Keynotes`, one per project.
+  - Unplaced, it lists every key used. On a sheet it lists only that sheet's keys, numbered
+    the way the sheet numbers them (studio-sheets `schedule_on`).
+- **Friendlier than Revit:**
+  - **Placing:** pick an element, then place the box, with a rubber-band leader. If the type
+    or material has no keynote yet, the picker assigns one on the spot instead of failing.
+    Material keynotes ask which material in a small menu. User keynotes keep their choice
+    on the options bar.
+  - **Keynote Picker:** search by any words, the tree opens to the matches, recent picks are
+    one click away, and it works by keyboard (↑ ↓ Enter Esc).
+  - **Keynote Manager:** the searchable MasterFormat tree with usage counts; edit in place
+    (a renamed key follows through to its tags and assignments, in one undo step); add a
+    keynote under a section with the next .A#; delete a subtree after confirming what it
+    takes with it; the numbering switch; load and save files.
+  - **Assign to Types & Materials:** every type and material in one table, with category
+    filters, "Unassigned only", a progress bar, and bulk assign or clear.
+- **File format:** the two element kinds and the schedule kind are additions. Older builds
+  can't open projects that have them.

@@ -8,6 +8,7 @@ mod door_cmds;
 mod editing;
 mod generate_cmds;
 mod inplace_cmds;
+mod keynote_cmds;
 mod lighting_cmds;
 mod lines_cmds;
 mod material_cmds;
@@ -165,6 +166,17 @@ pub fn run() -> anyhow::Result<()> {
             structural_cmds::structural_export_json,
             structural_cmds::structural_export_ifc,
             structural_cmds::structural_edit_rules,
+            keynote_cmds::keynote_table,
+            keynote_cmds::keynote_save,
+            keynote_cmds::keynote_delete,
+            keynote_cmds::keynote_set_numbering,
+            keynote_cmds::keynote_import,
+            keynote_cmds::keynote_export,
+            keynote_cmds::keynote_assign,
+            keynote_cmds::keynote_assignables,
+            keynote_cmds::keynote_target,
+            keynote_cmds::keynote_place,
+            keynote_cmds::keynote_legend,
             detailing::create_elevation_marker,
             detailing::opening_preview_3d,
             detailing::set_section_box,

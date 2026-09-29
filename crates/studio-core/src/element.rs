@@ -120,6 +120,9 @@ pub enum Category {
     Workset,
     /// The structural layer (ADR-080).
     StructuralScheme,
+    /// Keynotes (ADR-081): the project's table, and tags in views.
+    KeynoteTable,
+    KeynoteTag,
 }
 
 impl Category {
@@ -186,6 +189,8 @@ impl Category {
             Category::ViewReference => "ViewReference",
             Category::Workset => "Workset",
             Category::StructuralScheme => "StructuralScheme",
+            Category::KeynoteTable => "KeynoteTable",
+            Category::KeynoteTag => "KeynoteTag",
         }
     }
 }
@@ -804,6 +809,8 @@ pub enum ScheduleKind {
     Columns,
     Beams,
     MaterialTakeoff,
+    /// Revit's Keynote Legend (ADR-081): the keynotes used, filtered to the sheet it's on.
+    Keynotes,
 }
 
 /// Printed sheet sizes (landscape).
@@ -1423,6 +1430,21 @@ pub enum ElementData {
         #[serde(default)]
         flip: bool,
     },
+    /// The project's keynote table (ADR-081): Revit's keynote file, kept in the project.
+    KeynoteTable {
+        entries: Vec<crate::keynotes::Keynote>,
+        numbering: crate::keynotes::KeynoteNumbering,
+    },
+    /// A keynote tag (ADR-081) in `view`: its box at `at`, its leader's arrow at `arrow`.
+    KeynoteTag {
+        view: ElementId,
+        source: crate::keynotes::KeynoteSource,
+        at: Pt,
+        #[serde(default)]
+        arrow: Option<Pt>,
+        #[serde(default)]
+        style: crate::keynotes::KeynoteStyle,
+    },
     /// A workset (ADR-079), as Revit's user-created worksets.
     Workset {
         name: String,
@@ -1566,6 +1588,8 @@ impl ElementData {
             ElementData::DetailComponent { .. } => Category::DetailComponent,
             ElementData::ViewReference { .. } => Category::ViewReference,
             ElementData::Workset { .. } => Category::Workset,
+            ElementData::KeynoteTable { .. } => Category::KeynoteTable,
+            ElementData::KeynoteTag { .. } => Category::KeynoteTag,
             ElementData::StructuralScheme { .. } => Category::StructuralScheme,
         }
     }
@@ -1676,6 +1700,14 @@ impl ElementData {
             ElementData::Tag { view, target, .. } => vec![*view, *target],
             // Deleting either view deletes the reference, as in Revit.
             ElementData::ViewReference { view, target, .. } => vec![*view, *target],
+            // A keynote goes with its view and what it tags.
+            ElementData::KeynoteTag { view, source, .. } => match source {
+                crate::keynotes::KeynoteSource::Element { target } => vec![*view, *target],
+                crate::keynotes::KeynoteSource::Material { target, material } => {
+                    vec![*view, *target, *material]
+                }
+                crate::keynotes::KeynoteSource::User { .. } => vec![*view],
+            },
             ElementData::Door { type_id, host, .. } | ElementData::Window { type_id, host, .. } => {
                 vec![*type_id, *host]
             }
@@ -1766,6 +1798,12 @@ impl ElementData {
                 }
             }
             ElementData::Workset { name, .. } => name.clone(),
+            ElementData::KeynoteTable { .. } => "Keynote Table".into(),
+            ElementData::KeynoteTag { source, .. } => match source {
+                crate::keynotes::KeynoteSource::Element { .. } => "Element Keynote".into(),
+                crate::keynotes::KeynoteSource::Material { .. } => "Material Keynote".into(),
+                crate::keynotes::KeynoteSource::User { .. } => "User Keynote".into(),
+            },
             ElementData::StructuralScheme { settings, .. } => {
                 format!("Structural Layer: {}", settings.kind.label())
             }

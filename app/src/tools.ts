@@ -131,6 +131,7 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
       "offset",
       "section",
       "callout",
+      "keynoteUser",
     ].includes(tool);
   // Detail components go in any 2D view (ADR-071).
   if (tool === "component")
@@ -165,6 +166,12 @@ export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "plant") return view === "Plan";
   // Rooms are tagged in sections and elevations too (ADR-060).
   if (tool === "tag") return view === "Plan" || view === "Elevation" || view === "Section";
+  // Keynotes (ADR-081): Element and Material keynotes tag what's in the view; User keynotes
+  // go anywhere drawn, drafting views included.
+  if (tool === "keynoteElement" || tool === "keynoteMaterial")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
+  if (tool === "keynoteUser")
+    return view === "Plan" || view === "CeilingPlan" || view === "Elevation" || view === "Section";
   if (tool === "matchType" || tool === "mirrorPick")
     return view === "Plan" || view === "CeilingPlan";
   if (tool === "callout")
@@ -274,6 +281,18 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
         : "Click the beam's end, or type a length and press Enter.";
     case "sketch":
       return sketchPrompt(useAppStore.getState().sketchUi.mode, n);
+    case "keynoteElement":
+      return n === 0
+        ? "Click an element to keynote its type (you'll pick a keynote if its type has none)"
+        : "Click where the keynote goes. Esc to cancel";
+    case "keynoteMaterial":
+      return n === 0
+        ? "Click an element to keynote one of its materials"
+        : "Click where the keynote goes. Esc to cancel";
+    case "keynoteUser":
+      return n === 0
+        ? "Click where the leader points (choose the keynote on the options bar)"
+        : "Click where the keynote goes. Esc to cancel";
     case "tag":
       return view === "Elevation" || view === "Section"
         ? "Click inside a room, at its level's height, to tag it there. Select a tag and drag it to move it."

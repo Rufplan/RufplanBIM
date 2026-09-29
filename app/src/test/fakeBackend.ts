@@ -82,6 +82,10 @@ export interface FakeBackend {
   lights: import("../bindings/LightInfo").LightInfo[];
   /** What pick_cycle finds under the cursor (ADR-056). */
   underCursor: { ids: string[]; label: string }[];
+  /** The keynote table and assignments (ADR-081). */
+  keynotes: { key: string; text: string; parent?: string }[];
+  keynoteNumbering: "ByKeynote" | "BySheet";
+  keynoteAssigned: Record<string, string>;
   /** The project's drawing-set standards (ADR-047). */
   standards: Standards;
 }
@@ -217,6 +221,17 @@ export function appState(path: string | null, dirty = false): AppState {
     structuralLayer: null,
   };
 }
+
+/** A small keynote table (ADR-081). */
+export const FAKE_KEYNOTES = [
+  { key: "03", text: "Concrete" },
+  { key: "03 30 00", text: "Cast-in-Place Concrete", parent: "03" },
+  { key: "03 30 00.A1", text: '4" concrete slab on grade', parent: "03 30 00" },
+  { key: "09", text: "Finishes" },
+  { key: "09 29 00", text: "Gypsum Board", parent: "09" },
+  { key: "09 29 00.A1", text: '1/2" gypsum board', parent: "09 29 00" },
+  { key: "09 29 00.A2", text: '5/8" Type X gypsum board', parent: "09 29 00" },
+];
 
 /** A Suggest Structure answer (ADR-080). */
 export const FAKE_PROPOSAL = (seismic: string) => {
@@ -505,6 +520,9 @@ export function installFakeBackend(): FakeBackend {
     plans: null,
     standards: fakeStandards(),
     underCursor: [],
+    keynotes: FAKE_KEYNOTES.map((k) => ({ ...k })),
+    keynoteNumbering: "ByKeynote",
+    keynoteAssigned: {},
     lights: [],
   };
 
@@ -513,6 +531,10 @@ export function installFakeBackend(): FakeBackend {
       fake.calls.push({ cmd, args });
       if (fake.failWith && !cmd.startsWith("plugin:")) throw { message: fake.failWith };
       const a = args as Record<string, unknown>;
+      const bump = () => {
+        if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+        return fake.state;
+      };
       switch (cmd) {
         case "app_state":
           return fake.state;
@@ -798,6 +820,90 @@ export function installFakeBackend(): FakeBackend {
               },
             ],
           };
+        // Keynotes (ADR-081).
+        case "keynote_table":
+          return {
+            entries: fake.keynotes,
+            numbering: fake.keynoteNumbering,
+            usage: Object.values(fake.keynoteAssigned).map((key) => ({
+              key,
+              tags: 0,
+              assigned: ["a type"],
+            })),
+          };
+        case "keynote_save": {
+          const e = a.entry as { key: string; text: string; parent?: string };
+          const i = fake.keynotes.findIndex((k) => k.key === (a.oldKey ?? e.key));
+          if (i >= 0 && a.oldKey) fake.keynotes[i] = e;
+          else fake.keynotes.push(e);
+          return bump();
+        }
+        case "keynote_delete":
+          fake.keynotes = fake.keynotes.filter((k) => k.key !== a.key && k.parent !== a.key);
+          return bump();
+        case "keynote_set_numbering":
+          fake.keynoteNumbering = a.numbering as "ByKeynote" | "BySheet";
+          return bump();
+        case "keynote_assign":
+          for (const id of a.ids as string[]) {
+            if (a.key) fake.keynoteAssigned[id] = a.key as string;
+            else delete fake.keynoteAssigned[id];
+          }
+          return bump();
+        case "keynote_assignables":
+          return [
+            {
+              id: ids.wt,
+              category: "WallType",
+              name: `Exterior - 8" Stud`,
+              key: fake.keynoteAssigned[ids.wt],
+            },
+            {
+              id: "mat-gyp",
+              category: "Material",
+              name: "Gypsum Wall Board",
+              key: fake.keynoteAssigned["mat-gyp"],
+            },
+          ];
+        case "keynote_target":
+          return a.id === "w1"
+            ? {
+                id: "w1",
+                typeId: ids.wt,
+                typeName: `Exterior - 8" Stud`,
+                typeKey: fake.keynoteAssigned[ids.wt],
+                materials: [
+                  {
+                    id: "mat-gyp",
+                    category: "Material",
+                    name: "Gypsum Wall Board",
+                    key: fake.keynoteAssigned["mat-gyp"],
+                  },
+                  { id: "mat-osb", category: "Material", name: "OSB", key: undefined },
+                ],
+              }
+            : null;
+        case "keynote_place":
+        case "keynote_import":
+          return cmd === "keynote_import" ? [3, bump()] : bump();
+        case "keynote_export":
+          return a.path;
+        case "keynote_legend": {
+          if (!fake.state) return [null, null];
+          const legend = {
+            ...fake.state.views[0]!,
+            id: "legend-1",
+            name: "Keynote Legend",
+            viewType: "Schedule" as const,
+            level: null,
+          };
+          fake.state = {
+            ...fake.state,
+            revision: fake.state.revision + 1,
+            views: [...fake.state.views, legend],
+          };
+          return ["legend-1", fake.state];
+        }
         // Suggest Structure (ADR-080).
         case "structural_suggest":
           return FAKE_PROPOSAL(a.seismic as string);

@@ -14,6 +14,7 @@ pub mod generate;
 pub mod grass;
 pub mod hosting;
 pub mod inplace;
+pub mod keynotes;
 pub mod library;
 pub mod lighting;
 pub mod lines;

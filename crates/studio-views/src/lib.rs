@@ -3055,6 +3055,23 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
                 let (w, dash) = line_style(*style);
                 b.line(Some(e.id), &curve.points(), curve.is_circle(), w, dash);
             }
+            ElementData::KeynoteTag {
+                view: v,
+                source,
+                at,
+                arrow,
+                style,
+            } if *v == view => {
+                let label = studio_core::keynotes::tag_label(doc, view, source);
+                let text = match style {
+                    studio_core::keynotes::KeynoteStyle::KeyAndText => {
+                        studio_core::keynotes::tag_key(doc, source)
+                            .and_then(|k| studio_core::keynotes::text_of(doc, &k))
+                    }
+                    studio_core::keynotes::KeynoteStyle::Key => None,
+                };
+                keynote_tag(b, Some(e.id), *at, *arrow, &label, text.as_deref());
+            }
             _ => {}
         }
     }
@@ -3114,6 +3131,53 @@ pub fn text_note(
         b.line(el, &pts, false, 1, Dash::Solid);
         if let Some(tri) = arrowhead(&pts, b.paper(2.4)) {
             b.fill(el, vec![ring(&tri)], FillKind::Ink);
+        }
+    }
+}
+
+/// Revit's keynote tag (ADR-081): the key in a box centred at `at`, its text beside it
+/// when shown, and a leader with a filled arrow to `arrow`.
+pub fn keynote_tag(
+    b: &mut Builder,
+    el: Option<ElementId>,
+    at: Pt,
+    arrow: Option<Pt>,
+    label: &str,
+    text: Option<&str>,
+) {
+    use studio_core::text::{arrowhead, text_width};
+    const SIZE: f64 = 2.4;
+    let h = b.paper(SIZE);
+    let pad = b.paper(1.2);
+    let w = text_width(label, h).max(h) + 2.0 * pad;
+    let half = Pt::new(w / 2.0, h * 0.95);
+    let (lo, hi) = (at.sub(half), at.add(half));
+    let boxr = [lo, Pt::new(hi.x, lo.y), hi, Pt::new(lo.x, hi.y)];
+    b.fill(el, vec![ring(&boxr)], FillKind::Room);
+    b.line(el, &boxr, true, 2, Dash::Solid);
+    b.text(el, at, label.to_owned(), SIZE, Anchor::Center);
+    if let Some(t) = text.filter(|t| !t.is_empty()) {
+        b.text(
+            el,
+            Pt::new(hi.x + pad, at.y),
+            t.to_uppercase(),
+            SIZE,
+            Anchor::Left,
+        );
+    }
+    if let Some(a) = arrow {
+        // From the side of the box facing the arrow.
+        let from = if (a.x - at.x).abs() * half.y >= (a.y - at.y).abs() * half.x {
+            Pt::new(if a.x < at.x { lo.x } else { hi.x }, at.y)
+        } else {
+            Pt::new(at.x, if a.y < at.y { lo.y } else { hi.y })
+        };
+        if from.dist(a) > b.paper(1.0) {
+            let pts = [from, a];
+            b.line(el, &pts, false, 1, Dash::Solid);
+            if let Some(tri) = arrowhead(&pts, b.paper(2.4)) {
+                b.fill(el, vec![ring(&tri)], FillKind::Ink);
+            }
         }
     }
 }
@@ -3510,6 +3574,16 @@ fn pick_label(doc: &Document, data: &ElementData) -> String {
     if let ElementData::InPlace { category, name, .. } = data {
         let cat = studio_core::inplace::label(*category).unwrap_or("Generic Models");
         return format!("{cat} : Model In-Place : {name}");
+    }
+    // Keynotes (ADR-081): "Keynote Tags : 09 29 00.A1 — 1/2\" Gypsum Board".
+    if let ElementData::KeynoteTag { source, .. } = data {
+        return match studio_core::keynotes::tag_key(doc, source) {
+            Some(k) => format!(
+                "Keynote Tags : {k} — {}",
+                studio_core::keynotes::text_of(doc, &k).unwrap_or_default()
+            ),
+            None => format!("Keynote Tags : {} (no keynote yet)", data.name()),
+        };
     }
     let mut cat = String::new();
     for (i, ch) in data.category().as_str().chars().enumerate() {
@@ -6631,5 +6705,58 @@ mod tests {
         assert!(meshes(&doc)
             .iter()
             .any(|x| x.category == Category::Site && !x.positions.is_empty()));
+    }
+}
+
+#[cfg(test)]
+mod keynote_draw_tests {
+    use studio_core::keynotes::{self, KeynoteSource, KeynoteStyle};
+    use studio_core::{ops, Category, Document};
+    use studio_geom::Pt;
+
+    #[test]
+    fn keynote_tags_draw_their_key_boxed_with_a_leader_and_text() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let plan = doc
+            .of(Category::View)
+            .find(|e| e.data.name() == "Level 1")
+            .unwrap()
+            .id;
+        let t = keynotes::create_tag(
+            &mut doc,
+            plan,
+            KeynoteSource::User {
+                key: "09 29 00.A1".into(),
+            },
+            Some(Pt::new(0.0, 0.0)),
+            Pt::new(3000.0, 1500.0),
+            KeynoteStyle::KeyAndText,
+        )
+        .unwrap();
+        let dl = crate::display_list(&doc, plan).unwrap();
+        let texts: Vec<String> = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(t))
+            .filter_map(|i| match &i.prim {
+                crate::Prim::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect();
+        assert!(texts.contains(&"09 29 00.A1".to_string()));
+        assert!(texts.contains(&"1/2\" GYPSUM BOARD".to_string()));
+        // The box, the leader and its arrowhead.
+        let lines = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(t) && matches!(i.prim, crate::Prim::Line { .. }))
+            .count();
+        let fills = dl
+            .items
+            .iter()
+            .filter(|i| i.el == Some(t) && matches!(i.prim, crate::Prim::Fill { .. }))
+            .count();
+        assert!(lines >= 2 && fills >= 2, "{lines} lines, {fills} fills");
     }
 }

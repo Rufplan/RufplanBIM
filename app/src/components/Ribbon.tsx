@@ -93,6 +93,63 @@ async function newMaterial(from: string | null) {
   }
 }
 
+/** Annotate > Keynote (ADR-081): Revit's three keynote tools, the Keynote Manager and
+ * the Keynote Legend. */
+function KeynoteGroup() {
+  const app = useAppStore((s) => s.app);
+  const setUi = useAppStore((s) => s.setUi);
+  const openLegend = async () => {
+    const s = useAppStore.getState();
+    try {
+      const [id, state] = await ipc.keynoteLegend();
+      if (state) s.setApp(state);
+      useAppStore.getState().openView(id);
+    } catch (e) {
+      s.setError(errorMessage(e));
+    }
+  };
+  return (
+    <Group title="Keynote">
+      <ToolButton
+        tool="keynoteElement"
+        label="Element"
+        icon={Icons.keynoteElement}
+        keys="KE — the type's keynote"
+      />
+      <ToolButton
+        tool="keynoteMaterial"
+        label="Material"
+        icon={Icons.keynoteMaterial}
+        keys="KM — a material's keynote"
+      />
+      <ToolButton
+        tool="keynoteUser"
+        label="User"
+        icon={Icons.keynoteUser}
+        keys="KU — any keynote"
+      />
+      <button
+        className="rb-btn"
+        disabled={!app}
+        title="Keynote Manager: browse, edit, load and assign keynotes"
+        onClick={() => setUi({ viewDialog: "keynotes" })}
+      >
+        {Icons.keynoteManager}
+        <span>Manager</span>
+      </button>
+      <button
+        className="rb-btn"
+        disabled={!app}
+        title="Keynote Legend: the keynotes used, filtered to its sheet when placed"
+        onClick={() => void openLegend()}
+      >
+        {Icons.keynoteLegend}
+        <span>Legend</span>
+      </button>
+    </Group>
+  );
+}
+
 /** Structure > Analyze (ADR-080): Suggest Structure and the structural overlay. */
 function StructureAnalyze() {
   const app = useAppStore((s) => s.app);
@@ -949,6 +1006,7 @@ export function Ribbon() {
             </Group>
           </>
         )}
+        {tab === "Annotate" && <KeynoteGroup />}
         {tab === "Annotate" && (
           <Group title="Detail">
             <ToolButton

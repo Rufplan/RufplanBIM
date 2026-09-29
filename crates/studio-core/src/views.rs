@@ -81,7 +81,8 @@ fn owner(data: &ElementData) -> Option<ElementId> {
         | ElementData::SpotSlope { view, .. }
         | ElementData::NorthArrow { view, .. }
         | ElementData::GraphicScale { view, .. }
-        | ElementData::ViewReference { view, .. } => Some(*view),
+        | ElementData::ViewReference { view, .. }
+        | ElementData::KeynoteTag { view, .. } => Some(*view),
         ElementData::KeyPlan { sheet, .. } => Some(*sheet),
         _ => None,
     }
@@ -100,7 +101,8 @@ fn set_owner(data: &mut ElementData, to: ElementId) {
         | ElementData::SpotSlope { view, .. }
         | ElementData::NorthArrow { view, .. }
         | ElementData::GraphicScale { view, .. }
-        | ElementData::ViewReference { view, .. } => *view = to,
+        | ElementData::ViewReference { view, .. }
+        | ElementData::KeynoteTag { view, .. } => *view = to,
         ElementData::KeyPlan { sheet, .. } => *sheet = to,
         _ => {}
     }

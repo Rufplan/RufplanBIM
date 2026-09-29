@@ -10,6 +10,13 @@ import type { SheetCopy } from "./bindings/SheetCopy";
 import type { RefShape } from "./bindings/RefShape";
 import type { RefTarget } from "./bindings/RefTarget";
 import type { WorksetInfo } from "./bindings/WorksetInfo";
+import type { Keynote } from "./bindings/Keynote";
+import type { KeynoteNumbering } from "./bindings/KeynoteNumbering";
+import type { KeynoteSource } from "./bindings/KeynoteSource";
+import type { KeynoteStyle } from "./bindings/KeynoteStyle";
+import type { KeynoteTableInfo } from "./bindings/KeynoteTableInfo";
+import type { KeynoteTarget } from "./bindings/KeynoteTarget";
+import type { Assignable } from "./bindings/Assignable";
 import type { Seismic } from "./bindings/Seismic";
 import type { StructuralProposal } from "./bindings/StructuralProposal";
 import type { SchemeSettings } from "./bindings/SchemeSettings";
@@ -309,6 +316,28 @@ export const ipc = {
   createRoomSeparator: (view: ElementId, start: Pt, end: Pt): S =>
     invoke("create_room_separator", { view, start, end }),
   createCallout: (view: ElementId, a: Pt, b: Pt): S => invoke("create_callout", { view, a, b }),
+  // Keynotes (ADR-081).
+  keynoteTable: () => invoke<KeynoteTableInfo>("keynote_table"),
+  keynoteSave: (oldKey: string | null, entry: Keynote): S =>
+    invoke("keynote_save", { oldKey, entry }),
+  keynoteDelete: (key: string): S => invoke("keynote_delete", { key }),
+  keynoteSetNumbering: (numbering: KeynoteNumbering): S =>
+    invoke("keynote_set_numbering", { numbering }),
+  keynoteImport: (path: string, replace: boolean) =>
+    invoke<[number, AppState | null]>("keynote_import", { path, replace }),
+  keynoteExport: (path: string) => invoke<string>("keynote_export", { path }),
+  keynoteAssign: (ids: ElementId[], key: string | null): S =>
+    invoke("keynote_assign", { ids, key }),
+  keynoteAssignables: () => invoke<Assignable[]>("keynote_assignables"),
+  keynoteTarget: (id: ElementId) => invoke<KeynoteTarget | null>("keynote_target", { id }),
+  keynotePlace: (
+    view: ElementId,
+    source: KeynoteSource,
+    arrow: Pt | null,
+    at: Pt,
+    style: KeynoteStyle,
+  ): S => invoke("keynote_place", { view, source, arrow, at, style }),
+  keynoteLegend: () => invoke<[ElementId, AppState | null]>("keynote_legend"),
   // Suggest Structure and the structural overlay (ADR-080).
   structuralSuggest: (seismic: Seismic) =>
     invoke<StructuralProposal>("structural_suggest", { seismic }),
@@ -663,6 +692,19 @@ export const dialogs = {
     });
     return typeof picked === "string" ? picked : null;
   },
+  pickKeynoteFile: async (): Promise<string | null> => {
+    const picked = await open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: "Keynote file", extensions: ["txt"] }],
+    });
+    return typeof picked === "string" ? picked : null;
+  },
+  pickKeynoteSaveLocation: (defaultName: string): Promise<string | null> =>
+    save({
+      defaultPath: `${defaultName}.txt`,
+      filters: [{ name: "Keynote file", extensions: ["txt"] }],
+    }),
   pickJsonLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.json`, filters: [{ name: "JSON", extensions: ["json"] }] }),
   pickIfcLocation: (defaultName: string): Promise<string | null> =>

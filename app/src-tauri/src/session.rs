@@ -467,6 +467,7 @@ impl Session {
         let (mut doc, report) = studio_io::ifc_import::import(&text)
             .map_err(|e| anyhow::anyhow!("could not import {}: {e}", path.display()))?;
         studio_core::worksets::ensure_worksets(&mut doc)?;
+        studio_core::keynotes::ensure_table(&mut doc)?;
         doc.set_active_workset(studio_core::worksets::default_workset(&doc));
         let name = path
             .file_stem()
@@ -582,6 +583,15 @@ impl Session {
         if project.doc.count(Category::Workset) == 0 {
             let dirty = project.doc.is_dirty();
             studio_core::worksets::ensure_worksets(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
+        // Keynotes (ADR-081): older projects get the starter table the same way.
+        if project.doc.count(Category::KeynoteTable) == 0 {
+            let dirty = project.doc.is_dirty();
+            studio_core::keynotes::ensure_table(&mut project.doc)?;
             project.doc.clear_history();
             if !dirty {
                 project.doc.mark_saved();

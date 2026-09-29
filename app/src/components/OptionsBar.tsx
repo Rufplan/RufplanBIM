@@ -20,6 +20,7 @@ import { DRAW_TOOLS } from "../lines";
 import { DRAW } from "./SketchRibbon";
 import { ComponentOptions } from "./ComponentOptions";
 import { ReferenceOptions } from "./ReferenceOptions";
+import { KeynoteOptions } from "./KeynoteOptions";
 
 type Choices = [[string, string][], [string, string][]];
 
@@ -254,6 +255,8 @@ export function OptionsBar() {
       </label>
     );
   else if (tool === "copy") body = check("copyMultiple", "Multiple");
+  else if (tool === "keynoteElement" || tool === "keynoteMaterial" || tool === "keynoteUser")
+    body = <KeynoteOptions user={tool === "keynoteUser"} />;
   else if (tool === "section" || tool === "callout")
     body = <ReferenceOptions callout={tool === "callout"} />;
   else if (tool === "rotate") body = check("rotateCopy", "Copy");

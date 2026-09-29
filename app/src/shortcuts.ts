@@ -233,6 +233,28 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   { id: "keyPlan", label: "Key Plan", group: "Annotate", keys: [], command: t("keyPlan") },
   { id: "tag", label: "Tag by Category", group: "Annotate", keys: ["TG"], command: t("tag") },
   { id: "roomTag", label: "Room Tag", group: "Annotate", keys: ["RT"], command: t("tag") },
+  // Keynotes (ADR-081).
+  {
+    id: "keynoteElement",
+    label: "Element Keynote",
+    group: "Annotate",
+    keys: ["KE"],
+    command: t("keynoteElement"),
+  },
+  {
+    id: "keynoteMaterial",
+    label: "Material Keynote",
+    group: "Annotate",
+    keys: ["KM"],
+    command: t("keynoteMaterial"),
+  },
+  {
+    id: "keynoteUser",
+    label: "User Keynote",
+    group: "Annotate",
+    keys: ["KU"],
+    command: t("keynoteUser"),
+  },
   // View
   {
     id: "elevation",

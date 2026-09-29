@@ -3,4 +3,4 @@
 /**
  * What a schedule view lists.
  */
-export type ScheduleKind = "Doors" | "Windows" | "Rooms" | "Sheets" | "Columns" | "Beams" | "MaterialTakeoff";
+export type ScheduleKind = "Doors" | "Windows" | "Rooms" | "Sheets" | "Columns" | "Beams" | "MaterialTakeoff" | "Keynotes";

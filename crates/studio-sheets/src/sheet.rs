@@ -5,7 +5,7 @@ use studio_core::{ops, Category, Document, ElementData, ElementId, SheetSize, Vi
 use studio_geom::Pt;
 use studio_views::{Anchor, Builder, Dash, DisplayList, FillKind, Item, Prim, ViewType};
 
-use crate::schedule::{approx_width, schedule, table_items};
+use crate::schedule::{approx_width, table_items};
 
 /// Border margins in paper mm: (left binding edge, other edges).
 pub(crate) fn margins(size: SheetSize) -> (f64, f64) {
@@ -94,7 +94,11 @@ pub fn viewport_items(
         return None;
     };
     if matches!(kind, ViewKind::Schedule { .. }) {
-        let table = schedule(doc, view)?;
+        let on = match doc.data(viewport) {
+            Ok(ElementData::Viewport { sheet, .. }) => Some(*sheet),
+            _ => None,
+        };
+        let table = crate::schedule::schedule_on(doc, view, on)?;
         let (_, w, h) = table_items(&table, Some(viewport), Pt::default());
         let (items, _, _) = table_items(
             &table,

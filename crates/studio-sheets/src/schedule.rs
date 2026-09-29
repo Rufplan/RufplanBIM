@@ -45,6 +45,12 @@ fn host_level(doc: &Document, host: ElementId) -> String {
 
 /// The table for a schedule view, or None if `view` isn't a schedule.
 pub fn schedule(doc: &Document, view: ElementId) -> Option<Table> {
+    schedule_on(doc, view, None)
+}
+
+/// [`schedule`] as placed on `sheet`: a Keynote Legend then lists only that sheet's
+/// keynotes, numbered as the sheet numbers them (ADR-081).
+pub fn schedule_on(doc: &Document, view: ElementId, sheet: Option<ElementId>) -> Option<Table> {
     let ElementData::View {
         name,
         kind: ViewKind::Schedule { kind },
@@ -215,6 +221,52 @@ pub fn schedule(doc: &Document, view: ElementId) -> Option<Table> {
             }
             vec!["Material", "Area", "Volume"]
         }
+        ScheduleKind::Keynotes => {
+            use studio_core::keynotes;
+            let by_sheet = keynotes::table(doc).1 == keynotes::KeynoteNumbering::BySheet;
+            let keys: Vec<(String, String)> = match sheet {
+                Some(s) if by_sheet => keynotes::sheet_numbers(doc, s)
+                    .into_iter()
+                    .map(|(k, n)| (format!("{n:04}"), k))
+                    .collect(),
+                Some(s) => {
+                    let views: Vec<ElementId> = doc
+                        .of(Category::Viewport)
+                        .filter_map(|e| match &e.data {
+                            ElementData::Viewport {
+                                sheet: vs, view, ..
+                            } if *vs == s => Some(*view),
+                            _ => None,
+                        })
+                        .collect();
+                    keynotes::used_keys(doc, Some(&views))
+                        .into_iter()
+                        .map(|k| (k.clone(), k))
+                        .collect()
+                }
+                None => keynotes::used_keys(doc, None)
+                    .into_iter()
+                    .map(|k| (k.clone(), k))
+                    .collect(),
+            };
+            for (sort, key) in keys {
+                let text = keynotes::text_of(doc, &key).unwrap_or_default();
+                let shown = if by_sheet && sheet.is_some() {
+                    sort.trim_start_matches('0').to_owned()
+                } else {
+                    key
+                };
+                rows.push((sort, view, vec![shown, text]));
+            }
+            vec![
+                if by_sheet && sheet.is_some() {
+                    "No."
+                } else {
+                    "Key Value"
+                },
+                "Keynote Text",
+            ]
+        }
     };
     // Sheets read in sheet-index (discipline) order; everything else naturally by key.
     if *kind == ScheduleKind::Sheets {
@@ -346,4 +398,73 @@ pub fn table_items(t: &Table, el: Option<ElementId>, top_left: Pt) -> (Vec<Item>
         );
     }
     (b.items, width, height)
+}
+
+#[cfg(test)]
+mod keynote_tests {
+    use studio_core::keynotes::{self, KeynoteNumbering, KeynoteSource, KeynoteStyle};
+    use studio_core::{ops, Category, Document, SheetSize};
+    use studio_geom::Pt;
+
+    #[test]
+    fn the_keynote_legend_lists_the_keys_used_filtered_to_its_sheet() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let plans: Vec<_> = doc
+            .of(Category::View)
+            .filter(|e| matches!(e.data.name().as_str(), "Level 1" | "Level 2"))
+            .map(|e| e.id)
+            .collect();
+        let user = |k: &str| KeynoteSource::User { key: k.into() };
+        keynotes::create_tag(
+            &mut doc,
+            plans[0],
+            user("09 29 00.A1"),
+            None,
+            Pt::new(0.0, 0.0),
+            KeynoteStyle::Key,
+        )
+        .unwrap();
+        keynotes::create_tag(
+            &mut doc,
+            plans[0],
+            user("03 30 00.A1"),
+            None,
+            Pt::new(0.0, 900.0),
+            KeynoteStyle::Key,
+        )
+        .unwrap();
+        keynotes::create_tag(
+            &mut doc,
+            plans[1],
+            user("07 21 00.A1"),
+            None,
+            Pt::new(0.0, 0.0),
+            KeynoteStyle::Key,
+        )
+        .unwrap();
+        let legend = keynotes::legend(&mut doc).unwrap();
+        assert_eq!(
+            keynotes::legend(&mut doc).unwrap(),
+            legend,
+            "one legend per project"
+        );
+        // Unplaced: every key used, in key order.
+        let t = super::schedule(&doc, legend).unwrap();
+        assert_eq!(t.columns, ["Key Value", "Keynote Text"]);
+        let keys: Vec<&str> = t.rows.iter().map(|r| r[0].as_str()).collect();
+        assert_eq!(keys, ["03 30 00.A1", "07 21 00.A1", "09 29 00.A1"]);
+        assert_eq!(t.rows[0][1], "4\" concrete slab on grade");
+        // On a sheet with Level 1 only: its two keys.
+        let sheet = ops::create_sheet(&mut doc, "Plans", SheetSize::ArchD).unwrap();
+        ops::place_view(&mut doc, sheet, plans[0], Pt::new(300.0, 300.0)).unwrap();
+        let t = super::schedule_on(&doc, legend, Some(sheet)).unwrap();
+        assert_eq!(t.rows.len(), 2);
+        // By Sheet: numbered 1, 2.
+        keynotes::set_numbering(&mut doc, KeynoteNumbering::BySheet).unwrap();
+        let t = super::schedule_on(&doc, legend, Some(sheet)).unwrap();
+        assert_eq!(t.columns[0], "No.");
+        assert_eq!((t.rows[0][0].as_str(), t.rows[1][0].as_str()), ("1", "2"));
+        assert_eq!(t.rows[1][1], "1/2\" gypsum board");
+    }
 }

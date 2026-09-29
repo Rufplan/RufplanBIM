@@ -31,6 +31,9 @@ export function litOf(s: { selection: ElementId[]; highlight: ElementId[] }): El
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
 
 export type Tool =
+  | "keynoteElement"
+  | "keynoteMaterial"
+  | "keynoteUser"
   | "copy"
   | "rotate"
   | "mirror"
@@ -106,6 +109,9 @@ export const TOOL_LABELS: Record<Tool, string> = {
   elevation: "Elevation",
   sketch: "Boundary Sketch",
   tag: "Tag by Category",
+  keynoteElement: "Element Keynote",
+  keynoteMaterial: "Material Keynote",
+  keynoteUser: "User Keynote",
   matchType: "Match Type Properties",
   mirrorPick: "Mirror - Pick Axis",
   camera: "Camera",
@@ -196,6 +202,10 @@ export interface ToolOptions {
    * drafting view). */
   refOther: boolean;
   refTarget: string;
+  /** Keynotes (ADR-081): the tag type, whether it has a leader, and the User keynote. */
+  keynoteStyle: "Key" | "KeyAndText";
+  keynoteLeader: boolean;
+  keynoteUserKey: string;
 }
 
 /** Revit's boundary line tools in sketch mode (ADR-021), plus Modify and Trim. */
@@ -326,6 +336,7 @@ interface UiState {
     | "saveDetail"
     | "worksets"
     | "structure"
+    | "keynotes"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
@@ -476,6 +487,9 @@ export const useAppStore = create<UiState>((set, get) => ({
     componentFlip: false,
     refOther: false,
     refTarget: "",
+    keynoteStyle: "Key",
+    keynoteLeader: true,
+    keynoteUserKey: "",
   },
   paramsOpen: false,
   sketchUi: {
