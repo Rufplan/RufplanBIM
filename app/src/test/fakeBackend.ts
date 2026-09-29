@@ -1355,6 +1355,7 @@ export function installFakeBackend(): FakeBackend {
         case "pick":
           return fake.underCursor[0]?.ids[0] ?? null;
         case "tag_elements":
+        case "move_elements":
           return fake.state;
         case "view_categories":
           return [

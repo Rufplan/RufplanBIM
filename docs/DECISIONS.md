@@ -2745,3 +2745,18 @@ coursing along a line".
     the same spot, because a view can be on only one sheet. Schedules, which can be on many
     sheets, are placed as they are.
 - **Rename** is Revit's dialog: a name for a view, a number and name for a sheet.
+
+## ADR-075 Nudging with the arrow keys — Accepted (2026-09-28)
+- **What it does.** With something selected and Modify active, the arrow keys move the
+  selection, as in Revit. Shift+arrow moves it about ten times as far. Each press is one
+  Move, so it can be undone.
+  - It works wherever Move does: floor plans, ceiling plans, drafting views, and sheets
+    (viewports).
+  - Elevations, sections and 3D don't nudge yet, because Move doesn't work in them.
+- **The step follows the zoom** (app/src/nudge.ts): the smallest round distance that shows as
+  at least 4 pixels (40 with Shift). The round distances are 1/32", 1/16" … 1", 2", 3", 6",
+  1', 2', 5', 10', 20', 50' and 100'.
+- **Keyboard controls keep their arrows.** Arrows typed in fields, menus, tabs, toggles and
+  dialogs don't nudge.
+- **Held keys.** Presses made while a nudge is still saving add up and go into the next Move,
+  so holding an arrow doesn't queue up a backlog.

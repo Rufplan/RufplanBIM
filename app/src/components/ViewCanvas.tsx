@@ -15,6 +15,7 @@ import {
   type ViewInfo,
 } from "../ipc";
 import { apply } from "../fileActions";
+import { keyForControl, nudgeDirection, nudgeStep } from "../nudge";
 import { drawOptions, editBoundary, filletRadius, startWallOpening } from "../sketch";
 import { lineOptions } from "../lines";
 import {
@@ -1696,6 +1697,39 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
   }, []);
+
+  // Nudge (ADR-075): arrow keys move the selection a zoom-dependent step (Shift: farther).
+  // Presses made while a nudge is saving add up and go in the next one.
+  const nudge = useRef<{ busy: boolean; x: number; y: number }>({ busy: false, x: 0, y: 0 });
+  useEffect(() => {
+    const flush = async () => {
+      const n = nudge.current;
+      while (n.x !== 0 || n.y !== 0) {
+        const delta = { x: n.x, y: n.y };
+        n.x = 0;
+        n.y = 0;
+        n.busy = true;
+        const s = useAppStore.getState();
+        const ok = await apply(() => ipc.moveElements(s.selection, delta));
+        if (!ok) n.x = n.y = 0;
+      }
+      n.busy = false;
+    };
+    const on = (e: KeyboardEvent) => {
+      const dir = nudgeDirection(e.key);
+      if (!dir || e.ctrlKey || e.altKey || e.metaKey || keyForControl(e.target)) return;
+      const s = useAppStore.getState();
+      if (s.tool !== "select" || s.selection.length === 0 || !cam.current) return;
+      if (!toolAllowed("move", view.viewType)) return;
+      e.preventDefault();
+      const step = nudgeStep(cam.current.zoom, e.shiftKey);
+      nudge.current.x += dir.x * step;
+      nudge.current.y += dir.y * step;
+      if (!nudge.current.busy) void flush();
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, [view.viewType]);
 
   // Modify | Text Notes > Edit Text (ADR-070).
   const editTextRef = useRef(editText);

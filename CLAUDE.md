@@ -151,6 +151,7 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Nudge (ADR-075): arrow keys move the selection (app/src/nudge.ts, ViewCanvas); Shift farther.
 - Project browser menus (ADR-074): studio-core `views` (create_plan, create_3d, duplicate_view,
   duplicate_sheet); app/src/views.ts; components/ContextMenu.tsx, NewViewMenu.tsx, RenameDialog.tsx.
   Modify/Move/Delete only on the Modify tab.
