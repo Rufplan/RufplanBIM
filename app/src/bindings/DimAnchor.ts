@@ -4,4 +4,4 @@ import type { ElementId } from "./ElementId";
 /**
  * Where a dimension end is attached, so it follows the model. Lengths in mm.
  */
-export type DimAnchor = { "Wall": { wall: ElementId, t: number, side: number, } } | { "Grid": { grid: ElementId, t: number, } };
+export type DimAnchor = { "Wall": { wall: ElementId, t: number, side: number, } } | { "Grid": { grid: ElementId, t: number, } } | { "DetailLine": { line: ElementId, t: number, } } | { "Component": { component: ElementId, u: number, v: number, } };

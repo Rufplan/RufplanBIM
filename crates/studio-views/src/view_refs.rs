@@ -169,7 +169,8 @@ pub fn references(doc: &Document, view: ElementId, cursor: Pt, tol: f64) -> Vec<
                 from: a,
                 to: b,
                 dir: Some(dir),
-                anchor: None,
+                // Detail lines and components (ADR-072): dimensions follow them.
+                anchor: studio_core::ops::anchor_at(doc, view, a.lerp(b, t)),
             },
         ));
     }

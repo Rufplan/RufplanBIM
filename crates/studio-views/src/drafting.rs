@@ -431,6 +431,70 @@ mod tests {
     }
 
     #[test]
+    fn dimensions_in_drafting_views_follow_detail_lines_and_components() {
+        use studio_core::ElementData;
+        let mut doc = studio_core::Document::new();
+        studio_core::ops::seed_default_project(&mut doc).unwrap();
+        let v = details::create_drafting_view(&mut doc, "D", 4).unwrap();
+        let line = |doc: &mut studio_core::Document, x: f64| {
+            doc.transact("line", |tx| {
+                Ok(tx.insert(ElementData::DetailLine {
+                    view: v,
+                    curve: studio_core::sketch::SketchCurve::line(
+                        Pt::new(x, 0.0),
+                        Pt::new(x, 1000.0),
+                    ),
+                    style: studio_core::lines::LineStyle::Medium,
+                }))
+            })
+            .unwrap()
+        };
+        let (l1, l2) = (line(&mut doc, 0.0), line(&mut doc, 300.0));
+        let refs_at =
+            |doc: &studio_core::Document, p: Pt| crate::view_refs::references(doc, v, p, 20.0);
+        let a = refs_at(&doc, Pt::new(2.0, 500.0));
+        let b = refs_at(&doc, Pt::new(298.0, 500.0));
+        assert!(
+            matches!(a[0].anchor, Some(studio_core::Anchor::DetailLine { line, .. }) if line == l1)
+        );
+        let dim = studio_core::dimension::create_string(
+            &mut doc,
+            v,
+            &[a[0].clone(), b[0].clone()],
+            Pt::new(150.0, 800.0),
+            studio_core::DimKind::Aligned,
+        )
+        .unwrap();
+        let len = |doc: &studio_core::Document| {
+            let (pts, u) =
+                studio_core::dimension::string_points(doc, doc.data(dim).unwrap()).unwrap();
+            pts[1].sub(pts[0]).dot(u).abs()
+        };
+        assert!((len(&doc) - 300.0).abs() < 1e-6);
+        // Moving the second line 100 mm out stretches the dimension, as in Revit.
+        studio_core::modify::move_elements(&mut doc, &[l2], Pt::new(100.0, 0.0)).unwrap();
+        assert!((len(&doc) - 400.0).abs() < 1e-6, "{}", len(&doc));
+        // A point on a detail component anchors to it and follows it.
+        let c = details::create_component(
+            &mut doc,
+            v,
+            "lum-2x6",
+            Pt::new(1000.0, 0.0),
+            Pt::new(1100.0, 0.0),
+            false,
+        )
+        .unwrap();
+        let corner = Pt::new(1000.0 + 0.75 * 25.4, 2.75 * 25.4);
+        let anchor = studio_core::ops::anchor_at(&doc, v, corner).unwrap();
+        assert!(
+            matches!(anchor, studio_core::Anchor::Component { component, .. } if component == c)
+        );
+        studio_core::modify::move_elements(&mut doc, &[c], Pt::new(0.0, 50.0)).unwrap();
+        let now = studio_core::ops::anchor_point(&doc, &anchor).unwrap();
+        assert!(now.dist(corner.add(Pt::new(0.0, 50.0))) < 1e-6);
+    }
+
+    #[test]
     fn every_library_detail_has_a_preview() {
         for d in details::catalog() {
             let dl = detail_preview(&d.id).unwrap();

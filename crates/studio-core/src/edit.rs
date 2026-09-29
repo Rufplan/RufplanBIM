@@ -1054,6 +1054,16 @@ fn remap_anchor(
             side,
         }),
         Some(Anchor::Grid { grid, t }) => map.get(&grid).map(|g| Anchor::Grid { grid: *g, t }),
+        Some(Anchor::DetailLine { line, t }) => {
+            map.get(&line).map(|l| Anchor::DetailLine { line: *l, t })
+        }
+        Some(Anchor::Component { component, u, v }) => {
+            map.get(&component).map(|c| Anchor::Component {
+                component: *c,
+                u,
+                v,
+            })
+        }
         None => None,
     }
 }

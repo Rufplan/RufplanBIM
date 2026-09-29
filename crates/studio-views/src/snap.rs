@@ -71,11 +71,26 @@ pub fn snap_only(
         let hit = crate::view_refs::snaps(doc, view, p, tol)
             .into_iter()
             .find(|(k, _)| only.is_none_or(|o| o == *k));
+        // Drafting views (ADR-069) have no heights: snap to their lines only.
+        let drafting = matches!(
+            doc.data(view),
+            Ok(ElementData::View {
+                kind: ViewKind::Drafting,
+                ..
+            })
+        );
         if let Some((kind, q)) = hit {
             return SnapResult {
                 pt: q,
                 kind,
-                label: Some(format_ft_in(q.y)),
+                label: (!drafting).then(|| format_ft_in(q.y)),
+            };
+        }
+        if drafting {
+            return SnapResult {
+                pt: p,
+                kind: SnapKind::None,
+                label: None,
             };
         }
         // Else round the height to the nearest inch.

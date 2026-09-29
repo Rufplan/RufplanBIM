@@ -744,6 +744,15 @@ pub enum Anchor {
     Wall { wall: ElementId, t: f64, side: f64 },
     /// `t` is the fraction along the grid line from its start.
     Grid { grid: ElementId, t: f64 },
+    /// A detail line (ADR-072): `t` is the fraction along it from its start.
+    DetailLine { line: ElementId, t: f64 },
+    /// A detail component (ADR-072): a point in its own frame (mm along it from its start,
+    /// and to its left, or right when flipped), so it follows the component.
+    Component {
+        component: ElementId,
+        u: f64,
+        v: f64,
+    },
 }
 
 /// A reference of a dimension string between its first and last (ADR-040).

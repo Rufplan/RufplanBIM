@@ -213,6 +213,15 @@ pub fn anchor_dir(doc: &Document, anchor: &Anchor) -> Option<Pt> {
             ElementData::Grid { start, end, .. } => Some(end.sub(*start).norm()),
             _ => None,
         },
+        Anchor::DetailLine { line, .. } => match doc.data(*line).ok()? {
+            ElementData::DetailLine {
+                curve: crate::sketch::SketchCurve::Line { a, b, .. },
+                ..
+            } => Some(b.sub(*a).norm()),
+            _ => None,
+        },
+        // A point on a component: no line of its own.
+        Anchor::Component { .. } => None,
     }
 }
 
@@ -590,6 +599,8 @@ pub fn align(doc: &mut Document, reference: &Reference, target: &Reference) -> C
     let id = match target.anchor {
         Some(Anchor::Wall { wall, .. }) => wall,
         Some(Anchor::Grid { grid, .. }) => grid,
+        Some(Anchor::DetailLine { line, .. }) => line,
+        Some(Anchor::Component { component, .. }) => component,
         None => {
             return Err(CoreError::Invalid(
                 "pick a line on the element to align".into(),
@@ -624,6 +635,8 @@ pub fn line_of(doc: &Document, id: ElementId) -> Option<(Pt, Pt)> {
 pub fn anchored_to(anchor: &Option<Anchor>, id: ElementId) -> bool {
     matches!(anchor, Some(Anchor::Wall { wall, .. }) if *wall == id)
         || matches!(anchor, Some(Anchor::Grid { grid, .. }) if *grid == id)
+        || matches!(anchor, Some(Anchor::DetailLine { line, .. }) if *line == id)
+        || matches!(anchor, Some(Anchor::Component { component, .. }) if *component == id)
 }
 
 /// A dimension's anchors in order along it (first, between…, last).

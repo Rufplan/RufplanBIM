@@ -281,7 +281,8 @@ pub fn create_dimension(
 }
 
 /// In plan views, the wall or grid a point sits on (within 1 mm of a wall's footprint,
-/// faces and centerline included, or of a grid line), as an anchor that follows it.
+/// faces and centerline included, or of a grid line), as an anchor that follows it. In any
+/// view, a detail line or detail component of the view the point is on (ADR-072).
 pub fn anchor_at(doc: &Document, view: ElementId, p: Pt) -> Option<Anchor> {
     let is_plan = matches!(
         doc.data(view),
@@ -290,6 +291,9 @@ pub fn anchor_at(doc: &Document, view: ElementId, p: Pt) -> Option<Anchor> {
             ..
         })
     );
+    if let Some(a) = detail_anchor_at(doc, view, p) {
+        return Some(a);
+    }
     if !is_plan {
         return None;
     }
@@ -342,9 +346,89 @@ pub fn anchor_at(doc: &Document, view: ElementId, p: Pt) -> Option<Anchor> {
     best.map(|b| b.1)
 }
 
+/// A component's frame: its start, and its along and across directions.
+fn component_frame(start: Pt, end: Pt, flip: bool) -> (Pt, Pt, Pt) {
+    let d = end.sub(start);
+    let u = if d.len() > 1e-9 {
+        d.norm()
+    } else {
+        Pt::new(1.0, 0.0)
+    };
+    let v = if flip { u.perp().scale(-1.0) } else { u.perp() };
+    (start, u, v)
+}
+
+/// A detail line or detail component of `view` that `p` lies on (within 1 mm).
+fn detail_anchor_at(doc: &Document, view: ElementId, p: Pt) -> Option<Anchor> {
+    let slop = 1.0;
+    let mut best: Option<(f64, Anchor)> = None;
+    for e in doc.iter() {
+        match &e.data {
+            ElementData::DetailLine {
+                view: v,
+                curve: crate::sketch::SketchCurve::Line { a, b, .. },
+                ..
+            } if *v == view => {
+                let (t, d) = studio_geom::project_to_segment(p, *a, *b);
+                if d < slop && best.as_ref().is_none_or(|x| d < x.0) {
+                    best = Some((d, Anchor::DetailLine { line: e.id, t }));
+                }
+            }
+            ElementData::DetailComponent {
+                view: v,
+                start,
+                end,
+                flip,
+                ..
+            } if *v == view => {
+                let Some(parts) = crate::details::component_parts(&e.data) else {
+                    continue;
+                };
+                let on = parts.lines.iter().any(|l| {
+                    let n = l.pts.len();
+                    let segs = if l.closed { n } else { n.saturating_sub(1) };
+                    (0..segs).any(|i| {
+                        studio_geom::project_to_segment(p, l.pts[i], l.pts[(i + 1) % n]).1 < slop
+                    })
+                });
+                if on && best.is_none() {
+                    let (o, u, vv) = component_frame(*start, *end, *flip);
+                    let r = p.sub(o);
+                    best = Some((
+                        slop,
+                        Anchor::Component {
+                            component: e.id,
+                            u: r.dot(u),
+                            v: r.dot(vv),
+                        },
+                    ));
+                }
+            }
+            _ => {}
+        }
+    }
+    best.map(|b| b.1)
+}
+
 /// Where an anchor is now, or None if its element is gone.
 pub fn anchor_point(doc: &Document, anchor: &Anchor) -> Option<Pt> {
     match anchor {
+        Anchor::DetailLine { line, t } => match doc.data(*line).ok()? {
+            ElementData::DetailLine {
+                curve: crate::sketch::SketchCurve::Line { a, b, .. },
+                ..
+            } => Some(a.lerp(*b, *t)),
+            _ => None,
+        },
+        Anchor::Component { component, u, v } => match doc.data(*component).ok()? {
+            ElementData::DetailComponent {
+                start, end, flip, ..
+            } => {
+                let (o, du, dv) = component_frame(*start, *end, *flip);
+                Some(o.add(du.scale(*u)).add(dv.scale(*v)))
+            }
+            _ => None,
+        },
         Anchor::Wall { wall, t, side } => match doc.data(*wall).ok()? {
             ElementData::Wall { start, end, .. } => {
                 let dir = end.sub(*start).norm();

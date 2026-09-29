@@ -819,6 +819,12 @@ export function Ribbon() {
                 <span>Filled Region</span>
               </button>
               <ToolButton tool="text" label="Text" icon={Icons.text} keys="TX" />
+              <ToolButton
+                tool="dimension"
+                label="Dimension"
+                icon={Icons.dimension}
+                keys="DI — to detail lines and components"
+              />
             </Group>
           </>
         )}
