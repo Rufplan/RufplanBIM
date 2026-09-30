@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import type { ImageryFrame } from "./bindings/ImageryFrame";
@@ -32,12 +32,53 @@ async function openProject() {
 }
 
 describe("Site tab (ADR-023)", () => {
-  it("comes first, before Architecture", async () => {
+  it("leads the Model group, in the grouped tab bar", async () => {
     await openProject();
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(0, 3)).toEqual(["Project Info", "Standards", "Site"]);
+    // The grouped tab bar: Setup, Model, Details, Consultants, Visualize, Document, Team.
+    expect(tabs).toEqual([
+      "Project Info",
+      "Standards",
+      "Manage",
+      "Site",
+      "Architecture",
+      "Openings",
+      "Lighting",
+      "Modify",
+      "Details",
+      "Structure",
+      "MEPT",
+      "Materials",
+      "Landscape",
+      "Rendering",
+      "Annotate",
+      "Views",
+      "Sheets",
+      "Specifications",
+      "Collaborate",
+      "Rufplan",
+    ]);
+    const bar = screen.getByRole("tablist", { name: "Ribbon tabs" });
+    const labels = [...bar.querySelectorAll(".rb-grouplabel")].map((l) => l.textContent);
+    expect(labels).toEqual([
+      "SETUP",
+      "MODEL",
+      "DETAILS",
+      "CONSULTANTS",
+      "VISUALIZE",
+      "DOCUMENT",
+      "TEAM",
+    ]);
+    const numbers = [...bar.querySelectorAll(".rb-groupnum")].map((l) => l.textContent);
+    expect(numbers).toEqual(["01", "02", "03", "04", "05", "06", "07"]);
+    // Hovering a group's label highlights the group.
+    const model = bar.querySelectorAll(".rb-grouplabel")[1]!;
+    fireEvent.mouseEnter(model);
+    expect(model.closest(".rb-tabgroup")!.className).toContain("hover");
+    fireEvent.mouseLeave(model);
+    expect(model.closest(".rb-tabgroup")!.className).not.toContain("hover");
     await userEvent.click(screen.getByRole("tab", { name: "Site" }));
     for (const name of ["Find Lot", "Site Plan", "Get Topo", "API Keys"])
       expect(screen.getByRole("button", { name })).toBeTruthy();

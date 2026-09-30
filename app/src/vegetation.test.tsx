@@ -51,7 +51,7 @@ async function openVegetation() {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "New Project" }));
   await screen.findByRole("toolbar", { name: "Tools" });
-  await userEvent.click(screen.getByRole("tab", { name: "Vegetation" }));
+  await userEvent.click(screen.getByRole("tab", { name: "Landscape" }));
 }
 
 describe("the Vegetation tab and Enscape's Asset Library (ADR-064)", () => {

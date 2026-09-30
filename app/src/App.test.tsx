@@ -59,7 +59,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: "New Project" }));
     await screen.findByRole("toolbar", { name: "Tools" });
     expect(screen.queryByRole("button", { name: "New Sheet" })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: "View" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Views" }));
     // Sheets have their own tab.
     expect(screen.queryByRole("button", { name: "New Sheet" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Sheets" }));

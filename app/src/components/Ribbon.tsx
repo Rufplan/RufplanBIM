@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   apply,
   deleteSelection,
@@ -365,50 +365,41 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 type Tab =
   | "Project Info"
   | "Standards"
+  | "Manage"
   | "Site"
-  | "Vegetation"
   | "Architecture"
   | "Openings"
   | "Lighting"
-  | "Materials"
-  | "Rendering"
+  | "Modify"
+  | "Details"
   | "Structure"
   | "MEPT"
-  | "Modify"
+  | "Materials"
+  | "Landscape"
+  | "Rendering"
   | "Annotate"
-  | "Details"
-  | "View"
+  | "Views"
   | "Sheets"
   | "Specifications"
   | "Collaborate"
-  | "Manage"
   | "Rufplan";
-const TABS: Tab[] = [
-  "Project Info",
-  "Standards",
-  "Site",
-  "Vegetation",
-  "Architecture",
-  "Openings",
-  "Lighting",
-  "Materials",
-  "Rendering",
-  "Structure",
-  "MEPT",
-  "Modify",
-  "Annotate",
-  "Details",
-  "View",
-  "Sheets",
-  "Specifications",
-  "Collaborate",
-  "Manage",
-  "Rufplan",
+
+/** The ribbon's tabs in numbered workflow groups (the grouped tab bar). */
+const TAB_GROUPS: { label: string; tabs: Tab[] }[] = [
+  { label: "SETUP", tabs: ["Project Info", "Standards", "Manage"] },
+  { label: "MODEL", tabs: ["Site", "Architecture", "Openings", "Lighting", "Modify"] },
+  { label: "DETAILS", tabs: ["Details"] },
+  { label: "CONSULTANTS", tabs: ["Structure", "MEPT"] },
+  { label: "VISUALIZE", tabs: ["Materials", "Landscape", "Rendering"] },
+  { label: "DOCUMENT", tabs: ["Annotate", "Views", "Sheets", "Specifications"] },
+  { label: "TEAM", tabs: ["Collaborate", "Rufplan"] },
 ];
 
 export function Ribbon() {
   const tab = useAppStore((s) => s.ribbonTab) as Tab;
   const setTab = useAppStore((s) => s.setRibbonTab);
+  // The group whose label or number is hovered (highlights its tabs).
+  const [hoverGroup, setHoverGroup] = useState<string | null>(null);
   const hasSelection = useAppStore((s) => s.selection.length > 0);
   const app = useAppStore((s) => s.app);
   const openView = useAppStore((s) => s.openView);
@@ -483,20 +474,45 @@ export function Ribbon() {
   return (
     <div className="ribbon" role="toolbar" aria-label="Tools">
       <div className="rb-tabs" role="tablist" aria-label="Ribbon tabs">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            className={`rb-tab${tab === t ? " active" : ""}${t === "Modify" && ctxLabel ? " contextual" : ""}`}
-            onClick={() => {
-              setTab(t);
-              if (t === "Rufplan" && !useAppStore.getState().cloud) void refreshCloud();
-            }}
-          >
-            {t === "Modify" && ctxLabel ? ctxLabel : t}
-          </button>
-        ))}
+        {TAB_GROUPS.map((g, i) => {
+          const hover = {
+            onMouseEnter: () => setHoverGroup(g.label),
+            onMouseLeave: () => setHoverGroup(null),
+          };
+          return (
+            <div
+              key={g.label}
+              role="presentation"
+              className={`rb-tabgroup${hoverGroup === g.label ? " hover" : ""}`}
+            >
+              {i > 0 && <span className="rb-tabdiv" aria-hidden />}
+              <div className="rb-tabcol" role="presentation">
+                <div className="rb-grouplabel" aria-hidden {...hover}>
+                  {g.label}
+                </div>
+                <div className="rb-tabrow" role="presentation">
+                  <span className="rb-groupnum" aria-hidden {...hover}>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {g.tabs.map((t) => (
+                    <button
+                      key={t}
+                      role="tab"
+                      aria-selected={tab === t}
+                      className={`rb-tab${tab === t ? " active" : ""}${t === "Modify" && ctxLabel ? " contextual" : ""}`}
+                      onClick={() => {
+                        setTab(t);
+                        if (t === "Rufplan" && !useAppStore.getState().cloud) void refreshCloud();
+                      }}
+                    >
+                      {t === "Modify" && ctxLabel ? ctxLabel : t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
       <div className="rb-body">
         {tab === "Project Info" && <ProjectInfoRibbon />}
@@ -674,7 +690,7 @@ export function Ribbon() {
             </Group>
           </>
         )}
-        {tab === "Vegetation" && (
+        {tab === "Landscape" && (
           <>
             <Group title="Asset Library">
               <button
@@ -1152,7 +1168,7 @@ export function Ribbon() {
             <ToolButton tool="keyPlan" label="Key Plan" icon={Icons.keyPlan} keys="on sheets" />
           </Group>
         )}
-        {tab === "View" && (
+        {tab === "Views" && (
           <>
             <Group title="Create">
               <NewViewMenu />

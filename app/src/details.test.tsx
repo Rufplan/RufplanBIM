@@ -33,12 +33,12 @@ const argsOf = (cmd: string) =>
   fake.calls.filter((c) => c.cmd === cmd).map((c) => c.args as Record<string, unknown>);
 
 describe("Details tab (ADR-069)", () => {
-  it("comes after Annotate, with Drafting View, Detail Library, Filled Region", async () => {
+  it("has its own group after Model, with Drafting View, Detail Library, Filled Region", async () => {
     await openDetailsTab();
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.indexOf("Details")).toBe(tabs.indexOf("Annotate") + 1);
+    expect(tabs.indexOf("Details")).toBe(tabs.indexOf("Modify") + 1);
     for (const name of [/Drafting View/, /Detail Library/, /Filled Region/, /Detail Line/]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }

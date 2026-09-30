@@ -44,20 +44,13 @@ async function openProject() {
 }
 
 describe("Rendering tab: cameras and renders (ADR-027)", () => {
-  it("comes after Architecture, with Camera for plans and Render for 3D", async () => {
+  it("ends the Visualize group, with Camera for plans and Render for 3D", async () => {
     await openProject();
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(2, 9)).toEqual([
-      "Site",
-      "Vegetation",
-      "Architecture",
-      "Openings",
-      "Lighting",
-      "Materials",
-      "Rendering",
-    ]);
+    const at = tabs.indexOf("Materials");
+    expect(tabs.slice(at, at + 3)).toEqual(["Materials", "Landscape", "Rendering"]);
     await userEvent.click(screen.getByRole("tab", { name: "Rendering" }));
     // The project opens on a plan: Camera works, Render needs a 3D view.
     const camera = screen.getByRole("button", { name: "Camera" }) as HTMLButtonElement;

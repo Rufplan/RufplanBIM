@@ -39,7 +39,7 @@ describe("Ribbon tabs (ADR-074)", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Modify" }));
     expect(screen.getByRole("button", { name: /^Modify/ })).toBeInTheDocument();
     for (const [tab, first] of [
-      ["View", /New View/],
+      ["Views", /New View/],
       ["Sheets", /New Sheet/],
     ] as const) {
       await userEvent.click(screen.getByRole("tab", { name: tab }));
@@ -50,7 +50,7 @@ describe("Ribbon tabs (ADR-074)", () => {
 
   it("New View makes a floor plan of a level and opens it", async () => {
     await start();
-    await userEvent.click(screen.getByRole("tab", { name: "View" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Views" }));
     await userEvent.click(screen.getByRole("button", { name: /New View/ }));
     const menu = screen.getByRole("menu", { name: "New View" });
     await userEvent.click(within(menu).getByRole("menuitem", { name: /^Floor Plan/ }));

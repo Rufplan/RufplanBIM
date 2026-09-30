@@ -186,34 +186,87 @@ button:disabled {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
+/* The grouped tab bar: numbered workflow groups, a label over each, dividers between. */
 .rb-tabs {
   display: flex;
-  gap: 18px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--border);
-  height: 28px;
-  align-items: stretch;
-}
-.rb-tab {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 2px;
+  align-items: flex-end;
+  padding: 0 8px;
+  border-bottom: 1px solid #e3e3e3;
+  background: #fff;
+  overflow-x: auto;
+  scrollbar-width: none;
+  font-family: "Barlow Condensed", var(--font-display);
+  font-weight: 700;
   text-transform: uppercase;
+}
+.rb-tabgroup {
+  display: flex;
+  align-items: flex-end;
+  flex: none;
+}
+.rb-tabdiv {
+  width: 1px;
+  height: 16px;
+  margin: 0 10px 8px;
+  background: #cfcfcf;
+}
+.rb-tabcol {
+  display: flex;
+  flex-direction: column;
+}
+.rb-grouplabel {
+  padding: 6px 8px 0;
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  color: #bdbdbd;
+  cursor: default;
+  user-select: none;
+}
+.rb-tabrow {
   display: flex;
   align-items: center;
+}
+.rb-groupnum {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 4px 0 6px;
   border-bottom: 2px solid transparent;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: #bdbdbd;
+  cursor: default;
+  user-select: none;
 }
 .rb-tab {
-  color: var(--muted);
-  padding: 0 2px;
+  padding: 8px 8px 7px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b6b6b;
 }
 .rb-tab:hover {
-  color: var(--ink);
+  color: #111111;
 }
 .rb-tab.active {
-  color: var(--ink);
-  border-bottom-color: var(--cyan);
+  color: #111111;
+  border-bottom-color: #29b6ea;
+}
+/* Hovering a group's label or number highlights the whole group (greyscale only). */
+.rb-tabgroup.hover .rb-grouplabel,
+.rb-tabgroup.hover .rb-groupnum {
+  color: #555555;
+}
+.rb-tabgroup.hover .rb-groupnum,
+.rb-tabgroup.hover .rb-tab {
+  background: #efefef;
+}
+.rb-tabgroup.hover .rb-tab {
+  color: #111111;
 }
 .rb-body {
   display: flex;
@@ -1024,7 +1077,8 @@ button:disabled {
 }
 
 /* ---------- Sketch mode (ADR-021) ---------- */
-.rb-tab.contextual {
+.rb-tab.contextual,
+.rb-tabgroup.hover .rb-tab.contextual {
   background: #3c9a4a;
   color: var(--white);
 }

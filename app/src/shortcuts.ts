@@ -82,11 +82,11 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   { id: "array", label: "Array", group: "Modify", keys: ["AR"], command: t("array") },
   { id: "align", label: "Align", group: "Modify", keys: ["AL"], command: t("align") },
   // Vegetation (ADR-064, ADR-065)
-  { id: "plant", label: "Place Plant", group: "Vegetation", keys: ["PL"], command: t("plant") },
+  { id: "plant", label: "Place Plant", group: "Landscape", keys: ["PL"], command: t("plant") },
   {
     id: "grassBrush",
     label: "Grass Brush",
-    group: "Vegetation",
+    group: "Landscape",
     keys: ["GB"],
     command: t("grassBrush"),
   },

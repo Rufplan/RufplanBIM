@@ -154,6 +154,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Grouped tab bar (ADR-086): Ribbon.tsx `TAB_GROUPS` (Setup, Model, Details, Consultants, Visualize, Document,
+  Team; tabs Landscape and Views, formerly Vegetation and View).
 - Specifications (ADR-085): studio-core `specs` (SpecBook element, sections/parts/articles/paragraphs,
   save/set_section/add/remove/include); crate studio-specs (library/*.toml 136 sections + front matter,
   features tags, generate/update/front, 6 styles, layout blocks, pdf with bundled OFL fonts, docx + zip,
@@ -268,4 +270,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-29
+- Last updated: 2026-09-30

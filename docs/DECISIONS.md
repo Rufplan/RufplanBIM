@@ -3178,3 +3178,25 @@ coursing along a line".
     target/specs-<style>.pdf, .docx and .html page previews.
   - `print_library_refs` lists the library's unresolved references.
   - `live_spec_edit` is a live Claude check (uses API credit).
+
+## ADR-086 Grouped ribbon tab bar — Accepted (2026-09-30)
+- **The owner's handoff design** reorganizes the flat row of 20 tabs into 7 numbered
+  workflow groups:
+  - 01 SETUP: Project Info, Standards, Manage.
+  - 02 MODEL: Site, Architecture, Openings, Lighting, Modify.
+  - 03 DETAILS: Details.
+  - 04 CONSULTANTS: Structure, MEPT.
+  - 05 VISUALIZE: Materials, Landscape, Rendering.
+  - 06 DOCUMENT: Annotate, Views, Sheets, Specifications.
+  - 07 TEAM: Collaborate, Rufplan.
+- **Renamed:** Vegetation → Landscape, and View → Views. The tab ids changed too, so there
+  is one name everywhere; the Keyboard Shortcuts group "Vegetation" is now "Landscape".
+- **Look (Ribbon.tsx `TAB_GROUPS`, styles `.rb-tabgroup`…):**
+  - Barlow Condensed 700 in upper case, 12.5px at 0.14em.
+  - A label centered over each group, a two-digit number before its first tab, and 1×16px
+    dividers.
+  - Idle tabs #6b6b6b; the selected tab #111 with a 2px #29b6ea underline.
+- Hovering a group's label or number highlights the whole group in greyscale (#efefef
+  fill, #555 label and number, #111 tabs). The contextual green "Modify | Walls" tab keeps
+  its color.
+- The row scrolls sideways on narrow windows. Only the tab bar changed.

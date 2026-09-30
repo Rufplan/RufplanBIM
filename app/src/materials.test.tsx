@@ -32,20 +32,13 @@ async function openProject() {
 }
 
 describe("Materials tab and Material Browser (ADR-029)", () => {
-  it("sits between Architecture and Rendering", async () => {
+  it("leads the Visualize group, before Landscape and Rendering", async () => {
     await openProject();
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(2, 9)).toEqual([
-      "Site",
-      "Vegetation",
-      "Architecture",
-      "Openings",
-      "Lighting",
-      "Materials",
-      "Rendering",
-    ]);
+    const at = tabs.indexOf("Materials");
+    expect(tabs.slice(at, at + 3)).toEqual(["Materials", "Landscape", "Rendering"]);
     await userEvent.click(screen.getByRole("tab", { name: "Materials" }));
     for (const name of ["Material Browser", "New Material", "Duplicate", "Paint"])
       expect(screen.getByRole("button", { name })).toBeTruthy();

@@ -131,7 +131,7 @@ describe("D5's Grass Brush (ADR-065)", () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "New Project" }));
     await screen.findByRole("toolbar", { name: "Tools" });
-    await userEvent.click(screen.getByRole("tab", { name: "Vegetation" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Landscape" }));
     expect(screen.getByRole("button", { name: /Grass Brush/ })).toBeInTheDocument();
   });
 });
