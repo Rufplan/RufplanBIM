@@ -1,3 +1,4 @@
+import { toGroups, withMembers } from "./groups";
 import { create } from "zustand";
 import type { GrassKind } from "./bindings/GrassKind";
 import type { TextAlign } from "./bindings/TextAlign";
@@ -25,8 +26,14 @@ export interface EditLogEntry {
 }
 
 /** What views draw as selected: the selection and any Edit Model highlight. */
-export function litOf(s: { selection: ElementId[]; highlight: ElementId[] }): ElementId[] {
-  return s.highlight.length ? [...s.selection, ...s.highlight] : s.selection;
+export function litOf(s: {
+  selection: ElementId[];
+  highlight: ElementId[];
+  app?: AppState | null;
+}): ElementId[] {
+  // A selected group lights up its members (ADR-087).
+  const sel = withMembers(s.app, s.selection);
+  return s.highlight.length ? [...sel, ...s.highlight] : sel;
 }
 
 // UI state only. The model lives in Rust; `app` mirrors the last snapshot it returned.
@@ -48,6 +55,7 @@ export type Tool =
   | "column"
   | "light"
   | "plant"
+  | "placeGroup"
   | "grassBrush"
   | "wallOpening"
   | "beam"
@@ -101,6 +109,7 @@ export const TOOL_LABELS: Record<Tool, string> = {
   column: "Column",
   light: "Lighting Fixture",
   plant: "Plant",
+  placeGroup: "Place Group",
   grassBrush: "Grass Brush",
   wallOpening: "Wall Opening",
   beam: "Beam",
@@ -157,6 +166,8 @@ export interface ToolTypes {
   railing: ElementId | null;
   light: ElementId | null;
   plant: ElementId | null;
+  /** Place Group's group type (ADR-087). */
+  group: ElementId | null;
 }
 
 /** Options-bar settings of the modify tools (like Revit's options bar). */
@@ -339,6 +350,7 @@ interface UiState {
     | "structure"
     | "keynotes"
     | "mep"
+    | "createGroup"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
@@ -463,6 +475,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     railing: null,
     light: null,
     plant: null,
+    group: null,
   },
   prompt: "",
   cursor: "",
@@ -646,6 +659,7 @@ export const useAppStore = create<UiState>((set, get) => ({
         roof: firstId(app.roofTypes, s.toolTypes.roof),
         light: firstId(app.lightingFixtureTypes, s.toolTypes.light),
         plant: firstId(app.plantingTypes, s.toolTypes.plant),
+        group: app.groupTypes.some((t) => t.id === s.toolTypes.group) ? s.toolTypes.group : null,
         // Structural columns and steel beams are the everyday defaults.
         column: firstId(
           [...app.columnTypes].sort(
@@ -681,7 +695,8 @@ export const useAppStore = create<UiState>((set, get) => ({
       const activeViewport = s.activeViewport?.sheet === activeView ? s.activeViewport : null;
       return { openViews, activeView, activeViewport };
     }),
-  select: (selection) => set({ selection }),
+  // Clicking a group's member selects the group, as in Revit (ADR-087).
+  select: (selection) => set({ selection: toGroups(get().app, selection) }),
   // Move, Copy, Rotate, Mirror and Array act on the current selection; other tools start
   // with nothing selected.
   setTool: (tool) =>

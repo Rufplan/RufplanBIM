@@ -57,8 +57,8 @@ describe("Site tab (ADR-023)", () => {
       "Views",
       "Sheets",
       "Specifications",
+      "QA/QC",
       "Collaborate",
-      "Rufplan",
     ]);
     const bar = screen.getByRole("tablist", { name: "Ribbon tabs" });
     const labels = [...bar.querySelectorAll(".rb-grouplabel")].map((l) => l.textContent);

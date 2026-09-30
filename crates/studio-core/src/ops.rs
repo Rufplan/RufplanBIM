@@ -1302,6 +1302,8 @@ pub fn delete(doc: &mut Document, ids: &[ElementId]) -> CoreResult<usize> {
             ));
         }
     }
+    // Deleting a group deletes its members (ADR-087).
+    let ids = &crate::groups::expand(doc, ids)[..];
     doc.transact("Delete", |tx| {
         let mut n = 0;
         for id in ids {
@@ -2477,6 +2479,41 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::Standards(_) => {}
         // Edited on the Specifications tab (ADR-085).
         ElementData::SpecBook(_) => {}
+        // Groups (ADR-087): the type's name, its kind and what it holds.
+        ElementData::GroupType { name, kind } => {
+            props.push(text("name", "Name", "Identity Data", name));
+            props.push(ro("kind", "Kind", "Identity Data", kind.label().into()));
+        }
+        ElementData::Group {
+            type_id, members, ..
+        } => {
+            let (name, kind) = match doc.data(*type_id) {
+                Ok(ElementData::GroupType { name, kind }) => (name.clone(), kind.label()),
+                _ => (String::new(), ""),
+            };
+            let others = crate::groups::groups(doc)
+                .iter()
+                .filter(|g| g.type_id == *type_id)
+                .count();
+            props.push(text("name", "Group Name", "Identity Data", &name));
+            props.push(ro("kind", "Kind", "Identity Data", kind.into()));
+            props.push(ro(
+                "members",
+                "Members",
+                "Identity Data",
+                members
+                    .iter()
+                    .filter(|m| doc.get(**m).is_some())
+                    .count()
+                    .to_string(),
+            ));
+            props.push(ro(
+                "instances",
+                "Instances",
+                "Identity Data",
+                others.to_string(),
+            ));
+        }
         ElementData::SpotElevation { .. }
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }
@@ -2802,6 +2839,19 @@ pub fn set_property(
     }
     if matches!(data, ElementData::ViewReference { .. }) {
         return crate::references::set_property(doc, id, key, value);
+    }
+    // A group's name is its type's (ADR-087).
+    match (&data, key) {
+        (ElementData::Group { type_id, .. }, "name") => {
+            return crate::groups::rename_type(doc, *type_id, value)
+        }
+        (ElementData::GroupType { .. }, "name") => {
+            return crate::groups::rename_type(doc, id, value)
+        }
+        (ElementData::Group { .. } | ElementData::GroupType { .. }, _) => {
+            return Err(CoreError::Invalid(format!("unknown property {key}")))
+        }
+        _ => {}
     }
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
@@ -3248,6 +3298,8 @@ pub fn set_property(
         | ElementData::Site { .. }
         | ElementData::Standards(_)
         | ElementData::SpecBook(_)
+        | ElementData::GroupType { .. }
+        | ElementData::Group { .. }
         | ElementData::SpotElevation { .. }
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }

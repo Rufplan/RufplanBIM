@@ -5,6 +5,7 @@ import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { RenameDialog } from "./RenameDialog";
 import { deleteView, duplicateSheet, duplicateView, viewProperties } from "../views";
 import { useAppStore } from "../store";
+import { placeGroup } from "./Groups";
 
 function Section({
   title,
@@ -226,6 +227,36 @@ export function ProjectBrowser() {
           ).map(([title, types]) => (
             <Section key={title} title={title} start={false}>
               {types.map((t) => item(t.id, t.name, () => select([t.id]), selection.includes(t.id)))}
+            </Section>
+          ))}
+        </Section>
+        <Section title="Groups" start={false}>
+          {(["Model", "Detail"] as const).map((kind) => (
+            <Section key={kind} title={kind} start={false}>
+              {app.groupTypes
+                .filter((t) => t.kind === kind)
+                .map((t) => (
+                  <div key={t.id} className="pb-row-wrap">
+                    {item(
+                      t.id,
+                      `${t.name} (${t.instances})`,
+                      () => select(app.groups.filter((g) => g.typeId === t.id).map((g) => g.id)),
+                      app.groups.some((g) => g.typeId === t.id && selection.includes(g.id)),
+                    )}
+                    <button
+                      className="pb-mini"
+                      title={t.instances ? "Place an instance" : "No instance to copy"}
+                      aria-label={`Place ${t.name}`}
+                      disabled={t.instances === 0}
+                      onClick={() => placeGroup(kind, t.id)}
+                    >
+                      +
+                    </button>
+                  </div>
+                ))}
+              {!app.groupTypes.some((t) => t.kind === kind) && (
+                <div className="pb-empty">None yet — select elements and Create Group (GP).</div>
+              )}
             </Section>
           ))}
         </Section>

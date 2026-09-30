@@ -63,6 +63,8 @@ import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
 import type { ProjectDetails } from "./bindings/ProjectDetails";
 import type { ProjectInfoState } from "./bindings/ProjectInfoState";
+import type { QaOptions } from "./bindings/QaOptions";
+import type { QaReport } from "./bindings/QaReport";
 import type { SpecEdit } from "./bindings/SpecEdit";
 import type { SpecEditPlan } from "./bindings/SpecEditPlan";
 import type { SpecSection } from "./bindings/SpecSection";
@@ -584,6 +586,23 @@ export const ipc = {
     invoke<EditPlan>("model_edit_preview", { prompt, view, selection }),
   modelEditApply: (editPlan: ModelPlan, view: ElementId, selection: ElementId[]): S =>
     invoke("model_edit_apply", { editPlan, view, selection }),
+  // QA/QC (ADR-088).
+  qaReview: (options: QaOptions) => invoke<QaReport>("qa_review", { options }),
+  qaClaude: (report: QaReport) => invoke<QaReport>("qa_claude", { report }),
+  qaExportPdf: (path: string, report: QaReport, resolved: string[]) =>
+    invoke<string>("qa_export_pdf", { path, report, resolved }),
+  // Model and detail groups (ADR-087).
+  groupCreate: (ids: ElementId[], name: string) =>
+    invoke<[ElementId[], AppState | null]>("group_create", { ids, name }),
+  groupUngroup: (ids: ElementId[]): S => invoke("group_ungroup", { ids }),
+  groupPlace: (typeId: ElementId, at: { x: number; y: number }, view: ElementId): S =>
+    invoke("group_place", { typeId, at, view }),
+  groupEdit: (id: ElementId): S => invoke("group_edit", { id }),
+  groupAdd: (ids: ElementId[]): S => invoke("group_add", { ids }),
+  groupRemove: (ids: ElementId[]): S => invoke("group_remove", { ids }),
+  groupFinish: (): S => invoke("group_finish"),
+  groupCancel: (): S => invoke("group_cancel"),
+  groupDeleteType: (typeId: ElementId): S => invoke("group_delete_type", { typeId }),
   // Specifications (ADR-085).
   specState: () => invoke<SpecState>("spec_state"),
   specGenerate: (styleId: string, issue: string, date: string): S =>

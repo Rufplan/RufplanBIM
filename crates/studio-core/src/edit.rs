@@ -57,6 +57,21 @@ impl Xform {
         )
     }
 
+    /// This motion followed by `next`.
+    pub fn then(&self, next: Xform) -> Xform {
+        let (a, b) = (self.m, next.m);
+        let m = [
+            b[0] * a[0] + b[1] * a[2],
+            b[0] * a[1] + b[1] * a[3],
+            b[2] * a[0] + b[3] * a[2],
+            b[2] * a[1] + b[3] * a[3],
+        ];
+        Xform {
+            m,
+            t: next.apply(self.t),
+        }
+    }
+
     /// True for mirror images (orientation flips).
     pub fn is_reflection(&self) -> bool {
         self.m[0] * self.m[3] - self.m[1] * self.m[2] < 0.0
@@ -87,7 +102,7 @@ fn is_plan_view(tx: &Tx<'_>, view: ElementId) -> bool {
 
 /// Selected ids plus the doors and windows hosted by selected walls (they travel with
 /// their host, as in Revit).
-fn with_hosted(doc: &Document, ids: &[ElementId]) -> Vec<ElementId> {
+pub(crate) fn with_hosted(doc: &Document, ids: &[ElementId]) -> Vec<ElementId> {
     let set: HashSet<ElementId> = ids.iter().copied().collect();
     let mut out: Vec<ElementId> = ids.to_vec();
     for e in doc.of(Category::Door).chain(doc.of(Category::Window)) {
@@ -159,6 +174,41 @@ fn transformed(
         }
         ElementData::Room { point, .. } => *point = x.apply(*point),
         ElementData::ElevationMarker { at, .. } => *at = x.apply(*at),
+        ElementData::Column { at, rotation, .. }
+        | ElementData::LightingFixture { at, rotation, .. } => {
+            *at = x.apply(*at);
+            let v = x.apply_vec(Pt::new(rotation.cos(), rotation.sin()));
+            *rotation = v.y.atan2(v.x);
+        }
+        ElementData::Beam { start, end, .. } => {
+            *start = x.apply(*start);
+            *end = x.apply(*end);
+        }
+        ElementData::Railing { path, .. } => {
+            for p in path.iter_mut() {
+                *p = x.apply(*p);
+            }
+        }
+        // Tags follow their element in place; copies of doors, windows and rooms get their
+        // own tags.
+        ElementData::Tag { offset, .. } if in_place => *offset = x.apply_vec(*offset),
+        ElementData::Group {
+            origin,
+            angle,
+            mirrored,
+            members,
+            ..
+        } => {
+            *origin = x.apply(*origin);
+            let v = x.apply_vec(Pt::new(angle.cos(), angle.sin()));
+            *angle = v.y.atan2(v.x);
+            if mirror {
+                *mirrored = !*mirrored;
+            }
+            if !in_place {
+                *members = members.iter().filter_map(|m| map.get(m).copied()).collect();
+            }
+        }
         ElementData::Planting { at, rotation, .. } => {
             *at = x.apply(*at);
             let d = x.apply(Pt::new(rotation.cos(), rotation.sin()));
@@ -390,6 +440,8 @@ pub fn copy_elements(
     xforms: &[Xform],
     name: &str,
 ) -> CoreResult<Vec<ElementId>> {
+    // A group copies whole, members first (ADR-087).
+    let ids = &crate::groups::expand(doc, ids)[..];
     let order = with_hosted(doc, ids);
     let next_num = |cat: Category| next_mark(doc, cat).parse::<u32>().unwrap_or(1);
     let (mut door_no, mut win_no, mut room_no) = (
@@ -469,6 +521,7 @@ pub fn transform_elements(
     name: &str,
 ) -> CoreResult<()> {
     crate::visibility::ensure_unpinned(doc, ids)?;
+    let ids = &crate::groups::expand(doc, ids)[..];
     let order = with_hosted(doc, ids);
     doc.transact(name, |tx| {
         // In place, a host keeps its id, so the map is the identity.

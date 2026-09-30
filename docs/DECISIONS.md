@@ -3200,3 +3200,114 @@ coursing along a line".
   fill, #555 label and number, #111 tabs). The contextual green "Modify | Walls" tab keeps
   its color.
 - The row scrolls sideways on narrow windows. Only the tab bar changed.
+
+## ADR-087 Model and detail groups, as in Revit — Accepted (2026-09-30)
+- **The owner's ask:** model groups and detail groups, just like Revit's. Also: put the
+  Rufplan tab's tools inside the Collaborate tab.
+- **Data (studio-core `groups`):**
+  - `ElementData::GroupType { name, kind: Model | Detail }` is the group definition.
+  - `ElementData::Group { type_id, origin, angle, mirrored, level, view, members }` is an
+    instance. Its members are real elements, so views, schedules, regeneration and IFC are
+    unchanged.
+  - This is an additive file-format change.
+- **What can be grouped:**
+  - Model groups: walls (with their doors and windows), floors, ceilings, roofs, stairs,
+    columns, beams, railings, room separators, model lines, rooms, fixtures, plantings and
+    in-place elements.
+  - Detail groups: a single view's detail lines, text, regions, components, dimensions,
+    spot annotations and keynote tags.
+  - Choosing both kinds makes a model group plus an attached detail group, as Revit does.
+- **Behavior:**
+  - `create` puts the origin at the members' center.
+  - `expand` makes Move, Copy, Rotate, Mirror, Array and Delete act on the whole group.
+    `edit::transformed` moves the group's origin and remaps its members, and now also
+    handles columns, beams, railings, fixtures and in-place tag moves.
+  - `place` copies an existing instance to a point; a model group moves to the target
+    level by level shift, a detail group to the target view. It is one undo step.
+  - `add_members`/`remove_members` edit a group. `sync` rebuilds every other instance from
+    the edited one, respecting each instance's rotation and mirroring. `ungroup` keeps the
+    members. `rename_type` renames.
+- **App:**
+  - `group_cmds` runs Revit's Edit Group mode: an undo mark; Add and Remove; Finish, where
+    elements drawn while editing join the group and every instance updates as one "Edit
+    Group" step; and Cancel.
+  - AppState carries `groups`, `groupTypes` and `editingGroup`.
+- **UI:**
+  - Clicking a member selects its group (store `select`, groups.ts), and a selected group
+    lights up its members (`litOf`). Double-click edits it.
+  - Modify | Model Groups / Detail Groups: Edit Group, Ungroup and Place. Create Group is
+    on the GP shortcut and in the Create Group dialog.
+  - Architecture > Model: Model Group and Create Group. Annotate > Detail: Detail Group.
+  - Place Group has a type picker in the options bar. The Project Browser has a Groups
+    branch (Model / Detail, with instance counts and +Place).
+- **Collaborate:** it now holds the Rufplan.io tools (Sign In, Link Project, Publish), and
+  the Rufplan tab is gone. The TEAM group is Collaborate alone.
+
+## ADR-088 QA/QC tab — Accepted (2026-09-30)
+- **The owner's ask:** a QA/QC tab that reviews the sheets for discrepancies, code
+  compliance and waterproofing, gives an overall review, and pops up a list of everything
+  it found.
+- **New crate `studio-qa`:** rule-based and deterministic, run for a milestone (SD, DD,
+  50/90/100% CD, Permit, Bid). Completeness items are notes before CDs, and TBDs are
+  critical in issued sets. The checks by category:
+  - **Coordination:**
+    - duplicate door and window marks, room numbers, sheet numbers, grids and levels;
+    - sections and elevations whose marks can't resolve;
+    - reference callouts to unplaced views.
+  - **Completeness:**
+    - views not on sheets, empty or untitled sheets;
+    - untagged doors, windows and rooms, and unnamed rooms;
+    - missing door, window and room schedules and sheet index;
+    - notes with TBD/TBC/XX/VIF;
+    - keynotes that don't resolve;
+    - title-block project info.
+  - **Code** (IRC or IBC, CRC or CBC in California):
+    - emergency escape openings (R310), with each window's clear opening computed from its
+      sashes;
+    - stair risers, treads, width and handrails (R311.7 / 1011);
+    - guard and handrail heights;
+    - ceiling heights (R305.1 / 1208.2);
+    - garage separation walls and doors (R302.6 / R302.5.1);
+    - occupant load and two exits (1006.2.1), corridor and hallway widths;
+    - the egress door;
+    - door heights;
+    - envelope insulation (IECC, or Title 24).
+  - **Accessibility** (commercial; ADA / ICC A117.1, or CBC 11B): 32" door clear width,
+    60" turning space, vertical access.
+  - **Waterproofing:**
+    - the water-resistive barrier (R703.2 / 1403.2);
+    - below-grade dampproofing (R406 / 1805);
+    - wet-room backers and floors;
+    - shingle minimum slope and double underlayment (R905.2.2);
+    - membrane roofs modeled flat (1/4":12);
+    - underlayment;
+    - the slab vapor retarder (R506.2.3 / 1907.1).
+  - **Drawings ↔ Specs** (with the ADR-085 manual):
+    - work the model shows with no spec section, or with its section excluded;
+    - unresolved spec cross-references;
+    - keynotes and notes that name sections which aren't issued;
+    - no manual at all.
+  - **Constructability:**
+    - short and overlapping walls;
+    - openings past wall ends, taller than the wall, without room for a header, or
+      clashing;
+    - unenclosed rooms, duplicate rooms, and rooms with no door (a stair arriving counts
+      as a way in).
+  - **Consultants:** structural and MEP preliminary flags, and missing engineers on
+    commercial CDs.
+- **Report:**
+  - A score (100 less 15 for each critical, 5 for each major and 1 for each minor), a
+    summary, counts and the code basis. Every finding cites its reference and carries a
+    fix.
+  - It exports as a PDF through studio-specs' writer.
+  - It always carries the disclaimer that this is not a substitute for professional QC or
+    plan check.
+- **Claude:** Overall Review (`qa_cmds::qa_claude`) sends a digest of the model and the
+  findings, and gets back an overview memo plus up to 12 judgment findings, marked AI.
+- **UI (`components/Qa.tsx`):** the QA/QC tab sits at the end of the DOCUMENT group.
+  - Ribbon: Run Review, Milestone, eight check toggles, Overall Review, Findings and
+    Export PDF.
+  - The pop-up list is a floating panel with a score ring, severity and category filters,
+    search, and a hide-resolved option.
+  - Each finding expands to its detail, fix and reference, with Show (opens its view and
+    selects the elements) and Resolve.

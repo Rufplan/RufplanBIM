@@ -139,6 +139,13 @@ export async function runAction(action: Action) {
       s.setTool(tool);
       return;
     }
+    case "createGroup":
+      if (s.selection.length === 0) {
+        s.setError("Select elements first, then Create Group (GP).");
+        return;
+      }
+      s.setUi({ viewDialog: "createGroup" });
+      return;
     case "selectAll":
       if (!need("Select All Instances")) return;
       s.select(await ipc.selectAllInstances(sel[0]!));

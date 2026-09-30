@@ -7,6 +7,7 @@ mod detailing;
 mod door_cmds;
 mod editing;
 mod generate_cmds;
+mod group_cmds;
 mod inplace_cmds;
 mod keynote_cmds;
 mod lighting_cmds;
@@ -18,6 +19,7 @@ mod model_edit_cmds;
 mod plans_cmds;
 mod planting_cmds;
 mod project_cmds;
+mod qa_cmds;
 mod render_cmds;
 mod session;
 mod sheetset_cmds;
@@ -260,6 +262,18 @@ pub fn run() -> anyhow::Result<()> {
             lines_cmds::lines_preview,
             model_edit_cmds::model_edit_preview,
             model_edit_cmds::model_edit_apply,
+            qa_cmds::qa_review,
+            qa_cmds::qa_claude,
+            qa_cmds::qa_export_pdf,
+            group_cmds::group_create,
+            group_cmds::group_ungroup,
+            group_cmds::group_place,
+            group_cmds::group_edit,
+            group_cmds::group_add,
+            group_cmds::group_remove,
+            group_cmds::group_finish,
+            group_cmds::group_cancel,
+            group_cmds::group_delete_type,
             spec_cmds::spec_state,
             spec_cmds::spec_generate,
             spec_cmds::spec_update,

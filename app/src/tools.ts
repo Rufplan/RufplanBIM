@@ -114,6 +114,8 @@ export function referenceForced(view: ViewType | undefined): boolean {
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
   if (tool === "paint") return view !== "Sheet" && view !== "Schedule";
+  // Model groups go in plans; detail groups in any view that draws (ADR-087).
+  if (tool === "placeGroup") return view !== "Sheet" && view !== "Schedule" && view !== "ThreeD";
   // Drafting views hold only 2D detailing (ADR-069).
   if (view === "Drafting")
     return [
@@ -269,6 +271,8 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Click the wall to cut the opening in. You'll sketch its shape on the wall's face: rectangles, circles, polygons, arcs or lines.";
     case "grassBrush":
       return "Drag over the ground to paint grass (Erase on the options bar takes it away). Esc finishes.";
+    case "placeGroup":
+      return "Click where the group's center goes; keep clicking to place more (Esc to stop).";
     case "plant":
       return "Click to place the plant; keep clicking to place more (Esc to stop). Random rotation and size are on the options bar.";
     case "light":

@@ -14,6 +14,7 @@ import { VisibilityWorksets, WorksetsDialog } from "./Worksets";
 import { StructuralDialog } from "./StructuralDialog";
 import { KeynoteManager } from "./KeynoteManager";
 import { MepDialog } from "./MepDialog";
+import { CreateGroupDialog } from "./Groups";
 import { GenerateDialog } from "./GenerateDialog";
 import { PlansDialog } from "./PlansDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
@@ -61,6 +62,7 @@ export function ViewDialogs() {
   if (which === "structure") return <StructuralDialog onClose={close} />;
   if (which === "keynotes") return <KeynoteManager onClose={close} />;
   if (which === "mep") return <MepDialog onClose={close} />;
+  if (which === "createGroup") return <CreateGroupDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "ground") return <GroundDialog onClose={close} />;

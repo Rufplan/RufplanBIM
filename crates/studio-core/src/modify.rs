@@ -21,6 +21,8 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
     if delta.len() < tol::LINEAR {
         return Ok(());
     }
+    // A group moves whole (ADR-087).
+    let ids = &crate::groups::expand(doc, ids)[..];
     let selected: HashSet<ElementId> = ids.iter().copied().collect();
     doc.transact("Move", |tx| {
         // Moved walls' old location lines, for stretching joined walls afterwards.
@@ -52,6 +54,7 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                     }
                 }
                 ElementData::Room { point, .. } => *point = point.add(delta),
+                ElementData::Group { origin, .. } => *origin = origin.add(delta),
                 ElementData::ElevationMarker { at, .. } => *at = at.add(delta),
                 ElementData::Planting { at, .. } => *at = at.add(delta),
                 ElementData::GrassPatch { dabs, .. } => {

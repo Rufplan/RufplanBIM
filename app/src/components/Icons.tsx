@@ -16,6 +16,66 @@ const I = ({ children }: { children: ReactNode }) => (
 );
 
 export const Icons = {
+  // Groups (ADR-087): dashed boxes around shapes.
+  group: (
+    <I>
+      <path d="M3 3h18v18H3z" strokeDasharray="3 2" />
+      <path d="M7 7h6v5H7zM11 14h6v4h-6z" fill="currentColor" fillOpacity="0.2" />
+    </I>
+  ),
+  detailGroup: (
+    <I>
+      <path d="M3 3h18v18H3z" strokeDasharray="3 2" />
+      <path d="M6 16l4-8 3 5 2-3 3 6M6 18h12" />
+    </I>
+  ),
+  ungroup: (
+    <I>
+      <path d="M3 3h8v8H3zM13 13h8v8h-8z" strokeDasharray="3 2" />
+      <path d="M5 5h4v4H5zM15 15h4v4h-4z" fill="currentColor" fillOpacity="0.2" />
+    </I>
+  ),
+  edit: (
+    <I>
+      <path d="M4 20l1-5L16 4l4 4L9 19z" />
+      <path d="M14 6l4 4" />
+    </I>
+  ),
+  add: (
+    <I>
+      <path d="M4 4h16v16H4zM12 8v8M8 12h8" />
+    </I>
+  ),
+  // QA/QC (ADR-088).
+  qaReview: (
+    <I>
+      <path d="M8 3h8v3H8zM6 5H4v16h16V5h-2" />
+      <path d="M8 13l3 3 5-6" />
+    </I>
+  ),
+  qaCode: (
+    <I>
+      <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />
+      <path d="M9 12l2 2 4-4" />
+    </I>
+  ),
+  qaWater: (
+    <I>
+      <path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z" />
+      <path d="M9 14a3 3 0 0 0 3 3" />
+    </I>
+  ),
+  qaCoord: (
+    <I>
+      <path d="M4 4h7v7H4zM13 13h7v7h-7z" />
+      <path d="M11 7.5h4.5V13M13 16.5H8.5V11" />
+    </I>
+  ),
+  qaReport: (
+    <I>
+      <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" />
+    </I>
+  ),
   filter: (
     <I>
       <path d="M3 4h18l-7 8.5V19l-4 2v-8.5z" fill="currentColor" fillOpacity="0.2" />

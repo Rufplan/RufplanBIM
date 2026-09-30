@@ -603,7 +603,11 @@ function Overview({ d, info }: { d: Draft; info: ProjectInfoState }) {
             value={stage ? stage.abbreviation || stage.name : "—"}
             note={stage?.name}
           />
-          <Stat label="Rufplan" value={info.rufplan ?? "Not linked"} note="Rufplan tab › Link" />
+          <Stat
+            label="Rufplan"
+            value={info.rufplan ?? "Not linked"}
+            note="Collaborate › Link Project"
+          />
         </div>
       </Card>
     </>

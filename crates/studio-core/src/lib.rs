@@ -12,6 +12,7 @@ pub mod edit;
 pub mod element;
 pub mod generate;
 pub mod grass;
+pub mod groups;
 pub mod hosting;
 pub mod inplace;
 pub mod keynotes;

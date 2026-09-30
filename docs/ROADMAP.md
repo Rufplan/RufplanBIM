@@ -85,6 +85,10 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- QA/QC tab: milestone review (coordination, completeness, code/accessibility, waterproofing,
+  drawings to specs, constructability, consultants), findings list, PDF report, Claude overall review (ADR-088).
+- Model and detail groups as in Revit: create, place, edit group (propagates), ungroup; Rufplan
+  tools moved into Collaborate (ADR-087).
 - Specifications tab: project manual from the model (136-section MasterFormat library, CSI
   three-part), six section styles, PDF and Word export, in-place editor, coordination checks,
   Edit Specs with Claude (ADR-085).

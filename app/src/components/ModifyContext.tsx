@@ -8,6 +8,7 @@ import { activeViewInfo, LINE_STYLES, useAppStore } from "../store";
 import { openPicker, runAction } from "../actions";
 import { editBoundary } from "../sketch";
 import { editInPlace } from "../inplace";
+import { GroupPanels } from "./Groups";
 import { Icons } from "./Icons";
 
 // Revit's contextual Modify tab (ADR-055): selecting elements turns the Modify tab into
@@ -55,6 +56,7 @@ const PLURAL: Partial<Record<Category, string>> = {
   Casework: "Casework",
   SpecialtyEquipment: "Specialty Equipment",
   PlumbingFixture: "Plumbing Fixtures",
+  Group: "Groups",
 };
 
 /** A category's name in the Filter dialog: Revit's plural, else its words spaced out. */
@@ -270,6 +272,7 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
   const inPlaceIds = inPlace.key === key ? inPlace.ids : [];
   return (
     <>
+      <GroupPanels />
       {only("TextNote") && (
         <Group title="Leader">
           <Btn

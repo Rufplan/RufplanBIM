@@ -25,7 +25,7 @@ beforeEach(() => {
 async function openRufplanTab() {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "New Project" }));
-  await userEvent.click(await screen.findByRole("tab", { name: "Rufplan" }));
+  await userEvent.click(await screen.findByRole("tab", { name: "Collaborate" }));
 }
 
 describe("Rufplan integration", () => {

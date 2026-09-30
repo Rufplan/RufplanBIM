@@ -6,6 +6,7 @@ import type { FillPattern } from "../bindings/FillPattern";
 import type { Category } from "../bindings/Category";
 import type { ProjectDetails } from "../bindings/ProjectDetails";
 import type { ProjectInfoState } from "../bindings/ProjectInfoState";
+import type { QaReport } from "../bindings/QaReport";
 import type { SpecEdit } from "../bindings/SpecEdit";
 import type { SpecEditPlan } from "../bindings/SpecEditPlan";
 import type { SpecSection } from "../bindings/SpecSection";
@@ -101,6 +102,47 @@ export interface FakeBackend {
   specs: SpecState;
   /** What spec_edit_preview answers. */
   specPlan: SpecEditPlan | null;
+  /** What qa_review answers (ADR-088). */
+  qaReport: QaReport;
+}
+
+/** A review with a critical code finding and a minor completeness one. */
+export function fakeQaReport(): QaReport {
+  const f = (
+    id: string,
+    category: QaReport["findings"][number]["category"],
+    severity: QaReport["findings"][number]["severity"],
+    title: string,
+    elements: string[],
+  ): QaReport["findings"][number] => ({
+    id,
+    rule: id,
+    category,
+    severity,
+    title,
+    detail: `${title} detail.`,
+    fix: "Fix it.",
+    reference: category === "Code" ? "IRC R310.1" : "",
+    elements,
+    view: null,
+    source: "rules",
+  });
+  return {
+    milestone: "Cd90",
+    milestoneLabel: "90% Construction Documents",
+    project: "Oak House (2601)",
+    codeBasis: "International Residential Code (IRC)",
+    findings: [
+      f("egress", "Code", "Critical", "Bedroom has no emergency escape opening", ["room-1"]),
+      f("tags", "Completeness", "Minor", "2 doors aren't tagged in any plan", []),
+    ],
+    counts: [],
+    score: 84,
+    summary: "1 critical, 1 minor issues. Not ready to issue: resolve the critical items first.",
+    overview: null,
+    checked: [],
+    disclaimer: "Automated preliminary review.",
+  };
 }
 
 const para = (level: number, text: string) => ({ level, text });
@@ -427,6 +469,9 @@ export function appState(path: string | null, dirty = false): AppState {
     activeWorkset: FAKE_WORKSETS[0]!.id,
     structuralLayer: null,
     mepLayers: [],
+    groups: [],
+    groupTypes: [],
+    editingGroup: null,
   };
 }
 
@@ -760,6 +805,7 @@ export function installFakeBackend(): FakeBackend {
     projectInfo: fakeProjectInfo(),
     specs: fakeSpecs(),
     specPlan: null,
+    qaReport: fakeQaReport(),
     underCursor: [],
     keynotes: FAKE_KEYNOTES.map((k) => ({ ...k })),
     keynoteNumbering: "ByKeynote",
@@ -935,6 +981,43 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "redo":
           if (fake.state) fake.state = { ...fake.state, undo: fake.state.redo, redo: null };
+          return fake.state;
+        case "qa_review":
+          return structuredClone(fake.qaReport);
+        case "qa_claude":
+          return { ...(a.report as QaReport), overview: "The set is close; fix egress first." };
+        case "group_create": {
+          const ids = a.ids as string[];
+          const g = {
+            id: "group-1",
+            typeId: "gtype-1",
+            name: (a.name as string) || "Group 1",
+            kind: "Model" as const,
+            members: ids,
+            origin: { x: 0, y: 0 },
+            level: null,
+            view: null,
+          };
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              revision: fake.state.revision + 1,
+              groups: [g],
+              groupTypes: [{ id: "gtype-1", name: g.name, kind: "Model", instances: 1 }],
+            };
+          return [["group-1"], fake.state];
+        }
+        case "group_edit":
+          if (fake.state) fake.state = { ...fake.state, editingGroup: a.id as string };
+          return fake.state;
+        case "group_finish":
+        case "group_cancel":
+          if (fake.state)
+            fake.state = { ...fake.state, editingGroup: null, revision: fake.state.revision + 1 };
+          return fake.state;
+        case "group_ungroup":
+          if (fake.state)
+            fake.state = { ...fake.state, groups: [], revision: fake.state.revision + 1 };
           return fake.state;
         case "spec_state":
           return structuredClone(fake.specs);

@@ -119,6 +119,11 @@ pub struct AppState {
     pub sketch: Option<crate::sketching::SketchInfo>,
     /// The in-place element being modelled (ADR-068), if the In-Place Editor is open.
     pub in_place: Option<crate::inplace_cmds::InPlaceInfo>,
+    /// Model and detail groups (ADR-087): the instances, the types, and the group being
+    /// edited (Edit Group), if any.
+    pub groups: Vec<studio_core::groups::GroupInfo>,
+    pub group_types: Vec<studio_core::groups::GroupTypeInfo>,
+    pub editing_group: Option<ElementId>,
     /// The site's lot, once found (ADR-023).
     pub site: Option<SiteSummary>,
     /// Worksets (ADR-079), in the Worksets dialog's order, and the active one.
@@ -152,6 +157,8 @@ pub struct Session {
     sketch: Option<crate::sketching::SketchSession>,
     /// The In-Place Editor (ADR-068): the element and the undo mark it opened at.
     pub in_place: Option<crate::inplace_cmds::InPlaceEdit>,
+    /// Edit Group (ADR-087): the group being edited and its undo mark.
+    pub group_edit: Option<crate::group_cmds::GroupEdit>,
 }
 
 impl Session {
@@ -404,6 +411,13 @@ impl Session {
                 .in_place
                 .as_ref()
                 .and_then(|e| crate::inplace_cmds::info(doc, e)),
+            groups: studio_core::groups::groups(doc),
+            group_types: studio_core::groups::types(doc),
+            editing_group: self
+                .group_edit
+                .as_ref()
+                .map(|e| e.id)
+                .filter(|id| doc.get(*id).is_some()),
             site: doc.of(Category::Site).next().and_then(|e| match &e.data {
                 ElementData::Site {
                     address,
@@ -447,6 +461,7 @@ impl Session {
         self.project = Some(Project::new(app_version, doc));
         self.sketch = None;
         self.in_place = None;
+        self.group_edit = None;
         self.path = None;
         self.revision += 1;
         Ok(())
@@ -494,6 +509,7 @@ impl Session {
         self.project = Some(Project::new(app_version, doc));
         self.sketch = None;
         self.in_place = None;
+        self.group_edit = None;
         self.path = None;
         self.revision += 1;
         Ok(report)
@@ -615,6 +631,7 @@ impl Session {
         self.project = Some(project);
         self.sketch = None;
         self.in_place = None;
+        self.group_edit = None;
         self.path = Some(path.to_owned());
         self.revision += 1;
         Ok(())

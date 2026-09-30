@@ -161,6 +161,9 @@ export function OptionsBar() {
     );
   } else if (tool === "component") {
     body = <ComponentOptions />;
+  } else if (tool === "placeGroup") {
+    // Place Group (ADR-087): which group.
+    body = <GroupTypeOption />;
   } else if (tool === "sketch") {
     const m = ui.mode;
     const radius = (
@@ -458,5 +461,28 @@ export function OptionsBar() {
       <span className="ob-tool">{TOOL_LABELS[tool]}</span>
       {body}
     </div>
+  );
+}
+
+/** Place Group's type, as Revit's Type Selector. */
+function GroupTypeOption() {
+  const types = useAppStore((s) => s.app?.groupTypes ?? []);
+  const current = useAppStore((s) => s.toolTypes.group);
+  const setType = useAppStore((s) => s.setToolType);
+  return (
+    <label className="ob-field">
+      Group
+      <select
+        aria-label="Group to place"
+        value={current ?? ""}
+        onChange={(e) => setType("group", e.target.value)}
+      >
+        {types.map((t) => (
+          <option key={t.id} value={t.id} disabled={t.instances === 0}>
+            {t.kind === "Detail" ? "Detail" : "Model"}: {t.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

@@ -3648,6 +3648,7 @@ dependencies = [
  "studio-geom",
  "studio-io",
  "studio-mep",
+ "studio-qa",
  "studio-regen",
  "studio-sheets",
  "studio-specs",
@@ -4385,6 +4386,19 @@ dependencies = [
  "studio-geom",
  "studio-regen",
  "toml 0.9.12+spec-1.1.0",
+ "ts-rs",
+]
+
+[[package]]
+name = "studio-qa"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "studio-core",
+ "studio-geom",
+ "studio-regen",
+ "studio-specs",
  "ts-rs",
 ]
 

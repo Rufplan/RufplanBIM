@@ -39,6 +39,7 @@ import {
 } from "../store";
 import { placePlant } from "../vegetation";
 import { editInPlace } from "../inplace";
+import { editGroup, groupOf } from "./Groups";
 import { TextEditor } from "./TextEditor";
 import { componentTypes, rotationDir } from "../components";
 import { leaderClicks, leadersFrom, textPrompt } from "../text";
@@ -1899,6 +1900,10 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       await placePlant(view.id, p);
       return;
     }
+    if (s.tool === "placeGroup") {
+      if (s.toolTypes.group) await apply(() => ipc.groupPlace(s.toolTypes.group!, p, view.id));
+      return;
+    }
     if (SELECTION_TOOLS.includes(s.tool) || POINT_TOOLS.includes(s.tool)) {
       await placePoint(p, raw);
       return;
@@ -2088,6 +2093,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     const target = asView ?? levelPlan;
     if (target && target.id !== view.id) s.openView(target.id);
     else if (!target) {
+      // Double-clicking a group edits it (Revit's Edit Group, ADR-087).
+      const group = groupOf(s.app, id);
+      if (group) {
+        await editGroup(group);
+        return;
+      }
       // Double-clicking an in-place element opens it in the In-Place Editor (ADR-068).
       const inPlace = await ipc.inPlaceOf([id]).catch(() => []);
       if (inPlace.length > 0) {

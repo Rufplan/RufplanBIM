@@ -7,6 +7,7 @@ export type Action =
   | "repeat"
   | "createSimilar"
   | "selectAll"
+  | "createGroup"
   | "pin"
   | "unpin"
   | "delete"
@@ -81,6 +82,14 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   },
   { id: "array", label: "Array", group: "Modify", keys: ["AR"], command: t("array") },
   { id: "align", label: "Align", group: "Modify", keys: ["AL"], command: t("align") },
+  // Groups (ADR-087)
+  {
+    id: "createGroup",
+    label: "Create Group",
+    group: "Modify",
+    keys: ["GP"],
+    command: a("createGroup"),
+  },
   // Vegetation (ADR-064, ADR-065)
   { id: "plant", label: "Place Plant", group: "Landscape", keys: ["PL"], command: t("plant") },
   {

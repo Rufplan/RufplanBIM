@@ -72,6 +72,7 @@ Read these before writing code:
 │  ├─ studio-io/       # .rfproj persistence (SQLite), IFC export
 │  ├─ studio-structural/ # Suggest Structure: features, schemes, layout, sizing (ADR-080)
 │  ├─ studio-mep/      # MEPT suggestions: features, mechanical/electrical/plumbing/technology (ADR-082)
+│  ├─ studio-qa/       # QA/QC review: checks by category, report, PDF, Claude review (ADR-088)
 │  ├─ studio-specs/    # project manual: section library, picks, styles, PDF/Word, Edit Specs (ADR-085)
 │  └─ studio-sync/     # Supabase client, publish, (later) worksharing
 ├─ app/
@@ -154,6 +155,11 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- QA/QC (ADR-088): crate studio-qa (ctx, checks by category, report: score/PDF/Claude digest); app qa_cmds;
+  components/Qa.tsx (QA/QC tab in DOCUMENT, floating findings panel). Always labelled preliminary.
+- Groups (ADR-087): studio-core `groups` (GroupType/Group elements, create, expand, place, add/remove,
+  sync, ungroup); edit.rs `Xform::then`, transformed handles groups; app group_cmds (Edit Group mode);
+  groups.ts (select redirect, litOf members), components/Groups.tsx. Rufplan tools live in Collaborate.
 - Grouped tab bar (ADR-086): Ribbon.tsx `TAB_GROUPS` (Setup, Model, Details, Consultants, Visualize, Document,
   Team; tabs Landscape and Views, formerly Vegetation and View).
 - Specifications (ADR-085): studio-core `specs` (SpecBook element, sections/parts/articles/paragraphs,

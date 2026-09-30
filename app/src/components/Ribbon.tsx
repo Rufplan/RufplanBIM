@@ -17,6 +17,8 @@ import { toolAllowed } from "../tools";
 import { Icons } from "./Icons";
 import { SketchRibbon } from "./SketchRibbon";
 import { InPlaceRibbon } from "./InPlaceRibbon";
+import { GroupEditRibbon, groupsLabel, placeGroup } from "./Groups";
+import { QaRibbon } from "./Qa";
 import { TextRibbon } from "./TextRibbon";
 import { NewViewMenu } from "./NewViewMenu";
 import { ActiveWorkset } from "./Worksets";
@@ -381,8 +383,8 @@ type Tab =
   | "Views"
   | "Sheets"
   | "Specifications"
-  | "Collaborate"
-  | "Rufplan";
+  | "QA/QC"
+  | "Collaborate";
 
 /** The ribbon's tabs in numbered workflow groups (the grouped tab bar). */
 const TAB_GROUPS: { label: string; tabs: Tab[] }[] = [
@@ -391,8 +393,8 @@ const TAB_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: "DETAILS", tabs: ["Details"] },
   { label: "CONSULTANTS", tabs: ["Structure", "MEPT"] },
   { label: "VISUALIZE", tabs: ["Materials", "Landscape", "Rendering"] },
-  { label: "DOCUMENT", tabs: ["Annotate", "Views", "Sheets", "Specifications"] },
-  { label: "TEAM", tabs: ["Collaborate", "Rufplan"] },
+  { label: "DOCUMENT", tabs: ["Annotate", "Views", "Sheets", "Specifications", "QA/QC"] },
+  { label: "TEAM", tabs: ["Collaborate"] },
 ];
 
 export function Ribbon() {
@@ -447,12 +449,14 @@ export function Ribbon() {
       : `Lighting, ${sun.azimuth}° azimuth, ${sun.altitude}° altitude`;
   // Selecting elements turns the Modify tab into Revit's "Modify | Walls" (ADR-055).
   const selectedCats = useSelectionCategories();
-  const ctxLabel = contextLabel(selectedCats);
+  const ctxLabel = groupsLabel(app, selection) ?? contextLabel(selectedCats);
   useContextualSwitch(ctxLabel);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
   // So does the In-Place Editor (ADR-068).
   if (app?.inPlace) return <InPlaceRibbon />;
+  // So does Edit Group (ADR-087).
+  if (app?.editingGroup) return <GroupEditRibbon />;
   // Text's contextual tab (ADR-070).
   if (activeTool === "text") return <TextRibbon />;
   const sketchButton = (
@@ -502,7 +506,9 @@ export function Ribbon() {
                       className={`rb-tab${tab === t ? " active" : ""}${t === "Modify" && ctxLabel ? " contextual" : ""}`}
                       onClick={() => {
                         setTab(t);
-                        if (t === "Rufplan" && !useAppStore.getState().cloud) void refreshCloud();
+                        // Collaborate holds the Rufplan tools, which need the account.
+                        if (t === "Collaborate" && !useAppStore.getState().cloud)
+                          void refreshCloud();
                       }}
                     >
                       {t === "Modify" && ctxLabel ? ctxLabel : t}
@@ -573,6 +579,24 @@ export function Ribbon() {
                 icon={Icons.modelLine}
                 keys="LI — on the level, seen in every view"
               />
+              <button
+                className="rb-btn"
+                onClick={() => placeGroup("Model")}
+                disabled={!app?.groupTypes.some((t) => t.kind === "Model")}
+                title="Place Model Group: another instance of a model group"
+              >
+                {Icons.group}
+                <span>Model Group</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "createGroup" })}
+                disabled={selection.length === 0}
+                title="Create Group (GP): group the selected elements"
+              >
+                {Icons.group}
+                <span>Create Group</span>
+              </button>
             </Group>
             <Group title="Datum">
               <ToolButton tool="level" label="Level" icon={Icons.level} keys="LL" />
@@ -1137,6 +1161,15 @@ export function Ribbon() {
               icon={Icons.detailLine}
               keys="DL — this view only"
             />
+            <button
+              className="rb-btn"
+              onClick={() => placeGroup("Detail")}
+              disabled={!app?.groupTypes.some((t) => t.kind === "Detail")}
+              title="Place Detail Group: another instance of a detail group in this view"
+            >
+              {Icons.detailGroup}
+              <span>Detail Group</span>
+            </button>
           </Group>
         )}
         {tab === "Annotate" && (
@@ -1277,6 +1310,7 @@ export function Ribbon() {
           </>
         )}
         {tab === "Collaborate" && <CollaborateRibbon />}
+        {tab === "QA/QC" && <QaRibbon />}
         {tab === "Sheets" && (
           <>
             <Group title="Sheet Composition">
@@ -1364,7 +1398,7 @@ export function Ribbon() {
             </button>
           </Group>
         )}
-        {tab === "Rufplan" && (
+        {tab === "Collaborate" && (
           <Group title="Rufplan.io">
             <button
               className="rb-btn"

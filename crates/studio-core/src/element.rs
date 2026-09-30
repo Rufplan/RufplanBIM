@@ -86,6 +86,9 @@ pub enum Category {
     Standards,
     /// The project manual (ADR-085).
     SpecBook,
+    /// Model and detail groups (ADR-087).
+    GroupType,
+    Group,
     /// Annotation symbols (ADR-048).
     SpotElevation,
     NorthArrow,
@@ -170,6 +173,8 @@ impl Category {
             Category::Site => "Site",
             Category::Standards => "Standards",
             Category::SpecBook => "SpecBook",
+            Category::GroupType => "GroupType",
+            Category::Group => "Group",
             Category::SpotElevation => "SpotElevation",
             Category::NorthArrow => "NorthArrow",
             Category::GraphicScale => "GraphicScale",
@@ -1327,6 +1332,23 @@ pub enum ElementData {
     Standards(crate::standards::Standards),
     /// The project manual (ADR-085): one, made when it's first generated.
     SpecBook(Box<crate::specs::SpecBook>),
+    /// A group type (ADR-087): Revit's model or detail group definition.
+    GroupType {
+        name: String,
+        kind: crate::groups::GroupKind,
+    },
+    /// A placed group: its members are real elements; `origin`, `angle` and `mirrored`
+    /// place it, so edits carry to the other instances placed the same way.
+    Group {
+        type_id: ElementId,
+        origin: Pt,
+        angle: f64,
+        mirrored: bool,
+        /// A model group's level; a detail group's view.
+        level: Option<ElementId>,
+        view: Option<ElementId>,
+        members: Vec<ElementId>,
+    },
     /// A spot elevation (ADR-048): the height of the model at `at` (view coordinates), its
     /// symbol and text at `leader` (the same point: no leader). Follows the model.
     SpotElevation {
@@ -1587,6 +1609,8 @@ impl ElementData {
             ElementData::Site { .. } => Category::Site,
             ElementData::Standards(_) => Category::Standards,
             ElementData::SpecBook(_) => Category::SpecBook,
+            ElementData::GroupType { .. } => Category::GroupType,
+            ElementData::Group { .. } => Category::Group,
             ElementData::SpotElevation { .. } => Category::SpotElevation,
             ElementData::NorthArrow { .. } => Category::NorthArrow,
             ElementData::GraphicScale { .. } => Category::GraphicScale,
@@ -1769,6 +1793,8 @@ impl ElementData {
             ElementData::RoomSeparator { .. } => "Room Separator".into(),
             ElementData::Standards(_) => "Drawing Set Standards".into(),
             ElementData::SpecBook(_) => "Project Manual".into(),
+            ElementData::GroupType { name, .. } => name.clone(),
+            ElementData::Group { .. } => "Group".into(),
             ElementData::Site { address, .. } => {
                 if address.is_empty() {
                     "Site".into()
