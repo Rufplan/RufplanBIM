@@ -24,6 +24,7 @@ import type { Discipline } from "../bindings/Discipline";
 import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
 import { startComponent } from "../components";
+import { ProjectInfoRibbon } from "./ProjectInfo";
 import { StandardsRibbon } from "./Standards";
 import {
   ContextPanels,
@@ -361,6 +362,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 type Tab =
+  | "Project Info"
   | "Standards"
   | "Site"
   | "Vegetation"
@@ -380,6 +382,7 @@ type Tab =
   | "Manage"
   | "Rufplan";
 const TABS: Tab[] = [
+  "Project Info",
   "Standards",
   "Site",
   "Vegetation",
@@ -493,6 +496,7 @@ export function Ribbon() {
         ))}
       </div>
       <div className="rb-body">
+        {tab === "Project Info" && <ProjectInfoRibbon />}
         {tab === "Standards" && <StandardsRibbon />}
         {/* Modify, Move and Delete live on the Modify tab only (Esc still returns to Modify). */}
         {tab === "Modify" && (

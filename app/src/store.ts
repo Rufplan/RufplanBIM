@@ -690,7 +690,8 @@ export const useAppStore = create<UiState>((set, get) => ({
       lastTool: tool === "select" || tool === "sketch" ? get().lastTool : tool,
       selection: tool === "select" || SELECTION_TOOLS.includes(tool) ? get().selection : [],
       // A tool (from a shortcut) needs the views, which the Standards tab hides.
-      ...(tool !== "select" && get().ribbonTab === "Standards"
+      ...(tool !== "select" &&
+      (get().ribbonTab === "Standards" || get().ribbonTab === "Project Info")
         ? { ribbonTab: "Architecture" }
         : {}),
     }),

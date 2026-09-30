@@ -17,6 +17,7 @@ mod mep_cmds;
 mod model_edit_cmds;
 mod plans_cmds;
 mod planting_cmds;
+mod project_cmds;
 mod render_cmds;
 mod session;
 mod sheetset_cmds;
@@ -258,6 +259,8 @@ pub fn run() -> anyhow::Result<()> {
             lines_cmds::lines_preview,
             model_edit_cmds::model_edit_preview,
             model_edit_cmds::model_edit_apply,
+            project_cmds::project_info_get,
+            project_cmds::project_info_set,
             standards_cmds::standards_get,
             standards_cmds::standards_libraries,
             standards_cmds::standards_set,

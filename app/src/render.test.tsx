@@ -49,7 +49,7 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(1, 8)).toEqual([
+    expect(tabs.slice(2, 9)).toEqual([
       "Site",
       "Vegetation",
       "Architecture",

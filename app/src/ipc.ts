@@ -61,6 +61,8 @@ import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
 import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
+import type { ProjectDetails } from "./bindings/ProjectDetails";
+import type { ProjectInfoState } from "./bindings/ProjectInfoState";
 import type { Standards } from "./bindings/Standards";
 import type { StandardChoice } from "./bindings/StandardChoice";
 import type { LineStyle } from "./bindings/LineStyle";
@@ -577,6 +579,10 @@ export const ipc = {
     invoke<EditPlan>("model_edit_preview", { prompt, view, selection }),
   modelEditApply: (editPlan: ModelPlan, view: ElementId, selection: ElementId[]): S =>
     invoke("model_edit_apply", { editPlan, view, selection }),
+  // Project Info (ADR-084).
+  projectInfoGet: () => invoke<ProjectInfoState>("project_info_get"),
+  projectInfoSet: (name: string, number: string, details: ProjectDetails): S =>
+    invoke("project_info_set", { name, number, details }),
   // Standards (ADR-047).
   standardsGet: () => invoke<Standards>("standards_get"),
   standardsLibraries: () => invoke<string[]>("standards_libraries"),

@@ -153,6 +153,9 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Project Info tab (ADR-084): studio-core `project` (ProjectDetails on ProjectInfo `details`, get/set,
+  Budget::totals), studio-regen `Model::gross_area`; app project_cmds; components/ProjectInfo.tsx (the
+  first ribbon tab, laid out like Standards).
 - Foundations (ADR-083): studio-structural `foundation` (psf_down, spread, strip, piles, summary) and
   `layout::foundations`; `[foundation]` rules; MemberKind/OverlayKind SpreadFooting, StripFooting, Mat, PileCap,
   FoundationWall; FlagKind Foundation; IfcFooting export; dashed in the lowest plan.

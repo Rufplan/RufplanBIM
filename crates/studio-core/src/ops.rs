@@ -136,6 +136,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
             param_defs: vec![],
             sun: Default::default(),
             ground: None,
+            details: Default::default(),
         });
         Ok(())
     })?;

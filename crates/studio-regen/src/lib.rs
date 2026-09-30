@@ -363,6 +363,31 @@ impl Model {
         bounds(&pts)
     }
 
+    /// Gross floor area (mm²): on each level, the area inside the outside faces of its
+    /// walls, or its floors where it has no walls (ADR-084).
+    pub fn gross_area(&self) -> f64 {
+        let mut total = 0.0;
+        for lv in &self.levels {
+            match self.regions.get(&lv.id) {
+                Some(polys) if !polys.is_empty() => {
+                    total += polys
+                        .iter()
+                        .map(|p| studio_geom::signed_area(&p.outer).abs())
+                        .sum::<f64>();
+                }
+                _ => {
+                    total += self
+                        .floors
+                        .iter()
+                        .filter(|f| f.level == lv.id)
+                        .map(|f| f.base.area())
+                        .sum::<f64>();
+                }
+            }
+        }
+        total
+    }
+
     /// Lowest and highest z of model solids (mm).
     pub fn z_range(&self) -> (f64, f64) {
         let mut lo = self
@@ -1546,6 +1571,17 @@ mod tests {
         let info = m.rooms.iter().find(|x| x.id == r).unwrap();
         assert!(info.boundary.is_none());
         assert_eq!(info.area(), 0.0);
+    }
+
+    #[test]
+    fn gross_area_is_inside_the_outside_faces() {
+        let (mut doc, l1, wt) = project();
+        rectangle(&mut doc, l1, wt);
+        let t = 8.0 * MM_PER_IN;
+        // A 40' x 30' rectangle of 8" walls on their centerlines: 40'8" x 30'8" outside.
+        let want = (40.0 * MM_PER_FT + t) * (30.0 * MM_PER_FT + t);
+        let got = regenerate(&doc).gross_area();
+        assert!((got - want).abs() < 1000.0, "{got} vs {want}");
     }
 
     #[test]

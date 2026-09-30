@@ -1035,6 +1035,9 @@ pub enum ElementData {
         /// model without one. None: plain lawn.
         #[serde(default)]
         ground: Option<ElementId>,
+        /// Everything else about the job (ADR-084): client, team, budget, codes…
+        #[serde(default)]
+        details: Box<crate::project::ProjectDetails>,
     },
     DoorType {
         name: String,

@@ -4,6 +4,8 @@ import type { DetailLevel } from "../bindings/DetailLevel";
 import type { FormKind } from "../bindings/FormKind";
 import type { FillPattern } from "../bindings/FillPattern";
 import type { Category } from "../bindings/Category";
+import type { ProjectDetails } from "../bindings/ProjectDetails";
+import type { ProjectInfoState } from "../bindings/ProjectInfoState";
 import type { Standards } from "../bindings/Standards";
 
 /** A small Asset Library: a maple in two seasons and a boxwood. */
@@ -88,6 +90,103 @@ export interface FakeBackend {
   keynoteAssigned: Record<string, string>;
   /** The project's drawing-set standards (ADR-047). */
   standards: Standards;
+  /** The Project Info tab (ADR-084). */
+  projectInfo: ProjectInfoState;
+}
+
+const contact = () => ({
+  company: "",
+  name: "",
+  title: "",
+  email: "",
+  phone: "",
+  address: "",
+  website: "",
+});
+
+/** A new project's information: two disciplines, two budget lines, one milestone. */
+export function fakeProjectInfo(): ProjectInfoState {
+  return {
+    identity: { name: "New Project", number: "0001", client: "", address: "" },
+    details: {
+      overview: {
+        status: "Active",
+        project_type: "",
+        work_type: "",
+        delivery: "",
+        description: "",
+        target_area_sf: 0,
+      },
+      location: {
+        street: "",
+        city: "",
+        state: "",
+        zip: "",
+        county: "",
+        country: "United States",
+        apn: "",
+        legal: "",
+        jurisdiction: "",
+      },
+      client: contact(),
+      owner_rep: contact(),
+      team: ["Architect", "Structural Engineer"].map((discipline) => ({
+        discipline,
+        contact: contact(),
+        scope: "",
+        fee: 0,
+        notes: "",
+      })),
+      budget: {
+        currency: "USD",
+        lines: [
+          { name: "Building construction", hard: true, amount: 0, notes: "" },
+          { name: "Design & engineering fees", hard: false, amount: 0, notes: "" },
+        ],
+        contingency_pct: 10,
+        escalation_pct: 0,
+        target_cost_sf: 0,
+      },
+      milestones: [{ name: "Permit submission", date: "", done: false }],
+      codes: {
+        building_code: "",
+        energy_code: "",
+        occupancy: "",
+        construction_type: "",
+        sprinklered: "",
+        zoning_district: "",
+        lot_area: "",
+        far: "",
+        max_height: "",
+        setbacks: "",
+        lot_coverage: "",
+        parking: "",
+        notes: "",
+      },
+      notes: "",
+    },
+    grossSf: 2000,
+    roomSf: 1700,
+    totals: {
+      hard: 0,
+      soft: 0,
+      escalation: 0,
+      contingency: 0,
+      total: 0,
+      hard_per_sf: 0,
+      target_hard: 0,
+    },
+    levels: 2,
+    rooms: 6,
+    stages: [
+      { name: "Schematic Design", abbreviation: "SD", start: "", target: "", current: true },
+      { name: "Construction Documents", abbreviation: "CD", start: "", target: "", current: false },
+    ],
+    site: null,
+    rufplan: null,
+    disciplines: ["Architect", "Structural Engineer", "Civil Engineer", "Lighting Designer"],
+    milestoneNames: ["Permit submission", "Bid date"],
+  };
 }
 
 /** Two categories of the default standards, one item open in each. */
@@ -550,6 +649,7 @@ export function installFakeBackend(): FakeBackend {
     generated: null,
     plans: null,
     standards: fakeStandards(),
+    projectInfo: fakeProjectInfo(),
     underCursor: [],
     keynotes: FAKE_KEYNOTES.map((k) => ({ ...k })),
     keynoteNumbering: "ByKeynote",
@@ -726,6 +826,38 @@ export function installFakeBackend(): FakeBackend {
         case "redo":
           if (fake.state) fake.state = { ...fake.state, undo: fake.state.redo, redo: null };
           return fake.state;
+        case "project_info_get":
+          return structuredClone(fake.projectInfo);
+        case "project_info_set": {
+          const d = structuredClone(a.details as ProjectDetails);
+          const b = d.budget;
+          const hard = b.lines.filter((l) => l.hard).reduce((s, l) => s + l.amount, 0);
+          const soft = b.lines.filter((l) => !l.hard).reduce((s, l) => s + l.amount, 0);
+          const escalation = (hard * b.escalation_pct) / 100;
+          const contingency = ((hard + soft + escalation) * b.contingency_pct) / 100;
+          const gross = fake.projectInfo.grossSf;
+          fake.projectInfo = {
+            ...fake.projectInfo,
+            identity: {
+              name: a.name as string,
+              number: a.number as string,
+              client: d.client.company || d.client.name,
+              address: d.location.street,
+            },
+            details: d,
+            totals: {
+              hard,
+              soft,
+              escalation,
+              contingency,
+              total: hard + soft + escalation + contingency,
+              hard_per_sf: (hard + escalation) / gross,
+              target_hard: b.target_cost_sf * gross,
+            },
+          };
+          if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+          return fake.state;
+        }
         case "standards_get":
           return fake.standards;
         case "standards_choices":

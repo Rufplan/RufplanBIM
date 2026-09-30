@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Project Info tab: overview, location, client and owner's rep, consultants, budget with
+  hard/soft lines and cost per sf, milestones, codes and zoning, notes (ADR-084).
 - Suggest Structure foundations: spread/strip footings, pile caps, mat and basement walls
   from assumed soil bearing and frost depth, dashed in the lowest plan, IFC footings (ADR-083).
 - MEPT tab: Mechanical, Electrical, Plumbing and Technology suggestions (ranked systems, key

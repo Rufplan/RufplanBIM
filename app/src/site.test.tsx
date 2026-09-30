@@ -37,7 +37,7 @@ describe("Site tab (ADR-023)", () => {
     const tabs = within(screen.getByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs.slice(0, 2)).toEqual(["Standards", "Site"]);
+    expect(tabs.slice(0, 3)).toEqual(["Project Info", "Standards", "Site"]);
     await userEvent.click(screen.getByRole("tab", { name: "Site" }));
     for (const name of ["Find Lot", "Site Plan", "Get Topo", "API Keys"])
       expect(screen.getByRole("button", { name })).toBeTruthy();

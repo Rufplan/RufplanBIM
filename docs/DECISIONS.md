@@ -3057,3 +3057,46 @@ coursing along a line".
   IfcWall for foundation walls.
 - Still labelled Preliminary — not engineered. The soil values are assumptions until a
   geotechnical report gives the real ones.
+
+## ADR-084 Project Info tab — Accepted (2026-09-29)
+- **The owner's ask:** a tab at the beginning of all the tabs, called Project Info, holding
+  everything about the job: all consultants, the client, the project location, the budget,
+  and anything else relevant.
+- **Data:** studio-core `project` adds `ProjectDetails`, kept on the existing ProjectInfo
+  element as `details` (`#[serde(default)]`).
+  - It holds:
+    - Overview: status, project type, work type, delivery method, description, target
+      gross area.
+    - Location: street, city, state, ZIP, county, country, APN, legal description,
+      jurisdiction.
+    - Client, and the owner's representative.
+    - The team: discipline, contact, scope, fee and notes for each. New projects list 11
+      standard disciplines, and 18 more can be added.
+    - Budget: hard and soft lines, contingency %, escalation %, a target cost per sf, and
+      the currency.
+    - Milestones, codes and zoning, and notes.
+  - This is an additive file-format change; older files open with the defaults. The old
+    client and address strings are moved into the details on read.
+  - `project::set` saves the name, number and details as one undoable transaction. It keeps
+    the title block's client (company, or name) and address (on one line) in step, and
+    refuses a blank name, negative amounts, and percentages outside 0–100.
+  - `Budget::totals` sums hard, soft, escalation (of hard) and contingency (of all three).
+    It also gives the hard cost per gross sf and the target (target $/sf × gross sf).
+- **From the model:** studio-regen `Model::gross_area` is the area inside the outside faces
+  of the walls on each level, or the floors where a level has no walls. `project_info_get`
+  also reports:
+  - room area and counts of levels and rooms;
+  - the design stages;
+  - the Site tab's lot (address, coordinates, APN, acres), with a Use Site Address button;
+  - the Rufplan link.
+- **UI:** `components/ProjectInfo.tsx` is laid out like the Standards tab (ADR-047) and
+  replaces the browser, views and properties.
+  - The ribbon and the browser have one button per section. The browser shows how much of
+    each section is filled in.
+  - Each section is a form of cards. Presets are offered through datalists: IBC occupancy
+    groups and construction types, code editions, delivery methods and so on.
+  - Consultants expand into rows. The budget has a stacked breakdown bar and a variance
+    against the target.
+  - The Properties pane shows a Project Summary.
+  - Copy Directory puts the client and consultants on the clipboard for an email.
+  - Edits save 600 ms after typing stops.

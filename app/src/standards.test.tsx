@@ -29,13 +29,13 @@ async function openStandards() {
 }
 
 describe("Standards tab (ADR-047)", () => {
-  it("comes first and replaces the browser, views and properties", async () => {
+  it("comes after Project Info and replaces the browser, views and properties", async () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "New Project" }));
     const tabs = within(await screen.findByRole("tablist", { name: "Ribbon tabs" }))
       .getAllByRole("tab")
       .map((t) => t.textContent);
-    expect(tabs[0]).toBe("Standards");
+    expect(tabs.slice(0, 2)).toEqual(["Project Info", "Standards"]);
     await userEvent.click(screen.getByRole("tab", { name: "Standards" }));
     expect(await screen.findByRole("complementary", { name: "Standards Browser" })).toBeVisible();
     expect(screen.queryByRole("complementary", { name: "Project browser" })).toBeNull();
