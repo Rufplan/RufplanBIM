@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { create } from "zustand";
 import type { QaCategory } from "../bindings/QaCategory";
 import type { QaFinding } from "../bindings/QaFinding";
+import type { QaFix } from "../bindings/QaFix";
+import type { QaFixPlan } from "../bindings/QaFixPlan";
 import type { QaMilestone } from "../bindings/QaMilestone";
 import type { QaReport } from "../bindings/QaReport";
 import type { QaSeverity } from "../bindings/QaSeverity";
@@ -49,6 +51,13 @@ interface QaUi {
   severity: QaSeverity | null;
   query: string;
   hideResolved: boolean;
+  /** Fix Issues (ADR-089): apply everything, or approve each change. */
+  fixMode: "auto" | "approve";
+  plan: QaFixPlan | null;
+  fixOpen: boolean;
+  fixing: boolean;
+  /** The last run: how many applied, and the score before and after. */
+  fixResult: { applied: number; errors: string[]; before: number; after: number } | null;
 }
 
 export const useQa = create<QaUi>(() => ({
@@ -63,6 +72,11 @@ export const useQa = create<QaUi>(() => ({
   severity: null,
   query: "",
   hideResolved: false,
+  fixMode: "approve",
+  plan: null,
+  fixOpen: false,
+  fixing: false,
+  fixResult: null,
 }));
 
 export async function runReview() {
@@ -71,6 +85,9 @@ export async function runReview() {
   try {
     const report = await ipc.qaReview({ milestone: s.milestone, categories: s.categories });
     useQa.setState({ report, open: true, category: null, severity: null });
+    // Which findings can be fixed.
+    const plan = await ipc.qaFixPlan(report).catch(() => null);
+    useQa.setState({ plan });
   } catch (e) {
     useAppStore.getState().setError(errorMessage(e));
   } finally {
@@ -135,7 +152,7 @@ function Stroke({ d }: { d: string }) {
 }
 
 export function QaRibbon() {
-  const { milestone, categories, running, claude, report } = useQa();
+  const { milestone, categories, running, claude, report, fixing, fixMode } = useQa();
   const toggle = (c: QaCategory) =>
     useQa.setState({
       categories: categories.includes(c) ? categories.filter((x) => x !== c) : [...categories, c],
@@ -228,6 +245,40 @@ export function QaRibbon() {
         </div>
         <div className="rb-title">RESULTS</div>
       </div>
+      <div className="rb-group">
+        <div className="rb-items">
+          <button
+            className="rb-btn qa-fix-btn"
+            disabled={!report || fixing}
+            title="Fix Issues: repair what the model can fix on its own"
+            onClick={() => void openFix()}
+          >
+            <Stroke d="M14.5 6.5a4 4 0 0 0-5.3 5.3L4 17l3 3 5.2-5.2a4 4 0 0 0 5.3-5.3l-2.4 2.4-2.6-.6-.6-2.6z" />
+            <span>{fixing ? "Fixing…" : "Fix Issues"}</span>
+          </button>
+          <div className="qa-mode" role="radiogroup" aria-label="Fix mode">
+            {(
+              [
+                ["auto", "Auto", "Apply every fix at once (one undo step)"],
+                ["approve", "Approve each", "Approve every change, one at a time"],
+              ] as const
+            ).map(([m, l, t]) => (
+              <button
+                key={m}
+                role="radio"
+                aria-checked={fixMode === m}
+                title={t}
+                className={fixMode === m ? "on" : undefined}
+                onClick={() => useQa.setState({ fixMode: m })}
+              >
+                <span className="qa-dot" aria-hidden />
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rb-title">FIX</div>
+      </div>
     </>
   );
 }
@@ -267,7 +318,7 @@ function ScoreRing({ score }: { score: number }) {
 
 /** The pop-up list of everything the review found. */
 export function QaPanel() {
-  const { report, open, resolved, category, severity, query, hideResolved, claude } = useQa();
+  const { report, open, resolved, category, severity, query, hideResolved, claude, plan } = useQa();
   const [expanded, setExpanded] = useState<string | null>(null);
   const list = useMemo(() => {
     if (!report) return [];
@@ -420,6 +471,18 @@ export function QaPanel() {
                 </div>
               )}
               <div className="qa-actions">
+                {plan?.fixes.some((x) => x.finding === f.id) && (
+                  <button
+                    className="qa-fix-one"
+                    title={plan.fixes
+                      .filter((x) => x.finding === f.id)
+                      .map((x) => x.change)
+                      .join("; ")}
+                    onClick={() => void applyFixes(plan.fixes.filter((x) => x.finding === f.id))}
+                  >
+                    Fix
+                  </button>
+                )}
                 <button disabled={!f.elements.length && !f.view} onClick={() => show(f)}>
                   Show
                 </button>
@@ -436,5 +499,262 @@ export function QaPanel() {
         </button>
       </div>
     </aside>
+  );
+}
+
+// ---- Fix Issues (ADR-089) ----
+
+async function openFix() {
+  const { report } = useQa.getState();
+  if (!report) return;
+  useQa.setState({ fixing: true, fixResult: null });
+  try {
+    const plan = await ipc.qaFixPlan(report);
+    useQa.setState({ plan, fixOpen: true });
+  } catch (e) {
+    useAppStore.getState().setError(errorMessage(e));
+  } finally {
+    useQa.setState({ fixing: false });
+  }
+}
+
+/** Applies fixes as one undo step, then reviews again. */
+export async function applyFixes(fixes: QaFix[], label?: string) {
+  if (fixes.length === 0) return 0;
+  const before = useQa.getState().report?.score ?? 0;
+  useQa.setState({ fixing: true });
+  try {
+    const name =
+      label ??
+      (fixes.length === 1 ? `QA/QC Fix: ${fixes[0]!.title}` : `QA/QC: Fix ${fixes.length} issues`);
+    const [applied, errors, state] = await ipc.qaFixApply(
+      fixes.map((f) => f.action),
+      name,
+    );
+    if (state) useAppStore.getState().setApp(state);
+    await runReview();
+    const after = useQa.getState().report?.score ?? before;
+    useQa.setState({ fixResult: { applied, errors, before, after } });
+    return applied;
+  } catch (e) {
+    useAppStore.getState().setError(errorMessage(e));
+    return 0;
+  } finally {
+    useQa.setState({ fixing: false });
+  }
+}
+
+function FixRow({ f, checked, onToggle }: { f: QaFix; checked?: boolean; onToggle?: () => void }) {
+  return (
+    <label className={`qa-fix-row${f.designChange ? " design" : ""}`}>
+      {onToggle && <input type="checkbox" checked={checked} onChange={onToggle} />}
+      <span className="qa-fix-text">
+        <b>{f.title}</b>
+        <em>{f.change}</em>
+      </span>
+      {f.designChange && <span className="qa-design">DESIGN CHANGE</span>}
+    </label>
+  );
+}
+
+/** Fix Issues: every fix at once (Auto), or each change approved in turn. */
+export function QaFixDialog() {
+  const { plan, fixOpen, fixMode, fixing, fixResult, report } = useQa();
+  const [off, setOff] = useState<number[]>([]);
+  const [step, setStep] = useState(0);
+  const [done, setDone] = useState<{ applied: number; skipped: number }>({
+    applied: 0,
+    skipped: 0,
+  });
+  if (!fixOpen || !plan) return null;
+  const close = () => {
+    useQa.setState({ fixOpen: false });
+    setStep(0);
+    setOff([]);
+    setDone({ applied: 0, skipped: 0 });
+  };
+  const fixes = plan.fixes;
+  const titleOf = (id: string) => report?.findings.find((x) => x.id === id)?.title ?? id;
+  const design = fixes.filter((f) => f.designChange).length;
+  const current = fixes[step];
+  const finished = fixMode === "approve" ? step >= fixes.length : !!fixResult;
+  const again = async () => {
+    const r = useQa.getState().report;
+    if (!r) return;
+    const next = await ipc.qaFixPlan(r);
+    useQa.setState({ plan: next, fixResult: null });
+    setStep(0);
+    setOff([]);
+    setDone({ applied: 0, skipped: 0 });
+  };
+  return (
+    <div
+      className="edit-model-backdrop"
+      role="presentation"
+      onMouseDown={(e) => e.target === e.currentTarget && close()}
+    >
+      <div className="edit-model qa-fixer" role="dialog" aria-modal aria-label="Fix Issues">
+        <div className="em-head">
+          <div className="em-title">
+            <span className="em-name">FIX ISSUES</span>
+            <span className="em-sub">
+              {fixMode === "auto" ? "Auto: every fix at once" : "Approve each change"}
+            </span>
+          </div>
+          <button className="em-close" aria-label="Close" onClick={close}>
+            ×
+          </button>
+        </div>
+        <div className="qa-fix-sum">
+          <strong>{fixes.length}</strong> fixable
+          {design > 0 && (
+            <>
+              {" "}
+              · <strong>{design}</strong> change the design
+            </>
+          )}{" "}
+          · <strong>{plan.manual.length}</strong> need you
+        </div>
+        {fixes.length === 0 && !finished && (
+          <div className="qa-empty">Nothing the model can fix on its own.</div>
+        )}
+        {fixMode === "auto" && !finished && fixes.length > 0 && (
+          <div className="qa-fix-list">
+            {fixes.map((f, i) => (
+              <FixRow
+                key={i}
+                f={f}
+                checked={!off.includes(i)}
+                onToggle={() => setOff(off.includes(i) ? off.filter((x) => x !== i) : [...off, i])}
+              />
+            ))}
+          </div>
+        )}
+        {fixMode === "approve" && !finished && current && (
+          <div className="qa-step">
+            <div className="qa-step-count">
+              CHANGE {step + 1} OF {fixes.length}
+              <div className="std-bar">
+                <div style={{ width: `${(step / fixes.length) * 100}%` }} />
+              </div>
+            </div>
+            <div className="qa-step-finding">For: {titleOf(current.finding)}</div>
+            <FixRow f={current} />
+          </div>
+        )}
+        {finished && (
+          <div className="qa-fix-done">
+            <strong>
+              {fixResult ? fixResult.applied : done.applied} fixed
+              {done.skipped ? ` · ${done.skipped} skipped` : ""}
+            </strong>
+            {fixResult && (
+              <span>
+                Score {fixResult.before} → {fixResult.after}. Undo (Ctrl+Z) takes{" "}
+                {fixMode === "auto" ? "it all" : "each"} back.
+              </span>
+            )}
+            {fixResult?.errors.map((e, i) => (
+              <span key={i} className="group-error">
+                {e}
+              </span>
+            ))}
+          </div>
+        )}
+        {plan.manual.length > 0 && (
+          <details className="qa-manual">
+            <summary>Needs you ({plan.manual.length})</summary>
+            {plan.manual.map(([id, why]) => (
+              <div key={id}>
+                <b>{titleOf(id)}</b> — {why}
+              </div>
+            ))}
+          </details>
+        )}
+        <div className="em-foot">
+          <span className="em-hint">
+            {fixMode === "auto"
+              ? "One undo step for everything."
+              : "Each approved change is its own undo step."}
+          </span>
+          {finished ? (
+            <div className="em-actions">
+              <button className="em-cancel" onClick={() => void again()}>
+                LOOK AGAIN
+              </button>
+              <button className="em-apply" onClick={close}>
+                DONE
+              </button>
+            </div>
+          ) : fixMode === "auto" ? (
+            <button
+              className="em-apply"
+              disabled={fixing || fixes.length - off.length === 0}
+              onClick={() => void applyFixes(fixes.filter((_, i) => !off.includes(i)))}
+            >
+              {fixing ? "FIXING…" : `APPLY ${fixes.length - off.length} FIXES`}
+            </button>
+          ) : (
+            current && (
+              <div className="em-actions">
+                <button className="em-cancel" onClick={() => setStep(fixes.length)}>
+                  STOP
+                </button>
+                <button
+                  className="em-cancel"
+                  onClick={() => {
+                    setDone({ ...done, skipped: done.skipped + 1 });
+                    setStep(step + 1);
+                  }}
+                >
+                  SKIP
+                </button>
+                <button
+                  className="em-cancel"
+                  disabled={fixing}
+                  onClick={async () => {
+                    const rest = fixes.slice(step);
+                    const n = await applyFixes(rest, `QA/QC: Fix ${rest.length} issues`);
+                    setDone({ ...done, applied: done.applied + n });
+                    setStep(fixes.length);
+                  }}
+                >
+                  APPLY ALL REMAINING
+                </button>
+                <button
+                  className="em-apply"
+                  disabled={fixing}
+                  onClick={async () => {
+                    // Applied on its own; the plan's other fixes stay as planned.
+                    const [applied, , state] = await ipc.qaFixApply(
+                      [current.action],
+                      `QA/QC Fix: ${current.title}`,
+                    );
+                    if (state) useAppStore.getState().setApp(state);
+                    setDone({ ...done, applied: done.applied + applied });
+                    const next = step + 1;
+                    setStep(next);
+                    if (next >= fixes.length) {
+                      const before = useQa.getState().report?.score ?? 0;
+                      await runReview();
+                      useQa.setState({
+                        fixResult: {
+                          applied: done.applied + applied,
+                          errors: [],
+                          before,
+                          after: useQa.getState().report?.score ?? before,
+                        },
+                      });
+                    }
+                  }}
+                >
+                  APPLY
+                </button>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

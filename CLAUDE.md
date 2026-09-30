@@ -155,6 +155,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Fix Issues (ADR-089): studio-qa `fix` (plan: Action per finding with design_change; apply: one undo step); app
+  qa_fix_plan/qa_fix_apply; Qa.tsx QaFixDialog (Auto / Approve each) and per-finding Fix.
 - QA/QC (ADR-088): crate studio-qa (ctx, checks by category, report: score/PDF/Claude digest); app qa_cmds;
   components/Qa.tsx (QA/QC tab in DOCUMENT, floating findings panel). Always labelled preliminary.
 - Groups (ADR-087): studio-core `groups` (GroupType/Group elements, create, expand, place, add/remove,

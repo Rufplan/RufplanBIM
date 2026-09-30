@@ -286,3 +286,43 @@ fn scores_and_summaries() {
     assert!(summary(&fs).starts_with("1 critical, 1 major, 1 minor issues. Not ready"));
     assert_eq!(summary(&[]), "No issues found by the automated checks.");
 }
+
+#[test]
+fn fixes_clear_what_they_can_in_one_undo_step() {
+    let (mut doc, _, _) = house();
+    let doors: Vec<ElementId> = doc.of(Cat::Door).map(|e| e.id).collect();
+    for d in &doors {
+        ops::set_property(&mut doc, *d, "mark", "101", 0).unwrap();
+    }
+    let before = run(&doc, Milestone::Cd90);
+    for rule in ["egress-none", "dup-door-mark", "wrb"] {
+        assert!(has(&before, rule), "{rule} before");
+    }
+    let model = studio_regen::regenerate(&doc);
+    let plan = crate::fix::plan(&doc, &model, &before);
+    // A window is added in the bedroom's exterior wall; that's a design change.
+    let egress = plan
+        .fixes
+        .iter()
+        .find(|f| matches!(f.action, crate::fix::Action::AddWindow { .. }))
+        .expect("egress fix");
+    assert!(egress.design_change);
+    let depth = doc.undo_depth();
+    let actions: Vec<_> = plan.fixes.iter().map(|f| f.action.clone()).collect();
+    let (n, errors) = crate::fix::apply(&mut doc, &model, &actions, "QA/QC: Fix issues");
+    assert!(errors.is_empty(), "{errors:?}");
+    assert_eq!(n, actions.len());
+    assert_eq!(doc.undo_depth(), depth + 1, "one undo step");
+    let after = run(&doc, Milestone::Cd90);
+    for rule in ["egress-none", "dup-door-mark", "wrb"] {
+        assert!(
+            !has(&after, rule),
+            "{rule} after: {:?}",
+            after.findings.iter().map(|f| &f.title).collect::<Vec<_>>()
+        );
+    }
+    assert!(after.score > before.score);
+    // Undo puts it all back.
+    doc.undo().unwrap();
+    assert!(has(&run(&doc, Milestone::Cd90), "egress-none"));
+}

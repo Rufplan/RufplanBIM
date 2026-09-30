@@ -97,9 +97,7 @@ pub fn run_checks(c: &Ctx) -> Vec<Finding> {
     f.out
 }
 
-fn duplicates(
-    items: impl Iterator<Item = (String, ElementId)>,
-) -> Vec<(String, Vec<ElementId>)> {
+fn duplicates(items: impl Iterator<Item = (String, ElementId)>) -> Vec<(String, Vec<ElementId>)> {
     let mut by: BTreeMap<String, Vec<ElementId>> = BTreeMap::new();
     for (k, id) in items {
         if !k.trim().is_empty() {
@@ -1303,6 +1301,26 @@ fn drawing_spec(f: &mut F) {
         }
     }
     for r in studio_specs::coord::missing_references(&book) {
+        // A reference to work the project doesn't have (a master spec's "where
+        // applicable") is an edit to make, not a gap.
+        let applies = studio_specs::library::entry(&r.to).is_none_or(|l| facts.picks(&l.when));
+        if !applies && !r.excluded {
+            f.add(
+                "spec-ref",
+                Category::DrawingSpec,
+                Severity::Info,
+                format!(
+                    "Section {} refers to {}, which doesn't apply here",
+                    r.from.join(", "),
+                    r.to
+                ),
+                "The section it names isn't needed on this project.",
+                "Edit the reference out of the section text.",
+                "Specification coordination",
+                vec![],
+            );
+            continue;
+        }
         f.add(
             "spec-ref",
             Category::DrawingSpec,

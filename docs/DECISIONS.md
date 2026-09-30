@@ -3311,3 +3311,46 @@ coursing along a line".
     search, and a hide-resolved option.
   - Each finding expands to its detail, fix and reference, with Show (opens its view and
     selects the elements) and Resolve.
+
+## ADR-089 Fix Issues on the QA/QC tab — Accepted (2026-09-30)
+- **The owner's ask:** a tool on the QA/QC tab that fixes the errors the review found,
+  either automatically or with approval required for every change.
+- **studio-qa `fix`:** `plan(doc, model, report)` gives each fixable finding a concrete
+  `Action`, a sentence saying what will change, and a `design_change` flag.
+  - Renumber duplicate door and window marks, room numbers and sheet numbers; rename
+    duplicate grids and levels.
+  - Tag untagged doors, windows and rooms in their plan.
+  - Add the missing schedules.
+  - Place unplaced views on a new sheet.
+  - Stairs: maximum riser, tread and width to the code limits (design changes); turn
+    railings on.
+  - Raise railing types and ceilings to the minimums.
+  - Egress: swap the room's window to the smallest type that meets escape and fits its
+    wall, or add one to the room's longest exterior wall (design change).
+  - Doors: swap to a type of the right size, height or rating that fits.
+  - Add a zero-thickness membrane layer to the type: weather barrier, dampproofing,
+    underlayment or vapor retarder.
+  - Wet-room floors to a tile or vinyl type.
+  - Shingle roofs to 4:12 (design change).
+  - Openings: back into their wall, a window lowered below its header, clashing openings
+    spaced apart.
+  - Delete stray short walls, overlapping walls and duplicate rooms (design changes).
+  - The project manual: generate it, add missing or referenced library sections, include
+    excluded ones.
+- **Left to the architect,** listed as "needs you": TBDs, unnamed rooms, missing exits,
+  corridor and turning widths, rooms with no door, envelope insulation, and Claude's
+  findings.
+- **Spec references:** a reference to a library section the project doesn't call for is
+  now Info ("edit the reference out"), not Minor, since the master text reads "where
+  applicable".
+- **`apply`** runs the actions and merges them into one undo step named for the run.
+- **App:**
+  - `qa_fix_plan` and `qa_fix_apply`. The review fetches the plan too, so fixable
+    findings get a Fix button in the findings list.
+  - The FIX group has Fix Issues with a mode: **Auto** (a checklist of every fix,
+    design changes flagged, one undo step) or **Approve each** (one change at a time:
+    Apply, Skip, Apply All Remaining, Stop; each approval its own undo step).
+  - After fixing, the review runs again and shows the score before and after. Look Again
+    plans any further fixes.
+- On the sample house, fixing takes the 90% CD score from 76 to 91, and the plan and 3D
+  still draw with the new membrane layers.

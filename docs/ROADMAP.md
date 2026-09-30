@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Fix Issues on QA/QC: automatic or approve-each fixes for the review findings (ADR-089).
 - QA/QC tab: milestone review (coordination, completeness, code/accessibility, waterproofing,
   drawings to specs, constructability, consultants), findings list, PDF report, Claude overall review (ADR-088).
 - Model and detail groups as in Revit: create, place, edit group (propagates), ungroup; Rufplan

@@ -136,3 +136,52 @@ describe("QA/QC tab (ADR-088)", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("Fix Issues (ADR-089)", () => {
+  async function reviewed() {
+    await openProject();
+    await userEvent.click(screen.getByRole("tab", { name: "QA/QC" }));
+    await userEvent.click(screen.getByRole("button", { name: "Run Review" }));
+    await screen.findByRole("dialog", { name: "QA/QC findings" });
+  }
+  const applies = () => fake.calls.filter((c) => c.cmd === "qa_fix_apply");
+
+  it("Auto applies every fix as one step and reviews again", async () => {
+    await reviewed();
+    await userEvent.click(screen.getByRole("radio", { name: "Auto" }));
+    await userEvent.click(screen.getByRole("button", { name: "Fix Issues" }));
+    const dialog = await screen.findByRole("dialog", { name: "Fix Issues" });
+    expect(within(dialog).getByText("DESIGN CHANGE")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "APPLY 2 FIXES" }));
+    await waitFor(() => expect(applies()).toHaveLength(1));
+    expect((applies()[0]!.args as { actions: unknown[] }).actions).toHaveLength(2);
+    expect(
+      await within(dialog).findByText("Score 84 → 100. Undo (Ctrl+Z) takes it all back."),
+    ).toBeInTheDocument();
+  });
+
+  it("Approve each asks for every change: apply one, skip one", async () => {
+    await reviewed();
+    await userEvent.click(screen.getByRole("radio", { name: "Approve each" }));
+    await userEvent.click(screen.getByRole("button", { name: "Fix Issues" }));
+    const dialog = await screen.findByRole("dialog", { name: "Fix Issues" });
+    expect(within(dialog).getByText("CHANGE 1 OF 2")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "APPLY" }));
+    await waitFor(() => expect(applies()).toHaveLength(1));
+    expect((applies()[0]!.args as { actions: unknown[]; label: string }).label).toBe(
+      "QA/QC Fix: Tag doors in Level 1",
+    );
+    expect(await within(dialog).findByText("CHANGE 2 OF 2")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "SKIP" }));
+    expect(await within(dialog).findByText("1 fixed · 1 skipped")).toBeInTheDocument();
+    expect(applies()).toHaveLength(1);
+  });
+
+  it("a finding with a fix has its own Fix button", async () => {
+    await reviewed();
+    const panel = screen.getByRole("dialog", { name: "QA/QC findings" });
+    const buttons = await within(panel).findAllByRole("button", { name: "Fix" });
+    await userEvent.click(buttons[0]!);
+    await waitFor(() => expect(applies()).toHaveLength(1));
+  });
+});

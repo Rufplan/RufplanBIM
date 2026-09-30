@@ -984,6 +984,43 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "qa_review":
           return structuredClone(fake.qaReport);
+        case "qa_fix_plan":
+          return {
+            fixes: [
+              {
+                finding: "tags",
+                title: "Tag doors in Level 1",
+                change: "2 tags added",
+                designChange: false,
+                action: { kind: "Tag", view: "view-1", ids: ["d1", "d2"] },
+              },
+              {
+                finding: "egress",
+                title: "Add an egress window to Bedroom",
+                change: "a casement in the exterior wall",
+                designChange: true,
+                action: { kind: "AddWindow", wall: "w1", type_id: "wt", offset: 1000, sill: 600 },
+              },
+            ],
+            manual: [["other", "Needs your review."]],
+          };
+        case "qa_fix_apply": {
+          const n = (a.actions as unknown[]).length;
+          // Fixed: the review comes back clean.
+          fake.qaReport = {
+            ...fake.qaReport,
+            findings: [],
+            score: 100,
+            summary: "No issues found by the automated checks.",
+          };
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              revision: fake.state.revision + 1,
+              undo: a.label as string,
+            };
+          return [n, [], fake.state];
+        }
         case "qa_claude":
           return { ...(a.report as QaReport), overview: "The set is close; fix egress first." };
         case "group_create": {

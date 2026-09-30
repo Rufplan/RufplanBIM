@@ -6168,3 +6168,136 @@ button:disabled {
   line-height: 1.35;
   color: var(--muted);
 }
+
+/* ---- Fix Issues (ADR-089) ---- */
+.qa-mode {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+.qa-mode button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 11px var(--font-body);
+  color: #666;
+  white-space: nowrap;
+}
+.qa-mode button.on {
+  color: var(--ink);
+}
+.qa-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+}
+.qa-mode button.on .qa-dot {
+  border: 3.5px solid #29b6ea;
+}
+.edit-model.qa-fixer {
+  width: 720px;
+}
+.qa-fix-sum {
+  padding: 12px 20px;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+}
+.qa-fix-list {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: #f6f6f4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qa-fix-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #e6e6e3;
+  border-left: 3px solid #29b6ea;
+  cursor: pointer;
+}
+.qa-fix-row.design {
+  border-left-color: #e6a23c;
+}
+.qa-fix-row input {
+  accent-color: #29b6ea;
+}
+.qa-fix-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.qa-fix-text em {
+  font-style: normal;
+  font-size: 12px;
+  color: #666;
+}
+.qa-design {
+  flex: none;
+  padding: 1px 6px;
+  background: #fff4e5;
+  color: #b26a00;
+  font: 800 9px var(--font-display);
+  letter-spacing: 1px;
+}
+.qa-step {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qa-step-count {
+  font: 800 11px var(--font-display);
+  letter-spacing: 1.4px;
+  color: #0f6f93;
+}
+.qa-step-finding {
+  font-size: 12px;
+  color: #666;
+}
+.qa-step .qa-fix-row {
+  cursor: default;
+  padding: 12px 14px;
+}
+.qa-fix-done {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+  font-size: 13px;
+}
+.qa-fix-done strong {
+  font-size: 16px;
+}
+.qa-manual {
+  margin: 0 20px 8px;
+  font-size: 12px;
+  color: #555;
+}
+.qa-manual summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.qa-manual div {
+  padding: 3px 0 3px 12px;
+  line-height: 1.4;
+}
+.qa-actions .qa-fix-one {
+  border-color: #29b6ea;
+  color: #1a8bb5;
+}
+.qa-actions .qa-fix-one:hover {
+  background: #29b6ea;
+  color: #fff;
+}

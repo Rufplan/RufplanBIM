@@ -265,6 +265,8 @@ pub fn run() -> anyhow::Result<()> {
             qa_cmds::qa_review,
             qa_cmds::qa_claude,
             qa_cmds::qa_export_pdf,
+            qa_cmds::qa_fix_plan,
+            qa_cmds::qa_fix_apply,
             group_cmds::group_create,
             group_cmds::group_ungroup,
             group_cmds::group_place,

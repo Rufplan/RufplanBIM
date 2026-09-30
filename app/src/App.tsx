@@ -44,7 +44,7 @@ import {
   SpecsStatus,
   SpecsView,
 } from "./components/Specs";
-import { QaPanel } from "./components/Qa";
+import { QaFixDialog, QaPanel } from "./components/Qa";
 import { StandardChoicesDialog } from "./components/StandardChoices";
 import { EditModelDialog } from "./components/EditModel";
 import { RufplanDialog } from "./components/RufplanDialog";
@@ -312,6 +312,7 @@ export function App() {
       <SiteDialog />
       <ViewDialogs />
       <QaPanel />
+      <QaFixDialog />
       <IfcReport />
     </div>
   );

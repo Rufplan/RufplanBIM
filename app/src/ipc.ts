@@ -63,6 +63,8 @@ import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
 import type { ProjectDetails } from "./bindings/ProjectDetails";
 import type { ProjectInfoState } from "./bindings/ProjectInfoState";
+import type { QaFixAction } from "./bindings/QaFixAction";
+import type { QaFixPlan } from "./bindings/QaFixPlan";
 import type { QaOptions } from "./bindings/QaOptions";
 import type { QaReport } from "./bindings/QaReport";
 import type { SpecEdit } from "./bindings/SpecEdit";
@@ -591,6 +593,10 @@ export const ipc = {
   qaClaude: (report: QaReport) => invoke<QaReport>("qa_claude", { report }),
   qaExportPdf: (path: string, report: QaReport, resolved: string[]) =>
     invoke<string>("qa_export_pdf", { path, report, resolved }),
+  // Fix Issues (ADR-089).
+  qaFixPlan: (report: QaReport) => invoke<QaFixPlan>("qa_fix_plan", { report }),
+  qaFixApply: (actions: QaFixAction[], label: string) =>
+    invoke<[number, string[], AppState | null]>("qa_fix_apply", { actions, label }),
   // Model and detail groups (ADR-087).
   groupCreate: (ids: ElementId[], name: string) =>
     invoke<[ElementId[], AppState | null]>("group_create", { ids, name }),

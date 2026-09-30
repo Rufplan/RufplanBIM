@@ -16,6 +16,7 @@ use ts_rs::TS;
 
 mod checks;
 mod ctx;
+pub mod fix;
 pub mod report;
 
 pub use checks::run_checks;
