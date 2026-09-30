@@ -25,6 +25,12 @@ pub enum OverlayKind {
     MomentFrame,
     Span,
     Transfer,
+    /// Foundations (ADR-083).
+    SpreadFooting,
+    StripFooting,
+    Mat,
+    PileCap,
+    FoundationWall,
     Flag,
     /// The MEPT layers (ADR-082): an item, coloured by its `mep` kind, and a zone.
     Mep,
@@ -43,6 +49,11 @@ impl From<MemberKind> for OverlayKind {
             MemberKind::MomentFrame => OverlayKind::MomentFrame,
             MemberKind::Span => OverlayKind::Span,
             MemberKind::Transfer => OverlayKind::Transfer,
+            MemberKind::SpreadFooting => OverlayKind::SpreadFooting,
+            MemberKind::StripFooting => OverlayKind::StripFooting,
+            MemberKind::Mat => OverlayKind::Mat,
+            MemberKind::PileCap => OverlayKind::PileCap,
+            MemberKind::FoundationWall => OverlayKind::FoundationWall,
         }
     }
 }
@@ -119,6 +130,23 @@ pub(crate) fn band(a: Pt, b: Pt, w: f64) -> Vec<[f64; 2]> {
         Pt::new(0.0, w / 2.0)
     };
     vec![p2(a.add(n)), p2(b.add(n)), p2(b.sub(n)), p2(a.sub(n))]
+}
+
+/// A rectangle between corners `a` and `b`.
+fn rect(a: Pt, b: Pt) -> Vec<[f64; 2]> {
+    let (lo, hi) = (
+        Pt::new(a.x.min(b.x), a.y.min(b.y)),
+        Pt::new(a.x.max(b.x), a.y.max(b.y)),
+    );
+    vec![[lo.x, lo.y], [hi.x, lo.y], [hi.x, hi.y], [lo.x, hi.y]]
+}
+
+/// A ring as a closed polyline (its outline).
+fn close(mut r: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
+    if let Some(f) = r.first().copied() {
+        r.push(f);
+    }
+    r
 }
 
 pub(crate) fn square(c: Pt, w: f64) -> Vec<[f64; 2]> {
@@ -257,6 +285,23 @@ pub fn overlay_2d(doc: &Document, view: ElementId) -> Vec<OverlayPrim> {
         let mid = m.start.add(m.end).scale(0.5);
         let (fill, lines, label) = match m.kind {
             MemberKind::Column => (vec![square(m.start, m.width.max(paper(1.5)))], vec![], None),
+            // Foundations below the floor, as a foundation plan draws them.
+            MemberKind::SpreadFooting | MemberKind::PileCap => {
+                let sq = square(m.start, m.width);
+                (vec![sq.clone()], vec![close(sq)], None)
+            }
+            MemberKind::StripFooting | MemberKind::FoundationWall => {
+                let bd = band(m.start, m.end, m.width);
+                (vec![bd.clone()], vec![close(bd)], None)
+            }
+            MemberKind::Mat => {
+                let r = rect(m.start, m.end);
+                (
+                    vec![r.clone()],
+                    vec![close(r)],
+                    Some(("MAT".to_string(), p2(mid))),
+                )
+            }
             MemberKind::BearingWall | MemberKind::ShearWall => (
                 vec![band(m.start, m.end, m.width.max(paper(1.0)))],
                 vec![],
@@ -392,6 +437,13 @@ pub fn overlay_3d(doc: &Document) -> Vec<OverlayMesh> {
         let kind = OverlayKind::from(m.kind);
         let positions = match m.kind {
             MemberKind::Column => prism(&square(m.start, m.width.max(150.0)), m.base, m.top),
+            MemberKind::SpreadFooting | MemberKind::PileCap => {
+                prism(&square(m.start, m.width.max(300.0)), m.base, m.top)
+            }
+            MemberKind::StripFooting | MemberKind::FoundationWall => {
+                prism(&band(m.start, m.end, m.width.max(150.0)), m.base, m.top)
+            }
+            MemberKind::Mat => prism(&rect(m.start, m.end), m.base, m.top),
             MemberKind::BearingWall | MemberKind::ShearWall => {
                 prism(&band(m.start, m.end, m.width.max(100.0)), m.base, m.top)
             }
@@ -514,7 +566,10 @@ pub fn info(doc: &Document, member: Option<u32>, flag: Option<u32>) -> Option<Ov
         | MemberKind::BearingWall
         | MemberKind::ShearWall
         | MemberKind::BracedFrame
-        | MemberKind::MomentFrame => "Height",
+        | MemberKind::MomentFrame
+        | MemberKind::FoundationWall => "Height",
+        MemberKind::SpreadFooting | MemberKind::PileCap | MemberKind::StripFooting => "Width",
+        MemberKind::Mat => "Length",
         _ => "Span",
     };
     Some(OverlayInfo {
@@ -583,6 +638,14 @@ mod tests {
                     e1,
                     e2,
                 ),
+                m(
+                    MemberKind::SpreadFooting,
+                    l1,
+                    Pt::new(0.0, 0.0),
+                    Pt::new(0.0, 0.0),
+                    e1 - 800.0,
+                    e1 - 100.0,
+                ),
             ],
             flags: vec![StructFlag {
                 kind: FlagKind::Transfer,
@@ -626,6 +689,13 @@ mod tests {
         assert!(kinds.contains(&OverlayKind::Column) && kinds.contains(&OverlayKind::BracedFrame));
         assert!(kinds.contains(&OverlayKind::Flag) && !kinds.contains(&OverlayKind::Girder));
         let o2 = overlay_2d(&doc, p2);
+        // The footing shows in the lowest plan, filled and outlined.
+        let pad = o1
+            .iter()
+            .find(|p| p.kind == OverlayKind::SpreadFooting)
+            .unwrap();
+        assert_eq!((pad.fill.len(), pad.lines.len()), (1, 1));
+        assert!(!o2.iter().any(|p| p.kind == OverlayKind::SpreadFooting));
         assert!(o2.iter().any(|p| p.kind == OverlayKind::Girder));
         // Grid bubbles: 1, 2 and A, B.
         let labels: Vec<String> = o1
@@ -644,7 +714,7 @@ mod tests {
         assert!(col.lines.contains(&DISCLAIMER.to_string()));
         // 3D: boxes for the column and girder, two struts, a flag marker.
         let m3 = overlay_3d(&doc);
-        assert_eq!(m3.len(), 4);
+        assert_eq!(m3.len(), 5);
         assert!(m3
             .iter()
             .all(|m| m.positions.len() % 9 == 0 && !m.positions.is_empty()));

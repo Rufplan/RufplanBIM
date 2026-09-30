@@ -852,7 +852,15 @@ pub fn export_ifc_with(
                 continue;
             };
             let footprint = |w: f64| -> Poly {
-                if m.start.dist(m.end) < 1.0 {
+                if m.kind == MemberKind::Mat {
+                    let (a, b) = (m.start, m.end);
+                    Poly::simple(vec![
+                        Pt::new(a.x.min(b.x), a.y.min(b.y)),
+                        Pt::new(a.x.max(b.x), a.y.min(b.y)),
+                        Pt::new(a.x.max(b.x), a.y.max(b.y)),
+                        Pt::new(a.x.min(b.x), a.y.max(b.y)),
+                    ])
+                } else if m.start.dist(m.end) < 1.0 {
                     let h = w / 2.0;
                     let c = m.start;
                     Poly::simple(vec![
@@ -880,6 +888,31 @@ pub fn export_ifc_with(
                 }
                 MemberKind::ShearWall => ("IFCWALL", ".SHEAR.", m.base, m.top, m.width.max(100.0)),
                 MemberKind::BracedFrame => ("IFCMEMBER", ".BRACE.", m.base, m.top, 150.0),
+                MemberKind::SpreadFooting => (
+                    "IFCFOOTING",
+                    ".PAD_FOOTING.",
+                    m.base,
+                    m.top,
+                    m.width.max(300.0),
+                ),
+                MemberKind::PileCap => (
+                    "IFCFOOTING",
+                    ".PILE_CAP.",
+                    m.base,
+                    m.top,
+                    m.width.max(300.0),
+                ),
+                MemberKind::StripFooting => (
+                    "IFCFOOTING",
+                    ".STRIP_FOOTING.",
+                    m.base,
+                    m.top,
+                    m.width.max(150.0),
+                ),
+                MemberKind::FoundationWall => {
+                    ("IFCWALL", ".SOLIDWALL.", m.base, m.top, m.width.max(150.0))
+                }
+                MemberKind::Mat => ("IFCSLAB", ".BASESLAB.", m.base, m.top, 0.0),
                 _ => (
                     "IFCBEAM",
                     ".BEAM.",
@@ -1459,6 +1492,16 @@ mod tests {
                     Pt::new(0.0, 1000.0),
                     Pt::new(6000.0, 1000.0),
                 ),
+                m(
+                    MemberKind::SpreadFooting,
+                    Pt::new(0.0, 0.0),
+                    Pt::new(0.0, 0.0),
+                ),
+                m(
+                    MemberKind::StripFooting,
+                    Pt::new(0.0, 0.0),
+                    Pt::new(6000.0, 0.0),
+                ),
             ],
             ..Default::default()
         };
@@ -1482,7 +1525,8 @@ mod tests {
         assert!(!plain.contains("Rufplan_Preliminary"));
         let (ifc, s1) = export_ifc_with(&doc, "0.0.1", "2026-09-29T00:00:00", true);
         // Everything but the joist/deck arrow.
-        assert_eq!(s1.structural, 4);
+        assert_eq!(s1.structural, 6);
+        assert!(ifc.contains(".PAD_FOOTING.)") && ifc.contains(".STRIP_FOOTING.)"));
         for part in [
             ".SHEAR.)",
             ".BRACE.)",

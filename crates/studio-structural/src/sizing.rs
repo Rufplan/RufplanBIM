@@ -274,6 +274,20 @@ pub fn size(rules: &Rules, material: &str, kind: MemberKind, span: f64, trib_flo
             6.0,
             "Braced frame bay.".into(),
         ),
+        // Foundations are sized in `foundation`, from their loads.
+        (
+            _,
+            MemberKind::SpreadFooting
+            | MemberKind::StripFooting
+            | MemberKind::Mat
+            | MemberKind::PileCap
+            | MemberKind::FoundationWall,
+        ) => size(
+            "foundation".into(),
+            12.0,
+            24.0,
+            "Sized from its load (foundation rules).".into(),
+        ),
         (_, MemberKind::MomentFrame) => size(
             s.steel.moment_frame.clone(),
             18.0,

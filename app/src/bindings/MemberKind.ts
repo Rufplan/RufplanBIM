@@ -3,4 +3,4 @@
 /**
  * A member of the layout.
  */
-export type MemberKind = "Column" | "Girder" | "Beam" | "BearingWall" | "ShearWall" | "BracedFrame" | "MomentFrame" | "Span" | "Transfer";
+export type MemberKind = "Column" | "Girder" | "Beam" | "BearingWall" | "ShearWall" | "BracedFrame" | "MomentFrame" | "Span" | "Transfer" | "SpreadFooting" | "StripFooting" | "Mat" | "PileCap" | "FoundationWall";

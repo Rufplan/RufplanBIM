@@ -385,3 +385,142 @@ fn a_lopsided_building_is_flagged_for_torsion_or_a_short_direction() {
         lay.flags
     );
 }
+
+#[test]
+fn foundations_go_under_walls_and_columns_below_frost() {
+    let rules = Rules::builtin();
+    let frost = rules.foundation.frost_depth_in * 25.4;
+    // The wood box: strip footings under its exterior and bearing walls, none under columns.
+    let f = wood_box();
+    let ft = features(&f);
+    let model = studio_regen::regenerate(&f.doc);
+    let prop = propose(&ft, &rules, Seismic::Moderate);
+    let wood = prop
+        .schemes
+        .iter()
+        .find(|s| s.kind == SchemeKind::LightWood)
+        .unwrap();
+    assert!(wood
+        .member_depths
+        .iter()
+        .any(|d| d.starts_with("Foundations: continuous strip footings")));
+    let lay = layout(&ft, &model, &rules, &wood.settings);
+    let strips: Vec<_> = lay
+        .members
+        .iter()
+        .filter(|m| m.kind == MemberKind::StripFooting)
+        .collect();
+    assert!(strips.len() >= 4, "{}", strips.len());
+    assert!(lay
+        .members
+        .iter()
+        .all(|m| m.kind != MemberKind::SpreadFooting));
+    for s in &strips {
+        assert_eq!(s.level, f.levels[0]);
+        assert!(s.width >= 16.0 * 25.4 - 1.0 && s.size.contains("strip footing"));
+        assert!(s.top < 0.0 && s.base < s.top);
+    }
+    // Exterior strips bear below frost.
+    let perimeter = strips
+        .iter()
+        .filter(|s| s.start.y.abs() < 1.0 && s.end.y.abs() < 1.0)
+        .collect::<Vec<_>>();
+    assert!(!perimeter.is_empty() && perimeter.iter().all(|s| s.base <= -frost + 1.0));
+    // The same box in steel: a spread footing under every ground-floor column.
+    let mut steel = prop
+        .schemes
+        .iter()
+        .find(|s| s.kind == SchemeKind::SteelFrame)
+        .unwrap()
+        .settings
+        .clone();
+    steel.grid_x = 30.0 * FT;
+    steel.grid_y = 20.0 * FT;
+    let lay = layout(&ft, &model, &rules, &steel);
+    let cols = lay
+        .members
+        .iter()
+        .filter(|m| m.kind == MemberKind::Column && m.level == f.levels[0])
+        .count();
+    let pads: Vec<_> = lay
+        .members
+        .iter()
+        .filter(|m| m.kind == MemberKind::SpreadFooting)
+        .collect();
+    assert_eq!(pads.len(), cols);
+    assert!(pads
+        .iter()
+        .all(|p| p.size.contains("spread footing") && p.width >= 2.0 * FT - 1.0));
+    // An interior column carries more than a corner one.
+    let biggest = pads.iter().map(|p| p.width).fold(0.0, f64::max);
+    let smallest = pads.iter().map(|p| p.width).fold(f64::INFINITY, f64::min);
+    assert!(biggest > smallest);
+}
+
+#[test]
+fn tall_buildings_go_deep_crowded_footings_become_a_mat_and_basements_get_walls() {
+    let mut rules = Rules::builtin();
+    // Twelve stories of steel: pile caps and a foundation flag.
+    let f = shell(12);
+    let ft = features(&f);
+    let model = studio_regen::regenerate(&f.doc);
+    let prop = propose(&ft, &rules, Seismic::Moderate);
+    let steel = prop
+        .schemes
+        .iter()
+        .find(|s| s.kind == SchemeKind::SteelFrame)
+        .unwrap();
+    assert!(steel
+        .red_flags
+        .iter()
+        .any(|r| r.starts_with("Deep foundations likely")));
+    let lay = layout(&ft, &model, &rules, &steel.settings);
+    assert!(lay
+        .members
+        .iter()
+        .any(|m| m.kind == MemberKind::PileCap && m.size.contains("piles")));
+    assert!(lay.flags.iter().any(|x| x.kind == FlagKind::Foundation));
+    // Footings covering over the rules' share of the footprint: one mat.
+    rules.foundation.mat_share = 0.01;
+    let f = wood_box();
+    let ft = features(&f);
+    let model = studio_regen::regenerate(&f.doc);
+    let wood = propose(&ft, &rules, Seismic::Moderate)
+        .schemes
+        .into_iter()
+        .find(|s| s.kind == SchemeKind::LightWood)
+        .unwrap();
+    let lay = layout(&ft, &model, &rules, &wood.settings);
+    let mats: Vec<_> = lay
+        .members
+        .iter()
+        .filter(|m| m.kind == MemberKind::Mat)
+        .collect();
+    assert_eq!(mats.len(), 1);
+    assert!(lay
+        .members
+        .iter()
+        .all(|m| m.kind != MemberKind::StripFooting));
+    assert!((mats[0].end.x - mats[0].start.x - 60.0 * FT).abs() < 600.0);
+    // A basement: foundation walls up to grade.
+    let rules = Rules::builtin();
+    let mut f = shell(2);
+    ops::set_property(&mut f.doc, f.levels[0], "elevation", "-10'", 0).unwrap();
+    let ft = features(&f);
+    let model = studio_regen::regenerate(&f.doc);
+    let prop = propose(&ft, &rules, Seismic::Moderate);
+    assert!(prop.schemes[0]
+        .red_flags
+        .iter()
+        .any(|r| r.contains("below grade")));
+    let lay = layout(&ft, &model, &rules, &prop.schemes[0].settings);
+    let walls: Vec<_> = lay
+        .members
+        .iter()
+        .filter(|m| m.kind == MemberKind::FoundationWall)
+        .collect();
+    assert_eq!(walls.len(), 4);
+    assert!(walls
+        .iter()
+        .all(|w| (w.top - 0.0).abs() < 1.0 && w.base < -3000.0));
+}

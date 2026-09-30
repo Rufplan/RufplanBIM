@@ -3,4 +3,4 @@
 /**
  * What an overlay piece is (its colour on the canvas).
  */
-export type OverlayKind = "Grid" | "Column" | "Girder" | "Beam" | "BearingWall" | "ShearWall" | "BracedFrame" | "MomentFrame" | "Span" | "Transfer" | "Flag" | "Mep" | "MepZone";
+export type OverlayKind = "Grid" | "Column" | "Girder" | "Beam" | "BearingWall" | "ShearWall" | "BracedFrame" | "MomentFrame" | "Span" | "Transfer" | "SpreadFooting" | "StripFooting" | "Mat" | "PileCap" | "FoundationWall" | "Flag" | "Mep" | "MepZone";

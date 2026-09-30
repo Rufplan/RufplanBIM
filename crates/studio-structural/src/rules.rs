@@ -17,6 +17,31 @@ pub struct Rules {
     pub weights: Weights,
     pub schemes: BTreeMap<String, SchemeRules>,
     pub sizing: Sizing,
+    pub foundation: Foundation,
+}
+
+/// Foundation rules of thumb (ADR-083).
+#[derive(Debug, Clone, Deserialize)]
+pub struct Foundation {
+    pub soil_psf: f64,
+    pub frost_depth_in: f64,
+    pub floor_psf_light: f64,
+    pub floor_psf_heavy: f64,
+    pub roof_psf_light: f64,
+    pub roof_psf_heavy: f64,
+    pub wall_psf: f64,
+    pub spread_min_ft: f64,
+    pub spread_max_ft: f64,
+    pub spread_depth_in: f64,
+    pub strip_min_width_in: f64,
+    pub strip_min_width_heavy_in: f64,
+    pub strip_depth_in: f64,
+    pub mat_share: f64,
+    pub mat_depth_in: f64,
+    pub deep_stories: usize,
+    pub pile_kips: f64,
+    pub basement_ft: f64,
+    pub foundation_wall_in: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]

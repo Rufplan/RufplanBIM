@@ -153,6 +153,9 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Foundations (ADR-083): studio-structural `foundation` (psf_down, spread, strip, piles, summary) and
+  `layout::foundations`; `[foundation]` rules; MemberKind/OverlayKind SpreadFooting, StripFooting, Mat, PileCap,
+  FoundationWall; FlagKind Foundation; IfcFooting export; dashed in the lowest plan.
 - MEPT (ADR-082): crate studio-mep (features, common, mechanical, electrical, plumbing, technology; rules
   from mep_rules.toml), ElementData::MepScheme per discipline on the MEP workset; studio-views `mep`
   (overlay_2d/3d, pick, info); app mep_cmds; components/MepDialog.tsx, MEPT ribbon tab; render/structural.ts
@@ -256,4 +259,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-28
+- Last updated: 2026-09-29

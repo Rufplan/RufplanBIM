@@ -3031,3 +3031,29 @@ coursing along a line".
   - The Suggest dialog switches discipline by tabs and shows climate for Mechanical.
 - Binding names are MEP-prefixed where they would clash (MepFeatures, MepCriterion,
   MepClimate…).
+
+## ADR-083 Foundations in Suggest Structure — Accepted (2026-09-29)
+- **The owner's ask:** add foundations to the structural review and overlay (ADR-080).
+- **Rules:** a new `[foundation]` table in `structural_rules.toml`, editable with Edit Rules…:
+  - Assumed soil: 1,500 psf allowable bearing and 30" frost depth.
+  - Rule-of-thumb loads: light and heavy floors and roofs, plus wall weight.
+  - Minimum spread and strip sizes, when to use a mat (footings over 50% of the footprint),
+    deep foundations (12+ stories, or a footing over 12'), 80-kip piles, and 10" basement walls.
+- **Layout** (`studio-structural` `foundation` and `layout::foundations`), under the lowest level:
+  - A spread footing under each column, sized from its tributary area × load ÷ soil bearing.
+  - A pile cap instead, when deep foundations apply.
+  - Strip footings under exterior, bearing and shear walls. Exterior strips and edge
+    footings bear below frost.
+  - A mat that replaces crowded footings.
+  - Foundation walls up to grade when the lowest level is 3' or more below grade.
+  - Each member carries its arithmetic in `rule` (for example "300 sf x 240 psf = 72 kips on 1500 psf soil").
+- **Proposal:** each scheme gets a foundation line and its red flags (deep foundations, mat,
+  basement waterproofing). Soil and frost are listed as assumptions, and the questions now
+  ask for a geotechnical report.
+- **Overlay:** `MemberKind`/`OverlayKind` gain SpreadFooting, StripFooting, Mat, PileCap and
+  FoundationWall. They are drawn first in the lowest plan, as a foundation plan would show them:
+  earth tones, light fill, dashed outlines. In 3D they are prisms below the slab.
+- **IFC:** IfcFooting (PAD_FOOTING, PILE_CAP, STRIP_FOOTING), IfcSlab BASESLAB for the mat,
+  IfcWall for foundation walls.
+- Still labelled Preliminary — not engineered. The soil values are assumptions until a
+  geotechnical report gives the real ones.

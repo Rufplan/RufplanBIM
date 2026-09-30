@@ -6,6 +6,7 @@
 //! here claims code compliance, and nothing changes the architectural model.
 
 pub mod extract;
+pub mod foundation;
 pub mod layout;
 pub mod rules;
 pub mod schemes;

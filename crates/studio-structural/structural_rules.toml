@@ -47,6 +47,39 @@ assembly = ["assembly", "gym", "auditorium", "theater", "theatre", "sanctuary", 
   "ballroom", "multipurpose", "multi-purpose", "arena", "event"]
 education = ["classroom", "class", "lab", "library", "school"]
 
+# Foundations (ADR-083). Assumed until a geotechnical report gives the real values.
+[foundation]
+# Allowable soil bearing, psf (1,500 is the IBC presumptive value for the weakest class).
+soil_psf = 1500.0
+# Frost depth: exterior footings bear at least this deep.
+frost_depth_in = 30.0
+# Floor and roof loads carried down (dead + live), psf: light frame and heavy (steel,
+# concrete, mass timber).
+floor_psf_light = 55.0
+floor_psf_heavy = 150.0
+roof_psf_light = 35.0
+roof_psf_heavy = 90.0
+# Wall self-weight per sf of wall.
+wall_psf = 12.0
+# Spread footings: the smallest and largest side, ft, and the least depth, in.
+spread_min_ft = 2.0
+spread_max_ft = 12.0
+spread_depth_in = 12.0
+# Strip footings: the least width (light frame, heavy) and depth, in.
+strip_min_width_in = 16.0
+strip_min_width_heavy_in = 24.0
+strip_depth_in = 10.0
+# When footings would cover more than this share of the footprint, a mat instead.
+mat_share = 0.5
+mat_depth_in = 24.0
+# Deep foundations (piles or drilled piers) from this many stories, or when a spread
+# footing would pass its largest side; the capacity of one pile, kips.
+deep_stories = 12
+pile_kips = 80.0
+# A level this far below grade (elevation 0) has foundation walls around it.
+basement_ft = 3.0
+foundation_wall_in = 10.0
+
 # Scoring weights (they need not add to 1).
 [weights]
 height = 3.0

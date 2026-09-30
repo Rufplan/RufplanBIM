@@ -7,7 +7,7 @@ use studio_core::structural::{
     FlagKind, LateralKind, MemberKind, SchemeKind, SchemeSettings, SpanDir, StructFlag,
     StructLayout, StructMember, DISCLAIMER,
 };
-use studio_core::units::MM_PER_FT;
+use studio_core::units::{MM_PER_FT, MM_PER_IN};
 use studio_core::ElementId;
 use studio_geom::Pt;
 use studio_regen::Model;
@@ -194,6 +194,253 @@ impl Builder<'_> {
             });
         }
     }
+}
+
+/// Plan area a column at `p` carries: half the bays either side each way, sf.
+fn trib_sf(p: Pt, xs: &[f64], ys: &[f64]) -> f64 {
+    let half = |lines: &[f64], v: f64| {
+        let below = lines
+            .iter()
+            .copied()
+            .filter(|l| *l < v - 1.0)
+            .fold(f64::NAN, f64::max);
+        let above = lines
+            .iter()
+            .copied()
+            .filter(|l| *l > v + 1.0)
+            .fold(f64::NAN, f64::min);
+        (if below.is_finite() {
+            (v - below) / 2.0
+        } else {
+            0.0
+        }) + (if above.is_finite() {
+            (above - v) / 2.0
+        } else {
+            0.0
+        })
+    };
+    half(xs, p.x).max(600.0) * half(ys, p.y).max(600.0) / SQFT
+}
+
+/// Foundations under the lowest level: a spread footing (or pile cap) under each column,
+/// strip footings under exterior, bearing and shear walls, a mat when footings would cover
+/// most of the footprint, and foundation walls around a basement.
+fn foundations(
+    f: &Features,
+    rules: &Rules,
+    settings: &SchemeSettings,
+    lvs: &[Lv],
+    xs: &[f64],
+    ys: &[f64],
+    b: &mut Builder,
+) {
+    use crate::foundation::{heavy_at, piles, psf_down, spread, spread_name, strip};
+    let Some(lv0) = lvs.first() else { return };
+    let fr = &rules.foundation;
+    let n = lvs.len();
+    let psf = psf_down(rules, settings.kind, n);
+    let sr = rules.scheme(settings.kind);
+    let heavy = heavy_at(rules, settings.kind, 0) || !sr.bearing_walls;
+    let top = lv0.elev - 100.0;
+    let frost = lv0.elev - fr.frost_depth_in * MM_PER_IN;
+    let height_ft = (lvs.last().map_or(lv0.top, |l| l.top) - lv0.elev) / MM_PER_FT;
+    let deep = n >= fr.deep_stories;
+    let mut feet: Vec<StructMember> = vec![];
+    let mut area = 0.0;
+    let mut deep_hit = deep;
+    let member =
+        |kind, a: Pt, e: Pt, base: f64, width: f64, depth: f64, size: String, rule: String| {
+            StructMember {
+                kind,
+                level: lv0.f.id,
+                start: a,
+                end: e,
+                base,
+                top,
+                size: format!("{size} (prelim.)"),
+                depth,
+                width,
+                span: if a.dist(e) > 1.0 { a.dist(e) } else { width },
+                rule,
+            }
+        };
+    // Columns standing on the lowest level.
+    let cols: Vec<Pt> = b
+        .members
+        .iter()
+        .filter(|m| m.kind == MemberKind::Column && m.level == lv0.f.id)
+        .map(|m| m.start)
+        .collect();
+    for p in cols {
+        let trib = trib_sf(p, xs, ys);
+        let load = trib * psf;
+        let (side, depth_in, too_big) = spread(rules, load);
+        if deep || too_big {
+            deep_hit = true;
+            let np = piles(rules, load);
+            let cap = ((np as f64).sqrt().ceil() * 3.0 + 1.5) * MM_PER_FT;
+            let d = 36.0 * MM_PER_IN;
+            feet.push(member(
+                MemberKind::PileCap,
+                p,
+                p,
+                top - d,
+                cap,
+                d,
+                format!("pile cap on {np} piles ({:.0} kips)", load / 1000.0),
+                format!(
+                    "{trib:.0} sf x {psf:.0} psf = {:.0} kips; {:.0} kips a pile.",
+                    load / 1000.0,
+                    fr.pile_kips
+                ),
+            ));
+        } else {
+            area += side * side;
+            let d = depth_in * MM_PER_IN;
+            feet.push(member(
+                MemberKind::SpreadFooting,
+                p,
+                p,
+                (top - d).min(if is_edge(p, &lv0.f.outline) {
+                    frost
+                } else {
+                    top - d
+                }),
+                side * MM_PER_FT,
+                d,
+                spread_name(side, depth_in),
+                format!(
+                    "{trib:.0} sf x {psf:.0} psf = {:.0} kips on {:.0} psf soil.",
+                    load / 1000.0,
+                    fr.soil_psf
+                ),
+            ));
+        }
+    }
+    // Strips: exterior walls, then bearing and shear walls not already on one.
+    let mut lines: Vec<(Pt, Pt, bool, bool)> = f
+        .walls
+        .iter()
+        .filter(|w| w.level == lv0.f.id && w.exterior)
+        .map(|w| (w.start, w.end, false, true))
+        .collect();
+    for m in b.members.iter().filter(|m| {
+        m.level == lv0.f.id && matches!(m.kind, MemberKind::BearingWall | MemberKind::ShearWall)
+    }) {
+        let bearing = m.kind == MemberKind::BearingWall;
+        let on = lines.iter_mut().find(|l| {
+            studio_geom::project_to_segment(m.start, l.0, l.1).1 < 300.0
+                && studio_geom::project_to_segment(m.end, l.0, l.1).1 < 300.0
+        });
+        match on {
+            Some(l) => l.2 |= bearing,
+            None => lines.push((m.start, m.end, bearing, false)),
+        }
+    }
+    let grid_ft = settings.grid_x.min(settings.grid_y) / MM_PER_FT;
+    for (a, e, bearing, exterior) in lines {
+        let trib = if !bearing {
+            0.0
+        } else if exterior {
+            grid_ft / 2.0
+        } else {
+            grid_ft
+        };
+        let plf = trib * psf + fr.wall_psf * height_ft;
+        let w_in = strip(rules, plf, heavy);
+        let d = fr.strip_depth_in * MM_PER_IN;
+        area += a.dist(e) / MM_PER_FT * w_in / 12.0;
+        feet.push(member(
+            MemberKind::StripFooting,
+            a,
+            e,
+            if exterior {
+                (top - d).min(frost)
+            } else {
+                top - d
+            },
+            w_in * MM_PER_IN,
+            d,
+            format!("{w_in:.0}\" x {:.0}\" strip footing", fr.strip_depth_in),
+            format!(
+                "{plf:.0} plf ({}wall weight) on {:.0} psf soil{}.",
+                if bearing {
+                    format!("{trib:.0}' of floors + ")
+                } else {
+                    String::new()
+                },
+                fr.soil_psf,
+                if exterior { ", below frost" } else { "" }
+            ),
+        ));
+    }
+    // A mat when footings would cover most of the footprint.
+    let footprint = lv0.f.area / SQFT;
+    if !deep_hit && footprint > 0.0 && area > fr.mat_share * footprint {
+        if let Some((lo, hi)) = studio_geom::bounds_of(&lv0.f.outline) {
+            let d = fr.mat_depth_in * MM_PER_IN;
+            feet.retain(|m| m.kind == MemberKind::FoundationWall);
+            feet.push(member(
+                MemberKind::Mat,
+                lo,
+                hi,
+                top - d,
+                0.0,
+                d,
+                format!("{:.0}\" mat foundation", fr.mat_depth_in),
+                format!(
+                    "Footings would cover {:.0}% of the footprint (over {:.0}%): one mat instead.",
+                    100.0 * area / footprint,
+                    100.0 * fr.mat_share
+                ),
+            ));
+            b.flag(
+                FlagKind::Foundation,
+                Some(lv0.f.id),
+                lo.add(hi).scale(0.5),
+                "Footings would cover most of the footprint: a mat foundation is likely.".into(),
+            );
+        }
+    }
+    if deep_hit {
+        let at = studio_geom::bounds_of(&lv0.f.outline)
+            .map_or(Pt::new(0.0, 0.0), |(lo, hi)| lo.add(hi).scale(0.5));
+        b.flag(
+            FlagKind::Foundation,
+            Some(lv0.f.id),
+            at,
+            "Deep foundations likely (piles or drilled piers under pile caps): a geotechnical report decides the system.".into(),
+        );
+    }
+    // Foundation walls around a level below grade.
+    if lv0.elev <= -fr.basement_ft * MM_PER_FT {
+        let w = fr.foundation_wall_in * MM_PER_IN;
+        for wall in f.walls.iter().filter(|w| w.level == lv0.f.id && w.exterior) {
+            feet.push(StructMember {
+                kind: MemberKind::FoundationWall,
+                level: lv0.f.id,
+                start: wall.start,
+                end: wall.end,
+                base: lv0.elev,
+                top: 0.0,
+                size: format!(
+                    "{:.0}\" concrete foundation wall (prelim.)",
+                    fr.foundation_wall_in
+                ),
+                depth: w,
+                width: w,
+                span: -lv0.elev,
+                rule: "Retains the soil around the basement, up to grade.".into(),
+            });
+        }
+    }
+    b.members.extend(feet);
+}
+
+/// Whether `p` is at the edge of an outline (within 600 mm), where footings bear below frost.
+fn is_edge(p: Pt, outline: &[Pt]) -> bool {
+    let n = outline.len();
+    (0..n).any(|i| studio_geom::project_to_segment(p, outline[i], outline[(i + 1) % n]).1 <= 600.0)
 }
 
 /// The span direction to use: the setting, or (Auto) the shorter way between supports.
@@ -891,6 +1138,9 @@ pub fn layout(
         ));
         below_sel = sel.iter().map(|(s, e, _)| (*s, *e)).collect();
     }
+
+    // ---- Foundations (ADR-083) ----
+    foundations(f, rules, settings, &lvs, &xs, &ys, &mut b);
 
     // The model's discontinuities, as flags.
     for d in &f.discontinuities {

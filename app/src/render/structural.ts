@@ -19,6 +19,11 @@ export const STRUCT_COLORS: Record<OverlayKind, string> = {
   MomentFrame: "#c2185b",
   Span: "#2e7d32",
   Transfer: "#ff1744",
+  SpreadFooting: "#6d4c41",
+  StripFooting: "#8d6e63",
+  Mat: "#a1887f",
+  PileCap: "#4e342e",
+  FoundationWall: "#5d4037",
   Flag: "#ffb300",
   Mep: "#607d8b",
   MepZone: "#90caf9",
@@ -77,6 +82,11 @@ export const STRUCT_LEGEND: [OverlayKind, string][] = [
   ["BracedFrame", "Braced frames"],
   ["MomentFrame", "Moment frames"],
   ["Transfer", "Transfers"],
+  ["SpreadFooting", "Spread footings"],
+  ["StripFooting", "Strip footings"],
+  ["Mat", "Mat"],
+  ["PileCap", "Pile caps"],
+  ["FoundationWall", "Foundation walls"],
   ["Flag", "Flags"],
 ];
 
@@ -90,6 +100,15 @@ const LINE_PX: Partial<Record<OverlayKind, number>> = {
   Span: 1.25,
 };
 
+/** Foundation kinds (ADR-083): drawn under the rest, dashed. */
+const FOUNDATION = new Set<OverlayKind>([
+  "SpreadFooting",
+  "StripFooting",
+  "Mat",
+  "PileCap",
+  "FoundationWall",
+]);
+
 /** Paints the plan overlay. `S` maps model mm to screen pixels. */
 export function drawStructural(
   ctx: CanvasRenderingContext2D,
@@ -98,8 +117,11 @@ export function drawStructural(
   alpha: number,
 ) {
   ctx.save();
-  for (const p of prims) {
+  // Foundations first, under what stands on them.
+  const under = (p: OverlayPrim) => (FOUNDATION.has(p.kind) ? 0 : 1);
+  for (const p of [...prims].sort((x, y) => under(x) - under(y))) {
     const color = primColor(p);
+    const found = FOUNDATION.has(p.kind);
     const a =
       p.kind === "Flag"
         ? 1
@@ -107,7 +129,9 @@ export function drawStructural(
           ? alpha * 0.2
           : p.kind === "Grid"
             ? Math.min(alpha, 0.8)
-            : alpha;
+            : found
+              ? alpha * 0.3
+              : alpha;
     ctx.globalAlpha = a;
     for (const ring of p.fill) {
       ctx.beginPath();
@@ -119,14 +143,18 @@ export function drawStructural(
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-      ctx.stroke();
+      if (!found) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.stroke();
+      }
     }
+    // Foundation outlines dashed and strong, as a foundation plan draws them below the slab.
+    if (found) ctx.globalAlpha = Math.max(alpha, 0.85);
     ctx.strokeStyle = color;
     ctx.lineWidth = LINE_PX[p.kind] ?? 1.5;
-    ctx.setLineDash(p.kind === "Grid" ? [10, 4, 2, 4] : []);
+    ctx.setLineDash(p.kind === "Grid" ? [10, 4, 2, 4] : found ? [6, 4] : []);
     for (const line of p.lines) {
       ctx.beginPath();
       line.forEach(([x, y], i) => {

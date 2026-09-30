@@ -142,6 +142,13 @@ pub enum MemberKind {
     Span,
     /// A transfer girder under something that doesn't stack.
     Transfer,
+    /// Foundations (ADR-083): a pad under a column, a strip under a wall, a mat under the
+    /// whole footprint (`start`/`end` its corners), a pile cap, and a foundation wall.
+    SpreadFooting,
+    StripFooting,
+    Mat,
+    PileCap,
+    FoundationWall,
 }
 
 impl MemberKind {
@@ -156,9 +163,25 @@ impl MemberKind {
             MemberKind::MomentFrame => "Moment Frame",
             MemberKind::Span => "Joists/Deck",
             MemberKind::Transfer => "Transfer Girder",
+            MemberKind::SpreadFooting => "Spread Footing",
+            MemberKind::StripFooting => "Strip Footing",
+            MemberKind::Mat => "Mat Foundation",
+            MemberKind::PileCap => "Pile Cap",
+            MemberKind::FoundationWall => "Foundation Wall",
         }
     }
     /// Lateral elements, which resist wind and seismic load.
+    /// Foundations, below the lowest level.
+    pub fn foundation(self) -> bool {
+        matches!(
+            self,
+            MemberKind::SpreadFooting
+                | MemberKind::StripFooting
+                | MemberKind::Mat
+                | MemberKind::PileCap
+                | MemberKind::FoundationWall
+        )
+    }
     pub fn lateral(self) -> bool {
         matches!(
             self,
@@ -200,6 +223,8 @@ pub enum FlagKind {
     LateralDirection,
     Torsion,
     Discontinuity,
+    /// Foundations (ADR-083): a mat or deep foundations likely.
+    Foundation,
 }
 
 impl FlagKind {
@@ -212,6 +237,7 @@ impl FlagKind {
             FlagKind::LateralDirection => "Lateral System Short One Way",
             FlagKind::Torsion => "Rigidity Far from Mass",
             FlagKind::Discontinuity => "Discontinuity",
+            FlagKind::Foundation => "Foundation",
         }
     }
 }

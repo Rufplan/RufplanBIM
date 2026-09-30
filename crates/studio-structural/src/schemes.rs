@@ -374,6 +374,9 @@ fn score(f: &Features, rules: &Rules, kind: SchemeKind, seismic: Seismic) -> Sch
             if f.reentrant_corners == 1 { "" } else { "s" }
         ));
     }
+    // Foundations (ADR-083).
+    let (found, found_red) = crate::foundation::summary(f, rules, kind);
+    red.extend(found_red);
     red.dedup();
 
     let lat = laterals(kind);
@@ -384,7 +387,11 @@ fn score(f: &Features, rules: &Rules, kind: SchemeKind, seismic: Seismic) -> Sch
         ruled_out,
         rationale,
         grid: grid_text,
-        member_depths: sizing::typical(rules, &sr.material, sr.podium_levels, grid),
+        member_depths: {
+            let mut v = sizing::typical(rules, &sr.material, sr.podium_levels, grid);
+            v.push(found);
+            v
+        },
         red_flags: red,
         settings: SchemeSettings {
             kind,
@@ -472,7 +479,11 @@ pub fn propose(f: &Features, rules: &Rules, seismic: Seismic) -> StructuralPropo
         ),
         "Typical gravity loads for the uses found; no unusual loads (roof gardens, pools, heavy equipment).".into(),
         "Floor-to-floor heights and outlines are the model's levels, floors and walls.".into(),
-        "Foundations, wind and fire ratings are not evaluated.".into(),
+        format!(
+            "Foundations on an assumed {:.0} psf allowable soil bearing and a {:.0}\" frost depth (rules file); a geotechnical report sets the real values.",
+            rules.foundation.soil_psf, rules.foundation.frost_depth_in
+        ),
+        "Wind and fire ratings are not evaluated.".into(),
     ];
     if f.uses.is_empty() {
         assumptions.push("No room names matched a use; the use score is neutral.".into());
@@ -500,6 +511,11 @@ pub fn propose(f: &Features, rules: &Rules, seismic: Seismic) -> StructuralPropo
     }
     if seismic == Seismic::Moderate {
         questions.push("Is the site in a low, moderate or high seismic region?".into());
+    }
+    if questions.len() < 3 {
+        questions.push(
+            "Is there a geotechnical report (soil bearing, frost depth, water table)?".into(),
+        );
     }
     if let Some(best) = schemes.first() {
         let sr = rules.scheme(best.kind);
