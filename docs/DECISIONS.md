@@ -3100,3 +3100,81 @@ coursing along a line".
   - The Properties pane shows a Project Summary.
   - Copy Directory puts the client and consultants on the clipboard for an email.
   - Edits save 600 ms after typing stops.
+
+## ADR-085 Specifications tab: the project manual — Accepted (2026-09-29)
+- **The owner's ask:** a robust Specifications tab that creates the specifications book
+  typical for architecture projects. It should:
+  - cover the typical sections;
+  - offer several section styles;
+  - export to PDF or Word;
+  - be easy to edit, including a floating Claude prompt like Edit Model's.
+- **Data (studio-core `specs`):** one `ElementData::SpecBook` element (Category::SpecBook),
+  saved and undone like any model change. This is an additive file-format change: older
+  files have no book.
+  - The book holds the style, issue and date, and its sections in MasterFormat order.
+  - Each section has a number (unique), a title, a kind (ThreePart, Document, or a generated
+    kind: TitlePage, ProjectDirectory, SealsPage, Contents, DrawingList), and parts of
+    articles of paragraphs at levels A./1./a./1).
+  - It also records whether the section is included, its origin (Library, Custom or
+    Claude) and whether it has been edited.
+  - The book stores structure and text only; numbering is the style's job.
+- **New crate `studio-specs`:**
+  - `library`: 136 sections in 8 TOML files (about 9,000 paragraphs), plus the 5 generated
+    front-matter sections.
+    - Coverage runs across Divisions 00–33: procurement documents (referring to AIA
+      A101/A201/A701), all of Division 01, and the construction, finishes, specialties,
+      plumbing, HVAC, electrical, earthwork, exterior improvements and utilities.
+    - Each section is written as original text in CSI SectionFormat, with real standards
+      and manufacturers.
+    - `when` tags decide which sections a project gets.
+    - The text was drafted by parallel agents under a strict format, checked by a parser,
+      and cross-references were reconciled against the library.
+  - `features`: tags from the model and Project Info.
+    - Sources: residential vs commercial, renovation, basement, wall, floor, ceiling and
+      roof layer and material names, door and window families, rooms (kitchens, baths,
+      restrooms), stairs, railings, casework, lighting, plantings, sprinklers and height.
+    - Placeholder values: project, owner, architect, address, jurisdiction, code, and the
+      door, window, wall, roof, floor and ceiling type names.
+  - `generate`: builds the book from the picked sections with placeholders filled.
+    `update` only ever adds sections the model now calls for, and lists sections it no
+    longer calls for. `front` is the data for the front matter.
+  - `style`: six styles:
+    - CSI Classic: Times-metric serif, 1.01 articles, centered titles.
+    - CSI Modern: sans, 1.1, ruled headings.
+    - Decimal Outline: 1.1.1.1 numbering.
+    - Rufplan: Barlow, black banners.
+    - Short Form: summary, products and installation, sections run on.
+    - Narrative (SD/DD): products as bullets, Divisions 02+ only.
+  - `layout`: turns the book into blocks, the single source for both writers.
+  - `pdf`: krilla, US Letter, embedded subset fonts bundled under the SIL OFL (Tinos,
+    Carlito, Barlow). Pages are numbered by section ("09 29 00 - 3") as CSI PageFormat
+    does.
+  - `docx`: hand-written WordprocessingML with Word multilevel numbering (paragraphs
+    renumber when edited in Word), one Word section and footer per spec section, and the
+    style's font.
+  - `zip`: a minimal stored ZIP writer. `crc32fast` was already in the tree.
+  - `coord`: cross-references to sections missing from or excluded from the book.
+  - `edit`: Edit Specs.
+    - Claude answers with operations (replace, add, remove, include, exclude, renumber).
+    - They're checked and applied to a copy, previewed as a paragraph diff per section,
+      then applied as one undo step.
+- **UI (`components/Specs.tsx`):** the Specifications tab after Sheets, laid out like
+  Standards.
+  - The browser lists sections by division, with include checkboxes and search.
+  - The editor is a page in the chosen style, editable in place:
+    - Enter splits a paragraph, and a paragraph ending ":" starts a sub-level.
+    - Tab and Shift+Tab indent; Backspace at the start joins; Alt+↑/↓ moves.
+    - Articles can be added, moved and deleted.
+    - Changes save 700 ms after typing stops.
+  - Properties shows the section (number, source, why it was picked, Revert to Library
+    Text), the issue and date, a style gallery, and Coordination (sections the model calls
+    for, sections referenced but not issued, and sections no longer in the model).
+  - Dialogs: Generate/Regenerate, Add Sections (the library with the recommended sections
+    marked), and New Section.
+  - The EDIT SPECS pill and Ctrl+K open Edit Specs, scoped to this section or the whole
+    manual, with a diff preview and an undo log. Edit Model stays off this tab.
+- Dev aids:
+  - `cargo test --release -p studio-specs write_sample_books -- --ignored` writes
+    target/specs-<style>.pdf, .docx and .html page previews.
+  - `print_library_refs` lists the library's unresolved references.
+  - `live_spec_edit` is a live Claude check (uses API credit).

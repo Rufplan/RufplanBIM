@@ -85,6 +85,9 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Specifications tab: project manual from the model (136-section MasterFormat library, CSI
+  three-part), six section styles, PDF and Word export, in-place editor, coordination checks,
+  Edit Specs with Claude (ADR-085).
 - Project Info tab: overview, location, client and owner's rep, consultants, budget with
   hard/soft lines and cost per sf, milestones, codes and zoning, notes (ADR-084).
 - Suggest Structure foundations: spread/strip footings, pile caps, mat and basement walls

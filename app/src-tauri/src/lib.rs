@@ -24,6 +24,7 @@ mod sheetset_cmds;
 mod shortcut_cmds;
 mod site_cmds;
 mod sketching;
+mod spec_cmds;
 mod standards_cmds;
 mod structural_cmds;
 mod structure;
@@ -259,6 +260,19 @@ pub fn run() -> anyhow::Result<()> {
             lines_cmds::lines_preview,
             model_edit_cmds::model_edit_preview,
             model_edit_cmds::model_edit_apply,
+            spec_cmds::spec_state,
+            spec_cmds::spec_generate,
+            spec_cmds::spec_update,
+            spec_cmds::spec_set_section,
+            spec_cmds::spec_library_section,
+            spec_cmds::spec_add_library,
+            spec_cmds::spec_add_custom,
+            spec_cmds::spec_remove,
+            spec_cmds::spec_set_included,
+            spec_cmds::spec_set_settings,
+            spec_cmds::spec_export,
+            spec_cmds::spec_edit_preview,
+            spec_cmds::spec_edit_apply,
             project_cmds::project_info_get,
             project_cmds::project_info_set,
             standards_cmds::standards_get,

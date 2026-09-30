@@ -6,6 +6,11 @@ import type { FillPattern } from "../bindings/FillPattern";
 import type { Category } from "../bindings/Category";
 import type { ProjectDetails } from "../bindings/ProjectDetails";
 import type { ProjectInfoState } from "../bindings/ProjectInfoState";
+import type { SpecEdit } from "../bindings/SpecEdit";
+import type { SpecEditPlan } from "../bindings/SpecEditPlan";
+import type { SpecSection } from "../bindings/SpecSection";
+import type { SpecState } from "../bindings/SpecState";
+import type { SpecStyle } from "../bindings/SpecStyle";
 import type { Standards } from "../bindings/Standards";
 
 /** A small Asset Library: a maple in two seasons and a boxwood. */
@@ -92,6 +97,109 @@ export interface FakeBackend {
   standards: Standards;
   /** The Project Info tab (ADR-084). */
   projectInfo: ProjectInfoState;
+  /** The Specifications tab (ADR-085). */
+  specs: SpecState;
+  /** What spec_edit_preview answers. */
+  specPlan: SpecEditPlan | null;
+}
+
+const para = (level: number, text: string) => ({ level, text });
+
+/** A three-part section with one article per part. */
+export function fakeSection(number: string, title: string): SpecSection {
+  return {
+    number,
+    title,
+    kind: "ThreePart",
+    included: true,
+    origin: "Library",
+    edited: false,
+    parts: [
+      {
+        title: "GENERAL",
+        articles: [
+          {
+            title: "SUMMARY",
+            paragraphs: [para(0, "Section Includes:"), para(1, `${title.toLowerCase()}.`)],
+          },
+        ],
+      },
+      { title: "PRODUCTS", articles: [{ title: "MATERIALS", paragraphs: [para(0, "Type X.")] }] },
+      {
+        title: "EXECUTION",
+        articles: [{ title: "INSTALLATION", paragraphs: [para(0, "Install.")] }],
+      },
+    ],
+  };
+}
+
+const style = (id: string, name: string, numbering: SpecStyle["numbering"]): SpecStyle => ({
+  id,
+  name,
+  description: `${name} style.`,
+  numbering,
+  font: "Serif",
+  size: 10,
+  heading: "Centered",
+  content: "Full",
+  boldArticles: false,
+  pagePerSection: true,
+  margin: 1,
+  gap: 6,
+});
+
+/** No book yet; a library of three sections, two called for by the model. */
+export function fakeSpecs(): SpecState {
+  return {
+    book: null,
+    styles: [
+      style("csi-classic", "CSI Classic", "CsiZero"),
+      style("decimal", "Decimal Outline", "Decimal"),
+    ],
+    library: [
+      {
+        number: "01 10 00",
+        title: "SUMMARY",
+        paragraphs: 40,
+        picked: true,
+        reason: "every project",
+        inBook: false,
+      },
+      {
+        number: "09 29 00",
+        title: "GYPSUM BOARD",
+        paragraphs: 120,
+        picked: true,
+        reason: "gypsum board walls",
+        inBook: false,
+      },
+      {
+        number: "10 21 13",
+        title: "TOILET COMPARTMENTS",
+        paragraphs: 47,
+        picked: false,
+        reason: null,
+        inBook: false,
+      },
+    ],
+    divisions: [
+      { code: "01", title: "GENERAL REQUIREMENTS" },
+      { code: "09", title: "FINISHES" },
+      { code: "10", title: "SPECIALTIES" },
+    ],
+    references: [],
+    unindicated: [],
+    indicated: [],
+    front: {
+      projectName: "Oak House",
+      projectNumber: "2601",
+      address: "",
+      owner: null,
+      team: [],
+      sheets: [],
+    },
+    today: "2026-10-01",
+  };
 }
 
 const contact = () => ({
@@ -650,6 +758,8 @@ export function installFakeBackend(): FakeBackend {
     plans: null,
     standards: fakeStandards(),
     projectInfo: fakeProjectInfo(),
+    specs: fakeSpecs(),
+    specPlan: null,
     underCursor: [],
     keynotes: FAKE_KEYNOTES.map((k) => ({ ...k })),
     keynoteNumbering: "ByKeynote",
@@ -826,6 +936,63 @@ export function installFakeBackend(): FakeBackend {
         case "redo":
           if (fake.state) fake.state = { ...fake.state, undo: fake.state.redo, redo: null };
           return fake.state;
+        case "spec_state":
+          return structuredClone(fake.specs);
+        case "spec_generate": {
+          fake.specs.book = {
+            style: a.styleId as string,
+            issue: a.issue as string,
+            date: a.date as string,
+            sections: [fakeSection("01 10 00", "SUMMARY"), fakeSection("09 29 00", "GYPSUM BOARD")],
+          };
+          fake.specs.library = fake.specs.library.map((l) => ({ ...l, inBook: l.picked }));
+          if (fake.state) fake.state = { ...fake.state, revision: fake.state.revision + 1 };
+          return fake.state;
+        }
+        case "spec_set_section":
+        case "spec_add_library":
+        case "spec_set_included":
+        case "spec_set_settings":
+        case "spec_remove":
+        case "spec_edit_apply": {
+          const b = fake.specs.book!;
+          if (a.section) {
+            const s = { ...(a.section as SpecSection), edited: true };
+            b.sections = b.sections.map((x) => (x.number === a.number ? s : x));
+          }
+          for (const n of (a.numbers as string[] | undefined) ?? []) {
+            if (cmd === "spec_add_library") {
+              const l = fake.specs.library.find((x) => x.number === n)!;
+              b.sections.push(fakeSection(n, l.title));
+              l.inBook = true;
+            }
+            if (cmd === "spec_remove") b.sections = b.sections.filter((x) => x.number !== n);
+            if (cmd === "spec_set_included")
+              b.sections = b.sections.map((x) =>
+                x.number === n ? { ...x, included: a.included as boolean } : x,
+              );
+          }
+          if (cmd === "spec_set_settings") {
+            b.style = a.styleId as string;
+            b.issue = a.issue as string;
+            b.date = a.date as string;
+          }
+          b.sections.sort((x, y) => x.number.localeCompare(y.number));
+          if (fake.state)
+            fake.state = {
+              ...fake.state,
+              revision: fake.state.revision + 1,
+              undo:
+                cmd === "spec_edit_apply"
+                  ? `Edit Specs: ${(a.edit as SpecEdit).summary}`
+                  : fake.state.undo,
+            };
+          return fake.state;
+        }
+        case "spec_edit_preview":
+          return fake.specPlan;
+        case "spec_export":
+          return [a.path, 12];
         case "project_info_get":
           return structuredClone(fake.projectInfo);
         case "project_info_set": {

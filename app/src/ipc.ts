@@ -63,6 +63,11 @@ import type { Cap } from "./bindings/Cap";
 import type { Terrain } from "./bindings/Terrain";
 import type { ProjectDetails } from "./bindings/ProjectDetails";
 import type { ProjectInfoState } from "./bindings/ProjectInfoState";
+import type { SpecEdit } from "./bindings/SpecEdit";
+import type { SpecEditPlan } from "./bindings/SpecEditPlan";
+import type { SpecSection } from "./bindings/SpecSection";
+import type { SpecState } from "./bindings/SpecState";
+import type { SpecUpdate } from "./bindings/SpecUpdate";
 import type { Standards } from "./bindings/Standards";
 import type { StandardChoice } from "./bindings/StandardChoice";
 import type { LineStyle } from "./bindings/LineStyle";
@@ -579,6 +584,28 @@ export const ipc = {
     invoke<EditPlan>("model_edit_preview", { prompt, view, selection }),
   modelEditApply: (editPlan: ModelPlan, view: ElementId, selection: ElementId[]): S =>
     invoke("model_edit_apply", { editPlan, view, selection }),
+  // Specifications (ADR-085).
+  specState: () => invoke<SpecState>("spec_state"),
+  specGenerate: (styleId: string, issue: string, date: string): S =>
+    invoke("spec_generate", { styleId, issue, date }),
+  specUpdate: () => invoke<[SpecUpdate, AppState | null]>("spec_update"),
+  specSetSection: (number: string, section: SpecSection): S =>
+    invoke("spec_set_section", { number, section }),
+  specLibrarySection: (number: string) =>
+    invoke<SpecSection | null>("spec_library_section", { number }),
+  specAddLibrary: (numbers: string[]): S => invoke("spec_add_library", { numbers }),
+  specAddCustom: (number: string, title: string): S => invoke("spec_add_custom", { number, title }),
+  specRemove: (numbers: string[]): S => invoke("spec_remove", { numbers }),
+  specSetIncluded: (numbers: string[], included: boolean): S =>
+    invoke("spec_set_included", { numbers, included }),
+  specSetSettings: (styleId: string, issue: string, date: string): S =>
+    invoke("spec_set_settings", { styleId, issue, date }),
+  /** Writes the book as "pdf" or "docx"; returns the path written and the page count. */
+  specExport: (path: string, format: "pdf" | "docx") =>
+    invoke<[string, number]>("spec_export", { path, format }),
+  specEditPreview: (prompt: string, focus: string | null) =>
+    invoke<SpecEditPlan>("spec_edit_preview", { prompt, focus }),
+  specEditApply: (edit: SpecEdit): S => invoke("spec_edit_apply", { edit }),
   // Project Info (ADR-084).
   projectInfoGet: () => invoke<ProjectInfoState>("project_info_get"),
   projectInfoSet: (name: string, number: string, details: ProjectDetails): S =>
@@ -704,6 +731,11 @@ export const dialogs = {
     save({ defaultPath: `${defaultName}.rfproj`, filters: PROJECT_FILTER }),
   pickPdfLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] }),
+  pickWordLocation: (defaultName: string): Promise<string | null> =>
+    save({
+      defaultPath: `${defaultName}.docx`,
+      filters: [{ name: "Word document", extensions: ["docx"] }],
+    }),
   /** A folder, for exporting several files. */
   pickFolder: async (): Promise<string | null> => {
     const picked = await open({ multiple: false, directory: true });

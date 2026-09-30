@@ -3650,6 +3650,7 @@ dependencies = [
  "studio-mep",
  "studio-regen",
  "studio-sheets",
+ "studio-specs",
  "studio-structural",
  "studio-sync",
  "studio-views",
@@ -4410,6 +4411,22 @@ dependencies = [
  "studio-regen",
  "studio-views",
  "thiserror 2.0.21",
+ "ts-rs",
+ "ttf-parser",
+]
+
+[[package]]
+name = "studio-specs"
+version = "0.0.1"
+dependencies = [
+ "crc32fast",
+ "krilla",
+ "serde",
+ "serde_json",
+ "studio-core",
+ "studio-geom",
+ "studio-regen",
+ "toml 0.9.12+spec-1.1.0",
  "ts-rs",
  "ttf-parser",
 ]

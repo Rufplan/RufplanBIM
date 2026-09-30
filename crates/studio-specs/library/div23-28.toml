@@ -1,0 +1,2366 @@
+# Division 23 - HVAC, Division 26 - Electrical, Division 27 - Communications,
+# Division 28 - Electronic Safety and Security. Outline-level engineering sections issued by
+# the Architect; coordinate with the engineer of record's drawings and specifications.
+
+[[section]]
+number = "23 05 00"
+title = "COMMON WORK RESULTS FOR HVAC"
+when = ["hvac"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">General requirements common to HVAC work.",
+  ">Pipe and duct sleeves, escutcheons, and sleeve seals.",
+  ">Equipment supports, hangers, and bases.",
+  ">Vibration isolation for rotating equipment.",
+  ">Identification of HVAC piping, ductwork, valves, and equipment.",
+  ">Access doors for concealed HVAC components.",
+  "Coordination with Engineer of Record: This Section is an outline-level requirement issued with the architectural documents. HVAC systems are indicated on the mechanical Drawings prepared by the engineer of record, whose drawings, schedules, and notes govern system layout, capacities, and sizes. Where the mechanical work is procured as design-build or delegated design, the Contractor's mechanical engineer shall prepare and seal the design documents in compliance with these requirements and the {building_code} as adopted by {jurisdiction}.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping at rated assemblies.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for field painting of exposed piping, ductwork, and supports.",
+  ">Section 23 05 93 \"Testing, Adjusting, and Balancing for HVAC\" for system balancing.",
+  ">Division 26 Sections for power wiring to HVAC equipment.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Exposed: Visible from occupied spaces, including mechanical rooms and garages, or exposed to weather.",
+  "Concealed: Located in shafts, above ceilings, in chases, or within construction and not visible from occupied spaces.",
+  "Engineer of Record: The registered professional engineer responsible for the design of the HVAC systems indicated on the Drawings or, for delegated design, the Contractor's engineer.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including hangers, sleeves, sleeve seals, vibration isolators, identification products, and access doors.",
+  "Shop Drawings: Coordinated HVAC layout drawings at 1/4 inch = 1 foot scale showing ductwork, piping, equipment, and clearances, coordinated with structure, plumbing, fire protection, electrical, and ceiling systems.",
+  "Delegated-Design Submittal: Where HVAC design is delegated, submit drawings, calculations, and equipment schedules signed and sealed by a professional engineer licensed in the state of the Project.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Seismic and Wind Restraint Calculations: Where required by the {building_code}, signed and sealed by a qualified professional engineer.",
+  "Heating and cooling load calculations and equipment selections, where HVAC design is delegated.",
+  "Energy code compliance documentation for HVAC systems, in the format required by the authority having jurisdiction.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For HVAC equipment and controls, organized by system, including filter sizes, lubrication schedules, and parts lists.",
+  "Record Drawings: Mechanical Drawings marked to show actual routing and locations of concealed ductwork, piping, dampers, valves, and access doors.",
+  "Warranty documentation for all HVAC equipment.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A licensed mechanical contractor experienced in installing HVAC systems of the type and scale indicated.",
+  "Comply with the International Mechanical Code and International Energy Conservation Code as adopted by {jurisdiction}, and with NFPA 90A or NFPA 90B as applicable to the occupancy.",
+  "Electrical Components: Listed and labeled as defined in NFPA 70 by a qualified testing agency, and marked for intended location and application.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver equipment with factory protection in place. Store indoors or on raised supports under weathertight covering.",
+  "Protect duct and pipe openings with caps or plastic sheeting to exclude dust and debris during construction.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Provide a one-year warranty on HVAC workmanship and materials from the date of Substantial Completion, in addition to manufacturers' equipment warranties specified in other Sections.",
+]
+
+[[section.part2]]
+title = "SLEEVES, ESCUTCHEONS, AND SLEEVE SEALS"
+items = [
+  "Sleeves: Galvanized-steel pipe, Schedule 40, for penetrations of concrete and masonry; galvanized-steel sheet, 0.0239 inch minimum thickness, for gypsum board assemblies.",
+  "Sleeve Seals: Modular mechanical type with interlocking synthetic-rubber links shaped to fill the annular space between pipe and sleeve.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Advance Products and Systems, LLC.",
+  ">>GPT; a division of EnPro Industries (Link-Seal).",
+  ">>Metraflex Company (The).",
+  "Escutcheons: One-piece, chrome-plated or stainless-steel type with setscrew, sized to cover sleeve and opening at exposed penetrations.",
+]
+
+[[section.part2]]
+title = "HANGERS AND SUPPORTS"
+items = [
+  "Pipe Hangers and Supports: MSS SP-58, factory-fabricated, galvanized or with manufacturer's standard corrosion-resistant finish.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Eaton (B-Line).",
+  ">>Anvil International.",
+  ">>nVent CADDY.",
+  ">>Unistrut; Atkore International.",
+  "Metal Framing Systems: MFMA-4, cold-formed steel channels with galvanized finish.",
+  "Fasteners: Post-installed concrete anchors with ICC-ES evaluation reports for the application; do not use powder-actuated fasteners in lightweight concrete or for seismic restraints unless approved by the structural engineer.",
+  "Equipment Supports: Structural-steel stands or curbs, designed for equipment weight and operating loads, hot-dip galvanized where exposed to weather.",
+]
+
+[[section.part2]]
+title = "VIBRATION ISOLATION"
+items = [
+  "Isolators: Spring isolators, elastomeric pads, or hangers as scheduled, selected for 90 percent minimum isolation efficiency at the lowest operating speed of supported equipment.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Kinetics Noise Control, Inc.",
+  ">>Mason Industries, Inc.",
+  ">>Vibration Mountings and Controls, Inc.",
+  "Flexible Connectors: At duct connections to fans and air-handling equipment, UL 214 listed fabric, 3 to 4 inches wide.",
+]
+
+[[section.part2]]
+title = "IDENTIFICATION"
+items = [
+  "Equipment Labels: Engraved plastic laminate, 1/8 inch thick, with 1/2 inch high letters, indicating equipment tag, service, and area served.",
+  "Pipe Markers: ASME A13.1, preprinted, color-coded, with flow arrows and service lettering.",
+  "Duct Labels: Stenciled or self-adhesive, indicating service (supply, return, exhaust, outdoor air) and flow direction.",
+  "Valve Tags: Brass, 1-1/2 inch diameter, stamped with valve number, with valve schedule mounted in the mechanical room.",
+  "Ceiling Tacks: Color-coded, at lay-in ceilings below dampers, valves, and equipment requiring service.",
+]
+
+[[section.part2]]
+title = "ACCESS DOORS"
+items = [
+  "Access Doors: Steel, flush, with concealed hinges and cam latch, sized for service of concealed equipment, minimum 12 by 12 inches for hand access and 24 by 24 inches for body access.",
+  "Fire-Rated Access Doors: Listed and labeled for the rating of the assembly in which installed.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine structure, shafts, ceiling spaces, and roof openings for conditions affecting HVAC installation. Report conflicts with other trades to the Architect before proceeding.",
+]
+
+[[section.part3]]
+title = "INSTALLATION, GENERAL"
+items = [
+  "Install HVAC work according to the approved coordination drawings, manufacturers' written instructions, and the engineer of record's details.",
+  "Route ductwork and piping parallel and perpendicular to building lines; conceal in finished spaces unless indicated as exposed.",
+  "Maintain manufacturers' recommended service clearances and clearances required by NFPA 70 at electrical components.",
+  "Do not cut or notch structural members without written approval from the structural engineer.",
+  "Install sleeves at penetrations of walls, floors, and roofs; seal with sleeve seals at exterior and below-grade walls and firestop at rated assemblies.",
+  "Install access doors at concealed dampers, valves, controls, and equipment requiring service. Coordinate locations with the Architect in finished spaces.",
+]
+
+[[section.part3]]
+title = "EQUIPMENT SUPPORT AND ISOLATION"
+items = [
+  "Support equipment level and plumb on bases, stands, or hangers. Install concrete housekeeping pads 4 inches high, extending 6 inches beyond equipment on all sides, at floor-mounted equipment in mechanical rooms.",
+  "Install vibration isolators and flexible connectors so that no rigid contact exists between equipment and structure.",
+  "Install seismic and wind restraints where required by the {building_code}.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION"
+items = [
+  "Label equipment, piping, and ductwork after painting. Install pipe markers at 25 feet on center maximum, at each branch, and at each side of wall penetrations.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Do not operate air-handling equipment during construction without temporary filters at returns; replace filters with clean filters before testing and balancing and again at Substantial Completion.",
+  "Clean equipment, exposed piping, and ductwork of dirt, labels, and construction residue.",
+]
+
+[[section]]
+number = "23 05 93"
+title = "TESTING, ADJUSTING, AND BALANCING FOR HVAC"
+when = ["hvac+commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Testing, adjusting, and balancing (TAB) of air systems.",
+  ">Testing, adjusting, and balancing of hydronic systems, where indicated.",
+  ">Verification of HVAC equipment performance.",
+  ">Sound and vibration measurements, where indicated.",
+  "Coordination with Engineer of Record: Design airflows, water flows, and equipment capacities are indicated on the mechanical Drawings prepared by the engineer of record, or, for design-build or delegated-design HVAC work, on the Contractor's engineer's sealed documents. Balance systems to those values.",
+  "Related Requirements:",
+  ">Section 23 05 00 \"Common Work Results for HVAC\" for general HVAC requirements.",
+  ">Section 01 91 13 \"General Commissioning Requirements\" for commissioning, where required.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "TAB: Testing, adjusting, and balancing; the process of measuring and adjusting HVAC systems to deliver design quantities.",
+  "TAB Specialist: An independent entity engaged to perform TAB work.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "TAB Strategies and Procedures Plan: Within 60 days of Notice to Proceed, submit the TAB plan, instrumentation list, and sample report forms.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For the TAB specialist and TAB technicians.",
+  "Instrument Calibration Reports: Showing calibration within the past 12 months.",
+  "System Readiness Checklists: Completed before starting TAB.",
+  "Examination Report: Listing deficiencies found that prevent proper balancing.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Final TAB Report: Certified by the TAB supervisor, including system diagrams, design and measured values for each terminal, equipment test data, and a summary of deficiencies and corrective actions.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "TAB Specialist Qualifications: Independent of the mechanical installer, and certified by one of the following:",
+  ">Associated Air Balance Council (AABC).",
+  ">National Environmental Balancing Bureau (NEBB).",
+  ">Testing, Adjusting and Balancing Bureau (TABB).",
+  "Perform TAB according to the standards of the certifying agency and ASHRAE 111, Measurement, Testing, Adjusting, and Balancing of Building HVAC Systems.",
+  "TAB Report Forms: Use standard forms of the certifying agency.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Perform TAB with the building enclosed, ceilings installed, doors hung, and systems operating in their normal mode, with clean filters in place.",
+  "Coordinate with the controls contractor for access to building automation setpoints and damper positions.",
+]
+
+[[section.part2]]
+title = "PRODUCTS (NOT USED)"
+items = [
+  "No products are specified in this Section. TAB specialist shall furnish balancing instruments and shall provide replacement sheaves and belts through the mechanical installer where required to achieve design airflows.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine Contract Documents, approved submittals, and installed systems to become familiar with the Project and identify conditions that will prevent balancing.",
+  "Verify that the following are complete and operational before starting TAB:",
+  ">Ductwork is sealed and leakage tested as required by Section 23 31 13 \"Metal Ducts.\"",
+  ">Balancing dampers, fire dampers, and smoke dampers are installed, accessible, and open.",
+  ">Fans rotate in the correct direction and motors are properly aligned and lubricated.",
+  ">Automatic controls are installed and calibrated.",
+  ">Clean filters are installed.",
+  "Report deficiencies in writing to the Contractor and Architect. Do not proceed until deficiencies are corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Prepare a TAB plan identifying systems, measurement points, and the sequence of work.",
+  "Mark duct test holes, and seal them with plugs after testing.",
+]
+
+[[section.part3]]
+title = "AIR-SYSTEM BALANCING"
+items = [
+  "Measure and adjust total airflow at each fan to within plus or minus 10 percent of design.",
+  "Adjust outdoor-air quantities to within plus 10 or minus 0 percent of the design minimum outdoor air required by ASHRAE 62.1 or the mechanical code.",
+  "Balance supply, return, and exhaust terminals to within plus or minus 10 percent of design airflow.",
+  "Measure static pressure across fans, coils, filters, and major components; record fan speed, motor current, and voltage.",
+  "Adjust fan drives and variable-frequency drive settings to obtain design airflow with the least practical static pressure; mark final damper positions.",
+  "Verify building pressurization relationships indicated on the Drawings, including negative pressure at restrooms and janitor rooms.",
+]
+
+[[section.part3]]
+title = "HYDRONIC-SYSTEM BALANCING"
+items = [
+  "Where hydronic systems are indicated, balance water flow to coils and terminals to within plus or minus 10 percent of design.",
+  "Record pump heads, flows, motor data, and final valve settings.",
+]
+
+[[section.part3]]
+title = "EQUIPMENT PERFORMANCE VERIFICATION"
+items = [
+  "Record entering and leaving air temperatures at cooling and heating coils, refrigerant-system operating data from the equipment controller, and electrical data for each unit.",
+  "Verify operation of economizers, energy recovery devices, and demand-controlled ventilation sequences where provided.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Architect or engineer of record may randomly select up to 10 percent of reported measurements for verification. If more than 10 percent of verified values differ from the report by more than the tolerances above, the report will be rejected and TAB repeated at no additional cost to the Owner.",
+  "Seasonal Testing: Where indicated, perform opposite-season verification within 6 months of Substantial Completion.",
+]
+
+[[section]]
+number = "23 07 13"
+title = "DUCT INSULATION"
+when = ["hvac"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Insulation for supply, return, outdoor-air, and exhaust ductwork.",
+  ">Insulation jackets, accessories, and field-applied coverings.",
+  "Coordination with Engineer of Record: Duct insulation types and thicknesses are indicated on the mechanical Drawings prepared by the engineer of record, or, for design-build or delegated-design HVAC work, by the Contractor's engineer. Where not indicated, provide insulation meeting the minimum R-values required by the energy code adopted by {jurisdiction}.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping at rated assemblies.",
+  ">Section 23 31 13 \"Metal Ducts\" for duct liner.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of insulation, jacket, adhesive, and sealant, indicating thermal conductivity, thickness, and installed R-value.",
+  "Shop Drawings: Details of insulation application at fittings, hangers, and equipment connections, where requested.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Test reports showing that insulation materials, jackets, and adhesives comply with surface-burning characteristics required below.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Surface-Burning Characteristics: Flame-spread index of 25 or less and smoke-developed index of 50 or less when tested according to ASTM E84, applied to the composite of insulation, jacket, and adhesive.",
+  "Installer Qualifications: Firm specializing in mechanical insulation with a minimum of three years of experience.",
+  "Comply with the North American Commercial and Industrial Insulation Standards (MICA) for application details.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver materials in original packaging marked with product name, thickness, and density. Store indoors off the floor and protect from moisture and damage.",
+]
+
+[[section.part2]]
+title = "INSULATION MATERIALS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Johns Manville.",
+  ">Knauf Insulation.",
+  ">Owens Corning.",
+  ">CertainTeed; Saint-Gobain.",
+  "Flexible Glass-Fiber Blanket Insulation (Duct Wrap): ASTM C553, Type II, with factory-applied FSK (foil-scrim-kraft) vapor-retarder jacket complying with ASTM C1136, Type II; 0.75 pcf minimum density.",
+  "Rigid Glass-Fiber Board Insulation: ASTM C612, Type IA or IB, 3 pcf nominal density, with factory-applied FSK or ASJ jacket, for exposed rectangular ductwork in mechanical rooms.",
+  "Flexible Elastomeric Insulation: ASTM C534, Type II sheet, closed cell, for outdoor ductwork where indicated, with UV-protective coating.",
+]
+
+[[section.part2]]
+title = "INSULATION SCHEDULE"
+items = [
+  "Provide the following minimum installed thermal resistance unless greater values are indicated on the Drawings or required by the energy code:",
+  ">Supply and return ducts in unconditioned spaces, including attics and ventilated crawlspaces: R-6 minimum; R-8 where required by the energy code.",
+  ">Supply and return ducts located outdoors: R-8 minimum, with weatherproof jacket.",
+  ">Outdoor-air intake ducts within conditioned space: R-6, with vapor retarder.",
+  ">Exhaust ducts from exhaust fan to exterior termination, within 3 feet of the exterior wall or roof: R-6.",
+  ">Supply ducts in conditioned spaces: Not required unless indicated for condensation control.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Adhesives: As recommended by the insulation manufacturer, with VOC content complying with applicable limits.",
+  "Vapor-Retarder Tape: FSK tape matching the facing, 3 inches wide minimum.",
+  "Mechanical Fasteners: Galvanized-steel pins with self-locking washers, or adhesive-attached weld pins, of length appropriate for insulation thickness.",
+  "Outdoor Jackets: Aluminum, 0.016 inch thick, ASTM B209, with factory-applied moisture barrier, or manufacturer's field-applied weatherproof membrane jacket.",
+  "Corner Angles: Galvanized steel or aluminum at exposed rigid insulation corners.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that ductwork has been leak tested, sealed, and cleaned before applying insulation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION, GENERAL"
+items = [
+  "Install insulation continuously through hangers, sleeves, and wall penetrations except at fire-rated assemblies, where insulation shall be installed as required by the firestopping system listing.",
+  "Install insulation with longitudinal seams at the top of ducts where possible, with facing overlapped and taped vapor tight.",
+  "Seal vapor-retarder penetrations, tears, and staple holes with vapor-retarder tape or mastic.",
+  "Do not compress duct wrap more than 25 percent of its nominal thickness; installed R-value shall be based on installed thickness.",
+]
+
+[[section.part3]]
+title = "DUCT WRAP INSTALLATION"
+items = [
+  "Secure blanket insulation with adhesive applied in strips at 8 inches on center and with mechanical fasteners at 18 inches on center on bottom surfaces of ducts wider than 24 inches.",
+  "Overlap facing at circumferential joints 2 inches minimum, and seal with tape.",
+]
+
+[[section.part3]]
+title = "BOARD INSULATION INSTALLATION"
+items = [
+  "Secure board insulation with weld pins at 12 inches on center maximum, not less than 3 inches from edges and corners.",
+  "Install corner angles at exposed outside corners, and seal all joints with vapor-retarder tape.",
+]
+
+[[section.part3]]
+title = "OUTDOOR INSTALLATION"
+items = [
+  "Install weatherproof jacket over outdoor insulation with lapped seams shedding water, sealed watertight, and slope top surfaces of rectangular ducts to drain.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL AND PROTECTION"
+items = [
+  "Inspect insulation before concealment. Replace damaged, wet, or improperly installed insulation.",
+  "Protect installed insulation from damage and moisture until Substantial Completion.",
+]
+
+[[section]]
+number = "23 31 13"
+title = "METAL DUCTS"
+when = ["hvac"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Single-wall rectangular and round ducts and fittings.",
+  ">Sheet-metal materials and duct sealants.",
+  ">Hangers and supports.",
+  ">Duct accessories, including volume dampers, fire dampers, flexible ducts, and turning vanes.",
+  "Coordination with Engineer of Record: Duct sizes, routing, pressure classes, and accessory locations are indicated on the mechanical Drawings prepared by the engineer of record, or, for design-build or delegated-design HVAC work, on the Contractor's engineer's sealed documents.",
+  "Related Requirements:",
+  ">Section 23 07 13 \"Duct Insulation\" for external duct insulation.",
+  ">Section 23 37 13 \"Diffusers, Registers, and Grilles\" for air outlets and inlets.",
+  ">Section 23 05 93 \"Testing, Adjusting, and Balancing for HVAC\" for balancing.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Duct Construction: Comply with SMACNA HVAC Duct Construction Standards - Metal and Flexible for the pressure classes indicated.",
+  "Static-Pressure Classes: Unless otherwise indicated on the Drawings:",
+  ">Supply ducts upstream of terminal units and serving systems with fan static above 2 inches wg: 3 inch wg.",
+  ">Supply ducts downstream of terminal units and in constant-volume systems: 2 inch wg.",
+  ">Return and exhaust ducts: 2 inch wg, negative pressure.",
+  "Seal Class: SMACNA Seal Class A for all ducts, regardless of pressure class.",
+  "Leakage: Comply with the leakage class required by the energy code and SMACNA HVAC Air Duct Leakage Test Manual.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For sealants, dampers, flexible duct, and accessories.",
+  "Shop Drawings: Duct layouts at 1/4 inch = 1 foot scale, indicating sizes, pressure classes, fittings, reinforcement, hangers, dampers, access doors, and coordination with other trades.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field Quality-Control Reports: Duct leakage test reports.",
+  "Welding certificates, where welded ducts are required.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Comply with NFPA 90A or NFPA 90B, as applicable, and the International Mechanical Code.",
+  "Comply with ASHRAE 62.1 for duct materials and cleanliness, and ASHRAE/IES 90.1 or the IECC for duct sealing and insulation.",
+  "Fire and Smoke Dampers: Labeled according to UL 555 and UL 555S.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver ducts with ends sealed and store on raised supports under cover. Protect interior surfaces from dirt and moisture; do not install ducts with visible contamination unless cleaned.",
+]
+
+[[section.part2]]
+title = "MATERIALS"
+items = [
+  "Galvanized Sheet Steel: ASTM A653/A653M, G90 zinc coating, lock-forming quality, mill phosphatized where exposed and scheduled to be painted.",
+  "Stainless Steel: ASTM A480/A480M, Type 304, for dishwasher exhaust and other moist exhaust where indicated.",
+  "Aluminum: ASTM B209, alloy 3003, H14 temper, where indicated.",
+  "Grease Duct: Carbon steel, 0.054 inch minimum (16 gauge), continuously welded, complying with NFPA 96, where commercial cooking is indicated.",
+  "Reinforcement and Tie Rods: Galvanized steel complying with SMACNA standards.",
+]
+
+[[section.part2]]
+title = "DUCT FABRICATION"
+items = [
+  "Fabricate rectangular and round ducts and fittings with gauges, joints, seams, and reinforcement complying with SMACNA HVAC Duct Construction Standards for the indicated pressure class.",
+  "Elbows: Rectangular elbows with centerline radius of 1.5 times duct width; where square elbows are required, provide single-thickness turning vanes.",
+  "Round Ducts: Spiral lockseam or longitudinal seam, with fittings of the same material.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>McGill AirFlow LLC.",
+  ">>SEMCO LLC.",
+  ">>Eastern Sheet Metal (ESM).",
+  "Branch Connections: 45-degree entry or conical spin-in fittings with integral volume damper.",
+]
+
+[[section.part2]]
+title = "SEALANTS"
+items = [
+  "Joint and Seam Sealants: Water-based, UL 723 surface-burning characteristics of 25 flame spread and 50 smoke developed maximum, listed for the pressure class, with VOC content complying with applicable limits.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Hardcast; a Carlisle company.",
+  ">>Design Polymerics.",
+  ">>Ductmate Industries, Inc.",
+  "Tape Sealing Systems: UL 181B listed where permitted.",
+]
+
+[[section.part2]]
+title = "HANGERS AND SUPPORTS"
+items = [
+  "Hanger Straps and Rods: Galvanized steel, sized according to SMACNA tables for duct size and weight.",
+  "Upper Attachments: Concrete inserts, post-installed anchors with ICC-ES reports, or beam clamps; attach to structure, not to deck or other trades' supports.",
+]
+
+[[section.part2]]
+title = "DUCT ACCESSORIES"
+items = [
+  "Manual Volume Dampers: Galvanized steel, opposed or single blade as appropriate to duct size, with locking quadrant and extended shaft for insulated ducts.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Ruskin Company.",
+  ">>Greenheck Fan Corporation.",
+  ">>Nailor Industries Inc.",
+  ">>Pottorff.",
+  "Fire Dampers: UL 555, curtain type, dynamic rated where systems operate during fire, with fusible link at 165 deg F, rated 1-1/2 hours for assemblies rated less than 3 hours.",
+  "Smoke and Combination Fire/Smoke Dampers: UL 555S, Leakage Class I, where indicated or required by code, with actuators coordinated with the fire-alarm system.",
+  "Flexible Ducts: UL 181, Class 1, insulated, R-6 minimum, with inner core and vapor-barrier jacket; maximum length 5 feet.",
+  "Duct Access Doors: Double wall, insulated, with gaskets and cam latches; size to permit service of dampers and devices.",
+  "Turning Vanes: Double-wall airfoil type in ducts over 2 inch wg; single-wall elsewhere.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that spaces are ready for duct installation and that clearances and structural supports are adequate.",
+]
+
+[[section.part3]]
+title = "DUCT INSTALLATION"
+items = [
+  "Install ducts according to SMACNA HVAC Duct Construction Standards and approved Shop Drawings, with the fewest practical joints.",
+  "Install ducts with a clearance of 1 inch minimum plus insulation thickness from structure and other work.",
+  "Seal all joints, seams, and penetrations to meet Seal Class A.",
+  "Where ducts pass through fire-rated assemblies, install fire dampers according to the damper manufacturer's UL-listed installation instructions.",
+  "Install volume dampers at each branch takeoff to diffusers, registers, and grilles, located as far upstream from the outlet as practical.",
+  "Connect flexible ducts to metal ducts with draw bands and sealant; support at 5 feet on center maximum, without kinks or sags exceeding 1/2 inch per foot.",
+  "Protect duct openings from construction debris until the system is operational.",
+]
+
+[[section.part3]]
+title = "HANGER AND SUPPORT INSTALLATION"
+items = [
+  "Support ducts at intervals complying with SMACNA tables, and within 24 inches of each elbow and branch intersection.",
+  "Support vertical ducts at each floor with steel angles.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Leakage Testing: Test not less than 25 percent of ducts rated 3 inch wg and higher, selected by the Architect, according to SMACNA HVAC Air Duct Leakage Test Manual. Test additional sections if the initial sample fails.",
+  "Residential and light-commercial duct systems: Perform duct leakage testing required by the energy code, by a qualified tester.",
+  "Operational Test: Verify that dampers operate freely and that fire dampers are accessible and resettable.",
+]
+
+[[section.part3]]
+title = "CLEANING"
+items = [
+  "Clean ducts that were not protected during construction, according to NADCA ACR, before system start-up.",
+]
+
+[[section]]
+number = "23 34 23"
+title = "HVAC POWER VENTILATORS"
+when = ["hvac"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Ceiling-mounted and in-line exhaust fans.",
+  ">Roof-mounted centrifugal exhaust fans.",
+  ">Wall-mounted propeller and centrifugal fans.",
+  ">Bathroom and kitchen ventilation fans for dwelling units.",
+  "Coordination with Engineer of Record: Fan types, capacities, static pressures, sound ratings, and controls are scheduled on the mechanical Drawings prepared by the engineer of record, or, for design-build or delegated-design HVAC work, by the Contractor's engineer. Provide fans meeting the minimum exhaust rates of the mechanical code and ASHRAE 62.1 or ASHRAE 62.2, as applicable.",
+  "Related Requirements:",
+  ">Section 07 72 00 \"Roof Accessories\" for roof curbs furnished by others, where applicable.",
+  ">Section 23 31 13 \"Metal Ducts\" for connecting ductwork and backdraft dampers.",
+  ">Division 26 Sections for power wiring and disconnects.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each fan, including rated capacities, fan curves with operating point, sound ratings in sones or octave-band sound power, motor data, and accessories.",
+  "Shop Drawings: Roof curb details, mounting, and wiring diagrams.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For each fan type, including lubrication and belt-replacement instructions.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "AMCA Compliance: Fans shall bear the AMCA Certified Ratings Seal for air performance and, where scheduled, sound performance, tested according to AMCA 210 and AMCA 300.",
+  "HVI Compliance: Residential bath and kitchen fans shall be HVI certified for airflow and sound according to HVI 915 and HVI 916.",
+  "ENERGY STAR: Residential ventilation fans shall be ENERGY STAR qualified where required by the energy code or indicated.",
+  "UL Compliance: Fans and motors shall be listed according to UL 705; fans installed over tubs or showers shall be listed for that location.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's standard warranty against defects in materials and workmanship, but not less than one year; five years on EC motors where offered.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Greenheck Fan Corporation.",
+  ">Loren Cook Company.",
+  ">Twin City Fan and Blower.",
+  ">Broan-NuTone LLC (residential ventilation fans).",
+  ">Panasonic Corporation of North America (residential ventilation fans).",
+]
+
+[[section.part2]]
+title = "CEILING-MOUNTED VENTILATORS"
+items = [
+  "Housing: Galvanized steel, acoustically insulated, with integral backdraft damper and duct collar.",
+  "Fan Wheel: Centrifugal, forward curved, dynamically balanced, direct driven.",
+  "Grille: Egg-crate or louvered, white finish, removable for service.",
+  "Motor: Permanently lubricated, electronically commutated (EC) where scheduled, with speed controller.",
+  "Sound: 1.0 sone maximum for residential bath fans and 3.0 sones maximum for commercial toilet exhaust unless otherwise scheduled.",
+]
+
+[[section.part2]]
+title = "IN-LINE CENTRIFUGAL VENTILATORS"
+items = [
+  "Housing: Galvanized steel, square or round in-line, with removable access panel and duct flanges.",
+  "Drive: Direct or belt drive as scheduled; belt-drive units with adjustable pitch pulley and drives sized for 150 percent of motor horsepower.",
+]
+
+[[section.part2]]
+title = "ROOF-MOUNTED CENTRIFUGAL VENTILATORS"
+items = [
+  "Housing: Spun aluminum with curb cap, removable weather hood, and integral conduit chase.",
+  "Wheel: Backward-inclined, non-overloading aluminum wheel.",
+  "Accessories:",
+  ">Prefabricated insulated roof curb, 12 inches high minimum, compatible with the roofing system.",
+  ">Motorized or gravity backdraft damper.",
+  ">Bird screen.",
+  ">Unit-mounted NEMA 3R disconnect switch.",
+  "Upblast grease exhaust fans for commercial kitchens shall be UL 762 listed, with hinged base and grease collector, complying with NFPA 96.",
+]
+
+[[section.part2]]
+title = "WALL-MOUNTED VENTILATORS"
+items = [
+  "Propeller or centrifugal type with galvanized or aluminum housing, wall sleeve, gravity or motorized shutter, and weather hood.",
+]
+
+[[section.part2]]
+title = "MOTORS AND CONTROLS"
+items = [
+  "Motors: NEMA MG 1, premium efficiency where 1 hp and larger; EC motors with integral speed control for fractional-horsepower direct-drive fans where scheduled.",
+  "Controls: Wall switch, timer, humidity sensor, occupancy sensor, or building automation interlock as scheduled and as required by the energy code for dwelling-unit continuous or intermittent ventilation.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify roof curbs, wall openings, and ceiling framing are ready and correctly located for fan installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install fans level and plumb according to manufacturer's written instructions, with vibration isolation where scheduled.",
+  "Secure roof fans to curbs with stainless-steel fasteners; coordinate curb flashing with the roofing installer.",
+  "Suspend in-line fans from structure with rod hangers and spring or rubber-in-shear isolators.",
+  "Connect ductwork with flexible connectors; install backdraft dampers where not integral.",
+  "Terminate exhaust ducts at the exterior with a hood or roof jack at least 3 feet from operable openings and 10 feet from mechanical air intakes, or as required by the mechanical code. Do not terminate in attics, soffit vents, or crawlspaces.",
+  "Install bath-fan ducts with minimum slope to the exterior and insulate where passing through unconditioned space.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Verify fan rotation, belt tension, and alignment; operate each fan and correct noise, vibration, and air leakage.",
+  "Verify dwelling-unit exhaust airflow with a flow hood where required by the energy code.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Adjust fan speed and drives to deliver scheduled airflow, coordinated with Section 23 05 93 \"Testing, Adjusting, and Balancing for HVAC.\"",
+  "Clean fan housings, wheels, and grilles at completion.",
+]
+
+[[section]]
+number = "23 37 13"
+title = "DIFFUSERS, REGISTERS, AND GRILLES"
+when = ["hvac"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Ceiling diffusers, including square, round, plaque, and linear slot types.",
+  ">Supply registers and grilles for walls, floors, and sidewalls.",
+  ">Return, transfer, and exhaust grilles.",
+  "Coordination with Engineer of Record: Air-outlet types, sizes, airflows, throw patterns, and neck sizes are scheduled on the mechanical Drawings prepared by the engineer of record, or, for design-build or delegated-design HVAC work, by the Contractor's engineer. Locations in finished ceilings are coordinated with the architectural reflected ceiling plans, which govern visual layout.",
+  "Related Requirements:",
+  ">Section 09 51 13 \"Acoustical Panel Ceilings\" for ceiling grid coordination.",
+  ">Section 23 31 13 \"Metal Ducts\" for volume dampers and flexible duct connections.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of outlet and inlet, including performance data (throw, pressure drop, and NC rating), materials, finishes, and mounting.",
+  "Samples: For each exposed finish, where requested by the Architect.",
+  "Schedule: Indicating drawing designation, room location, quantity, model, size, and accessories.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Coordination Drawings: Reflected ceiling plans showing air outlets with lighting fixtures, sprinklers, speakers, sensors, and access panels, drawn to scale.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Performance ratings tested according to ASHRAE 70, Method of Testing the Performance of Air Outlets and Air Inlets.",
+  "Sound: Noise criterion (NC) of 30 maximum in offices and classrooms and 25 maximum in dwelling-unit bedrooms and conference rooms, at scheduled airflow, unless otherwise scheduled.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Price Industries.",
+  ">Titus; a brand of Johnson Controls.",
+  ">Krueger-HVAC.",
+  ">Hart and Cooley, LLC.",
+]
+
+[[section.part2]]
+title = "CEILING DIFFUSERS"
+items = [
+  "Square Louvered and Plaque Diffusers: Steel or aluminum, lay-in or surface mount to match ceiling type, 24 by 24 inch or 12 by 12 inch face as scheduled, with removable core and adjustable pattern where scheduled.",
+  "Round Diffusers: Aluminum, adjustable cones, for exposed ductwork where indicated.",
+  "Linear Slot Diffusers: Extruded aluminum, 1 to 4 slots as scheduled, with pattern controllers and insulated plenum; lengths and alignment as indicated on reflected ceiling plans.",
+  "Accessories: Opposed-blade volume dampers where branch dampers are not accessible, and blank-off baffles where scheduled.",
+]
+
+[[section.part2]]
+title = "REGISTERS AND GRILLES"
+items = [
+  "Supply Registers: Double-deflection, adjustable blades on 3/4 inch centers, with opposed-blade damper, steel or aluminum frame with 1-1/4 inch border.",
+  "Floor Registers: Heavy-duty steel or aluminum, load rated for foot traffic, with damper.",
+  "Return and Exhaust Grilles: Fixed blades at 45 degrees on 3/4 inch spacing, or 1/2 by 1/2 by 1/2 inch aluminum egg-crate core where scheduled.",
+  "Transfer Grilles: Sight-proof, with frames on both sides of walls and sleeve through wall.",
+  "Filter Return Grilles: Hinged face with filter frame for 1 inch filters, for residential return air where indicated.",
+]
+
+[[section.part2]]
+title = "FINISHES"
+items = [
+  "Finish: Baked-enamel or powder-coat, white, unless otherwise indicated; custom colors selected by the Architect from manufacturer's full range where indicated.",
+  "Wet Areas: Aluminum construction in toilet rooms, showers, and kitchens.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine ceilings, walls, and floors for correct framing and openings before installing air outlets and inlets.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install diffusers, registers, and grilles level and plumb, according to manufacturer's written instructions and the Architect's reflected ceiling plans.",
+  "Locate ceiling outlets centered in ceiling tiles or in a symmetrical pattern with lighting fixtures. Where conflicts occur, the reflected ceiling plans govern location; request direction for conflicts affecting performance.",
+  "Support outlets independent of ceiling tiles; in lay-in ceilings, provide seismic clips or support wires where required.",
+  "Seal outlet collars and plenums to connecting ducts airtight.",
+  "Install sidewall registers with top of frame 6 inches minimum below ceiling unless otherwise indicated.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Adjust pattern controllers and deflection blades to provide air patterns indicated, avoiding drafts on occupants.",
+  "Clean exposed surfaces and replace damaged or discolored units.",
+]
+
+[[section]]
+number = "23 74 16.11"
+title = "PACKAGED, SMALL-CAPACITY, ROOFTOP AIR-CONDITIONING UNITS"
+when = ["hvac+commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Packaged rooftop units (RTUs) of 25 tons nominal cooling capacity and smaller, with direct-expansion cooling and gas, electric, or heat-pump heating as scheduled.",
+  ">Economizers, energy recovery, and unit controls.",
+  ">Roof curbs and rails.",
+  "Coordination with Engineer of Record: Unit capacities, efficiencies, airflows, heating type, ventilation quantities, and control sequences are scheduled on the mechanical Drawings prepared by the engineer of record, or, for design-build or delegated-design HVAC work, by the Contractor's engineer, based on load calculations according to ACCA Manual N or the ASHRAE Handbook - Fundamentals.",
+  "Related Requirements:",
+  ">Section 07 72 00 \"Roof Accessories\" for roof curb coordination.",
+  ">Section 23 05 00 \"Common Work Results for HVAC\" for supports and identification.",
+  ">Section 23 31 13 \"Metal Ducts\" for connecting ductwork.",
+  ">Division 26 Sections for power wiring and disconnects.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Energy Efficiency: Not less than the minimum efficiencies of ASHRAE/IES 90.1 or the IECC as adopted by {jurisdiction}; IEER or SEER2 as scheduled.",
+  "Capacity Ratings: AHRI 340/360 for units 65,000 Btu/h and larger, and AHRI 210/240 for units smaller than 65,000 Btu/h.",
+  "Structural Performance: Units and curbs shall withstand wind and seismic loads required by the {building_code} for the Project location.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each unit, including rated capacities, efficiencies, operating weights, fan curves, electrical data, sound data, and accessories.",
+  "Shop Drawings: Unit dimensions, curb details, service clearances, duct connections, and field wiring diagrams.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Structural calculations for curb attachment where required by the {building_code}.",
+  "Coordination Drawings: Roof plan showing unit locations, curbs, clearances, and roof penetrations, coordinated with structural framing.",
+  "Startup reports signed by the manufacturer's representative.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: Including filter sizes, belt sizes, control sequences, and parts lists.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Units shall be AHRI certified and listed and labeled according to UL 1995 or UL 60335-2-40, as applicable.",
+  "Gas-fired heating sections shall comply with ANSI Z21.47/CSA 2.3.",
+  "Comply with ASHRAE 15 for refrigerant safety, using refrigerants permitted by EPA regulations in effect at the time of manufacture.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's warranty for compressors: Five years from date of Substantial Completion.",
+  "Manufacturer's warranty for gas heat exchangers: Ten years from date of Substantial Completion.",
+  "Parts warranty on remainder of unit: One year minimum.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Carrier Corporation.",
+  ">Trane Technologies.",
+  ">Daikin Applied.",
+  ">Lennox International Inc.",
+  ">York; a brand of Johnson Controls.",
+]
+
+[[section.part2]]
+title = "CABINET"
+items = [
+  "Construction: Galvanized-steel casing with baked-enamel or powder-coat finish, capable of withstanding 500-hour salt-spray test according to ASTM B117.",
+  "Insulation: 1/2 inch minimum, foil-faced or with cleanable surface, on interior of casing in airstream areas.",
+  "Access Panels: Hinged, with gaskets, for filters, blower, and controls.",
+  "Drain Pan: Noncorrosive, double sloped to the drain connection to prevent standing water, complying with ASHRAE 62.1.",
+]
+
+[[section.part2]]
+title = "FANS"
+items = [
+  "Supply Fan: Centrifugal, direct drive with EC motor or belt drive with variable-frequency drive as scheduled; multispeed or variable-speed operation as required by the energy code.",
+  "Condenser Fans: Direct-drive propeller type, vertical discharge.",
+]
+
+[[section.part2]]
+title = "REFRIGERATION SYSTEM"
+items = [
+  "Compressors: Hermetic scroll, with crankcase heaters and internal overload protection; two-stage or variable capacity where scheduled.",
+  "Coils: Copper tube with aluminum fins, or all-aluminum microchannel; coated fins where located in corrosive or coastal environments.",
+  "Refrigerant Circuit: Filter-drier, thermostatic or electronic expansion valve, and high- and low-pressure safety switches.",
+]
+
+[[section.part2]]
+title = "HEATING SECTION"
+items = [
+  "Gas Heat: Induced-draft, stainless-steel or aluminized-steel heat exchanger, direct-spark ignition, with two-stage or modulating control as scheduled.",
+  "Electric Heat: Open-coil nickel-chromium elements with automatic-reset high limit and manual-reset backup, where scheduled.",
+  "Heat Pump: Reversing valve, defrost control, and supplemental electric heat as scheduled.",
+]
+
+[[section.part2]]
+title = "OUTDOOR AIR AND ECONOMIZER"
+items = [
+  "Economizer: Integrated differential enthalpy or dry-bulb economizer with low-leakage dampers (maximum 4 cfm per square foot at 1 inch wg), fault detection and diagnostics, and barometric or powered relief, where required by the energy code.",
+  "Outdoor-Air Damper: Adjustable minimum position, or demand-controlled ventilation with CO2 sensor as scheduled.",
+  "Energy Recovery Wheel: Where scheduled, rated according to AHRI 1060.",
+]
+
+[[section.part2]]
+title = "FILTERS AND CONTROLS"
+items = [
+  "Filters: 2 inch pleated, MERV 13 minimum rated according to ASHRAE 52.2, unless otherwise scheduled.",
+  "Controls: Factory-installed unit controller with BACnet communication to the building automation system, or programmable thermostat for stand-alone units.",
+  "Smoke Detection: Duct smoke detector in the return air of units over 2000 cfm as required by the mechanical code, interlocked to shut down the unit and connected to the fire-alarm system where provided.",
+]
+
+[[section.part2]]
+title = "ROOF CURBS"
+items = [
+  "Roof Curbs: Manufacturer's full-perimeter galvanized-steel curb, 14 inches high minimum, insulated, with wood nailer, designed for the roof slope and roofing system; or engineered equipment rails where indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify roof structure, openings, and curb supports are complete and correctly located before setting units.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install curbs level and secure to structure; coordinate flashing with the roofing installer.",
+  "Set units on curbs with manufacturer's gasket, and secure against wind and seismic forces as required by the {building_code}.",
+  "Maintain service clearances indicated by the manufacturer; where units are within 10 feet of a roof edge, provide guards as required by the mechanical code.",
+  "Connect ductwork with flexible connectors; seal duct openings within curbs.",
+  "Pipe condensate drain with trap to an approved location; connect gas piping with shutoff valve, union, and sediment trap.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL AND STARTUP"
+items = [
+  "Engage a factory-authorized service representative to perform startup, including verification of refrigerant charge, rotation, economizer operation, heating operation, and safety controls.",
+  "Test and adjust controls and verify sequences of operation with the building automation system.",
+]
+
+[[section.part3]]
+title = "DEMONSTRATION"
+items = [
+  "Train the Owner's maintenance personnel to operate and maintain units; install new filters at Substantial Completion.",
+]
+
+[[section]]
+number = "23 81 26"
+title = "SPLIT-SYSTEM AIR-CONDITIONERS"
+when = ["hvac+residential"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Split-system air conditioners and air-source heat pumps with outdoor condensing units and indoor air handlers or furnace coils.",
+  ">Ductless mini-split and multi-split heat pumps.",
+  ">Refrigerant piping, condensate drainage, and controls.",
+  "Coordination with Engineer of Record: Equipment capacities, efficiencies, and locations are indicated on the mechanical Drawings prepared by the engineer of record, or, where HVAC is design-build, by the Contractor's designer, based on ACCA Manual J load calculations, Manual S equipment selection, and Manual D duct design.",
+  "Related Requirements:",
+  ">Section 23 31 13 \"Metal Ducts\" for supply and return ductwork.",
+  ">Section 23 37 13 \"Diffusers, Registers, and Grilles\" for air outlets.",
+  ">Division 26 Sections for power wiring and disconnects.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Efficiency: AHRI certified matched systems, rated according to AHRI 210/240, not less than the minimum SEER2, EER2, and HSPF2 required by federal regulations for the Project region and by the energy code; ENERGY STAR certified where indicated.",
+  "Cold-Climate Heat Pumps: Where indicated, rated to deliver not less than 70 percent of rated heating capacity at 5 deg F.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each system, including AHRI certificate of the matched combination, capacities, efficiencies, sound ratings, and electrical data.",
+  "Load Calculations: ACCA Manual J and Manual S documentation, where HVAC design is by the Contractor.",
+  "Shop Drawings: Equipment locations, refrigerant line routing, condensate routing, and wiring diagrams.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: Including thermostat instructions and filter information.",
+  "Refrigerant Charge Report: Indicating charge verification method and results.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Units shall be listed and labeled according to UL 1995 or UL 60335-2-40, as applicable.",
+  "Installer Qualifications: Licensed HVAC contractor with EPA Section 608 certified technicians; NATE-certified technicians preferred.",
+  "Refrigerants: Comply with ASHRAE 15 and ASHRAE 34; use refrigerants permitted by EPA regulations in effect at the time of manufacture.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's warranty for compressor: Ten years from date of Substantial Completion, with registration.",
+  "Manufacturer's parts warranty: Ten years, with registration.",
+  "Installer's labor warranty: One year minimum.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Carrier Corporation (including Bryant).",
+  ">Trane Technologies (including American Standard).",
+  ">Lennox International Inc.",
+  ">Mitsubishi Electric Trane HVAC US LLC (ductless systems).",
+  ">Daikin Comfort Technologies North America, Inc.",
+]
+
+[[section.part2]]
+title = "OUTDOOR UNITS"
+items = [
+  "Cabinet: Galvanized steel with baked-enamel finish, with coil guard and service access panel.",
+  "Compressor: Scroll, two-stage, or inverter-driven variable-speed as scheduled, with crankcase heater and sound blanket.",
+  "Coil: Copper tube with aluminum fins, or all-aluminum; coated for coastal locations within 1 mile of salt water.",
+  "Controls: Low- and high-pressure switches, anti-short-cycle time delay, and demand defrost control for heat pumps.",
+  "Sound: 72 dBA maximum sound power, rated according to AHRI 270, unless otherwise scheduled.",
+]
+
+[[section.part2]]
+title = "INDOOR UNITS"
+items = [
+  "Air Handlers: Multi-position cabinet, insulated, with ECM variable-speed blower, evaporator coil, filter rack, and supplemental electric heat as scheduled.",
+  "Furnace with Coil: Where gas heat is scheduled, condensing furnace of 95 percent AFUE minimum with matched cased evaporator coil.",
+  "Ductless Indoor Units: Wall-mounted, ceiling cassette, or concealed-duct type as scheduled, with integral condensate pump where gravity drain is not available.",
+  "Filters: MERV 8 minimum, rated according to ASHRAE 52.2; MERV 13 where indicated.",
+]
+
+[[section.part2]]
+title = "REFRIGERANT PIPING AND CONDENSATE"
+items = [
+  "Refrigerant Piping: ASTM B280 copper, sized per manufacturer; suction line insulated with 1/2 inch minimum flexible elastomeric insulation, UV protected outdoors.",
+  "Line-Set Covers: PVC line-set cover system at exposed exterior routing.",
+  "Condensate Drains: PVC Schedule 40, with trap and cleanout; secondary drain pan with float switch where the indoor unit is located above finished space.",
+]
+
+[[section.part2]]
+title = "CONTROLS"
+items = [
+  "Thermostats: Programmable or communicating thermostats compatible with the equipment, with heat-pump auxiliary heat lockout as required by the energy code.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify locations, pads, clearances, and electrical service are ready before installing equipment.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install outdoor units on concrete or composite pads or wall brackets, level and 3 inches minimum above grade, with clearances indicated by the manufacturer; elevate above expected snow depth where applicable.",
+  "Secure outdoor units against wind and seismic forces as required by the {building_code}.",
+  "Install indoor units level, with service clearance, and with auxiliary drain pan where required.",
+  "Install refrigerant piping with minimum bends, supported at 5 feet on center; braze with nitrogen purge.",
+  "Pressure test refrigerant piping with dry nitrogen and evacuate to 500 microns before charging.",
+  "Seal refrigerant and condensate penetrations of the building envelope airtight and weathertight.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Verify refrigerant charge by subcooling or superheat method according to manufacturer's instructions.",
+  "Verify system airflow within the range required by the manufacturer and by ACCA Manual S, and perform duct leakage testing required by the energy code.",
+]
+
+[[section.part3]]
+title = "DEMONSTRATION"
+items = [
+  "Instruct the Owner in the operation of equipment and thermostats and in filter replacement; register equipment warranties in the Owner's name.",
+]
+
+[[section]]
+number = "26 05 00"
+title = "COMMON WORK RESULTS FOR ELECTRICAL"
+when = ["electrical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">General requirements common to electrical work.",
+  ">Sleeves and sleeve seals for electrical penetrations.",
+  ">Supports and anchorage for electrical equipment.",
+  ">Electrical identification.",
+  ">Coordination with utility service and with equipment furnished under other Sections.",
+  "Coordination with Engineer of Record: Electrical service, distribution, circuiting, and equipment ratings are indicated on the electrical Drawings prepared by the engineer of record, whose drawings, panel schedules, and one-line diagram govern. Where electrical work is procured as design-build or delegated design, the Contractor's electrical engineer shall prepare and seal the design documents in compliance with these requirements, NFPA 70 as adopted by {jurisdiction}, and the {building_code}.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping at rated assemblies.",
+  ">Division 23 Sections for HVAC equipment requiring power and control connections.",
+  ">Division 22 Sections for plumbing equipment requiring power connections.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "NEC: NFPA 70, National Electrical Code, as adopted and amended by the authority having jurisdiction.",
+  "Listed and Labeled: As defined in NFPA 70, by a Nationally Recognized Testing Laboratory (NRTL) acceptable to the authority having jurisdiction.",
+  "Engineer of Record: The registered professional engineer responsible for the design of the electrical systems indicated on the Drawings or, for delegated design, the Contractor's engineer.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product specified in Division 26 Sections.",
+  "Shop Drawings: Service entrance, switchboard, and panelboard layouts with dimensioned working clearances; coordinated electrical room layouts at 1/4 inch = 1 foot scale.",
+  "Delegated-Design Submittal: Where electrical design is delegated, submit drawings, load calculations, short-circuit and coordination studies, and panel schedules signed and sealed by a professional engineer licensed in the state of the Project.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Utility Coordination: Correspondence and service requirements from the serving electric utility.",
+  "Short-Circuit and Arc-Flash Studies: Where required by the engineer of record, prepared according to IEEE 1584 and NFPA 70E.",
+  "Energy code compliance documentation for lighting and electrical power, in the format required by the authority having jurisdiction.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Record Drawings: Electrical Drawings marked to show actual locations of equipment, concealed raceways, and circuit changes; final typed panel directories.",
+  "Operation and Maintenance Data: For electrical equipment, including settings of adjustable overcurrent devices.",
+  "Certificate of final electrical inspection from the authority having jurisdiction.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Electrical contractor licensed in the Project jurisdiction, with work performed by licensed electricians or apprentices under direct supervision.",
+  "Comply with NFPA 70 and with the requirements of the serving utility.",
+  "Electrical Components, Devices, and Accessories: Listed and labeled for their intended location and application.",
+  "Comply with NECA 1, Standard for Good Workmanship in Electrical Construction.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store electrical equipment indoors in clean, dry spaces with uniform temperature; protect from dust, moisture, and physical damage. Energize space heaters in stored equipment where provided.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Provide a one-year warranty on electrical workmanship and materials from the date of Substantial Completion, in addition to manufacturers' warranties specified in other Sections.",
+]
+
+[[section.part2]]
+title = "SLEEVES AND SLEEVE SEALS"
+items = [
+  "Sleeves: Galvanized-steel pipe, Schedule 40, for penetrations of concrete and masonry; galvanized-steel sheet for penetrations of gypsum board assemblies.",
+  "Sleeve Seals: Modular mechanical type with synthetic-rubber links, for penetrations of exterior and below-grade walls.",
+  "Firestop Systems: Listed according to ASTM E814 or UL 1479 for the rating of the penetrated assembly.",
+]
+
+[[section.part2]]
+title = "SUPPORTS AND ANCHORAGE"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Eaton (B-Line).",
+  ">nVent CADDY.",
+  ">Unistrut; Atkore International.",
+  "Support Channel: MFMA-4, galvanized or painted steel; stainless steel in wet or corrosive locations.",
+  "Anchors: Post-installed concrete anchors with ICC-ES evaluation reports for the application; do not attach to roof deck or ceiling support wires unless listed for that use.",
+]
+
+[[section.part2]]
+title = "IDENTIFICATION"
+items = [
+  "Equipment Nameplates: Engraved laminated plastic, white letters on black background (red background for emergency systems), 3/8 inch high letters, indicating equipment designation, voltage, and source.",
+  "Arc-Flash Warning Labels: Complying with NFPA 70E and ANSI Z535.4, indicating incident energy and required PPE where a study is provided.",
+  "Raceway and Cable Labels: Color-coded bands or self-adhesive labels for medium-voltage, emergency, fire alarm, and communications raceways.",
+  "Conductor Identification: Color coding as specified in Section 26 05 19 \"Low-Voltage Electrical Power Conductors and Cables.\"",
+  "Device Labels: Machine-printed labels on device plates indicating panel and circuit number, where indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas and conditions for compliance with requirements for installation clearances and structural support before starting work.",
+  "Coordinate the service entrance, meter location, and transformer pad with the serving utility before rough-in.",
+]
+
+[[section.part3]]
+title = "INSTALLATION, GENERAL"
+items = [
+  "Install electrical work according to NFPA 70, NECA 1, manufacturers' written instructions, and the approved coordination drawings.",
+  "Maintain working space in front of and around electrical equipment as required by NFPA 70, and keep dedicated equipment space above panelboards and switchboards free of piping and ducts.",
+  "Coordinate device mounting heights with architectural elevations and casework; where not indicated, mount as follows:",
+  ">Receptacles: 18 inches above finished floor to center, and 6 inches above countertops and backsplashes.",
+  ">Wall Switches: 48 inches above finished floor to center.",
+  ">Accessible controls and outlets: Within reach ranges of ICC A117.1.",
+  "Do not cut or notch structural members without written approval from the structural engineer.",
+  "Install sleeves at penetrations of walls, floors, and roofs; seal with sleeve seals at exterior walls and firestop at rated assemblies.",
+]
+
+[[section.part3]]
+title = "EQUIPMENT CONNECTIONS"
+items = [
+  "Provide power wiring, disconnects, and final connections to equipment furnished under other Sections and by the Owner, verifying nameplate ratings before connection.",
+  "Install control wiring for HVAC equipment where indicated on the electrical Drawings; coordinate responsibility with Division 23.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION"
+items = [
+  "Install nameplates on switchboards, panelboards, transformers, disconnect switches, and motor controllers.",
+  "Install typed panel directories identifying each circuit by load and room, using final room names and numbers.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test electrical systems according to NETA ATS where required by the engineer of record, and as required in individual Division 26 Sections.",
+  "Correct deficiencies and retest. Obtain final inspection approval from the authority having jurisdiction.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean interiors of electrical equipment of dust, debris, and paint before energizing; touch up damaged factory finishes.",
+]
+
+[[section]]
+number = "26 05 19"
+title = "LOW-VOLTAGE ELECTRICAL POWER CONDUCTORS AND CABLES"
+when = ["electrical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Building wire and cable rated 600 V and less.",
+  ">Metal-clad cable (Type MC) and nonmetallic-sheathed cable (Type NM), where permitted.",
+  ">Connectors, splices, and terminations.",
+  "Coordination with Engineer of Record: Conductor sizes, circuiting, and feeder routing are indicated on the electrical Drawings prepared by the engineer of record, or, for design-build or delegated-design electrical work, by the Contractor's engineer.",
+  "Related Requirements:",
+  ">Section 26 05 26 \"Grounding and Bonding for Electrical Systems\" for grounding conductors.",
+  ">Section 26 05 33 \"Raceways and Boxes for Electrical Systems\" for raceways.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of conductor, cable, and connector.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field Quality-Control Reports: Insulation-resistance test results for feeders.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Conductors and cables shall be listed and labeled according to UL 83, UL 44, UL 1569 (Type MC), or UL 719 (Type NM), as applicable.",
+  "Comply with NFPA 70 for ampacity, derating, and permitted uses.",
+]
+
+[[section.part2]]
+title = "CONDUCTORS AND CABLES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Southwire Company, LLC.",
+  ">Encore Wire Corporation.",
+  ">Cerro Wire LLC.",
+  ">AFC Cable Systems; Atkore International (Type MC).",
+  "Conductor Material: Copper, complying with ASTM B3 and ASTM B8; solid for No. 10 AWG and smaller, stranded for No. 8 AWG and larger. Aluminum feeders, where permitted by the engineer of record, shall be AA-8000 series alloy, No. 1/0 AWG and larger only.",
+  "Insulation: Type THHN/THWN-2 in raceways; Type XHHW-2 for feeders and service entrance conductors where indicated.",
+  "Minimum Size: No. 12 AWG for branch circuits; No. 14 AWG for control circuits.",
+  "Type MC Cable: Copper conductors with insulated grounding conductor, interlocking aluminum armor.",
+  "Type NM Cable: Copper, where permitted by NFPA 70 and the authority having jurisdiction, generally limited to one- and two-family dwellings and wood-frame construction.",
+]
+
+[[section.part2]]
+title = "CONNECTORS AND SPLICES"
+items = [
+  "Connectors: UL 486A-486B, copper compression or mechanical type rated for the conductor material and temperature.",
+  "Twist-On Connectors: UL 486C, for No. 10 AWG and smaller.",
+  "Push-in and lever connectors: Listed for the application, where acceptable to the authority having jurisdiction.",
+]
+
+[[section.part2]]
+title = "COLOR CODING"
+items = [
+  "208Y/120 V and 120/240 V systems: Phase A black, Phase B red, Phase C blue, neutral white, ground green.",
+  "480Y/277 V systems: Phase A brown, Phase B orange, Phase C yellow, neutral gray, ground green.",
+  "Use colored insulation for No. 10 AWG and smaller; colored tape at terminations for larger conductors.",
+]
+
+[[section.part3]]
+title = "CONDUCTOR AND CABLE APPLICATIONS"
+items = [
+  "Service Entrance and Feeders: Single conductors in raceway.",
+  "Branch Circuits Concealed in Walls and Ceilings: Single conductors in raceway or Type MC cable where permitted.",
+  "Exposed Branch Circuits and Circuits in Mechanical and Electrical Rooms: Single conductors in raceway.",
+  "Branch Circuits in Wood-Frame Dwellings: Type NM cable where permitted.",
+  "Underground and in Slab: Single conductors in raceway, Type THWN-2 or XHHW-2.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install conductors according to NECA 1 and manufacturer's written instructions; do not exceed manufacturer's pulling tension and bending-radius limits.",
+  "Pull conductors into raceways simultaneously where more than one is in the same raceway, using listed pulling lubricant.",
+  "Provide a dedicated neutral for each branch circuit where required by NFPA 70 or indicated; do not share neutrals on AFCI- or GFCI-protected circuits.",
+  "Support cables at intervals required by NFPA 70; do not support from ceiling grid wires or ductwork.",
+  "Increase conductor size for voltage drop where branch circuits exceed 100 feet at 120 V, to limit voltage drop to 3 percent on branch circuits and 5 percent total.",
+]
+
+[[section.part3]]
+title = "CONNECTIONS"
+items = [
+  "Tighten connectors and terminals to manufacturer's torque values using a calibrated torque tool.",
+  "Leave 6 inches minimum of free conductor at each outlet and junction box.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test feeders and service conductors for insulation resistance using a 1000 V dc megohmmeter; minimum acceptable reading 100 megohms.",
+  "Verify continuity and correct phasing of each circuit; replace failed conductors and retest.",
+]
+
+[[section]]
+number = "26 05 26"
+title = "GROUNDING AND BONDING FOR ELECTRICAL SYSTEMS"
+when = ["electrical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Grounding electrode system, including concrete-encased electrodes, ground rods, and water-pipe connections.",
+  ">Equipment grounding and bonding conductors.",
+  ">Bonding of metallic piping, structural steel, and communications systems.",
+  "Coordination with Engineer of Record: Grounding system requirements are indicated on the electrical Drawings prepared by the engineer of record, or, for design-build or delegated-design electrical work, by the Contractor's engineer.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for coordination of concrete-encased electrodes in footings.",
+  ">Section 26 05 19 \"Low-Voltage Electrical Power Conductors and Cables\" for conductors.",
+  ">Section 27 15 13 \"Communications Copper Horizontal Cabling\" for the telecommunications bonding backbone.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of grounding product.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field Quality-Control Reports: Ground resistance test results.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Comply with NFPA 70, Article 250, and with UL 467 for grounding and bonding equipment.",
+  "Telecommunications Bonding: Comply with TIA-607 where communications systems are included.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">ERICO; a brand of nVent.",
+  ">Burndy LLC; a Hubbell company.",
+  ">Harger, Inc.",
+  ">Thomas and Betts; ABB.",
+]
+
+[[section.part2]]
+title = "CONDUCTORS"
+items = [
+  "Equipment Grounding Conductors: Insulated copper, green, sized according to NFPA 70 unless larger sizes are indicated.",
+  "Grounding Electrode Conductors: Bare or insulated stranded copper, sized according to NFPA 70.",
+  "Bonding Jumpers: Copper, flexible where connecting to equipment subject to vibration.",
+]
+
+[[section.part2]]
+title = "CONNECTORS AND ELECTRODES"
+items = [
+  "Connectors: Listed according to UL 467; exothermic-welded connections for below-grade and concealed connections to electrodes and structural steel, and irreversible compression connectors where exothermic welding is impractical.",
+  "Ground Rods: Copper-clad steel, 3/4 inch diameter by 10 feet long.",
+  "Ground Bars: Copper, 1/4 by 4 inches minimum, with insulated standoffs, in electrical and telecommunications rooms.",
+  "Water-Pipe Clamps: Bronze, listed for direct burial where applicable.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Grounding Electrode System: Bond together all electrodes present at the building, including metal underground water pipe, concrete-encased electrode (not less than 20 feet of bare copper conductor or footing reinforcing), ground rods, and structural steel, according to NFPA 70.",
+  "Concrete-Encased Electrode: Coordinate with the concrete installer; install before concrete placement and extend conductor to accessible point.",
+  "Ground Rods: Drive to full depth with top 6 inches below finished grade; where supplemental rods are required, space not less than 6 feet apart.",
+  "Service Bonding: Install main bonding jumper at service equipment only; isolate neutrals from ground at downstream panelboards.",
+  "Equipment Grounding: Install an insulated equipment grounding conductor in every feeder and branch-circuit raceway; do not rely on raceway alone.",
+  "Piping Bonding: Bond interior metal water piping, gas piping, and other metal piping systems as required by NFPA 70.",
+  "Telecommunications: Provide a primary bonding busbar at the entrance facility, bonded to the service ground with a conductor sized according to TIA-607.",
+  "Separately Derived Systems: Ground transformers and generators as separately derived systems where indicated.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test the grounding electrode system using the fall-of-potential method according to IEEE 81 before connecting to the service.",
+  "Maximum Resistance: 25 ohms for a single rod electrode; 5 ohms where indicated for commercial service or telecommunications. Where values are exceeded, install additional electrodes and notify the Architect.",
+  "Inspect connections and verify tightness before concealment.",
+]
+
+[[section]]
+number = "26 05 33"
+title = "RACEWAYS AND BOXES FOR ELECTRICAL SYSTEMS"
+when = ["electrical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Metal conduits, tubing, and fittings.",
+  ">Nonmetallic conduits and fittings.",
+  ">Surface raceways.",
+  ">Outlet boxes, pull boxes, and junction boxes.",
+  "Coordination with Engineer of Record: Raceway sizes and routing are indicated on the electrical Drawings prepared by the engineer of record, or, for design-build or delegated-design electrical work, by the Contractor's engineer.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping.",
+  ">Section 26 05 19 \"Low-Voltage Electrical Power Conductors and Cables\" for conductors.",
+  ">Section 27 15 13 \"Communications Copper Horizontal Cabling\" for communications pathways.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For surface raceways, wireways, floor boxes, and special fittings.",
+  "Shop Drawings: Layout of underground and in-slab raceways, where requested by the engineer of record.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Comply with NFPA 70 and listed and labeled products for the intended application.",
+]
+
+[[section.part2]]
+title = "METAL CONDUITS AND FITTINGS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Allied Tube and Conduit; Atkore International.",
+  ">Wheatland Tube; a division of Zekelman Industries.",
+  ">Republic Conduit.",
+  "Rigid Metal Conduit (RMC): ANSI C80.1 and UL 6, galvanized steel.",
+  "Intermediate Metal Conduit (IMC): ANSI C80.6 and UL 1242.",
+  "Electrical Metallic Tubing (EMT): ANSI C80.3 and UL 797, with steel set-screw or compression fittings; compression fittings in damp locations.",
+  "Flexible Metal Conduit (FMC): UL 1, zinc-coated steel.",
+  "Liquidtight Flexible Metal Conduit (LFMC): UL 360, with PVC jacket.",
+]
+
+[[section.part2]]
+title = "NONMETALLIC CONDUITS AND FITTINGS"
+items = [
+  "Rigid Nonmetallic Conduit: NEMA TC 2 and UL 651, Schedule 40 PVC, and Schedule 80 PVC where exposed to physical damage.",
+  "Fittings: NEMA TC 3, solvent-weld type, same manufacturer as conduit.",
+  "Electrical Nonmetallic Tubing (ENT): NEMA TC 13 and UL 1653, where permitted by NFPA 70 and concealed in walls or slabs.",
+]
+
+[[section.part2]]
+title = "SURFACE RACEWAYS"
+items = [
+  "Surface Metal Raceways: Galvanized steel with snap-on covers, factory-primed or finish selected by the Architect.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Legrand (Wiremold).",
+  ">>Panduit Corp.",
+  ">>Hubbell Wiring Device-Kellems.",
+]
+
+[[section.part2]]
+title = "BOXES AND ENCLOSURES"
+items = [
+  "Outlet and Device Boxes: UL 514A, galvanized steel, 4 inches square by 2-1/8 inches deep minimum, with device rings; nonmetallic boxes (UL 514C) where permitted in wood-frame construction.",
+  "Fire-Rated Walls: Listed putty pads or box inserts at boxes in rated assemblies, and 24 inches minimum horizontal separation between boxes on opposite sides of the wall.",
+  "Floor Boxes: Cast-metal or stamped-steel, fully adjustable, with combination power and data compartments and finish flange as selected by the Architect.",
+  "Pull and Junction Boxes: NEMA 250, Type 1 indoors, Type 3R or 4X outdoors and in wet locations, with screw covers.",
+  "Exterior Boxes: Weatherproof cast-metal with in-use covers at receptacles.",
+]
+
+[[section.part3]]
+title = "RACEWAY APPLICATIONS"
+items = [
+  "Exterior, Exposed: RMC or IMC.",
+  "Underground and Below Slab: Schedule 40 PVC, transitioning to RMC or PVC-coated RMC at elbows and where emerging from grade.",
+  "Interior, Concealed in Walls and Ceilings: EMT.",
+  "Interior, Exposed and Subject to Damage (below 8 feet in mechanical rooms and garages): RMC or IMC.",
+  "Connections to Vibrating Equipment: FMC in dry locations and LFMC in damp or wet locations, 6 feet maximum length.",
+  "Minimum Raceway Size: 3/4 inch trade size, except 1/2 inch for switch legs and fixture whips where permitted.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install raceways concealed in finished spaces unless otherwise indicated, parallel and perpendicular to building lines when exposed.",
+  "Keep raceways 6 inches minimum from hot-water pipes and flues, and do not route raceways in contact with ductwork.",
+  "Support raceways from structure at intervals required by NFPA 70, using listed hangers and clips. Do not support from ceiling suspension wires unless separate support wires are provided and listed for the purpose.",
+  "Provide pull boxes so that no run exceeds 100 feet or contains more than the equivalent of four 90-degree bends.",
+  "Install a pull string in each empty raceway, with tag at each end identifying destination.",
+  "Install expansion fittings at building expansion joints and in long exposed exterior runs.",
+  "Seal raceways entering buildings from underground or passing between spaces of different temperature, to prevent condensation and gas migration.",
+  "Install boxes plumb and flush with finished surfaces; set boxes on opposite sides of walls in separate stud cavities to limit sound transmission.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protect raceway openings during construction and remove debris before pulling conductors.",
+]
+
+[[section]]
+number = "26 24 16"
+title = "PANELBOARDS"
+when = ["electrical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Distribution panelboards.",
+  ">Lighting and appliance branch-circuit panelboards.",
+  ">Load centers for dwelling units.",
+  ">Overcurrent protective devices, including GFCI and AFCI circuit breakers.",
+  ">Surge protective devices integral to panelboards, where indicated.",
+  "Coordination with Engineer of Record: Panelboard ratings, bus sizes, interrupting ratings, and circuit breaker schedules are indicated on the panel schedules and one-line diagram prepared by the engineer of record, or, for design-build or delegated-design electrical work, by the Contractor's engineer.",
+  "Related Requirements:",
+  ">Section 26 05 26 \"Grounding and Bonding for Electrical Systems\" for grounding.",
+  ">Section 26 27 26 \"Wiring Devices\" for GFCI and AFCI receptacles.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of panelboard, overcurrent device, and accessory.",
+  "Shop Drawings: For each panelboard, including dimensions, bus ratings, short-circuit rating, breaker schedule, and conduit entry locations.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field Quality-Control Reports.",
+  "Series-rating documentation, where series-rated combinations are used.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: Including time-current curves of overcurrent devices and final typed panel directories.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Panelboards: Listed and labeled according to UL 67, and complying with NEMA PB 1.",
+  "Circuit Breakers: UL 489; GFCI breakers complying with UL 943, AFCI breakers complying with UL 1699.",
+  "Comply with NFPA 70.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's standard warranty, and five years for integral surge protective devices.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Eaton.",
+  ">Schneider Electric USA, Inc. (Square D).",
+  ">Siemens Industry, Inc.",
+  ">ABB (GE Industrial Solutions).",
+]
+
+[[section.part2]]
+title = "PANELBOARDS, GENERAL"
+items = [
+  "Enclosures: NEMA 250, Type 1 for indoor dry locations and Type 3R for outdoor or damp locations; flush or surface mounted as indicated.",
+  "Fronts: Door-in-door type with concealed hinges and flush lock, all panelboards keyed alike.",
+  "Bus: Tin-plated copper or aluminum as indicated, full-size neutral, and equipment ground bar; 200 percent neutral where indicated for nonlinear loads.",
+  "Short-Circuit Rating: Fully rated; not less than 10,000 A symmetrical for 120/240 V and 208Y/120 V panelboards and 14,000 A for 480Y/277 V panelboards, or as indicated on the Drawings.",
+  "Spaces: Provide 20 percent spare breakers and spaces unless otherwise indicated.",
+  "Directory: Typed circuit directory in a clear plastic holder mounted on the inside of the door.",
+]
+
+[[section.part2]]
+title = "LOAD CENTERS"
+items = [
+  "Dwelling-Unit Load Centers: UL 67, with main breaker or main lugs as indicated, plug-on neutral bus for GFCI and AFCI breakers, and copper bus.",
+  "Provide AFCI and GFCI protection as required by NFPA 70 for dwelling-unit circuits.",
+]
+
+[[section.part2]]
+title = "OVERCURRENT PROTECTIVE DEVICES"
+items = [
+  "Molded-Case Circuit Breakers: Thermal-magnetic, bolt-on for commercial panelboards; plug-on permitted in dwelling-unit load centers.",
+  "Electronic-trip breakers with adjustable settings for main and feeder breakers 400 A and larger, where indicated.",
+  "Lockable handles for circuits serving fire alarm, emergency, and equipment requiring lockout.",
+  "Shunt-trip breakers where indicated for elevator or kitchen hood interlocks.",
+]
+
+[[section.part2]]
+title = "SURGE PROTECTIVE DEVICES"
+items = [
+  "Surge Protective Devices: UL 1449, Type 1 or Type 2, integral or externally mounted, at service entrance panelboards and where indicated or required by NFPA 70.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that working clearances and dedicated equipment space required by NFPA 70 are available before installing panelboards.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install panelboards level and plumb, with the top of the highest operating handle not more than 6 feet 7 inches above the floor.",
+  "Mount flush panelboards with trim flush to finished wall; provide spare empty conduits (three 3/4 inch and one 1 inch) from flush panelboards into accessible ceiling space.",
+  "Do not install panelboards in clothes closets, bathrooms, or over stairs.",
+  "Arrange conductors neatly in gutters; tighten connections to manufacturer's torque values.",
+  "Balance loads across phases to within 10 percent at the completion of the Work.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION"
+items = [
+  "Install nameplates and arc-flash labels. Complete typed directories with final room names and numbers.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Perform visual and mechanical inspection and insulation-resistance tests according to NETA ATS for distribution panelboards.",
+  "Test GFCI and AFCI devices for proper operation.",
+  "Perform infrared scanning of panelboards under load within 11 months of Substantial Completion where indicated.",
+]
+
+[[section.part3]]
+title = "CLEANING"
+items = [
+  "Vacuum panelboard interiors and touch up damaged finishes before energizing.",
+]
+
+[[section]]
+number = "26 27 26"
+title = "WIRING DEVICES"
+when = ["electrical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Receptacles, including duplex, GFCI, AFCI, tamper-resistant, weather-resistant, and USB-charging types.",
+  ">Snap switches and wall-box dimmers.",
+  ">Wall plates.",
+  ">Floor service fittings, where indicated.",
+  "Coordination with Engineer of Record: Device types, circuiting, and locations are indicated on the electrical Drawings prepared by the engineer of record, or, for design-build or delegated-design electrical work, by the Contractor's engineer; device locations in finished spaces are coordinated with the architectural interior elevations and casework drawings.",
+  "Related Requirements:",
+  ">Section 26 05 33 \"Raceways and Boxes for Electrical Systems\" for outlet boxes.",
+  ">Section 26 51 19 \"LED Interior Lighting\" for lighting control devices and sensors.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of device and wall plate.",
+  "Samples: Of device and plate colors and finishes, where requested by the Architect.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For dimmers, occupancy sensors, and GFCI devices.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Devices shall be listed and labeled according to UL 498 (receptacles), UL 20 (switches), UL 1472 (dimmers), UL 943 (GFCI), and UL 1699 (AFCI), as applicable.",
+  "Comply with NEMA WD 1, General Color Requirements for Wiring Devices, and NEMA WD 6, Wiring Devices - Dimensional Specifications.",
+  "Source Limitations: Obtain each type of device from a single manufacturer, with matching color and style throughout the Project.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Hubbell Incorporated.",
+  ">Leviton Manufacturing Co., Inc.",
+  ">Legrand (Pass and Seymour).",
+  ">Eaton (Arrow Hart).",
+]
+
+[[section.part2]]
+title = "RECEPTACLES"
+items = [
+  "General-Use Duplex Receptacles: NEMA WD 6, configuration 5-20R, 20 A, 125 V, specification grade in commercial areas and residential grade permitted in dwelling units, side and back wired.",
+  "Tamper-Resistant Receptacles: Listed as tamper resistant, in all dwelling units, guest rooms, child care facilities, and other locations required by NFPA 70.",
+  "Weather-Resistant Receptacles: Listed as weather resistant, in damp and wet locations, with extra-duty in-use covers.",
+  "GFCI Receptacles: UL 943, Class A, self-testing, with indicator light; provide at bathrooms, kitchens, countertops, laundry areas, garages, unfinished basements, exterior, within 6 feet of sinks, and other locations required by NFPA 70.",
+  "AFCI Protection: Provide combination-type AFCI protection for dwelling-unit branch circuits required by NFPA 70, by AFCI circuit breaker or outlet branch-circuit AFCI receptacle as indicated.",
+  "USB Charger Receptacles: Duplex 20 A receptacle with integral Type A and Type C USB ports, where indicated.",
+  "Isolated-Ground Receptacles: Orange face, where indicated.",
+]
+
+[[section.part2]]
+title = "SWITCHES"
+items = [
+  "Snap Switches: UL 20, 20 A, 120/277 V, specification grade, single-pole, three-way, and four-way as indicated.",
+  "Pilot-Light Switches: Lighted handle where indicated for exhaust fans and exterior lighting.",
+  "Dimmers: UL 1472, slide or paddle type, compatible with the LED drivers of the controlled fixtures, sized for the connected load; listed for the specific fixture where available.",
+  "Occupancy and Vacancy Sensor Switches: Dual technology or passive infrared, wall-box type, with manual-on or auto-on to 50 percent operation as required by the energy code.",
+]
+
+[[section.part2]]
+title = "WALL PLATES"
+items = [
+  "Finished Spaces: Smooth, high-impact nylon or polycarbonate, color to match device; stainless steel, Type 302, where indicated.",
+  "Unfinished Spaces: Galvanized steel.",
+  "Wet Locations: Die-cast metal, weatherproof in-use cover, listed for wet locations while in use.",
+]
+
+[[section.part2]]
+title = "FINISHES"
+items = [
+  "Device Color: White, unless otherwise selected by the Architect; red for devices on emergency circuits; orange for isolated-ground receptacles.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that boxes are installed at correct heights and are flush with finished surfaces before installing devices.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install devices plumb and level, with plates in full contact with the wall surface.",
+  "Install receptacles with the grounding terminal up, unless otherwise indicated, and switches with the off position down.",
+  "Install devices at mounting heights indicated or specified in Section 26 05 00 \"Common Work Results for Electrical.\"",
+  "Provide dwelling-unit receptacle spacing so that no point along a wall line is more than 6 feet from a receptacle, and so that countertop spaces comply with NFPA 70.",
+  "Group adjacent switches under a common multigang plate.",
+  "Tighten terminals to manufacturer's torque values; do not use push-in back-wire terminals.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test each receptacle for correct polarity, grounding, and wiring using a receptacle tester.",
+  "Test GFCI and AFCI devices for proper tripping.",
+  "Test dimmers and sensors through their full range; adjust sensor sensitivity and time delay.",
+]
+
+[[section.part3]]
+title = "CLEANING"
+items = [
+  "Remove paint and debris from devices and plates; replace damaged or stained items.",
+]
+
+[[section]]
+number = "26 51 19"
+title = "LED INTERIOR LIGHTING"
+when = ["lighting"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Interior LED luminaires, including recessed, surface, pendant, linear, and cove types.",
+  ">LED drivers and emergency battery units.",
+  ">Lighting controls, including occupancy and vacancy sensors, daylight-responsive controls, and dimming.",
+  ">Luminaire supports.",
+  "Coordination with Engineer of Record: Luminaire types, quantities, circuiting, emergency lighting, and control zones are indicated on the lighting fixture schedule and electrical Drawings prepared by the engineer of record or lighting designer, or, for design-build or delegated-design electrical work, by the Contractor's engineer. Luminaire locations in finished ceilings are governed by the Architect's reflected ceiling plans.",
+  "Related Requirements:",
+  ">Section 09 51 13 \"Acoustical Panel Ceilings\" for ceiling grid coordination.",
+  ">Section 26 27 26 \"Wiring Devices\" for wall-box dimmers and sensor switches.",
+  ">Section 26 56 19 \"LED Exterior Lighting\" for exterior luminaires.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Lighting Power: Total connected interior lighting power shall not exceed the allowance of the energy code adopted by {jurisdiction} (IECC or ASHRAE/IES 90.1).",
+  "Controls: Provide lighting controls required by the energy code, including occupant sensing, automatic shutoff, daylight-responsive controls in daylight zones, and light-reduction controls.",
+  "Illuminance: Achieve illuminance levels recommended by the IES Lighting Handbook for the space types indicated.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each luminaire type, including photometric data (IES LM-79 files), lumen output, efficacy, CCT, CRI, driver type, dimming range, and mounting.",
+  "Shop Drawings: For custom and linear luminaires, including dimensions, run lengths, and mounting details.",
+  "Lighting Control Submittal: Control zones, sensor layout, wiring diagrams, and sequence of operation.",
+  "Samples: For decorative luminaires, where requested by the Architect.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "IES LM-80 and TM-21 reports documenting LED lumen maintenance.",
+  "Energy code lighting compliance forms.",
+  "Functional testing report for lighting controls as required by the energy code.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For luminaires, drivers, emergency units, and lighting controls, including programming and sensor settings.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Luminaires shall be listed and labeled according to UL 1598, with LED components complying with UL 8750; recessed luminaires in insulated ceilings shall be IC rated.",
+  "Qualification: Commercial luminaires listed on the DesignLights Consortium (DLC) Qualified Products List, or ENERGY STAR certified for residential products, where available for the luminaire category.",
+  "Color Consistency: Within a 3-step MacAdam ellipse (ANSI C78.377) for all luminaires of the same type.",
+  "Mockups: Install one of each decorative luminaire type for the Architect's review, where indicated.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's warranty for luminaires, LED modules, and drivers: Five years from date of Substantial Completion.",
+  "Emergency battery warranty: Three years minimum.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements and the lighting fixture schedule, provide products by one of the following:",
+  ">Acuity Brands Lighting, Inc. (Lithonia Lighting).",
+  ">Signify (Cooper Lighting Solutions, Philips).",
+  ">Current Lighting Solutions, LLC.",
+  ">LSI Industries Inc.",
+  "Where a specific product is scheduled, it establishes the required quality, performance, and appearance; comparable products require approval under the substitution procedures of Division 01.",
+]
+
+[[section.part2]]
+title = "LUMINAIRES, GENERAL"
+items = [
+  "Color Rendering: CRI of 80 minimum; CRI of 90 minimum with R9 of 50 minimum in residential, hospitality, and display areas where indicated.",
+  "Correlated Color Temperature: 3500 K unless otherwise scheduled; 2700 K or 3000 K in residential spaces.",
+  "Efficacy: 100 lumens per watt minimum for general-purpose troffers and linear luminaires.",
+  "Rated Life: L70 of 50,000 hours minimum, based on IES TM-21.",
+  "Flicker: Low-flicker drivers complying with IEEE 1789 recommended practice, where indicated.",
+  "Housings: Steel or aluminum, with finishes as scheduled; luminaires in damp or wet locations listed for the location.",
+]
+
+[[section.part2]]
+title = "LED DRIVERS"
+items = [
+  "Drivers: Electronic, UL 8750 and UL 1310 Class 2 where applicable, with power factor of 0.9 minimum and total harmonic distortion of 20 percent maximum.",
+  "Dimming: 0-10 V dimming to 10 percent minimum for commercial luminaires, or to 1 percent where scheduled; phase-control (forward or reverse) compatible drivers for residential dimming.",
+  "Sound Rating: Class A.",
+]
+
+[[section.part2]]
+title = "EMERGENCY LIGHTING"
+items = [
+  "Emergency Battery Units: Integral or remote, UL 924 listed, providing 90 minutes of illumination on loss of normal power, with self-testing and diagnostic indicator.",
+  "Emergency Lighting Performance: Provide illumination along the means of egress complying with NFPA 101 and the {building_code}, average 1 footcandle initially.",
+  "Exit Signs: UL 924, LED, with red or green letters as required by the authority having jurisdiction, and battery backup.",
+]
+
+[[section.part2]]
+title = "LIGHTING CONTROLS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Acuity Brands Lighting, Inc. (nLight, Sensor Switch).",
+  ">Lutron Electronics Co., Inc.",
+  ">Legrand (Wattstopper).",
+  ">Leviton Manufacturing Co., Inc.",
+  "Occupancy and Vacancy Sensors: Passive infrared, ultrasonic, or dual technology, ceiling or wall mounted, with coverage patterns suited to the space.",
+  "Daylight Sensors: Closed-loop photosensors with continuous dimming in daylight zones.",
+  "Networked Controls: Where indicated, a networked lighting control system with luminaire-level or zone-level control, time scheduling, and BACnet interface.",
+  "Emergency Bypass: UL 924 emergency lighting control relays where emergency luminaires are on controlled circuits.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify ceiling types and openings, structural supports, and outlet box locations before installing luminaires.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install luminaires level, plumb, and aligned, according to the Architect's reflected ceiling plans and manufacturer's written instructions.",
+  "Lay-In Luminaires: Support independently from structure with two wires at opposite corners minimum, and secure to ceiling grid with clips.",
+  "Pendant Luminaires: Support from structure with aircraft cable or stems rated for the load; align rows.",
+  "Recessed Luminaires in Fire-Rated Ceilings: Provide listed enclosures or luminaires listed for the assembly.",
+  "Recessed Luminaires in Insulated Ceilings: IC rated and airtight (ASTM E283 tested) where required by the energy code.",
+  "Install occupancy and daylight sensors at locations recommended by the manufacturer, avoiding interference from HVAC outlets.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test each luminaire for operation; replace failed luminaires or drivers.",
+  "Perform functional testing of lighting controls as required by the energy code, and adjust sensor time delays, sensitivity, and daylight setpoints.",
+  "Test emergency lighting by interrupting normal power; verify 90-minute duration.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Aim adjustable luminaires as directed by the Architect during a scheduled night or after-hours session.",
+  "Clean luminaire lenses and reflectors of dust and fingerprints at completion.",
+]
+
+[[section.part3]]
+title = "DEMONSTRATION"
+items = [
+  "Train the Owner's personnel to operate and adjust lighting controls.",
+]
+
+[[section]]
+number = "26 56 19"
+title = "LED EXTERIOR LIGHTING"
+when = ["exterior_lighting"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Exterior building-mounted LED luminaires, including wall packs, sconces, soffit downlights, and canopy luminaires.",
+  ">Pole-mounted area and site LED luminaires, poles, and bases.",
+  ">Bollards and landscape luminaires.",
+  ">Exterior lighting controls.",
+  "Coordination with Engineer of Record: Luminaire types, pole locations, mounting heights, and circuiting are indicated on the site lighting and electrical Drawings prepared by the engineer of record, or, for design-build or delegated-design electrical work, by the Contractor's engineer. Pole foundations shall be designed by the structural engineer or by the pole manufacturer's engineer where delegated.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for pole bases.",
+  ">Section 26 05 33 \"Raceways and Boxes for Electrical Systems\" for underground raceways.",
+  ">Section 26 51 19 \"LED Interior Lighting\" for common luminaire requirements.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Exterior Lighting Power: Not to exceed the allowance of the energy code adopted by {jurisdiction}.",
+  "Light Pollution Control: Luminaires shall have BUG (backlight, uplight, glare) ratings according to IES TM-15 not exceeding the limits of the applicable lighting zone of the IES/IDA Model Lighting Ordinance or local ordinance; uplight rating of U0 for area and pole luminaires.",
+  "Dark-Sky Compliance: Fully shielded luminaires with CCT of 3000 K maximum, DarkSky Approved where indicated.",
+  "Light Trespass: Limit illuminance at property lines to the values required by the local ordinance, and 0.1 footcandle maximum at residential property lines where no ordinance applies.",
+  "Pole Wind Loading: Poles and luminaires shall withstand the basic wind speed for the Project location according to AASHTO LTS or ASCE 7.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each luminaire, pole, and control, including photometric files, BUG rating, efficacy, CCT, CRI, and finish.",
+  "Shop Drawings: Pole and base details, anchor bolt templates, and wiring diagrams.",
+  "Photometric Site Plan: Point-by-point calculation at 10 feet on center showing average, maximum, and minimum illuminance and property-line values, where lighting design is delegated.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Pole foundation calculations signed by a qualified professional engineer, where delegated.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Luminaires shall be listed and labeled according to UL 1598 for wet locations, with LED components according to UL 8750.",
+  "DLC Qualified Products List listing for area and wall-pack luminaires where available.",
+  "Surge Protection: Integral surge protection, 10 kV minimum, according to IEEE C62.41.2.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's warranty for luminaires, LED modules, and drivers: Five years; for pole finishes: Five years against peeling and fading.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements and the lighting fixture schedule, provide products by one of the following:",
+  ">Acuity Brands Lighting, Inc. (Lithonia Lighting).",
+  ">Cooper Lighting Solutions; Signify.",
+  ">Kichler Lighting LLC (residential and landscape).",
+  ">WAC Lighting (residential and landscape).",
+]
+
+[[section.part2]]
+title = "LUMINAIRES"
+items = [
+  "Housings: Die-cast aluminum, with polyester powder-coat finish, color as selected by the Architect; stainless-steel hardware.",
+  "Optics: Distribution types as scheduled (Type II, III, IV, or V), with house-side shields where required to meet light-trespass limits.",
+  "CCT: 3000 K maximum unless otherwise scheduled; 2700 K for residential and landscape luminaires.",
+  "CRI: 70 minimum for area lighting and 80 minimum for building-mounted and pedestrian luminaires.",
+  "Ingress Protection: IP65 minimum for luminaires and IP67 for in-grade luminaires.",
+  "Drivers: 0-10 V dimming, with operating range to minus 40 deg F.",
+]
+
+[[section.part2]]
+title = "POLES AND BASES"
+items = [
+  "Poles: Round or square straight steel or aluminum, height as scheduled, with handhole, anchor base with base cover, and finish to match luminaires.",
+  "Anchor Bolts: Hot-dip galvanized according to ASTM F1554, with template.",
+  "Bases: Cast-in-place concrete, 3000 psi minimum, with height above grade as indicated (30 inches in parking areas).",
+]
+
+[[section.part2]]
+title = "CONTROLS"
+items = [
+  "Provide automatic controls as required by the energy code: astronomical time switch or photocontrol for dusk-to-dawn operation, and reduction of lighting power by 50 percent minimum after business hours or when no activity is detected.",
+  "Integral motion sensors and button photocells, where scheduled.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify pole locations, underground utilities, and building-mounted junction box locations before installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install pole bases plumb, with anchor bolts set by template; grout under base plates or install leveling nuts as detailed.",
+  "Install poles plumb and luminaires level, aimed as indicated.",
+  "Seal building-mounted luminaire backplates to the wall with sealant at the top and sides, leaving the bottom open to drain.",
+  "Ground poles and luminaires according to Section 26 05 26 \"Grounding and Bonding for Electrical Systems.\"",
+  "Install in-line fused connectors in pole handholes for each luminaire.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test luminaires and controls for proper operation; verify time switch programming and photocontrol response.",
+  "Perform nighttime illuminance measurements where requested by the Architect, and adjust aiming and shields to meet light-trespass limits.",
+]
+
+[[section.part3]]
+title = "CLEANING"
+items = [
+  "Clean luminaire lenses and touch up damaged finishes with manufacturer's touch-up paint.",
+]
+
+[[section]]
+number = "27 15 13"
+title = "COMMUNICATIONS COPPER HORIZONTAL CABLING"
+when = ["communications"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Category 6A unshielded twisted-pair (UTP) horizontal cabling.",
+  ">Telecommunications outlets, jacks, and faceplates.",
+  ">Patch panels, patch cords, and cable management.",
+  ">Pathways and supports specific to communications cabling.",
+  ">Labeling, testing, and documentation.",
+  "Coordination with Engineer of Record: Outlet locations, telecommunications room locations, and backbone requirements are indicated on the technology Drawings prepared by the engineer of record or technology consultant, or, for design-build work, by the Contractor's RCDD-supervised designer. Active network equipment is furnished by the Owner unless otherwise indicated.",
+  "Related Requirements:",
+  ">Section 26 05 26 \"Grounding and Bonding for Electrical Systems\" for the telecommunications bonding backbone.",
+  ">Section 26 05 33 \"Raceways and Boxes for Electrical Systems\" for conduits and boxes.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "TR: Telecommunications room or enclosure, where horizontal cabling terminates.",
+  "RCDD: Registered Communications Distribution Designer, certified by BICSI.",
+  "Permanent Link: The horizontal cabling from the TR patch panel to the work-area outlet, excluding patch cords.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For cable, connectors, patch panels, faceplates, and pathways.",
+  "Shop Drawings: Outlet layout, TR rack elevations, and labeling scheme.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For the installer and RCDD.",
+  "Manufacturer's extended warranty certification of the installer.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Test Reports: Electronic and printed permanent-link test results for every cable, in the tester's native format.",
+  "Record Drawings: Outlet locations with labels, cable routes, and TR layouts.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Certified by the cabling system manufacturer, with installation supervised by an RCDD or BICSI-certified technician.",
+  "Comply with TIA-568 (commercial building cabling), TIA-569 (pathways and spaces), TIA-606 (administration), TIA-607 (bonding and grounding), and TIA-570 for residential cabling where applicable.",
+  "Comply with NFPA 70, Article 800; cables shall be listed for the space in which installed (CMP in plenum spaces, CMR in risers, CM elsewhere).",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's extended system performance and applications warranty: 25 years minimum, covering the complete channel from a single manufacturer's end-to-end solution.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide end-to-end system components from one of the following:",
+  ">CommScope (SYSTIMAX).",
+  ">Panduit Corp. (with General Cable or Belden cable partner).",
+  ">Belden Inc.",
+  ">Leviton Network Solutions.",
+]
+
+[[section.part2]]
+title = "HORIZONTAL CABLE"
+items = [
+  "Cable: Category 6A UTP, four-pair, 23 AWG solid copper, complying with TIA-568.2 transmission requirements to 500 MHz.",
+  "Jacket Color: Blue for data, white for voice, or as directed by the Owner; plenum-rated where installed in air-handling spaces.",
+  "Wireless Access Points: Two Category 6A cables to each access-point location.",
+]
+
+[[section.part2]]
+title = "CONNECTING HARDWARE"
+items = [
+  "Jacks: Category 6A, eight-position modular, T568B wiring unless the Owner directs T568A.",
+  "Faceplates: High-impact thermoplastic matching wiring-device color, with labels; stainless steel where indicated.",
+  "Patch Panels: 24- or 48-port, Category 6A, 19 inch rack mounted, with rear cable management.",
+  "Patch Cords: Factory-terminated Category 6A, provided for 100 percent of installed ports in lengths directed by the Owner.",
+]
+
+[[section.part2]]
+title = "RACKS AND CABLE MANAGEMENT"
+items = [
+  "Equipment Racks: Two-post, 19 inch, 84 inches high, aluminum or steel, bolted to floor and braced to wall; or wall-mounted enclosures where indicated.",
+  "Cable Management: Horizontal and vertical managers with bend-radius control; ladder rack above racks.",
+  "Plywood Backboards: 3/4 inch fire-retardant-treated plywood, painted with two coats of fire-retardant paint, leaving the stamp visible.",
+]
+
+[[section.part2]]
+title = "PATHWAYS"
+items = [
+  "J-Hooks: Listed, with 1-5/16 inch minimum bearing surface, spaced 48 to 60 inches on center.",
+  "Cable Tray: Wire-mesh basket tray where indicated in corridors.",
+  "Sleeves: Conduit sleeves with bushings and firestop at rated walls.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify pathways, boxes, and backboards are complete, and that the TR is clean and dry, before installing cable.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install cabling according to TIA-568, BICSI TDMM, and manufacturer's written instructions.",
+  "Limit horizontal cable length to 295 feet (90 m) permanent link.",
+  "Do not exceed 25 lbf pulling tension or bend radius less than four times cable diameter; do not kink or crush cable.",
+  "Maintain separation from power sources: 5 inches from fluorescent or LED drivers and 12 inches from motors and transformers.",
+  "Support cabling from structure with J-hooks or tray; do not attach to ceiling grid, support wires, piping, or ductwork.",
+  "Use hook-and-loop straps; do not use nylon cable ties on bundled cables.",
+  "Leave a service loop of 10 feet in the TR and 12 inches at the outlet.",
+  "Firestop all penetrations of rated assemblies with listed systems.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION"
+items = [
+  "Label cables at both ends, faceplates, and patch panel ports with machine-printed labels according to TIA-606, using a scheme approved by the Owner.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test each permanent link with a Level IIIe or higher field tester according to TIA-568.2, for wire map, length, insertion loss, NEXT, PSNEXT, ACR-F, return loss, and delay skew.",
+  "Replace cables that fail and retest; marginal passes are not acceptable.",
+]
+
+[[section]]
+number = "28 46 21.11"
+title = "ADDRESSABLE FIRE-ALARM SYSTEMS"
+when = ["fire_alarm"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Addressable fire-alarm control unit (FACU) and annunciators.",
+  ">Initiating devices, including manual pull stations, smoke detectors, heat detectors, and duct smoke detectors.",
+  ">Notification appliances, including horns, strobes, speakers, and combination units.",
+  ">Monitoring and control modules for sprinkler, elevator, HVAC, and door-release interfaces.",
+  ">Digital alarm communicator transmitter for off-site monitoring.",
+  "Coordination with Engineer of Record and Delegated Design: The fire-alarm system is a delegated design. The Drawings, where prepared by the engineer of record, indicate performance intent, device locations where required for coordination, and interfaces. The Contractor shall engage a qualified fire-alarm designer to prepare complete system design documents, calculations, and shop drawings complying with NFPA 72, the {building_code}, and the International Fire Code as adopted by {jurisdiction}, for approval by the Architect, engineer of record, and authority having jurisdiction.",
+  "Related Requirements:",
+  ">Section 21 13 13 \"Wet-Pipe Sprinkler Systems\" for sprinkler flow and tamper switches.",
+  ">Section 08 71 00 \"Door Hardware\" for magnetic hold-open and access control interfaces.",
+  ">Section 23 31 13 \"Metal Ducts\" for smoke dampers.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "System: Addressable, analog, with Class B initiating device circuits and signaling line circuits unless Class A is required by the authority having jurisdiction or indicated.",
+  "Notification: Audible and visible notification throughout, complying with NFPA 72 and ICC A117.1; voice evacuation where required by the {building_code} for the occupancy.",
+  "Survivability: Pathway survivability as required by NFPA 72 for the system type.",
+  "Secondary Power: Batteries sized for 24 hours of standby followed by 5 minutes of alarm (15 minutes for voice evacuation), plus 20 percent spare capacity.",
+  "Spare Capacity: 20 percent spare addressable points on each signaling line circuit and 20 percent spare notification appliance circuit capacity.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each device and component, with listing information.",
+  "Shop Drawings: Complete system design prepared by the fire-alarm designer, including floor plans with device locations, riser diagrams, wiring diagrams, sequence of operations matrix, battery and voltage-drop calculations, and candela ratings, sealed where required by the jurisdiction.",
+  "Approval: Submit Shop Drawings to the authority having jurisdiction and obtain approval before installation.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For the designer and installer.",
+  "Record of Completion: NFPA 72 Record of Completion form, completed and signed.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: Including programming, device address list, and inspection, testing, and maintenance requirements of NFPA 72.",
+  "Record Drawings: As-built device locations and addresses, in electronic format and one set in a document cabinet at the FACU.",
+  "Software: Site-specific program on electronic media, and passwords delivered to the Owner.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Designer Qualifications: NICET Level III or IV in Fire Alarm Systems, or a professional engineer licensed in the state of the Project experienced in fire-alarm design.",
+  "Installer Qualifications: Authorized distributor of the equipment manufacturer, licensed in the jurisdiction, with a NICET Level II minimum technician on site.",
+  "Components shall be listed according to UL 864 (control units) and the applicable UL standards for devices, and compatible as a system.",
+  "Comply with NFPA 72, NFPA 70, and the requirements of the authority having jurisdiction.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Warranty: One year from date of acceptance, including parts and labor, with emergency service response within 4 hours.",
+  "Maintenance Service: Provide inspection and testing according to NFPA 72 during the warranty period.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Notifier; a Honeywell company.",
+  ">Siemens Industry, Inc. (Cerberus PRO, Desigo).",
+  ">EST (Edwards); a Carrier company.",
+  ">Johnson Controls (Simplex).",
+]
+
+[[section.part2]]
+title = "FIRE-ALARM CONTROL UNIT"
+items = [
+  "FACU: UL 864, microprocessor based, modular, with LCD display, alarm, supervisory, and trouble indication, event history of 1000 events minimum, and field programming.",
+  "Remote Annunciator: At the main entrance or fire department response point as directed by the authority having jurisdiction.",
+  "Communicator: Digital alarm communicator transmitter or IP/cellular communicator, UL listed, transmitting alarm, supervisory, and trouble signals to a UL-listed central station.",
+]
+
+[[section.part2]]
+title = "INITIATING DEVICES"
+items = [
+  "Manual Pull Stations: Addressable, double action, with key reset; mounted at 42 to 48 inches above floor.",
+  "Smoke Detectors: Addressable photoelectric, UL 268, with drift compensation and sensitivity testing.",
+  "Heat Detectors: Addressable, rate-of-rise and fixed temperature (135 deg F), UL 521, in spaces where smoke detectors are unsuitable.",
+  "Duct Smoke Detectors: UL 268A, with sampling tubes and remote test station, at HVAC units as required by the mechanical code.",
+  "Monitor Modules: For sprinkler water-flow and valve tamper switches, and other contact devices.",
+  "Control Modules: For elevator recall, HVAC shutdown, smoke damper control, and door hold-open release.",
+]
+
+[[section.part2]]
+title = "NOTIFICATION APPLIANCES"
+items = [
+  "Horns and Horn/Strobes: UL 464 and UL 1971, selectable candela, synchronized, white housing with red FIRE lettering, or as required by the authority having jurisdiction.",
+  "Speakers and Speaker/Strobes: UL 1480, for voice evacuation systems, with selectable taps.",
+  "Exterior Alarm Bell or Horn/Strobe: Weatherproof, at the fire department connection.",
+]
+
+[[section.part2]]
+title = "WIRING"
+items = [
+  "Fire-Alarm Cable: Type FPL, FPLR, or FPLP as appropriate to location, NFPA 70 Article 760, solid copper, red jacket, in raceway where required by the authority having jurisdiction or where exposed.",
+  "Circuit Integrity Cable: CI-rated or 2-hour protected pathways where survivability is required.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that approved Shop Drawings are on site and that building conditions are ready for device installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install system according to approved Shop Drawings, NFPA 72, and manufacturer's written instructions.",
+  "Locate smoke detectors 36 inches minimum from supply air outlets and away from ceiling fans.",
+  "Install visible appliances with the bottom of the lens between 80 and 96 inches above the floor, or as required by NFPA 72 for ceiling-mounted units.",
+  "Coordinate device locations in finished ceilings with the Architect's reflected ceiling plans.",
+  "Connect sprinkler water-flow and tamper switches, elevator recall, HVAC shutdown, smoke dampers, and door releases as indicated in the sequence of operations.",
+  "Install dedicated branch circuit to the FACU with a red-marked, lockable breaker identified FIRE ALARM CIRCUIT CONTROL.",
+  "Where dwelling units are included, provide smoke and carbon monoxide alarms as required by the {building_code}, interconnected and with battery backup, coordinated with the fire-alarm system where required.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Pretest the complete system and correct deficiencies before scheduling acceptance testing.",
+  "Acceptance Testing: Test the system according to NFPA 72 in the presence of the authority having jurisdiction and the Owner's representative, including 100 percent of initiating devices, notification appliances, and interfaces.",
+  "Measure sound pressure levels and verify intelligibility for voice systems.",
+  "Submit completed Record of Completion and inspection and testing forms.",
+]
+
+[[section.part3]]
+title = "DEMONSTRATION"
+items = [
+  "Train the Owner's personnel in operation, alarm response, and routine testing of the system, for 4 hours minimum.",
+]

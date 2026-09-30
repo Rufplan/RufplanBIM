@@ -1,0 +1,2548 @@
+# Division 09 Finishes and Division 10 Specialties
+
+[[section]]
+number = "09 22 16"
+title = "NON-STRUCTURAL METAL FRAMING"
+when = ["gypsum+commercial", "cold_formed_framing"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Non-load-bearing steel studs and runners for interior partitions.",
+  ">Deflection and firestop tracks.",
+  ">Shaft wall framing.",
+  ">Suspended framing systems for gypsum board ceilings and soffits.",
+  ">Furring channels, grid suspension, and accessories.",
+  "Related Requirements:",
+  ">Section 05 40 00 \"Cold-Formed Metal Framing\" for load-bearing and exterior non-load-bearing framing.",
+  ">Section 07 84 13 \"Penetration Firestopping\" for head-of-wall and penetration firestop systems.",
+  ">Section 09 29 00 \"Gypsum Board\" for panels applied to framing.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including stud and track sections, gauges, and section properties.",
+  "Shop Drawings: For suspended ceiling framing and for partitions exceeding the manufacturer's published limiting heights, showing layout, bracing, and attachment to structure.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: Signed by manufacturers certifying that framing complies with ASTM C645 and has been verified by a code compliance program.",
+  "Evaluation Reports: For embossed or dimpled steel framing members and for firestop tracks, from ICC-ES or another qualified evaluation service.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Code Compliance: Provide framing members certified by the Steel Framing Industry Association (SFIA) Code Compliance Certification Program or the Certified Steel Stud Association (CSSA) program.",
+  "Fire-Resistance Ratings: Where framing is part of a fire-resistance-rated assembly, provide materials and construction identical to those tested per ASTM E119 by a qualified testing agency, as listed in the UL Fire Resistance Directory or GA-600.",
+  "STC-Rated Assemblies: Where partitions are indicated with sound transmission ratings, provide framing identical to assemblies tested per ASTM E90 and classified per ASTM E413.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store framing off the ground on level platforms, under cover, and protected from moisture, corrosion, and bending.",
+  "Handle members to prevent twisting, denting, or damage to galvanized coating.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Horizontal Deflection: For interior partitions, design framing to resist a lateral load of 5 lbf/sq. ft. with a maximum deflection of L/240 for gypsum board finishes and L/360 for tile or plaster finishes.",
+  "Head-of-Wall Movement: Accommodate a vertical deflection of the structure above of not less than 1/2 inch without imposing loads on partitions.",
+]
+
+[[section.part2]]
+title = "FRAMING SYSTEMS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">ClarkDietrich Building Systems.",
+  ">MarinoWARE.",
+  ">CEMCO.",
+  ">Telling Industries.",
+  "Framing Members, General: Comply with ASTM C645 for conditions indicated.",
+  ">Steel Sheet: ASTM A1003, Structural Grade 33 or Non-Structural Grade as required by structural performance.",
+  ">Protective Coating: ASTM A653, G40 hot-dip galvanized, or coating with equivalent corrosion resistance; G60 in wet areas and at exterior wall furring.",
+  "Steel Studs and Runners: ASTM C645, C-shaped studs with flanges not less than 1-1/4 inches and matching U-shaped runners.",
+  ">Minimum Base-Metal Thickness: 0.0296 inch (20 gauge equivalent) typical; 0.0312 inch (20 gauge structural) behind tile, cementitious backer, casework, and wall-hung fixtures; 0.0179 inch permitted only where the manufacturer's limiting height tables allow for the assembly.",
+  ">Depth: 3-5/8 inches unless otherwise indicated; 6 inches at plumbing walls and where indicated.",
+  ">Wall Types: {wall_types}, as indicated on Drawings.",
+  "Slip-Type Head Joints: Deep-leg runners with 2-inch legs, or proprietary slotted deflection tracks with 1-1/2 inch vertical movement, installed with studs attached through slots.",
+  "Firestop Tracks: Top runner manufactured to allow partition heads to expand and contract with movement of structure while maintaining the continuity of the fire-resistance-rated assembly, listed for the joint system indicated.",
+  "Flat Strap and Backing Plates: Steel sheet, 0.0428 inch minimum base-metal thickness, for blocking and bracing in lengths required.",
+  "Cold-Rolled Channel Bridging: 0.0538 inch base-metal thickness, 1-1/2 inch deep, with clip angles for attachment to studs.",
+  "Hat-Shaped, Rigid Furring Channels: ASTM C645, 7/8 inch deep, 0.0179 inch minimum base-metal thickness.",
+  "Resilient Furring Channels: 1/2 inch deep, with single leg configuration, used only in tested sound-rated assemblies.",
+  "Z-Shaped Furring: With slotted or nonslotted web, face flange of 1-1/4 inches, wall attachment flange of 7/8 inch, and depth required to fit insulation thickness indicated.",
+]
+
+[[section.part2]]
+title = "SHAFT WALL FRAMING"
+items = [
+  "Shaft Wall System: Proprietary C-H or C-T studs, J-runners, and 1-inch gypsum shaftliner panels complying with ASTM C1396, tested as a complete assembly for the fire-resistance rating indicated.",
+  "Studs: Depth of 2-1/2 inches unless otherwise indicated, 0.0179 inch minimum base-metal thickness, or heavier where required for height and pressure.",
+  "Performance: Design for a lateral pressure of 5 lbf/sq. ft. and for elevator shaft piston pressures where indicated, with deflection limited to L/240.",
+]
+
+[[section.part2]]
+title = "SUSPENSION SYSTEM COMPONENTS"
+items = [
+  "Tie Wire: ASTM A641, Class 1 zinc coating, soft temper, 0.062 inch diameter wire, or double strand of 0.048 inch diameter wire.",
+  "Hanger Attachments to Concrete: Post-installed expansion anchors or cast-in inserts capable of sustaining five times the design load without failure, per ASTM E488.",
+  "Wire Hangers: ASTM A641, Class 1 zinc coating, soft temper, 0.162 inch diameter.",
+  "Carrying Channels: Cold-rolled, 0.0538 inch base-metal thickness, 1-1/2 inch deep, galvanized.",
+  "Furring Channels: Hat-shaped, rigid, 7/8 inch deep, 0.0296 inch base-metal thickness.",
+  "Grid Suspension System for Gypsum Board Ceilings: ASTM C645, direct-hung system of main tees and cross tees, with manufacturer's standard components.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Armstrong World Industries; Drywall Grid Systems.",
+  ">>USG Corporation; Drywall Suspension System.",
+  ">>CertainTeed; Drywall Suspension.",
+  ">Ceiling Types: {ceiling_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "AUXILIARY MATERIALS"
+items = [
+  "Fasteners for Metal Framing: Of type, material, size, corrosion resistance, holding power, and other properties required to fasten steel members to substrates.",
+  "Power-Actuated Anchors: Fastener system of type suitable for application indicated, with capability to sustain, without failure, a load equal to 10 times that imposed by construction as determined by testing per ASTM E1190.",
+  "Isolation Strip at Exterior Walls: Asphalt-saturated organic felt or closed-cell foam gasket, width to match framing member.",
+  "Acoustical Sealant: Nonsag, nonstaining latex sealant complying with ASTM C834, effective in reducing airborne sound transmission.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas and substrates, with Installer present, for compliance with requirements for tolerances and other conditions affecting performance.",
+  "Verify that cast-in anchors, inserts, and overhead framing are in place and positioned to receive hangers and head runners.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Coordinate installation of anchorage devices for suspended framing with the structure above; furnish inserts and hanger attachments to other trades for installation in advance of concrete placement.",
+  "Coordinate location of in-wall backing for casework, grab bars, accessories, handrails, and equipment with Drawings and with other trades.",
+]
+
+[[section.part3]]
+title = "INSTALLATION, GENERAL"
+items = [
+  "Installation Standard: ASTM C754 and manufacturer's written instructions, except where more stringent requirements are indicated.",
+  "Install framing and accessories plumb, square, and true to line, with connections securely fastened.",
+  "Install supplementary framing, blocking, and bracing at terminations and to support fixtures, equipment, services, heavy trim, grab bars, toilet accessories, furnishings, and similar work.",
+  "Isolate steel framing from building structure at locations indicated to prevent transfer of loading imposed by structural movement.",
+  "Install bracing at terminations in assemblies.",
+  "Do not bridge building control and expansion joints with non-load-bearing framing members; frame both sides of joints independently.",
+]
+
+[[section.part3]]
+title = "INSTALLING FRAMED ASSEMBLIES"
+items = [
+  "Install studs so flanges point in the same direction and leading edge or end of each panel can be attached to open (unsupported) edges of stud flanges first.",
+  "Space studs 16 inches o.c. unless otherwise indicated; 12 inches o.c. where required by limiting height tables or tested assembly.",
+  "Install runners at floors and ceilings anchored at 24 inches o.c. maximum and within 2 inches of ends.",
+  "Extend partition framing to structure above where indicated and to not less than 6 inches above suspended ceilings elsewhere; brace partitions that terminate at ceilings.",
+  "Slip-Type Head Joints: Where framing extends to overhead structural supports, install to produce joints at tops of framing systems that prevent axial loading of finished assemblies.",
+  "Door Openings: Screw vertical studs at jambs to jamb anchor clips on door frames; install runner track section for cripple studs at head and secure to jamb studs.",
+  ">Install two studs at each jamb unless otherwise indicated.",
+  ">Extend jamb studs through suspended ceilings and attach to underside of overhead structure.",
+  "Other Framed Openings: Frame openings other than door openings the same as required for door openings unless otherwise indicated.",
+  "Fire-Resistance-Rated Partitions: Install framing to comply with fire-resistance-rated assembly indicated and support closures and to make partitions continuous from floor to underside of solid structure.",
+  "Sound-Rated Partitions: Install framing to comply with sound-rated assembly indicated, with acoustical sealant at perimeter runners.",
+  "Direct Furring: Attach to concrete or masonry with stub nails, screws designed for masonry attachment, or power-driven fasteners spaced 24 inches o.c.",
+  "Installation Tolerance: Install each framing member so fastening surfaces vary not more than 1/8 inch from the plane formed by faces of adjacent framing.",
+]
+
+[[section.part3]]
+title = "INSTALLING SUSPENSION SYSTEMS"
+items = [
+  "Space hangers not more than 48 inches o.c. along carrying channels and not more than 12 inches from ends; space carrying channels 48 inches o.c.",
+  "Isolation: Where partitions intersect suspended ceilings, isolate suspension systems from partition framing to prevent transfer of loading.",
+  "Do not attach hangers to steel roof deck, ducts, pipes, or conduit. Where obstructions interfere with hanger spacing, install supplemental trapezes of carrying channels.",
+  "Grid Suspension Systems: Attach perimeter wall track or angle where grid abuts vertical surfaces; level to within 1/8 inch in 12 feet measured lengthwise on each member and transversely between parallel members.",
+  "Seismic Bracing: Sway-brace suspended ceiling framing where required by {building_code} and ASTM E580.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Before concealment, notify Architect so that framing, backing, and bracing can be observed.",
+  "Remove and replace framing that is bent, damaged, or not installed to within specified tolerances.",
+]
+
+[[section]]
+number = "09 24 00"
+title = "CEMENT PLASTERING"
+when = ["stucco"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Exterior portland cement plaster (stucco) on metal lath over framed walls.",
+  ">Portland cement plaster applied directly to concrete and masonry.",
+  ">Lath, accessories, and water-resistive barriers behind plaster.",
+  "Related Requirements:",
+  ">Section 06 16 00 \"Sheathing\" for wall sheathing.",
+  ">Section 07 25 00 \"Weather Barriers\" for water-resistive barriers other than those behind plaster.",
+  ">Section 07 92 00 \"Joint Sealants\" for sealants at openings and control joints.",
+  ">Section 09 91 13 \"Exterior Painting\" for paint applied over plaster.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including lath, accessories, and factory-prepared finish coat.",
+  "Shop Drawings: Elevations showing locations of control joints, expansion joints, reveals, and trim, and details at openings, penetrations, and terminations.",
+  "Samples: For each finish coat texture and color, 12 by 12 inches, on rigid backing.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Firm with not less than five years of experience installing portland cement plaster on projects of similar scope.",
+  "Mockups: Build a mockup of each type of plaster system, 48 by 48 inches minimum, including a window head and sill, control joint, and corner, to demonstrate texture, color, and workmanship.",
+  ">Approved mockups may become part of the completed Work if undisturbed at time of Substantial Completion.",
+  "Fire-Resistance Ratings: Where plaster is part of a fire-resistance-rated assembly, provide materials and construction identical to those tested per ASTM E119.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver manufactured materials in original unopened packages with labels intact; store cementitious materials off the ground, under cover, and in a dry location.",
+  "Store lath and accessories to prevent damage, corrosion, and deformation.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Cold Weather: Do not apply plaster when ambient temperature is below 40 deg F, or to frozen surfaces; maintain temperatures of not less than 40 deg F for 48 hours after application.",
+  "Hot and Dry Weather: Protect plaster from uneven and excessive evaporation during hot, dry, or windy weather by shading, fog-spraying, or other means.",
+  "Protect adjacent work and finished surfaces from staining and damage during plastering.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Installer agrees to repair or replace plaster that cracks beyond hairline, delaminates, or allows water penetration within two years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "WATER-RESISTIVE BARRIER AND LATH"
+items = [
+  "Water-Resistive Barrier: Two layers of Grade D building paper complying with ASTM E2556, Type II, or one layer of Grade D paper over a drainage mat, meeting {building_code} requirements for stucco over wood-based sheathing.",
+  "Drainage Mat: Three-dimensional polymer mesh, 1/4 inch thick, laminated or loose-laid, providing a continuous drainage plane behind plaster.",
+  "Manufacturers: Subject to compliance with requirements, provide lath and accessories by one of the following:",
+  ">ClarkDietrich Building Systems.",
+  ">Amico (Alabama Metal Industries).",
+  ">CEMCO.",
+  ">Plastic Components, Inc.",
+  "Expanded-Metal Lath: ASTM C847, self-furring diamond-mesh lath, galvanized, 3.4 lb/sq. yd., with paper backing where applied over framing.",
+  "Wire Lath: ASTM C1032, self-furring woven wire lath, 17 gauge, 1-1/2 inch hexagonal mesh, galvanized.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "General: Comply with ASTM C1063 and with requirements indicated for materials and shapes; zinc alloy or PVC in exterior applications.",
+  "Weep Screed: Foundation-type with vertical attachment flange not less than 3-1/2 inches, located not less than 4 inches above grade and 2 inches above paved surfaces.",
+  "Casing Beads: Square-edged, with expanded flanges, sized for plaster thickness indicated.",
+  "External Corner Reinforcement: Fabricated from expanded metal lath with ground edge.",
+  "Control Joints: One-piece or two-piece, formed with V-shaped slot, with perforated or expanded flanges.",
+  "Expansion Joints: Two-piece, with telescoping or slip-joint design, at building expansion joints and floor lines of framed construction.",
+  "Reveals and Drip Screeds: Profiles as indicated, of same material as other accessories.",
+]
+
+[[section.part2]]
+title = "PLASTER MATERIALS"
+items = [
+  "Portland Cement: ASTM C150, Type I or II, or ASTM C1157.",
+  "Masonry Cement: ASTM C91, Type N; or Plastic Cement: ASTM C1328.",
+  "Lime: ASTM C206, Type S; or ASTM C207, Type S.",
+  "Sand Aggregate: ASTM C897.",
+  "Fiber for Base Coat: Alkali-resistant glass or polypropylene fibers, 1/2 inch long, free of contaminants.",
+  "Water: Potable.",
+  "Bonding Compound: ASTM C932, for application to concrete and masonry.",
+  "Factory-Prepared Finish Coat: Manufacturer's standard acrylic-modified or cementitious finish complying with ASTM C926.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Omega Products International.",
+  ">>La Habra (Parex USA).",
+  ">>Merlex Stucco.",
+  ">>Sto Corp.",
+  ">Texture: [Sand float] [Fine lace] [Smooth trowel], as selected by Architect.",
+  ">Color: As selected by Architect from manufacturer's full range.",
+]
+
+[[section.part2]]
+title = "PLASTER MIXES"
+items = [
+  "General: Comply with ASTM C926 for applications indicated.",
+  "Base-Coat Mixes: Scratch and brown coats for three-coat plaster over metal lath, proportioned per ASTM C926 Table 2, with fiber added at manufacturer's recommended rate.",
+  "Base Coat for Concrete and Masonry: Two-coat plaster, proportioned per ASTM C926.",
+  "Job-Mixed Finish Coat: 1 part portland cement, 3/4 to 1-1/2 parts lime, and 1-1/2 to 3 parts sand, by volume.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, framing, sheathing, and openings for compliance with requirements and for conditions affecting performance.",
+  "Verify that flashings at openings, roof-to-wall intersections, and penetrations are installed and integrated with the water-resistive barrier.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Concrete and Masonry: Clean surfaces of dirt, efflorescence, form oil, and other substances that impair bond; dampen surfaces before application; apply bonding compound where required.",
+  "Protect adjacent surfaces, windows, doors, and finished work from plaster.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Water-Resistive Barrier: Install shingle-fashion with horizontal laps of 2 inches and vertical laps of 6 inches minimum; lap over weep screed flanges and integrate with window and door flashings.",
+  "Lath: Install per ASTM C1063, with sides lapped not less than 1/2 inch and ends lapped not less than 1 inch; attach to framing at 7 inches o.c. maximum with corrosion-resistant fasteners penetrating framing not less than 3/4 inch.",
+  "Accessories: Install per ASTM C1063, plumb, level, and true to line, with ends butted and aligned.",
+  ">Locate control joints so panels do not exceed 144 sq. ft. for walls and have a length-to-width ratio of not more than 2-1/2 to 1; limit distance between joints to 18 feet.",
+  ">Install control joints at each side of openings and at changes in substrate.",
+  ">Do not continue lath through control and expansion joints.",
+  "Plaster Application: Comply with ASTM C926.",
+  ">Three-Coat Work over Lath: Scratch coat 3/8 inch, brown coat 3/8 inch, finish coat 1/8 inch, for a total thickness of 7/8 inch.",
+  ">Two-Coat Work over Concrete and Masonry: Base coat 3/8 inch and finish coat 1/8 inch.",
+  ">Moist cure scratch and brown coats for not less than 48 hours; allow brown coat to cure not less than 7 days before applying finish coat unless using an accelerated method approved by the finish manufacturer.",
+  "Finish: Apply finish coat to produce texture and color matching approved mockup, uniform across each wall surface without cold joints; terminate work at control joints or architectural breaks.",
+  "Tolerance: Do not deviate more than 1/4 inch in 10 feet from a true plane in finished plaster surfaces.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove temporary protection and plaster from surfaces not scheduled to receive plaster; repair floors, walls, and other surfaces stained or damaged by plastering.",
+  "Protect plaster from damage and deterioration until Substantial Completion; repair cracked, damaged, or discolored plaster to match adjacent work.",
+]
+
+[[section]]
+number = "09 29 00"
+title = "GYPSUM BOARD"
+when = ["gypsum"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Interior gypsum board.",
+  ">Fire-resistance-rated gypsum board assemblies.",
+  ">Moisture- and mold-resistant gypsum board.",
+  ">Exterior gypsum soffit board.",
+  ">Tile backing panels.",
+  ">Joint treatment, trim, and texture finishes.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood framing and furring.",
+  ">Section 07 21 00 \"Thermal Insulation\" for insulation installed in gypsum board assemblies.",
+  ">Section 07 84 13 \"Penetration Firestopping\" for penetrations and joints in rated assemblies.",
+  ">Section 09 22 16 \"Non-Structural Metal Framing\" for non-load-bearing steel framing.",
+  ">Section 09 91 23 \"Interior Painting\" for primers and finishes over gypsum board.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Samples: For each texture finish indicated, 12 by 12 inches, on gypsum board.",
+  "Assembly Listings: For each fire-resistance-rated and sound-rated assembly, the UL or GA-600 design designation and a description of its components.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: For gypsum board indicating compliance with ASTM C1396 and, for fire-rated products, UL classification.",
+  "Sustainable Design Submittals: Manufacturers' product data for recycled content and VOC content of joint compounds and adhesives, where required.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installation Standard: Comply with ASTM C840 and GA-216 except where more stringent requirements are indicated.",
+  "Fire-Resistance-Rated Assemblies: Provide materials and construction identical to those tested per ASTM E119 by a qualified testing agency and listed in the UL Fire Resistance Directory or GA-600 Fire Resistance and Sound Control Design Manual.",
+  "STC-Rated Assemblies: Provide materials and construction identical to assemblies tested per ASTM E90 and classified per ASTM E413.",
+  "Mockups: Before finishing gypsum board, prepare a mockup of at least 100 sq. ft. in an area selected by Architect for each level of finish and texture, including a corner and a joint, to be viewed under final lighting conditions.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store materials inside under cover and keep them dry and protected against weather, condensation, direct sunlight, construction traffic, and other potential causes of damage.",
+  "Stack panels flat and supported on risers on a flat platform to prevent sagging.",
+  "Do not install panels that have been wet, show evidence of mold, or have damaged edges or cores.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Environmental Limitations: Comply with ASTM C840 requirements or gypsum board manufacturer's written instructions, whichever are more stringent; maintain room temperatures between 50 and 95 deg F during installation and finishing, and for 48 hours before and after.",
+  "Do not install interior products until the building is enclosed and weathertight, wet work in the space is complete and dry, and HVAC is operating and maintaining conditions.",
+  "Provide ventilation during finishing to remove excess moisture that could prevent drying of joint compound.",
+]
+
+[[section.part2]]
+title = "GYPSUM BOARD, GENERAL"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">USG Corporation.",
+  ">CertainTeed.",
+  ">National Gypsum Company.",
+  ">Georgia-Pacific Gypsum.",
+  "Size: Provide maximum lengths and widths available that will minimize joints in each area and correspond with support system indicated.",
+  "Recycled Content: Postconsumer plus one-half of preconsumer recycled content not less than 50 percent, where available.",
+]
+
+[[section.part2]]
+title = "INTERIOR GYPSUM BOARD"
+items = [
+  "Gypsum Board, Type X: ASTM C1396.",
+  ">Thickness: 5/8 inch.",
+  ">Long Edges: Tapered.",
+  ">Use: Walls and ceilings in fire-resistance-rated assemblies and elsewhere as indicated.",
+  "Gypsum Board, Type C: ASTM C1396, with enhanced fire-resistive core, 5/8 inch thick, where required by tested assembly.",
+  "Regular Gypsum Board: ASTM C1396, 1/2 inch thick, tapered long edges, for non-rated walls only where indicated.",
+  "Gypsum Ceiling Board: ASTM C1396, 1/2 inch thick, sag-resistant, for ceilings with framing spaced up to 24 inches o.c. where not required to be Type X.",
+  "Moisture- and Mold-Resistant Gypsum Board: ASTM C1396, with moisture- and mold-resistant core and paper surfaces, Type X, 5/8 inch thick.",
+  ">Mold Resistance: Score of 10 when tested per ASTM D3273.",
+  ">Use: Restrooms, janitor closets, behind wall-hung plumbing fixtures, and other areas subject to incidental moisture.",
+  "Abuse-Resistant Gypsum Board: ASTM C1629, Level 2 surface abrasion and indentation, Type X, 5/8 inch thick, in corridors and where indicated.",
+  "Wall Types: {wall_types}, as indicated on Drawings.",
+  "Ceiling Types: {ceiling_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "SPECIALTY GYPSUM BOARD"
+items = [
+  "Gypsum Shaftliner Board: ASTM C1396, Type X, 1 inch thick, with moisture- and mold-resistant paper faces, for shaft wall assemblies.",
+  "Exterior Gypsum Soffit Board: ASTM C1396, with sag-resistant, water-resistant core, Type X, 5/8 inch thick, at exterior soffits and ceilings.",
+  "Glass-Mat Interior Gypsum Board: ASTM C1658, Type X, 5/8 inch thick, where indicated.",
+]
+
+[[section.part2]]
+title = "TILE BACKING PANELS"
+items = [
+  "Cementitious Backer Units: ANSI A118.9 and ASTM C1325, 1/2 inch thick, 5/8 inch in fire-rated assemblies where listed.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>USG Corporation; Durock Cement Board.",
+  ">>James Hardie Building Products; HardieBacker.",
+  ">>National Gypsum Company; PermaBase.",
+  "Glass-Mat, Water-Resistant Backing Board: ASTM C1178, 5/8 inch thick, Type X where required, for tile in dry and limited-water-exposure areas.",
+  "Use: Cementitious backer units at showers, tub surrounds, and wet areas; glass-mat backing elsewhere behind tile.",
+]
+
+[[section.part2]]
+title = "TRIM ACCESSORIES"
+items = [
+  "Interior Trim: ASTM C1047.",
+  ">Material: Galvanized or aluminum-coated steel sheet, rolled zinc, plastic, or paper-faced galvanized steel sheet.",
+  ">Shapes:",
+  ">>Cornerbead.",
+  ">>LC-Bead: J-shaped; exposed long flange receives joint compound.",
+  ">>L-Bead: L-shaped; exposed long flange receives joint compound.",
+  ">>Expansion (Control) Joint: One-piece, rolled zinc with V-shaped slot and removable strip covering slot opening.",
+  "Aluminum Trim: Extruded accessories of profiles and dimensions indicated, ASTM B221, Alloy 6063-T5, for reveals and exposed edges where indicated.",
+  "Exterior Trim: ASTM C1047, rolled zinc or PVC, for exterior soffit board.",
+]
+
+[[section.part2]]
+title = "JOINT TREATMENT MATERIALS"
+items = [
+  "General: Comply with ASTM C475.",
+  "Joint Tape: Paper tape for interior gypsum board; 10-by-10 glass mesh tape for glass-mat products and cementitious backer units.",
+  "Joint Compound for Interior Gypsum Board: For each coat, use formulation that is compatible with other compounds applied on previous or successive coats.",
+  ">Prefilling: At open joints and damaged surface areas, use setting-type taping compound.",
+  ">Embedding and First Coat: For embedding tape and first coat on joints, fasteners, and trim flanges, use setting-type taping compound or drying-type, all-purpose compound.",
+  ">Fill Coat: Use setting-type, sandable topping compound or drying-type, all-purpose compound.",
+  ">Finish Coat: Use drying-type, all-purpose or topping compound.",
+  ">Skim Coat: For Level 5 finish, use drying-type, all-purpose compound or a high-build interior coating product designed for application by airless sprayer.",
+  "Joint Compound for Tile Backing Panels: As recommended by backing panel manufacturer, or latex-portland cement mortar complying with ANSI A118.4.",
+]
+
+[[section.part2]]
+title = "AUXILIARY MATERIALS"
+items = [
+  "General: Provide auxiliary materials that comply with referenced installation standards and manufacturer's written instructions.",
+  "Steel Drill Screws: ASTM C1002 for framing less than 0.033 inch thick; ASTM C954 for framing 0.033 to 0.112 inch thick.",
+  "Sound Attenuation Blankets: ASTM C665, Type I, unfaced mineral-fiber blankets, thickness to fill stud cavity, where indicated.",
+  "Acoustical Sealant: ASTM C834, nonsag, paintable, nonstaining latex sealant.",
+  "Texture Finishes: Primer and texture material compatible with gypsum board and joint compound, of texture matching approved Sample.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas and substrates, including welded hollow-metal frames and framing, with Installer present, for compliance with requirements and other conditions affecting performance.",
+  "Examine panels before installation. Reject panels that are wet, moisture damaged, or mold damaged.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "APPLYING AND FINISHING PANELS, GENERAL"
+items = [
+  "Comply with ASTM C840 and GA-216.",
+  "Install ceiling panels across framing to minimize the number of abutting end joints and to avoid abutting end joints in central area of each ceiling; stagger abutting end joints of adjacent panels not less than one framing member.",
+  "Install panels with face side out. Butt panels together for a light contact at edges and ends with not more than 1/16 inch of open space between panels. Do not force into place.",
+  "Locate edge and end joints over supports, except in ceiling applications where intermediate supports or gypsum board back-blocking is provided behind end joints.",
+  "Do not place tapered edges against cut edges or ends. Stagger vertical joints on opposite sides of partitions. Do not make joints other than control joints at corners of framed openings.",
+  "Form control and expansion joints with space between edges of adjoining gypsum panels.",
+  "Cover both faces of support framing with gypsum panels in concealed spaces (above ceilings), except in chases braced internally.",
+  "Isolation: Where gypsum board abuts dissimilar materials or structural elements, provide 1/4 to 1/2 inch wide spaces, trim exposed edges with edge trim, and seal joints with acoustical sealant.",
+  "Attachment to Steel Framing: Attach panels so leading edge or end of each panel is attached to open (unsupported) edges of stud flanges first.",
+  "STC-Rated Assemblies: Seal construction at perimeters, behind control joints, and at openings and penetrations with a continuous bead of acoustical sealant.",
+  "Fastener Spacing: Comply with tested assembly and manufacturer's written instructions; space screws 12 inches o.c. in field and 8 inches o.c. at edges on walls, and 12 inches o.c. on ceilings unless more stringent spacing is required.",
+]
+
+[[section.part3]]
+title = "APPLYING INTERIOR GYPSUM BOARD"
+items = [
+  "Single-Layer Application: On ceilings, apply gypsum board before wall panels, to the greatest extent possible, and at right angles to framing unless otherwise indicated.",
+  "On partitions and walls, apply gypsum panels vertically (parallel to framing) unless otherwise indicated or required by fire-resistance-rated assembly, and minimize end joints.",
+  "Multilayer Application: Apply base layers per tested assembly; offset face-layer joints at least 10 inches from parallel base-layer joints and at least one stud or furring member.",
+  "Fire-Resistance-Rated Assemblies: Install components in accordance with the listed design; do not substitute components or alter fastening patterns.",
+  "Curved Surfaces: Install panels horizontally and unbroken, to the extent possible, across curved surface plus 12-inch long straight sections at ends of curves; use 1/4 inch flexible gypsum board where radius requires.",
+]
+
+[[section.part3]]
+title = "APPLYING TILE BACKING PANELS"
+items = [
+  "Cementitious Backer Units: Install per ANSI A108.11 at showers, tubs, and where indicated; leave 1/4 inch gap at bottom above tubs and shower pans, and seal.",
+  "Water-Resistant Barrier: Where required by tile setting method, install barrier or liquid-applied waterproofing membrane behind or over backing per TCNA Handbook method indicated in Section 09 30 13 \"Ceramic Tiling.\"",
+  "Areas Not Subject to Wetting: Install glass-mat water-resistant backing board in accordance with manufacturer's written instructions.",
+]
+
+[[section.part3]]
+title = "INSTALLING TRIM ACCESSORIES"
+items = [
+  "General: For trim with back flanges intended for fasteners, attach to framing with same fasteners used for panels.",
+  "Control Joints: Install control joints at locations indicated or, where not indicated, as follows:",
+  ">In partitions and walls, at intervals not exceeding 30 feet.",
+  ">In ceilings with perimeter relief, at intervals not exceeding 50 feet so areas do not exceed 2500 sq. ft.; without perimeter relief, at intervals not exceeding 30 feet so areas do not exceed 900 sq. ft.",
+  ">At building expansion joints, and where framing or substrate changes.",
+  ">From door frame head corners to ceiling or to structure.",
+  "Interior Trim: Install cornerbead at outside corners, LC-Bead at exposed panel edges, and L-Bead where panels abut dissimilar surfaces or where indicated.",
+  "Aluminum Trim: Install in locations indicated on Drawings.",
+]
+
+[[section.part3]]
+title = "FINISHING GYPSUM BOARD"
+items = [
+  "General: Treat gypsum board joints, interior angles, edge trim, control joints, penetrations, fastener heads, surface defects, and elsewhere as required to prepare gypsum board surfaces for decoration. Promptly remove residual joint compound from adjacent surfaces.",
+  "Prefill open joints, rounded or beveled edges, and damaged surface areas.",
+  "Apply joint tape over gypsum board joints, except for trim products specifically indicated as not intended to receive tape.",
+  "Levels of Gypsum Board Finish: Provide the following levels of finish per ASTM C840 and GA-214:",
+  ">Level 1: Ceiling plenum areas, concealed areas, and where indicated.",
+  ">Level 2: Panels that are substrate for tile, and in mechanical and storage rooms.",
+  ">Level 3: Where heavy-texture finishes are indicated.",
+  ">Level 4: At panel surfaces that will be exposed to view unless otherwise indicated.",
+  ">Level 5: At walls and ceilings exposed to critical lighting, receiving gloss or semigloss paint, or where indicated.",
+  "Texture Finish: Where indicated, apply primer and texture to match approved Sample, uniformly without starved spots or other evidence of thin application.",
+  "Glass-Mat Faced Panels and Cementitious Backer Units: Finish according to manufacturer's written instructions.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protect adjacent surfaces from drywall compound and promptly remove from floors and other non-drywall surfaces. Repair surfaces stained, marred, or otherwise damaged during drywall application.",
+  "Protect installed products from damage from weather, condensation, direct sunlight, construction, and other causes during remainder of the construction period.",
+  "Remove and replace panels that are wet, moisture damaged, or mold damaged.",
+]
+
+[[section]]
+number = "09 30 13"
+title = "CERAMIC TILING"
+when = ["tile"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Porcelain floor tile.",
+  ">Glazed ceramic wall tile.",
+  ">Tile base and trim.",
+  ">Setting materials, grouts, waterproofing and crack-isolation membranes.",
+  ">Metal edge strips and transitions.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for slab finishes and tolerances.",
+  ">Section 07 92 00 \"Joint Sealants\" for sealants in tile joints.",
+  ">Section 09 29 00 \"Gypsum Board\" for tile backing panels.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Module Size: Actual tile size plus joint width indicated.",
+  "Face Size: Actual tile size, excluding spacer lugs.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including setting materials, grout, membranes, and edge strips.",
+  "Shop Drawings: Show locations of each type of tile and tile pattern; show widths, details, and locations of movement joints in tile substrates and finished tile surfaces.",
+  "Samples: For each type of tile and for each color and finish required, mounted on a 12 by 24 inch board with grout, and for each grout color.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Master Grade Certificates: For each shipment, type, and composition of tile, signed by tile manufacturer and Installer, per ANSI A137.1.",
+  "Product Test Reports: For tile-setting and -grouting products and for dynamic coefficient of friction of floor tile.",
+  "Qualification Data: For Installer.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Stock: Furnish tile and trim units that match products installed, packaged with protective covering and labeled, equal to 3 percent of amount installed for each type, color, pattern, and size.",
+  "Grout: Furnish one unopened container of each grout color installed.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Installer employs Certified Tile Installers (CTI) or installers recognized by the Advanced Certifications for Tile Installers (ACT) program, or is a Tile Contractors' Association of America Five-Star Contractor.",
+  "Source Limitations: Obtain each type, color, and finish of tile from single source or producer, and setting and grouting materials from single manufacturer.",
+  "Mockups: Build a mockup of each type of floor and wall installation, 48 inches square, showing pattern, joint widths, trim, and grout color.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver and store packaged materials in original containers with seals unbroken and labels intact until time of use. Comply with ANSI A137.1 for labeling tile packages.",
+  "Store tile and cementitious materials on elevated platforms, under cover, and in a dry location.",
+  "Store liquid materials in unopened containers and protected from freezing.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Environmental Limitations: Do not install tile until construction in spaces is complete and ambient conditions are maintained per referenced standards and manufacturer's written instructions; maintain not less than 50 deg F during installation and for 7 days after completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Dynamic Coefficient of Friction: For tile installed on walkway surfaces, provide products with the following values as determined by testing identical products per ANSI A326.3:",
+  ">Level Interior Surfaces Expected to Be Walked on When Wet: Minimum 0.42.",
+  ">Exterior Surfaces and Commercial Kitchens: As recommended by manufacturer for the use, and not less than 0.42.",
+]
+
+[[section.part2]]
+title = "TILE PRODUCTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Dal-Tile Corporation.",
+  ">Crossville, Inc.",
+  ">American Olean.",
+  ">Florida Tile, Inc.",
+  "ANSI Ceramic Tile Standard: Provide tile that complies with ANSI A137.1 for types, compositions, and other characteristics indicated.",
+  "Porcelain Floor Tile, Type CT-1:",
+  ">Composition: Porcelain, water absorption of 0.5 percent or less per ASTM C373.",
+  ">Face Size: 12 by 24 inches, rectified edges.",
+  ">Thickness: 3/8 inch.",
+  ">Finish: Matte, unglazed or glazed as selected.",
+  ">Tile Color and Pattern: As selected by Architect from manufacturer's full range.",
+  ">Grout Color: As selected by Architect.",
+  ">Trim Units: Matching cove base, 6 by 12 inches.",
+  "Glazed Wall Tile, Type CT-2:",
+  ">Composition: Nonvitreous ceramic, glazed.",
+  ">Face Size: 3 by 6 inches, or as indicated.",
+  ">Thickness: 5/16 inch.",
+  ">Finish: Bright glossy or matte glaze, as selected.",
+  ">Trim Units: Matching bullnose, cove, and outside corners.",
+  "Floor Types: {floor_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "WATERPROOFING AND CRACK ISOLATION MEMBRANES"
+items = [
+  "Waterproofing Membrane: Liquid-applied or fabric-reinforced sheet membrane complying with ANSI A118.10.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Custom Building Products; RedGard.",
+  ">>LATICRETE International; HYDRO BAN.",
+  ">>MAPEI Corporation; Mapelastic AquaDefense.",
+  ">>Schluter Systems; KERDI.",
+  "Crack Isolation Membrane: Complying with ANSI A118.12 for standard performance, over concrete slabs where indicated and at shrinkage cracks.",
+]
+
+[[section.part2]]
+title = "SETTING MATERIALS"
+items = [
+  "Manufacturers: Provide setting and grouting materials from one of the following: LATICRETE International; MAPEI Corporation; Custom Building Products; TEC (H.B. Fuller).",
+  "Improved Modified Dry-Set Mortar (Thinset): ANSI A118.15, for porcelain tile.",
+  ">Large and Heavy Tile Mortar: Where any edge of tile exceeds 15 inches, provide mortar formulated for large and heavy tile.",
+  "Latex-Portland Cement Mortar: ANSI A118.4, for glazed wall tile and other applications.",
+  "Mortar Bed: ANSI A108.1A, factory-prepared, for sloped mortar beds at showers and where indicated.",
+]
+
+[[section.part2]]
+title = "GROUT MATERIALS"
+items = [
+  "High-Performance Tile Grout: ANSI A118.7, sanded for joints 1/8 inch and wider, unsanded for joints narrower than 1/8 inch.",
+  "Water-Cleanable Epoxy Grout: ANSI A118.3, chemical-resistant, at commercial kitchens, restroom floors, and where indicated.",
+]
+
+[[section.part2]]
+title = "MISCELLANEOUS MATERIALS"
+items = [
+  "Metal Edge Strips: Stainless steel, Type 304, or satin anodized aluminum L-angle or transition profiles, height to match tile and setting-bed thickness, at exposed edges and transitions to other floor finishes.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Schluter Systems.",
+  ">>Blanke Corporation.",
+  ">>Ceramic Tool Company.",
+  "Movement Joints: Preformed or sealant-filled joints per TCNA EJ171; sealant as specified in Section 07 92 00 \"Joint Sealants,\" color to match grout.",
+  "Grout Sealer: Manufacturer's standard product for sealing grout joints, which does not change color or appearance of grout.",
+  "Tile Cleaner: A neutral cleaner capable of removing soil and residue without harming tile and grout surfaces.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, areas, and conditions where tile will be installed, with Installer present, for compliance with requirements for installation tolerances and other conditions affecting performance.",
+  ">Verify that substrates for setting tile are firm, dry, clean, free of coatings incompatible with setting materials, and within flatness tolerances required by ANSI A108.02: 1/4 inch in 10 feet and 1/16 inch in 12 inches for tile with all edges shorter than 15 inches; 1/8 inch in 10 feet and 1/16 inch in 24 inches for tile with any edge 15 inches or longer.",
+  ">Verify that concrete substrates are cured not less than 28 days and are free of curing compounds.",
+  ">Verify that installation of grounds, anchors, recessed frames, electrical and mechanical units of work, and similar items located in or behind tile has been completed.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Fill cracks, holes, and depressions in concrete substrates with trowelable leveling and patching compound specifically recommended by tile-setting material manufacturer.",
+  "Remove protrusions, bumps, and ridges by sanding or grinding.",
+  "Blending: For tile exhibiting color variations, verify that tile has been factory blended and packaged so tile units taken from one package show same range of colors as those taken from other packages; if not, blend tile at Project site before installing.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with TCNA Handbook for Ceramic, Glass, and Stone Tile Installation for installation methods specified, and ANSI A108 series of tile installation standards for application of setting and grouting materials.",
+  "TCNA Installation Methods:",
+  ">Interior Floors on Concrete, Thinset: TCNA F113.",
+  ">Interior Floors over Crack Isolation Membrane: TCNA F125.",
+  ">Shower Receptors, Bonded Waterproof Membrane: TCNA B421.",
+  ">Interior Walls on Metal Studs, Cementitious Backer Units: TCNA W244C.",
+  ">Wet Area Walls with Bonded Waterproof Membrane: TCNA B412.",
+  "Extend tile work into recesses and under or behind equipment and fixtures to form complete covering without interruptions unless otherwise indicated. Terminate work neatly at obstructions, edges, and corners without disrupting pattern or joint alignments.",
+  "Accurately form intersections and returns. Perform cutting and drilling of tile without marring visible surfaces. Grind cut edges of tile abutting trim, finish, or built-in items for straight aligned joints.",
+  "Mortar Coverage: Provide not less than 80 percent coverage in dry areas and 95 percent coverage in wet areas and exterior applications; back-butter large-format tile.",
+  "Lippage: Limit lippage to that permitted by ANSI A108.02 for the tile size and joint width; for large-format rectified tile, use leveling systems and offset running-bond patterns not more than 33 percent.",
+  "Jointing Pattern: Lay tile in grid pattern unless otherwise indicated. Lay out tile work and center tile fields in both directions in each space or on each wall area; adjust to minimize tile cutting.",
+  "Joint Widths: Unless otherwise indicated, install tile with 3/16 inch joints for porcelain floor tile and 1/16 inch joints for glazed wall tile.",
+  "Movement Joints: Locate and install per TCNA EJ171, at perimeters, at changes of plane, over structural joints, and in the field at 20 to 25 feet each way interior and 8 to 12 feet each way where exposed to direct sunlight or moisture.",
+  "Metal Edge Strips: Install where exposed edge of tile flooring meets carpet, wood, or other flooring that finishes flush with or below top of tile.",
+  "Waterproofing and Crack Isolation: Install membranes per ANSI A108.13 and manufacturer's written instructions to produce continuous, watertight coverage; flood test shower receptors for 24 hours per ASTM D5957 before installing tile.",
+  "Grout: Grout tile per ANSI A108.10 for cement grouts and ANSI A108.6 for epoxy grouts.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTING"
+items = [
+  "Cleaning: On completion of placement and grouting, clean all tile surfaces so they are free of foreign matter.",
+  ">Remove grout residue from tile as soon as possible.",
+  ">Clean grout smears and haze from tile according to tile and grout manufacturer's written instructions, but no sooner than 10 days after installation; use only cleaners recommended by manufacturers.",
+  "Apply grout sealer to cementitious grout joints according to grout-sealer manufacturer's written instructions.",
+  "Protect installed tile work with kraft paper or other heavy covering during construction period to prevent staining, damage, and wear; prohibit foot and wheel traffic from tiled floors for at least seven days after grouting is completed.",
+]
+
+[[section]]
+number = "09 51 13"
+title = "ACOUSTICAL PANEL CEILINGS"
+when = ["ceilings_acoustical"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Acoustical panels and exposed suspension systems for ceilings.",
+  ">Edge moldings and trim.",
+  "Related Requirements:",
+  ">Section 09 22 16 \"Non-Structural Metal Framing\" for gypsum board soffits and bulkheads.",
+  ">Section 09 29 00 \"Gypsum Board\" for gypsum board ceilings.",
+  ">Divisions 23 and 26 for air diffusers, light fixtures, and devices in ceilings.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Samples: For each exposed product and for each color and texture specified, 6 inches square for panels and 12 inches long for suspension members and moldings.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Coordination Drawings: Reflected ceiling plans, drawn to scale, showing and coordinating suspended ceiling components, light fixtures, air outlets and inlets, speakers, sprinklers, access panels, and perimeter moldings.",
+  "Product Test Reports: For each acoustical panel ceiling, for tests performed by a qualified testing agency.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish acoustical ceiling panels that match products installed, equal to 2 percent of quantity installed, and exposed suspension-system components equal to 2 percent of quantity installed.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Source Limitations: Obtain each type of acoustical ceiling panel and its supporting suspension system from single source from single manufacturer.",
+  "Mockups: Build a mockup of typical ceiling area, 100 sq. ft. minimum, including a light fixture and air diffuser, as directed by Architect.",
+  "Seismic Design: Comply with ASTM E580 and {building_code} requirements for the Seismic Design Category of the Project.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver acoustical panels, suspension-system components, and accessories in original, unopened packages and store them in a fully enclosed, conditioned space protected against moisture, humidity, temperature extremes, direct sunlight, and surface contamination.",
+  "Before installing acoustical panels, permit them to reach room temperature and a stabilized moisture content.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Environmental Limitations: Do not install acoustical panel ceilings until spaces are enclosed and weathertight, wet work in spaces is complete and dry, work above ceilings is complete, and ambient temperature and humidity conditions are maintained at occupancy levels.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace acoustical panels that sag or warp and suspension systems that rust within 10 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Surface-Burning Characteristics: Comply with ASTM E84; Class A, flame-spread index of 25 or less and smoke-developed index of 50 or less.",
+  "Fire-Resistance Ratings: Where indicated, provide acoustical panel ceilings identical to those of assemblies tested per ASTM E119 and listed in the UL Fire Resistance Directory.",
+  "Low-Emitting Materials: Panels comply with CDPH Standard Method v1.2 for VOC emissions.",
+]
+
+[[section.part2]]
+title = "ACOUSTICAL PANELS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Armstrong World Industries.",
+  ">USG Corporation.",
+  ">CertainTeed Ceilings.",
+  ">Rockfon (ROCKWOOL).",
+  "Acoustical Panel Standard: Provide manufacturer's standard panels of configuration indicated that comply with ASTM E1264 classifications as designated by types, patterns, acoustical ratings, and light reflectances unless otherwise indicated.",
+  "Acoustical Panel, Type ACT-1:",
+  ">Classification: ASTM E1264, Type III, Form 2, Pattern CE (fine-textured).",
+  ">Color: White.",
+  ">Light Reflectance (LR): Not less than 0.85.",
+  ">Ceiling Attenuation Class (CAC): Not less than 35.",
+  ">Noise Reduction Coefficient (NRC): Not less than 0.70.",
+  ">Edge Detail: [Square lay-in for 15/16 inch grid] [Tegular for 9/16 inch grid].",
+  ">Thickness: 3/4 inch.",
+  ">Modular Size: 24 by 24 inches.",
+  ">Antimicrobial Treatment: Manufacturer's standard broad-spectrum treatment.",
+  "Acoustical Panel, Type ACT-2 (Wet Areas and Kitchens): Scrubbable, washable, humidity-resistant panels, ASTM E1264 Type IV, Form 2, with vinyl or membrane face, NRC 0.55 minimum.",
+  "Ceiling Types: {ceiling_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "METAL SUSPENSION SYSTEMS"
+items = [
+  "Metal Suspension-System Standard: Provide manufacturer's standard direct-hung metal suspension systems of types, structural classifications, and finishes indicated that comply with ASTM C635.",
+  "Wide-Face, Capped, Double-Web, Steel Suspension System: Main and cross runners roll formed from cold-rolled steel sheet, hot-dip galvanized, G30 coating designation, with prefinished 15/16 inch wide metal caps on flanges.",
+  ">Structural Classification: Intermediate-duty system per ASTM C635; heavy-duty where supporting light fixtures and diffusers without independent support.",
+  ">Face Design: Flat, flush.",
+  ">Cap Finish: Painted white to match panels.",
+  "Narrow-Face, Capped, Double-Web Steel Suspension System: 9/16 inch face width, where indicated for tegular panels.",
+  "Wet Areas: Aluminum or hot-dip galvanized G60 steel suspension system with manufacturer's corrosion-resistant finish.",
+  "Fire-Rated Assemblies: Suspension system listed for the fire-resistance design indicated.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Attachment Devices: Size for five times the design load indicated in ASTM C635, Table 1, Direct Hung, unless otherwise indicated; comply with seismic design requirements.",
+  "Wire Hangers, Braces, and Ties: ASTM A641, Class 1 zinc coating, soft temper, not less than 0.106 inch diameter (12 gauge).",
+  "Edge Moldings and Trim: Roll-formed sheet-metal edge moldings and trim matching exposed suspension-system members, including splices, corner pieces, and fasteners; 2 inch horizontal flange at perimeters where required by seismic design.",
+  "Hold-Down Clips: Manufacturer's standard clips for panels in vestibules and where indicated.",
+  "Seismic Stabilizer Bars and Perimeter Clips: Manufacturer's standard, as required by ASTM E580.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, areas, and conditions, including structural framing to which acoustical panel ceilings attach or abut, with Installer present, for compliance with requirements for installation tolerances and other conditions affecting performance.",
+  "Verify that work above ceilings, including ductwork, piping, sprinklers, and cabling, is complete and tested before installing panels.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Measure each ceiling area and establish layout of acoustical panels to balance border widths at opposite edges of each ceiling. Avoid using less-than-half-width panels at borders unless otherwise indicated.",
+  "Lay out openings for penetrations centered on the penetrating items.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install acoustical panel ceilings to comply with ASTM C636, seismic design requirements of ASTM E580 and {building_code}, and manufacturer's written instructions.",
+  "Suspend ceiling hangers from building's structural members and as follows:",
+  ">Install hangers plumb and free from contact with insulation or other objects within ceiling plenum that are not part of supporting structure or of ceiling suspension system.",
+  ">Splay hangers only where required to miss obstructions; offset resulting horizontal forces by bracing, countersplaying, or other equally effective means.",
+  ">Where ducts and other construction within ceiling plenum interfere with hanger spacing, install supplemental suspension members and hangers in form of trapezes.",
+  ">Do not support ceilings directly from permanent metal forms or floor deck; fasten hangers to cast-in-place hanger inserts, post-installed mechanical anchors, or power-actuated fasteners that extend through forms into concrete.",
+  ">Do not attach hangers to steel deck tabs, ducts, pipes, or conduit.",
+  ">Space hangers not more than 48 inches o.c. along each member supported directly from hangers, and provide hangers not more than 8 inches from ends of each member.",
+  ">Provide independent support wires at corners of light fixtures and at air terminals as required by ASTM C636 and ASTM E580.",
+  "Secure wire hangers to ceiling-suspension members and to supports above with a minimum of three tight turns.",
+  "Install edge moldings and trim at perimeter of acoustical ceiling area and where necessary to conceal edges of acoustical panels; screw attach moldings to substrate at intervals not more than 16 inches o.c. and not more than 3 inches from ends.",
+  "Install suspension-system runners so they are square and securely interlocked with one another. Remove and replace dented, bent, or kinked members.",
+  "Install acoustical panels with undamaged edges and fit accurately into suspension-system runners and edge moldings. Scribe and cut panels at borders and penetrations to provide a neat, precise fit.",
+  ">Arrange directionally patterned acoustical panels as indicated or, if not indicated, in one direction.",
+  ">For reveal-edged panels, install panels with bottom of reveal in firm contact with top surface of runner flanges.",
+  ">Paint cut edges of panel remaining exposed after installation; match color of exposed panel surfaces.",
+  "Tolerance: Level ceiling to within 1/8 inch in 12 feet.",
+]
+
+[[section.part3]]
+title = "CLEANING"
+items = [
+  "Clean exposed surfaces of acoustical panel ceilings, including trim, edge moldings, and suspension-system members. Comply with manufacturer's written instructions for cleaning and touchup of minor finish damage.",
+  "Remove and replace ceiling components that cannot be successfully cleaned and repaired to permanently eliminate evidence of damage.",
+]
+
+[[section]]
+number = "09 64 29"
+title = "WOOD STRIP AND PLANK FLOORING"
+when = ["flooring_wood"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Unfinished solid-wood strip flooring for field finishing.",
+  ">Factory-finished engineered-wood plank flooring.",
+  ">Underlayment, vapor retarders, and accessories.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood subflooring.",
+  ">Section 06 20 23 \"Interior Finish Carpentry\" for wood base and shoe molding.",
+  ">Section 09 65 13 \"Resilient Base and Accessories\" for transition strips at resilient flooring.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including installation instructions and finish system.",
+  "Samples: For each species, grade, and finish, not less than 12 inches long, showing the full range of color and grain variation expected.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer.",
+  "Moisture Test Reports: Subfloor and flooring moisture readings and concrete moisture test results recorded before installation.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For wood flooring and finish to include in maintenance manuals, including recommended cleaning products and recoating intervals.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish flooring of each species, grade, and finish equal to 2 percent of amount installed, packaged and labeled.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An experienced installer with not less than five years of experience; supervisor certified by the National Wood Flooring Association (NWFA) as an installation or sand and finish professional.",
+  "Installation Standard: Comply with NWFA Installation Guidelines and manufacturer's written instructions.",
+  "Mockups: Install a 100 sq. ft. area of each flooring type, including finish, to establish standards for color, grain variation, and workmanship.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver wood flooring only after wet work is complete and the building is enclosed and conditioned.",
+  "Store flooring in original packaging in a dry, ventilated space, off the floor, and acclimatize at installation location per NWFA guidelines and manufacturer's written instructions until moisture content is within the range specified.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Conditioning: Maintain relative humidity between 35 and 55 percent and temperature between 60 and 80 deg F in spaces to receive flooring for at least 7 days before installation, during installation, and after installation.",
+  "Close spaces to traffic during finishing and for the time recommended by the finish manufacturer after finishing.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: For factory-finished flooring, manufacturer's standard finish-wear warranty of not less than 25 years residential and 5 years commercial, and structural warranty against delamination for the life of the floor.",
+]
+
+[[section.part2]]
+title = "SOLID-WOOD STRIP FLOORING"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Anderson Tuftex.",
+  ">Bruce (AHF Products).",
+  ">Mohawk Industries.",
+  ">Somerset Hardwood Flooring.",
+  "Standard: Comply with NWFA grading rules for species, grade, and cut.",
+  "Species and Grade: Northern red oak, Select and Better, plain sawn, unless otherwise indicated.",
+  "Thickness: 3/4 inch.",
+  "Face Width: 2-1/4 inches.",
+  "Lengths: Random lengths, minimum average length of 2-3/4 feet.",
+  "Edge Style: Tongue and groove, end matched, with backs relieved.",
+  "Moisture Content: 6 to 9 percent at time of installation, and within 2 percent of subfloor.",
+  "Floor Types: {floor_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "ENGINEERED-WOOD PLANK FLOORING"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Anderson Tuftex.",
+  ">Mohawk Industries.",
+  ">Shaw Industries Group.",
+  ">Mannington Mills.",
+  "Standard: ANSI/HPVA EF, engineered wood flooring.",
+  "Construction: Multi-ply cross-laminated core with hardwood wear layer not less than 3/16 inch thick.",
+  "Species: [White oak] [Red oak] [Hickory] [Maple], as selected.",
+  "Thickness: 1/2 inch minimum; 5/8 inch where installed over radiant heat.",
+  "Width: 7 inches, random lengths to 6 feet.",
+  "Edge Style: Tongue and groove with micro-beveled edges and ends.",
+  "Finish: Factory-applied, UV-cured aluminum oxide urethane, color as selected by Architect.",
+  "Formaldehyde Emissions: Comply with EPA TSCA Title VI and CARB Phase 2.",
+]
+
+[[section.part2]]
+title = "ACCESSORY MATERIALS"
+items = [
+  "Vapor Retarder: Over concrete, 6 mil polyethylene sheet complying with ASTM D4397, or manufacturer's recommended moisture-control membrane; over wood subfloors, asphalt-saturated kraft paper or 15 lb asphalt felt per NWFA guidelines.",
+  "Underlayment for Floating Installations: Manufacturer's standard foam or cork underlayment, with an IIC rating contributing to the floor-ceiling assembly rating where indicated.",
+  "Wood Flooring Adhesive: Urethane or moisture-cure adhesive recommended by flooring manufacturer, with VOC content not more than 100 g/L.",
+  "Fasteners: As recommended by manufacturer and NWFA: 2 inch barbed flooring cleats or 15-1/2 gauge staples for 3/4 inch solid flooring.",
+  "Thresholds and Reducers: Solid wood matching flooring species and finish, profiles as indicated.",
+  "Sand and Finish Materials for Unfinished Flooring:",
+  ">Wood Filler: Compatible with finish system and recommended by filler and finish manufacturers for use indicated.",
+  ">Stain: Penetrating type, color as selected by Architect.",
+  ">Finish System: Waterborne two-component polyurethane, one coat sealer and two coats finish, satin sheen, complying with manufacturer's VOC limits.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for compliance with requirements for installation tolerances, moisture content, and other conditions affecting performance.",
+  "Wood Subfloors: Verify that subfloor is flat to within 3/16 inch in 10 feet or 1/4 inch in 6 feet, fastened securely, and with moisture content within 2 percent of flooring for strip flooring less than 3 inches wide and within 4 percent for wider flooring.",
+  "Concrete Subfloors: Perform tests recommended by manufacturer, including relative humidity testing per ASTM F2170 and pH testing; proceed only when results are within manufacturer's limits.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Clean substrates free of dust, debris, oil, and other materials that could interfere with bond or fastening.",
+  "Grind high spots and fill low spots with patching compound recommended by flooring manufacturer.",
+  "Undercut door casings and jambs to receive flooring.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with flooring manufacturer's written instructions and NWFA Installation Guidelines for the installation method indicated.",
+  "Vapor Retarder: Install over entire surface of subfloor, lapped 4 inches at edges and ends.",
+  "Solid Strip Flooring: Blind nail or staple through tongue at 8 to 10 inches o.c. and within 2 to 3 inches of each end, with at least two fasteners per board; face nail first and last rows.",
+  "Engineered Plank Flooring: Install by [glue-down] [nail-down] [floating] method as recommended by manufacturer for substrate.",
+  "Layout: Lay flooring parallel to the longest room dimension unless otherwise indicated; stagger end joints of adjacent rows not less than 6 inches for strip and 8 inches for plank.",
+  "Expansion Space: Provide expansion space at walls and other obstructions and terminations of flooring of not less than 3/4 inch, or as recommended by manufacturer; conceal with base and shoe molding.",
+  "Install thresholds and reducers at doorways and transitions to other flooring materials.",
+]
+
+[[section.part3]]
+title = "FIELD FINISHING"
+items = [
+  "Machine sand flooring with progressively finer grits to remove ridges, cupping, and sanding machine marks that would be noticeable after finishing; vacuum and tack with a cloth before applying finish.",
+  "Fill cracks, open joints, and nail holes with wood filler; sand smooth after drying.",
+  "Apply stain, sealer, and finish coats per finish manufacturer's written instructions, with abrasion between coats, to produce a uniform appearance matching approved mockup.",
+  "Do not permit traffic until finish is cured as recommended by manufacturer.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protect installed flooring during remainder of construction with breathable protective covering of kraft paper or fiberboard; do not use plastic sheet coverings.",
+  "Do not move heavy and sharp objects directly over flooring; protect flooring with plywood or hardboard panels when moving.",
+]
+
+[[section]]
+number = "09 65 13"
+title = "RESILIENT BASE AND ACCESSORIES"
+when = ["flooring_resilient", "commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Resilient base.",
+  ">Resilient stair accessories.",
+  ">Resilient molding accessories and transition strips.",
+  "Related Requirements:",
+  ">Section 09 65 19 \"Resilient Tile Flooring\" for resilient floor tile and luxury vinyl tile.",
+  ">Section 09 68 13 \"Tile Carpeting\" for carpet tile.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Samples: For each type of product, in manufacturer's standard-size Samples but not less than 12 inches long, of each resilient product color and pattern specified.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish not less than 10 linear feet for every 500 linear feet or fraction thereof, of each type, color, pattern, and size of resilient product installed.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store resilient products and installation materials in dry spaces protected from the weather, with ambient temperatures maintained within range recommended by manufacturer, but not less than 50 deg F or more than 90 deg F.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Maintain ambient temperatures within range recommended by manufacturer, but not less than 70 deg F or more than 95 deg F, in spaces to receive resilient products during the following time periods:",
+  ">48 hours before installation.",
+  ">During installation.",
+  ">48 hours after installation.",
+  "Install resilient products after other finishing operations, including painting, have been completed.",
+]
+
+[[section.part2]]
+title = "RESILIENT BASE"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Johnsonite (Tarkett).",
+  ">Roppe Corporation.",
+  ">Armstrong Flooring.",
+  ">Burke Flooring (Mannington Commercial).",
+  "Product Standard: ASTM F1861, Type TS (rubber, vulcanized thermoset), Group I (solid, homogeneous).",
+  ">Style and Location: Style B, Cove, at resilient flooring and hard surfaces; Style A, Straight (toeless), at carpet.",
+  "Thickness: 0.125 inch.",
+  "Height: 4 inches; 6 inches where indicated.",
+  "Lengths: Coils in manufacturer's standard length.",
+  "Outside Corners: Job formed, or preformed where indicated.",
+  "Inside Corners: Job formed.",
+  "Colors: As selected by Architect from full range of industry colors.",
+]
+
+[[section.part2]]
+title = "RESILIENT STAIR ACCESSORIES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by the manufacturer of resilient base, or by one of the following:",
+  ">Johnsonite (Tarkett).",
+  ">Roppe Corporation.",
+  ">Musson Rubber Company.",
+  "Stair Treads: ASTM F2169, Type TS, Class 1 (smooth) or Class 2 (pattern), with integral risers where indicated, 1/4 inch thick, square nose profile to fit stair.",
+  "Visually Contrasting Nosing Strip: Integral contrasting color abrasive strip, 2 inches wide, complying with {building_code}.",
+  "Landing Tile: Matching treads, for landings.",
+]
+
+[[section.part2]]
+title = "RESILIENT MOLDING ACCESSORIES"
+items = [
+  "Description: Rubber reducer strips, carpet edge guards, cove caps, and transition strips for flooring transitions of heights indicated.",
+  "Profile and Dimensions: As indicated, with vertical changes in level not exceeding 1/4 inch and beveled changes not exceeding 1/2 inch at a slope of 1:2, per ICC A117.1.",
+  "Colors and Patterns: As selected by Architect.",
+]
+
+[[section.part2]]
+title = "INSTALLATION MATERIALS"
+items = [
+  "Trowelable Leveling and Patching Compounds: Latex-modified, portland cement based or blended hydraulic-cement-based formulation provided or approved by resilient-product manufacturer for applications indicated.",
+  "Adhesives: Water-resistant type recommended by resilient-product manufacturer for resilient products and substrate conditions indicated, with VOC content of not more than 50 g/L for cove base adhesives.",
+  "Stair-Tread Nose Filler: Two-part epoxy compound recommended by resilient stair-tread manufacturer to fill nosing substrates that do not conform to tread contours.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for compliance with requirements for maximum moisture content and other conditions affecting performance.",
+  "Verify that finishes of substrates comply with tolerances and other requirements specified in other Sections and that substrates are free of cracks, ridges, depressions, scale, and foreign deposits.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "RESILIENT BASE INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions for installing resilient base.",
+  "Apply resilient base to walls, columns, pilasters, casework and cabinets in toe spaces, and other permanent fixtures in rooms and areas where base is required.",
+  "Install resilient base in lengths as long as practical without gaps at seams and with tops of adjacent pieces aligned.",
+  "Tightly adhere resilient base to substrate throughout length of each piece, with base in continuous contact with horizontal and vertical substrates.",
+  "Do not stretch resilient base during installation.",
+  "On masonry surfaces or other similar irregular substrates, fill voids along top edge of resilient base with manufacturer's recommended adhesive filler material.",
+  "Job-Formed Corners: Form outside corners by V-cutting the back of the base and bending; form inside corners by scribing or V-cutting as recommended by manufacturer.",
+]
+
+[[section.part3]]
+title = "RESILIENT ACCESSORY INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions for installing resilient accessories.",
+  "Resilient Stair Accessories: Use stair-tread-nose filler to fill nosing substrates that do not conform to tread contours; tightly adhere to substrates throughout length of each piece; for treads installed as separate, equal-length units, install to produce a flush joint between units.",
+  "Resilient Molding Accessories: Butt to adjacent materials and tightly adhere to substrates throughout length of each piece. Install reducer strips at edges of floor covering that would otherwise be exposed.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Comply with manufacturer's written instructions for cleaning and protecting resilient products.",
+  "Perform the following operations immediately after completing resilient-product installation:",
+  ">Remove adhesive and other blemishes from exposed surfaces.",
+  ">Sweep and vacuum surfaces thoroughly.",
+  ">Damp-mop surfaces to remove marks and soil.",
+  "Protect resilient products from mars, marks, indentations, and other damage from construction operations and placement of equipment and fixtures during remainder of construction period.",
+  "Cover resilient stair treads until Substantial Completion.",
+]
+
+[[section]]
+number = "09 65 19"
+title = "RESILIENT TILE FLOORING"
+when = ["flooring_resilient"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Luxury vinyl tile (LVT) and plank.",
+  ">Vinyl composition tile (VCT).",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for slab finishes and moisture mitigation.",
+  ">Section 09 65 13 \"Resilient Base and Accessories\" for resilient base, reducer strips, and other accessories installed with resilient floor coverings.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Shop Drawings: For each type of floor tile, including floor patterns, borders, color layout, and locations of transitions.",
+  "Samples: Full-size units of each color, texture, and pattern of floor tile required.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer.",
+  "Moisture and pH Test Reports: Results of concrete substrate testing performed before installation.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For each type of floor tile to include in maintenance manuals.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish one box for every 50 boxes or fraction thereof, of each type, color, and pattern of floor tile installed.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An entity that employs installers and supervisors who are competent in techniques required by manufacturer for floor tile installation, and certified by the International Certified Floorcovering Installers Association (CFI) or by the manufacturer.",
+  "Mockups: Install a 100 sq. ft. area of each type of floor tile, including a transition, to demonstrate aesthetic effects and set quality standards.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store floor tile and installation materials in dry spaces protected from the weather, with ambient temperatures maintained within range recommended by manufacturer, but not less than 50 deg F or more than 90 deg F. Store floor tiles on flat surfaces.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Maintain ambient temperatures within range recommended by manufacturer, but not less than 65 deg F or more than 85 deg F, in spaces to receive floor tile during the following time periods:",
+  ">48 hours before installation.",
+  ">During installation.",
+  ">48 hours after installation.",
+  "Until Substantial Completion, maintain ambient temperatures within range recommended by manufacturer.",
+  "Close spaces to traffic during floor tile installation and for 24 hours after installation.",
+  "Install floor tile after other finishing operations, including painting, have been completed.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to replace LVT that fails in materials or wear-layer performance within 10 years (commercial) from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Fire Test Response Characteristics: For resilient floor tile, as determined by testing identical products per ASTM E648 or NFPA 253 by a qualified testing agency: critical radiant flux classification of Class I, not less than 0.45 W/sq. cm.",
+  "Smoke Density: ASTM E662, specific optical density of 450 or less.",
+  "Low-Emitting Materials: Floor tile complies with FloorScore certification or CDPH Standard Method v1.2.",
+]
+
+[[section.part2]]
+title = "LUXURY VINYL FLOOR TILE"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Armstrong Flooring.",
+  ">Interface, Inc.",
+  ">Mannington Commercial.",
+  ">Shaw Contract.",
+  ">Tarkett.",
+  "Tile Standard: ASTM F1700.",
+  ">Class: Class III, printed film vinyl tile.",
+  ">Type: Type B, embossed surface.",
+  "Thickness: 0.197 inch (5 mm) overall.",
+  "Wear Layer Thickness: 0.020 inch (20 mil) minimum; 0.028 inch (28 mil) in heavy commercial areas.",
+  "Size: [7 by 48 inch plank] [18 by 36 inch tile], as indicated.",
+  "Wearing Surface: Factory-applied urethane or ceramic-bead enhanced urethane.",
+  "Colors and Patterns: As selected by Architect from full range of industry colors.",
+  "Floor Types: {floor_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "VINYL COMPOSITION FLOOR TILE"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Armstrong Flooring.",
+  ">Mannington Commercial.",
+  ">Tarkett.",
+  "Tile Standard: ASTM F1066, Class 2, through-pattern tile.",
+  "Thickness: 1/8 inch.",
+  "Size: 12 by 12 inches.",
+  "Colors and Patterns: As selected by Architect.",
+]
+
+[[section.part2]]
+title = "INSTALLATION MATERIALS"
+items = [
+  "Trowelable Leveling and Patching Compounds: Latex-modified, portland cement based or blended hydraulic-cement-based formulation provided or approved by floor tile manufacturer for applications indicated.",
+  "Adhesives: Water-resistant, pressure-sensitive or high-moisture-resistant type recommended by floor tile manufacturer to suit floor tile and substrate conditions indicated, with VOC content of not more than 50 g/L.",
+  "Moisture Mitigation System: Where concrete moisture exceeds adhesive manufacturer's limits, provide a two-component epoxy moisture vapor reduction system complying with ASTM F3010.",
+  "Floor Polish: Provide protective, liquid floor-polish products recommended by floor tile manufacturer, for VCT.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for compliance with requirements for maximum moisture content and other conditions affecting performance.",
+  "Verify that finishes of substrates comply with tolerances and other requirements specified in other Sections and that substrates are free of cracks, ridges, depressions, scale, and foreign deposits that might interfere with adhesion.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Prepare substrates according to floor tile manufacturer's written instructions to ensure adhesion of resilient products.",
+  "Concrete Substrates: Prepare according to ASTM F710.",
+  ">Verify that substrates are dry and free of curing compounds, sealers, and hardeners.",
+  ">Remove substrate coatings and other substances that are incompatible with adhesives and that contain soap, wax, oil, or silicone, using mechanical methods recommended by floor tile manufacturer.",
+  ">Alkalinity and Adhesion Testing: Perform tests recommended by manufacturer. Proceed with installation only after substrate pH is within manufacturer's limits.",
+  ">Moisture Testing: Perform in-situ relative humidity testing per ASTM F2170. Proceed with installation only after substrates do not exceed 85 percent relative humidity, or the maximum recommended by manufacturer and adhesive manufacturer.",
+  "Fill cracks, holes, and depressions in substrates with trowelable leveling and patching compound; remove bumps and ridges to produce a uniform and smooth substrate, flat to within 3/16 inch in 10 feet.",
+  "Do not install floor tiles until materials are the same temperature as space where they are to be installed; move materials into spaces not less than 48 hours in advance of installation.",
+  "Sweep and vacuum clean substrates to be covered by resilient products immediately before installation.",
+]
+
+[[section.part3]]
+title = "FLOOR TILE INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions for installing floor tile.",
+  "Lay out floor tiles from center marks established with principal walls, discounting minor offsets, so tiles at opposite edges of room are of equal width. Adjust as necessary to avoid using cut widths that equal less than one-half tile at perimeter.",
+  ">Lay tiles square with room axis unless otherwise indicated.",
+  "Match floor tiles for color and pattern by selecting tiles from cartons in the same sequence as manufactured and packaged, if so numbered. Discard broken, cracked, chipped, or deformed tiles.",
+  ">Lay VCT tiles with grain direction alternating in adjacent tiles (basket-weave pattern) unless otherwise indicated.",
+  ">Lay LVT planks in random ashlar pattern with end joints offset not less than 8 inches.",
+  "Scribe, cut, and fit floor tiles to butt neatly and tightly to vertical surfaces and permanent fixtures including built-in furniture, cabinets, pipes, outlets, and door frames.",
+  "Extend floor tiles into toe spaces, door reveals, closets, and similar openings. Extend floor tiles to center of door openings.",
+  "Maintain reference markers, holes, and openings that are in place or marked for future cutting by repeating on floor tiles as marked on substrates. Use chalk or other nonpermanent marking device.",
+  "Install floor tiles on covers for telephone and electrical ducts, building expansion-joint covers, and similar items in installation areas. Maintain overall continuity of color and pattern between pieces of tile installed on covers and adjoining tiles. Tightly adhere tile edges to substrates that abut covers and to cover perimeters.",
+  "Adhere floor tiles to substrates using a full spread of adhesive applied to substrate to produce a completed installation without open cracks, voids, raising and puckering at joints, telegraphing of adhesive spreader marks, and other surface imperfections.",
+  "Roll floor tiles with a 100 lb roller in both directions as recommended by manufacturer.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Comply with manufacturer's written instructions for cleaning and protecting floor tile.",
+  "Perform the following operations immediately after completing floor tile installation:",
+  ">Remove adhesive and other blemishes from exposed surfaces.",
+  ">Sweep and vacuum surfaces thoroughly.",
+  ">Damp-mop surfaces to remove marks and soil.",
+  "Protect floor tile products from mars, marks, indentations, and other damage from construction operations and placement of equipment and fixtures during remainder of construction period.",
+  "Floor Polish: For VCT, remove soil, visible adhesive, and surface blemishes from floor tile surfaces before applying liquid floor polish; apply three coats.",
+  "Cover floor tile until Substantial Completion.",
+]
+
+[[section]]
+number = "09 68 13"
+title = "TILE CARPETING"
+when = ["flooring_carpet"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Modular carpet tile.",
+  ">Installation adhesives and accessories.",
+  "Related Requirements:",
+  ">Section 09 65 13 \"Resilient Base and Accessories\" for resilient wall base and accessories installed with carpet tile.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including manufacturer's written data on physical characteristics, durability, and fade resistance.",
+  "Shop Drawings: Show the following:",
+  ">Columns, doorways, enclosing walls or partitions, built-in cabinets, and locations where cutouts are required in carpet tiles.",
+  ">Carpet tile type, color, and dye lot.",
+  ">Type of subfloor and installation method.",
+  ">Pattern of installation and pattern type, location, and direction.",
+  ">Type, color, and location of edge, transition, and other accessory strips.",
+  "Samples: For each exposed product and for each color and texture required, full-size Sample of carpet tile, and 12 inch long Samples of each exposed edge stripping and accessory item.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For carpet tile, for tests performed by a qualified testing agency.",
+  "Sample Warranty: For special warranty.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For carpet tiles to include in maintenance manuals, including methods for maintaining carpet tile, cleaning agents, and precautions for cleaning materials and methods that could be detrimental to carpet tile.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish full-size units equal to 5 percent of amount installed for each type, color, and pattern indicated, but not less than 10 sq. yd., from same production run as installed.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An experienced installer who is certified by the International Certified Floorcovering Installers Association (CFI) at the commercial II certification level.",
+  "Installation Standard: Comply with CRI 104, Standard for Installation of Commercial Carpet.",
+  "Mockups: Install a 100 sq. ft. area of each type and pattern of carpet tile to demonstrate aesthetic effects and set quality standards.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Comply with CRI 104, Section 5, Storage and Handling.",
+  "Deliver carpet tile in original packaging, labeled with manufacturer, style, color, and dye lot; store flat in a clean, dry, conditioned space.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Comply with CRI 104 for temperature, humidity, and ventilation limitations.",
+  "Environmental Limitations: Do not install carpet tiles until spaces are enclosed and weathertight, wet work in spaces is complete and dry, and ambient temperature and humidity conditions are maintained at occupancy levels during the remainder of the construction period.",
+  "Do not install carpet tiles over concrete slabs until slabs have cured, are sufficiently dry to bond with adhesive, and have pH range recommended by carpet tile manufacturer.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty for Carpet Tiles: Manufacturer agrees to repair or replace components of carpet tile installation that fail in materials or workmanship within specified warranty period.",
+  ">Warranty does not include deterioration or failure of carpet tile due to unusual traffic, failure of substrate, vandalism, or abuse.",
+  ">Failures include, but are not limited to, more than 10 percent loss of face fiber, edge raveling, backing delamination, snags, runs, and dimensional instability.",
+  ">Warranty Period: 15 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Critical Radiant Flux Classification: Not less than 0.45 W/sq. cm (Class I) per ASTM E648 or NFPA 253 in corridors and exits; Class II elsewhere where permitted by {building_code}.",
+  "Flammability: Pass CPSC 16 CFR 1630 (methenamine pill test).",
+  "Low-Emitting Materials: CRI Green Label Plus certification for carpet tile and adhesives.",
+  "Electrostatic Propensity: Less than 3.0 kV per AATCC 134.",
+]
+
+[[section.part2]]
+title = "CARPET TILE"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Interface, Inc.",
+  ">Shaw Contract.",
+  ">Mohawk Group.",
+  ">Milliken & Company.",
+  "Color: As selected by Architect from manufacturer's full range.",
+  "Pattern: As selected by Architect.",
+  "Fiber Content: 100 percent branded nylon 6 or nylon 6,6, solution dyed or solution dyed blend.",
+  "Pile Characteristic: Tufted, multilevel or textured loop pile.",
+  "Pile Thickness: 0.100 inch minimum per ASTM D6859.",
+  "Density: Average pile weight of not less than 5,000 oz./cu. yd. calculated per ASTM D5848.",
+  "Face Weight: 18 oz./sq. yd. minimum.",
+  "Primary Backing: Synthetic, manufacturer's standard.",
+  "Secondary Backing: Manufacturer's standard PVC-free or closed-loop recycled backing, dimensionally stable.",
+  "Size: 24 by 24 inches, or 9.8 by 39.4 inch planks, as selected.",
+  "Traffic Classification: Heavy (Severe) per ASTM D5252 or ASTM D7330 rating of not less than 3.0.",
+  "Floor Types: {floor_types}, as indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "INSTALLATION ACCESSORIES"
+items = [
+  "Trowelable Leveling and Patching Compounds: Latex-modified, hydraulic-cement-based formulation provided or recommended by carpet tile manufacturer.",
+  "Adhesives: Water-resistant, mildew-resistant, nonstaining, pressure-sensitive type to suit products and subfloor conditions indicated, that comply with flammability requirements for installed carpet tile, and are recommended by carpet tile manufacturer for releasable installation; or manufacturer's adhesive-free connector system.",
+  "Metal Edge and Transition Strips: Extruded aluminum with mill finish or satin anodized finish, of profile and dimensions required to protect exposed carpet edges and comply with ICC A117.1 changes in level.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, areas, and conditions, with Installer present, for compliance with requirements for maximum moisture content, alkalinity range, installation tolerances, and other conditions affecting carpet tile performance.",
+  "Concrete Slabs: Verify that finishes comply with requirements specified in Section 03 30 00 \"Cast-in-Place Concrete\" and that surfaces are free of cracks, ridges, depressions, scale, and foreign deposits; perform relative humidity testing per ASTM F2170 and verify results are within carpet tile and adhesive manufacturer's limits.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "General: Comply with CRI 104, Section 6.2, Site Conditions; Floor Preparation, and with carpet tile manufacturer's written installation instructions for preparing substrates indicated to receive carpet tile.",
+  "Use trowelable leveling and patching compounds, according to manufacturer's written instructions, to fill cracks, holes, depressions, and protrusions in substrates.",
+  "Remove coatings, including curing compounds, and other substances that are incompatible with adhesives and that contain soap, wax, oil, or silicone, without using solvents.",
+  "Broom and vacuum clean substrates to be covered immediately before installing carpet tile.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Comply with CRI 104, Section 13, Carpet Modules, and with carpet tile manufacturer's written installation instructions.",
+  "Installation Method: [Monolithic] [Quarter-turn] [Ashlar] [Random], as selected by Architect, with full-spread releasable adhesive or connector system as recommended by manufacturer.",
+  "Maintain dye lot integrity. Do not mix dye lots in same area.",
+  "Maintain pile-direction patterns indicated on Drawings.",
+  "Cut and fit carpet tile to butt tightly to vertical surfaces, permanent fixtures, and built-in furniture including cabinets, pipes, outlets, edgings, thresholds, and nosings. Bind or seal cut edges as recommended by carpet tile manufacturer.",
+  "Extend carpet tile into toe spaces, door reveals, closets, open-bottomed obstructions, removable flanges, alcoves, and similar openings.",
+  "Maintain reference markers, holes, and openings that are in place or marked for future cutting by repeating on finish flooring as marked on subfloor. Use nonpermanent, nonstaining marking device.",
+  "Install pattern parallel to walls and borders.",
+  "Install edge and transition strips at exposed edges and at changes in flooring material.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Perform the following operations immediately after installing carpet tile:",
+  ">Remove excess adhesive and other surface blemishes using cleaner recommended by carpet tile manufacturer.",
+  ">Remove yarns that protrude from carpet tile surface.",
+  ">Vacuum carpet tile using commercial machine with face-beater element.",
+  "Protect installed carpet tile to comply with CRI 104, Section 15, Protection of Indoor Installations.",
+  "Protect carpet tile against damage from construction operations and placement of equipment and fixtures during the remainder of construction period. Use protection methods indicated or recommended in writing by carpet tile manufacturer.",
+]
+
+[[section]]
+number = "09 91 13"
+title = "EXTERIOR PAINTING"
+when = ["paint"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Surface preparation and the application of paint systems on exterior substrates.",
+  ">Substrates: Concrete, concrete masonry units, portland cement plaster (stucco), steel and galvanized metal, aluminum (not factory finished), wood and wood-based panels, and fiber-cement siding and trim.",
+  "Related Requirements:",
+  ">Section 05 12 00 \"Structural Steel Framing\" and Section 05 50 00 \"Metal Fabrications\" for shop priming.",
+  ">Section 08 11 13 \"Hollow Metal Doors and Frames\" for factory priming of hollow metal.",
+  ">Section 09 91 23 \"Interior Painting\" for surface preparation and application of paint systems on interior substrates.",
+  ">Section 09 96 00 \"High-Performance Coatings\" for coatings in severe exposures.",
+  "Do not paint prefinished items, concealed surfaces, finished metal surfaces (stainless steel, anodized aluminum, bronze), operating parts, labels, or items specifically indicated not to be painted.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "MPI Gloss Level 1 (Flat): Not more than 5 units at 60 degrees and 10 units at 85 degrees, per ASTM D523.",
+  "MPI Gloss Level 3 (Eggshell): 10 to 25 units at 60 degrees and 10 to 35 units at 85 degrees.",
+  "MPI Gloss Level 4 (Satin): 20 to 35 units at 60 degrees and not less than 35 units at 85 degrees.",
+  "MPI Gloss Level 5 (Semigloss): 35 to 70 units at 60 degrees.",
+  "MPI Gloss Level 6 (Gloss): 70 to 85 units at 60 degrees.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including the MPI product number and the paint system in which it is used.",
+  "Samples for Initial Selection: For each type of topcoat product.",
+  "Samples for Verification: For each type of paint system and each color and gloss of topcoat, on representative substrate, 8 by 10 inches.",
+  "Product List: Cross-reference to paint system and locations of application areas, with MPI numbers for each coat.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish 1 gallon of each material and color applied, in unopened, labeled containers.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "MPI Standards: Provide products listed in the MPI Approved Products List for the paint category and system indicated, and comply with MPI Architectural Painting Specification Manual for exterior systems.",
+  "Mockups: Apply mockups of each paint system indicated and each color and finish selected, not less than 100 sq. ft. on walls and on one representative item for other substrates, to verify preliminary selections and to demonstrate aesthetic effects and set quality standards.",
+  ">Final approval of color selections will be based on mockups.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store materials not in use in tightly covered containers in well-ventilated areas with ambient temperatures continuously maintained at not less than 45 deg F.",
+  "Maintain containers in clean condition, free of foreign materials and residue; remove rags and waste from storage areas daily.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Apply paints only when temperature of surfaces to be painted and ambient air temperatures are between 50 and 95 deg F, or lower limit permitted by manufacturer for low-temperature formulations.",
+  "Do not apply paints in snow, rain, fog, or mist; when relative humidity exceeds 85 percent; at temperatures less than 5 deg F above the dew point; or to damp or wet surfaces.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Benjamin Moore & Co.",
+  ">PPG Paints.",
+  ">Sherwin-Williams Company.",
+  ">Dunn-Edwards Corporation.",
+  "Source Limitations: Obtain paint materials for each paint system from single source from single listed manufacturer.",
+]
+
+[[section.part2]]
+title = "PAINT PRODUCTS, GENERAL"
+items = [
+  "Material Compatibility: Provide materials for use within each paint system that are compatible with one another and substrates indicated, under conditions of service and application as demonstrated by manufacturer, based on testing and field experience.",
+  "VOC Content: Comply with limits of the authority having jurisdiction, {jurisdiction}, and with EPA or regional architectural coatings rules, whichever are more stringent.",
+  "Colors: As selected by Architect from manufacturer's full range; up to three colors on exterior walls and one accent color on trim.",
+]
+
+[[section.part2]]
+title = "EXTERIOR PAINT SYSTEMS"
+items = [
+  "Concrete, Concrete Masonry, and Cement Plaster Substrates:",
+  ">Latex System:",
+  ">>Prime Coat: Latex, exterior masonry primer, MPI #3; block filler, MPI #4, on concrete masonry units.",
+  ">>Intermediate Coat: Latex, exterior, matching topcoat.",
+  ">>Topcoat: Latex, exterior, low sheen (MPI Gloss Level 3-4), MPI #15.",
+  ">Elastomeric System (where indicated):",
+  ">>Prime Coat: Primer, alkali resistant, water based, MPI #3.",
+  ">>Topcoats: Two coats of elastomeric coating, MPI #113, at 10 mils minimum dry film thickness each.",
+  "Steel and Galvanized Metal Substrates:",
+  ">Water-Based Light Industrial Coating System:",
+  ">>Prime Coat: Primer, rust-inhibitive, water based, MPI #107, on steel; primer, galvanized, water based, MPI #134, on galvanized metal.",
+  ">>Intermediate Coat: Light industrial coating, exterior, water based, matching topcoat.",
+  ">>Topcoat: Light industrial coating, exterior, water based, semigloss (MPI Gloss Level 5), MPI #163.",
+  "Aluminum Substrates (Not Anodized or Prefinished):",
+  ">Latex System:",
+  ">>Prime Coat: Primer, quick dry, for aluminum, MPI #95.",
+  ">>Topcoats: Two coats of latex, exterior, semigloss (MPI Gloss Level 5), MPI #11.",
+  "Wood Substrates (Trim, Fascia, Soffits, and Siding):",
+  ">Latex over Alkyd Primer System:",
+  ">>Prime Coat: Primer, alkyd, exterior wood, MPI #5.",
+  ">>Intermediate Coat: Latex, exterior, matching topcoat.",
+  ">>Topcoat: Latex, exterior, satin (MPI Gloss Level 4), MPI #15; semigloss, MPI #11, on trim.",
+  ">Semitransparent Stain System (where indicated): Two coats of semitransparent stain, exterior, as recommended by manufacturer for substrate.",
+  "Fiber-Cement Siding and Trim (Factory Primed):",
+  ">Latex System:",
+  ">>Prime Coat: Factory primer; spot prime cut edges and damaged areas with alkali-resistant primer, MPI #3.",
+  ">>Topcoats: Two coats of latex, exterior, satin (MPI Gloss Level 4), MPI #15, or as recommended by siding manufacturer.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and conditions, with Applicator present, for compliance with requirements for maximum moisture content and other conditions affecting performance of the Work.",
+  "Maximum Moisture Content of Substrates: When measured with an electronic moisture meter as follows:",
+  ">Concrete: 12 percent.",
+  ">Masonry (Clay and CMU): 12 percent.",
+  ">Wood: 15 percent.",
+  ">Portland Cement Plaster: 12 percent, and cured not less than 28 days.",
+  "Verify suitability of substrates, including surface conditions and compatibility, with existing finishes and primers.",
+  "Proceed with coating application only after unsatisfactory conditions have been corrected; application of coating indicates acceptance of surfaces and conditions.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Comply with manufacturer's written instructions and recommendations in MPI Architectural Painting Specification Manual applicable to substrates and paint systems indicated.",
+  "Remove hardware, covers, plates, and similar items already in place that are removable and are not to be painted. If removal is impractical or impossible because of size or weight of item, provide surface-applied protection before surface preparation and painting.",
+  "Clean substrates of substances that could impair bond of paints, including dust, dirt, oil, grease, and incompatible paints and encapsulants.",
+  "Concrete, Masonry, and Plaster Substrates: Remove efflorescence, chalk, dust, dirt, grease, oils, and release agents; roughen as required to remove glaze; neutralize alkali as recommended by manufacturer.",
+  "Steel Substrates: Remove rust, loose mill scale, and shop primer, if any; clean using methods recommended in writing by paint manufacturer but not less than SSPC-SP 2 (hand tool) or SSPC-SP 3 (power tool) cleaning; touch up shop-primed surfaces.",
+  "Galvanized-Metal Substrates: Remove grease and oil residue from galvanized sheet metal by mechanical methods to produce clean, lightly etched surfaces that promote adhesion of subsequently applied paints, per SSPC-SP 1.",
+  "Wood Substrates: Scrape and clean knots; apply coat of knot sealer before applying primer. Sand surfaces that will be exposed to view, and dust off. Prime edges, ends, faces, undersides, and backsides of wood. After priming, fill holes and imperfections in the finish surfaces with putty or plastic wood filler; sand smooth when dried.",
+]
+
+[[section.part3]]
+title = "APPLICATION"
+items = [
+  "Apply paints according to manufacturer's written instructions and recommendations in MPI Architectural Painting Specification Manual.",
+  ">Use applicators and techniques suited for paint and substrate indicated.",
+  ">Paint surfaces behind movable items same as similar exposed surfaces. Before final installation, paint surfaces behind permanently fixed items with prime coat only.",
+  ">Paint both sides and edges of exterior doors and entire exposed surface of exterior door frames.",
+  ">Paint entire exposed surface of window frames and sashes.",
+  ">Do not paint over labels of independent testing agencies or equipment name, identification, performance rating, or nomenclature plates.",
+  "Tint undercoats same color as topcoat, but tint each undercoat a lighter shade to facilitate identification of each coat if multiple coats of same material are to be applied. Provide sufficient difference in shade of undercoats to distinguish each separate coat.",
+  "If undercoats or other conditions show through topcoat, apply additional coats until cured film has a uniform paint finish, color, and appearance.",
+  "Apply each coat at the dry film thickness recommended by manufacturer; allow each coat to dry before applying the next coat.",
+  "Apply paints to produce surface films without cloudiness, spotting, holidays, laps, brush marks, roller tracking, runs, sags, ropiness, or other surface imperfections. Cut in sharp lines and color breaks.",
+  "Painting Exterior Mechanical and Electrical Work: Paint exposed conduit, piping, ducts, and equipment on building surfaces to match adjacent surfaces unless otherwise indicated.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Dry Film Thickness Testing: Owner may engage the services of a qualified testing and inspecting agency to inspect and test paint for dry film thickness per SSPC-PA 2.",
+  ">Contractor shall touch up and restore painted surfaces damaged by testing.",
+  ">If test results show that dry film thickness of applied paint does not comply with paint manufacturer's written recommendations, Contractor shall pay for testing and apply additional coats as needed to provide dry film thickness that complies with paint manufacturer's written recommendations.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "At end of each workday, remove rubbish, empty cans, rags, and other discarded materials from Project site.",
+  "After completing paint application, clean spattered surfaces. Remove spattered paints by washing, scraping, or other methods. Do not scratch or damage adjacent finished surfaces.",
+  "Protect work of other trades against damage from paint application. Correct damage to work of other trades by cleaning, repairing, replacing, and refinishing, as approved by Architect, and leave in an undamaged condition.",
+  "At completion of construction activities of other trades, touch up and restore damaged or defaced painted surfaces.",
+]
+
+[[section]]
+number = "09 91 23"
+title = "INTERIOR PAINTING"
+when = ["paint"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Surface preparation and the application of paint systems on interior substrates.",
+  ">Substrates: Gypsum board and plaster, concrete and concrete masonry units, steel and galvanized metal, wood and wood-based panels, and exposed mechanical and electrical work in finished spaces.",
+  "Related Requirements:",
+  ">Section 06 41 13 \"Wood-Veneer-Faced Architectural Cabinets\" for shop finishing of architectural woodwork.",
+  ">Section 08 11 13 \"Hollow Metal Doors and Frames\" for factory priming of hollow metal.",
+  ">Section 09 29 00 \"Gypsum Board\" for levels of finish of gypsum board substrates.",
+  ">Section 09 91 13 \"Exterior Painting\" for surface preparation and application of paint systems on exterior substrates.",
+  ">Section 09 96 00 \"High-Performance Coatings\" for epoxy coatings in wet and abusive areas.",
+  "Do not paint prefinished items, concealed surfaces, finished metal surfaces, operating parts, labels, or items specifically indicated not to be painted.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Gloss levels are as defined by MPI: Gloss Level 1 (Flat), Gloss Level 2 (Velvet), Gloss Level 3 (Eggshell), Gloss Level 4 (Satin), Gloss Level 5 (Semigloss), and Gloss Level 6 (Gloss), measured per ASTM D523.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including the MPI product number and the paint system in which it is used.",
+  "Samples for Initial Selection: For each type of topcoat product.",
+  "Samples for Verification: For each type of paint system and in each color and gloss of topcoat, on representative substrate, 8 by 10 inches.",
+  "Product List: Cross-reference to paint system and locations of application areas, with MPI numbers for each coat.",
+  "Color Schedule: Room-by-room schedule of colors and gloss levels, keyed to the finish schedule on the Drawings.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish 1 gallon of each material and color applied, in unopened, labeled containers; 5 gallons of each wall color used on more than 5,000 sq. ft.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "MPI Standards: Provide products listed in the MPI Approved Products List for the paint category and system indicated, and comply with MPI Architectural Painting Specification Manual for interior systems.",
+  "Mockups: Apply benchmark samples of each paint system indicated and each color and finish selected to verify preliminary selections and to demonstrate aesthetic effects and set quality standards.",
+  ">Vertical and Horizontal Surfaces: Provide samples of at least 100 sq. ft.",
+  ">Other Items: Provide one complete door and frame, and one of each other type of item.",
+  ">Final approval of color selections will be based on benchmark samples.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store materials not in use in tightly covered containers in well-ventilated areas with ambient temperatures continuously maintained at not less than 45 deg F.",
+  "Maintain containers in clean condition, free of foreign materials and residue; remove rags and waste from storage areas daily.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Apply paints only when temperature of surfaces to be painted and ambient air temperatures are between 50 and 95 deg F.",
+  "Do not apply paints when relative humidity exceeds 85 percent, at temperatures less than 5 deg F above the dew point, or to damp or wet surfaces.",
+  "Provide lighting of not less than 80 fc at surfaces during application and inspection.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Benjamin Moore & Co.",
+  ">PPG Paints.",
+  ">Sherwin-Williams Company.",
+  ">Dunn-Edwards Corporation.",
+  "Source Limitations: Obtain paint materials for each paint system from single source from single listed manufacturer.",
+]
+
+[[section.part2]]
+title = "PAINT PRODUCTS, GENERAL"
+items = [
+  "Material Compatibility: Provide materials for use within each paint system that are compatible with one another and substrates indicated, under conditions of service and application as demonstrated by manufacturer, based on testing and field experience.",
+  "VOC Content: Products shall comply with VOC limits of the authority having jurisdiction and, where sustainable design is required, with the limits of the Green Seal GS-11 standard.",
+  "Low-Emitting Materials: Interior paints and coatings applied within the weatherproofing system comply with CDPH Standard Method v1.2.",
+  "Colors: As selected by Architect from manufacturer's full range, and as scheduled on Drawings.",
+]
+
+[[section.part2]]
+title = "INTERIOR PAINT SYSTEMS"
+items = [
+  "Gypsum Board and Plaster Substrates:",
+  ">Latex System:",
+  ">>Prime Coat: Primer sealer, latex, interior, MPI #50.",
+  ">>Intermediate Coat: Latex, interior, matching topcoat.",
+  ">>Topcoat: Latex, interior, eggshell (MPI Gloss Level 3), MPI #52, on walls; flat (MPI Gloss Level 1), MPI #53, on ceilings.",
+  ">High-Performance Architectural Latex System (Corridors and High-Traffic Areas):",
+  ">>Prime Coat: Primer sealer, latex, interior, MPI #50.",
+  ">>Intermediate and Topcoat: High-performance architectural latex, semigloss (MPI Gloss Level 5), MPI #141.",
+  ">Epoxy System (Restrooms, Janitor Closets, and Wet Areas): Primer sealer, MPI #50, and two coats of waterborne epoxy, eggshell or semigloss, as recommended by manufacturer.",
+  "Concrete and Concrete Masonry Substrates:",
+  ">Latex System:",
+  ">>Block Filler: Latex, interior/exterior, MPI #4, on concrete masonry units.",
+  ">>Prime Coat: Primer sealer, latex, interior, MPI #50, on concrete.",
+  ">>Topcoats: Two coats of latex, interior, eggshell (MPI Gloss Level 3), MPI #52.",
+  "Steel and Galvanized Metal Substrates (Doors, Frames, Railings, Exposed Structure):",
+  ">Water-Based Light Industrial Coating System:",
+  ">>Prime Coat: Primer, rust-inhibitive, water based, MPI #107, on steel; primer, galvanized, water based, MPI #134, on galvanized metal.",
+  ">>Intermediate Coat: Light industrial coating, interior, water based, matching topcoat.",
+  ">>Topcoat: Light industrial coating, interior, water based, semigloss (MPI Gloss Level 5), MPI #153.",
+  "Wood Substrates (Painted Trim, Doors, and Casework):",
+  ">Latex over Latex Primer System:",
+  ">>Prime Coat: Primer, latex, for interior wood, MPI #39.",
+  ">>Intermediate Coat: Latex, interior, matching topcoat.",
+  ">>Topcoat: Latex, interior, semigloss (MPI Gloss Level 5), MPI #54.",
+  ">Transparent Finish System (Stained Wood):",
+  ">>Stain Coat: Stain, semitransparent, for interior wood, MPI #90.",
+  ">>Topcoats: Two coats of polyurethane, water based, clear satin.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and conditions, with Applicator present, for compliance with requirements for maximum moisture content and other conditions affecting performance of the Work.",
+  "Maximum Moisture Content of Substrates: When measured with an electronic moisture meter as follows:",
+  ">Concrete: 12 percent.",
+  ">Masonry (Clay and CMU): 12 percent.",
+  ">Wood: 15 percent.",
+  ">Gypsum Board: 12 percent.",
+  ">Plaster: 12 percent.",
+  "Gypsum Board Substrates: Verify that finishing compound is sanded smooth and that the level of finish specified in Section 09 29 00 \"Gypsum Board\" has been provided.",
+  "Verify suitability of substrates, including surface conditions and compatibility, with existing finishes and primers.",
+  "Proceed with coating application only after unsatisfactory conditions have been corrected; application of coating indicates acceptance of surfaces and conditions.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Comply with manufacturer's written instructions and recommendations in MPI Architectural Painting Specification Manual applicable to substrates and paint systems indicated.",
+  "Remove hardware, covers, plates, and similar items already in place that are removable and are not to be painted. If removal is impractical, provide surface-applied protection before surface preparation and painting.",
+  ">After completing painting operations, use workers skilled in the trades involved to reinstall items that were removed.",
+  "Clean substrates of substances that could impair bond of paints, including dust, dirt, oil, grease, and incompatible paints and encapsulants.",
+  "Concrete and Masonry Substrates: Remove efflorescence, chalk, dust, dirt, grease, oils, and release agents; roughen as required to remove glaze.",
+  "Steel Substrates: Remove rust, loose mill scale, and shop primer, if any; clean per SSPC-SP 2 or SSPC-SP 3 as recommended by paint manufacturer; touch up shop-primed and factory-primed surfaces.",
+  "Galvanized-Metal Substrates: Clean per SSPC-SP 1 to remove oil and grease, and lightly abrade.",
+  "Wood Substrates: Scrape and clean knots, and apply coat of knot sealer before applying primer. Sand surfaces that will be exposed to view, and dust off. After priming, fill holes and imperfections in the finish surfaces with putty or plastic wood filler; sand smooth when dried.",
+]
+
+[[section.part3]]
+title = "APPLICATION"
+items = [
+  "Apply paints according to manufacturer's written instructions and recommendations in MPI Architectural Painting Specification Manual.",
+  ">Use applicators and techniques suited for paint and substrate indicated.",
+  ">Paint surfaces behind movable equipment and furniture same as similar exposed surfaces. Before final installation, paint surfaces behind permanently fixed equipment or furniture with prime coat only.",
+  ">Paint front and backsides of access panels, removable or hinged covers, and similar hinged items to match exposed surfaces.",
+  ">Paint both sides and all edges of doors, including top and bottom edges.",
+  ">Do not paint over labels of independent testing agencies or equipment name, identification, performance rating, or nomenclature plates.",
+  ">Primers specified in painting schedules may be omitted on items that are factory primed or factory finished if acceptable to topcoat manufacturers.",
+  "Tint each undercoat a lighter shade to facilitate identification of each coat if multiple coats of same material are to be applied.",
+  "If undercoats or other conditions show through topcoat, apply additional coats until cured film has a uniform paint finish, color, and appearance.",
+  "Apply paints to produce surface films without cloudiness, spotting, holidays, laps, brush marks, roller tracking, runs, sags, ropiness, or other surface imperfections. Cut in sharp lines and color breaks.",
+  "Painting Mechanical and Electrical Work: Paint items exposed in equipment rooms and occupied spaces, including uninsulated metal piping, pipe hangers and supports, metal conduit, ductwork, and electrical equipment, unless factory finished; paint to match surrounding surfaces unless otherwise indicated.",
+  ">Paint portions of internal surfaces of metal ducts, without liner, behind air inlets and outlets that are visible from occupied spaces, flat black.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Dry Film Thickness Testing: Owner may engage a qualified testing and inspecting agency to test paint for dry film thickness per SSPC-PA 2.",
+  "Touch up and restore painted surfaces damaged by testing; where dry film thickness does not comply with manufacturer's recommendations, apply additional coats as needed at no cost to Owner.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "At end of each workday, remove rubbish, empty cans, rags, and other discarded materials from Project site.",
+  "After completing paint application, clean spattered surfaces. Remove spattered paints by washing, scraping, or other methods. Do not scratch or damage adjacent finished surfaces.",
+  "Protect work of other trades against damage from paint application. Correct damage to work of other trades by cleaning, repairing, replacing, and refinishing, as approved by Architect, and leave in an undamaged condition.",
+  "At completion of construction activities of other trades, touch up and restore damaged or defaced painted surfaces.",
+]
+
+[[section.part3]]
+title = "INTERIOR PAINTING SCHEDULE"
+items = [
+  "General: Provide the following paint systems unless otherwise indicated on the finish schedule; colors as scheduled on Drawings.",
+  "Gypsum Board Walls, General: Latex System, eggshell.",
+  "Gypsum Board Ceilings and Soffits: Latex System, flat.",
+  "Gypsum Board Walls in Corridors, Lobbies, and Stairwells: High-Performance Architectural Latex System, semigloss.",
+  "Gypsum Board in Restrooms, Janitor Closets, and Kitchens: Epoxy System, semigloss.",
+  "Concrete Masonry Unit Walls: Latex System with block filler, eggshell.",
+  "Hollow Metal Doors and Frames: Water-Based Light Industrial Coating System, semigloss.",
+  "Exposed Steel Structure, Railings, and Galvanized Metal: Water-Based Light Industrial Coating System, semigloss.",
+  "Painted Wood Trim and Doors: Latex over Latex Primer System, semigloss.",
+  "Stained Wood Doors and Trim (Field Finished): Transparent Finish System, satin.",
+  "Exposed Mechanical and Electrical Work in Finished Spaces: System matching adjacent surface.",
+]
+
+[[section]]
+number = "09 96 00"
+title = "HIGH-PERFORMANCE COATINGS"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Surface preparation and application of high-performance coating systems on interior and exterior substrates subject to chemical exposure, abrasion, frequent washing, or severe weather.",
+  ">Substrates: Concrete, concrete masonry units, gypsum board, steel, and galvanized steel.",
+  "Related Requirements:",
+  ">Section 05 12 00 \"Structural Steel Framing\" for shop priming of structural steel.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for general paint systems.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including MPI or SSPC system designation, volume solids, recommended dry film thickness, and recoat times.",
+  "Samples for Verification: For each type of coating system and each color and gloss of topcoat, on representative substrate, 8 by 10 inches.",
+  "Product List: Cross-reference to coating system and locations of application areas.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Applicator Qualifications: Firm with not less than five years of experience applying high-performance coatings of types specified, and acceptable to coating manufacturer.",
+  "MPI Standards: Provide products listed in the MPI Approved Products List for the category and system indicated.",
+  "Mockups: Apply mockups of each coating system on 100 sq. ft. of representative substrate to demonstrate surface preparation, film build, color, and gloss.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver materials in manufacturer's original, unopened containers labeled with product name, batch number, and mixing instructions; store at temperatures recommended by manufacturer and protect multi-component products from freezing.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Apply coatings only when surface and ambient temperatures are within manufacturer's recommended range and surfaces are at least 5 deg F above the dew point; do not apply when relative humidity exceeds 85 percent.",
+  "Provide ventilation during application and curing as recommended by coating manufacturer; protect occupied areas from fumes.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Tnemec Company, Inc.",
+  ">Carboline Company.",
+  ">PPG Protective and Marine Coatings.",
+  ">Sherwin-Williams Protective and Marine Coatings.",
+  "Source Limitations: Obtain each coating system from single manufacturer.",
+  "VOC Content: Comply with limits of the authority having jurisdiction for industrial maintenance coatings.",
+]
+
+[[section.part2]]
+title = "HIGH-PERFORMANCE COATING SYSTEMS"
+items = [
+  "Epoxy System for Interior Concrete Masonry and Gypsum Board in Wet Areas:",
+  ">Block Filler: Epoxy block filler, MPI #116, on concrete masonry units.",
+  ">Prime Coat: Epoxy primer or sealer as recommended by manufacturer, on gypsum board.",
+  ">Topcoats: Two coats of epoxy, high build, low gloss or semigloss, MPI #98 or #108, at 4 to 6 mils dry film thickness each.",
+  "Epoxy/Polyurethane System for Exterior Steel and Galvanized Steel:",
+  ">Surface Preparation: SSPC-SP 6 (commercial blast) on steel; SSPC-SP 16 (brush-off blast) on galvanized steel.",
+  ">Prime Coat: Zinc-rich primer, MPI #18 or #19, at 3 to 4 mils dry film thickness, on steel; epoxy primer on galvanized steel.",
+  ">Intermediate Coat: Epoxy, high build, MPI #108, at 4 to 6 mils dry film thickness.",
+  ">Topcoat: Aliphatic polyurethane, two component, semigloss or gloss, MPI #72, at 2 to 3 mils dry film thickness.",
+  "Epoxy System for Interior Steel in Corrosive Areas:",
+  ">Prime Coat: Epoxy primer, MPI #101.",
+  ">Topcoat: Epoxy, high build, MPI #108, at 4 to 6 mils dry film thickness.",
+  "Polyaspartic or Epoxy Floor Coating System for Concrete Floors, where indicated:",
+  ">Surface Preparation: Shot blast or diamond grind to ICRI CSP 2 to 3 profile.",
+  ">Prime Coat: 100 percent solids epoxy primer.",
+  ">Body Coat: Epoxy or polyaspartic with broadcast aggregate for slip resistance, color as selected.",
+  ">Topcoat: Aliphatic polyaspartic or polyurethane, satin.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and conditions, with Applicator present, for compliance with requirements for moisture content, surface profile, and other conditions affecting performance.",
+  "Concrete Substrates: Verify that concrete has cured not less than 28 days and that moisture vapor emission and relative humidity are within manufacturer's limits when tested per ASTM F1869 or ASTM F2170.",
+  "Proceed with coating application only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Comply with coating manufacturer's written instructions and SSPC standards for surface preparation indicated.",
+  "Steel Substrates: Remove oil and grease per SSPC-SP 1 before blast cleaning; blast clean to the profile recommended by manufacturer; prime the same day as cleaning.",
+  "Concrete and Masonry Substrates: Remove efflorescence, laitance, form release agents, and curing compounds; fill voids and bugholes with manufacturer's recommended surfacer.",
+  "Mask and protect adjacent surfaces, hardware, and equipment not to be coated.",
+]
+
+[[section.part3]]
+title = "APPLICATION"
+items = [
+  "Mix and apply coatings according to manufacturer's written instructions, observing pot life and induction times for multi-component products.",
+  "Apply each coat at the dry film thickness specified, uniformly, without runs, sags, holidays, or pinholes; stripe coat edges, welds, and corners on steel.",
+  "Observe manufacturer's minimum and maximum recoat intervals; abrade and clean surfaces that exceed maximum recoat time.",
+  "Tint intermediate coats to distinguish them from preceding coats.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Dry Film Thickness: Measure per SSPC-PA 2 at the frequency recommended; apply additional coats where thickness is less than specified.",
+  "Holiday Testing: Where coatings are for immersion or severe chemical exposure, test per ASTM D5162 and repair holidays.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove spattered coatings from adjacent surfaces without damaging finishes.",
+  "Protect coated surfaces from traffic and damage until fully cured; touch up and restore damaged coatings to match adjacent work.",
+]
+
+[[section]]
+number = "10 14 00"
+title = "SIGNAGE"
+when = ["commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Room identification signs with tactile characters and braille.",
+  ">Directional and informational signs.",
+  ">Code-required signs, including exit, stair identification, area of refuge, and restroom signs.",
+  ">Dimensional letters for building identification, where indicated.",
+  "Related Requirements:",
+  ">Section 10 44 00 \"Fire Protection Specialties\" for extinguisher cabinet identification.",
+  ">Division 26 for illuminated exit signs.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of sign, including materials, finishes, and mounting methods.",
+  "Shop Drawings: For each sign type, showing fabrication and installation details, message layout, typestyle, character and braille spacing, pictograms, and mounting height.",
+  "Sign Schedule: Message, room number, sign type, and location for each sign, keyed to plans, using room names and numbers from the Drawings.",
+  "Samples: For each exposed material and finish, and one full-size sample of a typical room identification sign.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Accessibility Standard: Comply with ICC A117.1 and the 2010 ADA Standards for Accessible Design for tactile characters, braille, pictograms, visual characters, finish and contrast, and mounting location.",
+  "Source Limitations: Obtain each sign type from single source from single manufacturer.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver signs individually wrapped and labeled with sign type and location; store flat in a clean, dry area.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace signs that show delamination, fading, or deterioration of finishes within three years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">ASI Signage Innovations.",
+  ">Best Sign Systems, Inc.",
+  ">Mohawk Sign Systems.",
+  ">Gemini Incorporated (dimensional letters).",
+]
+
+[[section.part2]]
+title = "PANEL SIGNS"
+items = [
+  "Room Identification Signs: Photopolymer or acrylic face with raised copy and Grade 2 braille, on 1/8 inch thick acrylic backer.",
+  ">Size: 8 by 8 inches, unless otherwise indicated.",
+  ">Raised Characters: Uppercase, sans serif, raised 1/32 inch minimum, 5/8 to 2 inches high based on the height of the uppercase letter I.",
+  ">Braille: Grade 2, domed dots, located below the corresponding text.",
+  ">Finish and Contrast: Non-glare (matte) surfaces with characters contrasting with background, light on dark or dark on light.",
+  ">Colors: As selected by Architect from manufacturer's full range.",
+  ">Pictograms: Restroom and accessibility pictograms in a field not less than 6 inches high, with verbal description directly below.",
+  "Directional and Informational Signs: Acrylic or aluminum panels with applied vinyl or screen-printed graphics, visual characters sized per ICC A117.1 for viewing distance.",
+  "Changeable-Message Inserts: Where indicated, provide clear acrylic lens and paper insert for occupant name.",
+]
+
+[[section.part2]]
+title = "CODE-REQUIRED SIGNS"
+items = [
+  "Exit Stair Door Signs: Tactile sign reading EXIT at each door to an exit stair, ramp, or exit passageway, and EXIT ROUTE at doors to egress paths, as required by {building_code}.",
+  "Stairway Identification Signs: At each floor landing in enclosed stairs, identifying the stair, floor level, top and bottom levels, and direction to exit discharge, per {building_code}.",
+  "Area of Refuge Signs: Tactile signs with the International Symbol of Accessibility, and instruction signs at two-way communication systems, where areas of refuge are provided.",
+  "Elevator Signs: Signs stating IN FIRE EMERGENCY, DO NOT USE ELEVATOR, USE EXIT STAIRS at each elevator call station, unless otherwise required.",
+  "Occupant Load Signs: Posted in assembly rooms as required by the fire code.",
+  "Floor-Level Exit Signs and Photoluminescent Egress Path Markings: Where required by {building_code}, complying with UL 1994.",
+]
+
+[[section.part2]]
+title = "DIMENSIONAL LETTERS"
+items = [
+  "Cast or Fabricated Metal Letters: Aluminum or stainless steel, height and typestyle as indicated, finish as selected, with concealed stud mounting and spacers holding letters 1/2 inch off the wall.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Mounting Methods: Manufacturer's standard very high bond (VHB) tape and silicone adhesive for smooth surfaces; concealed mechanical fasteners for masonry and irregular surfaces.",
+  "Anchors and Inserts: Nonferrous metal or hot-dip galvanized anchors and inserts for exterior installations.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that wall surfaces are finished, clean, and dry, and that blocking is in place for mechanically fastened signs.",
+  "Verify room names and numbers against final room assignments before fabrication.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install signs using mounting methods of type described and in compliance with manufacturer's written instructions, level, plumb, and at locations and heights indicated.",
+  "Tactile Signs: Install so tactile characters are 48 inches minimum above finished floor to the baseline of the lowest tactile character and 60 inches maximum to the baseline of the highest tactile character.",
+  ">Where a tactile sign is provided at a door, locate it alongside the door at the latch side; at double doors with one active leaf, locate at the inactive leaf; where no wall space is available, locate on the nearest adjacent wall.",
+  ">Locate so a clear floor space of 18 by 18 inches minimum, centered on the tactile characters, is provided beyond the arc of any door swing.",
+  "Overhead and Projecting Signs: Install with bottom edge not less than 80 inches above finished floor.",
+  "Dimensional Letters: Use templates to locate studs; set letters in silicone adhesive and maintain uniform spacing and alignment.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove protective films after installation; clean sign surfaces according to manufacturer's written instructions.",
+  "Replace signs that are damaged, scratched, or do not comply with approved Shop Drawings.",
+]
+
+[[section]]
+number = "10 21 13"
+title = "TOILET COMPARTMENTS"
+when = ["restrooms_commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Solid-plastic (high-density polyethylene) toilet compartments, floor-anchored and overhead-braced.",
+  ">Urinal screens.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" or Section 09 22 16 \"Non-Structural Metal Framing\" for in-wall blocking.",
+  ">Section 10 28 00 \"Toilet, Bath, and Laundry Accessories\" for grab bars and accessories mounted on compartments.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including panel construction, hardware, and anchorage.",
+  "Shop Drawings: Plans, elevations, and details showing layout, dimensions, door swings, accessible compartments, and locations of reinforcement for compartment-mounted accessories.",
+  "Samples: For each exposed color and texture, 6 by 6 inches.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Accessibility: Comply with ICC A117.1 and the 2010 ADA Standards for Accessible Design for accessible and ambulatory compartments, including clearances, door swing, and hardware.",
+  "Field Measurements: Verify actual locations of walls, columns, ceilings, and other construction by field measurements before fabrication.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to replace solid-plastic panels, doors, and pilasters that break, delaminate, or corrode within 25 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Fire Performance: Panels, doors, and pilasters comply with NFPA 286 with acceptance criteria of the International Building Code, or have a Class B flame-spread index per ASTM E84 where permitted by {building_code}.",
+]
+
+[[section.part2]]
+title = "SOLID-PLASTIC TOILET COMPARTMENTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Scranton Products.",
+  ">Bradley Corporation.",
+  ">Hadrian (a division of Zurn Elkay).",
+  ">ASI Global Partitions.",
+  "Toilet-Enclosure Style: Floor anchored and overhead braced.",
+  "Urinal-Screen Style: Wall hung, 18 inches wide by 42 inches high, mounted with bottom 12 inches above finished floor.",
+  "Door, Panel, and Pilaster Construction: Solid high-density polyethylene (HDPE) panels, homogenous color throughout, with eased edges and mar- and graffiti-resistant surfaces.",
+  ">Door and Panel Thickness: 1 inch.",
+  ">Pilaster Thickness: 1 inch.",
+  ">Door Width: 24 inches typical, and 36 inches clear (swinging out) at accessible compartments.",
+  ">Height: Panels and doors 55 inches high, mounted 14 inches above finished floor, unless privacy (zero-sightline) style is indicated.",
+  "Privacy Features: Continuous full-height hinges and continuous strike strips, or overlapping door edges, eliminating sightlines at door jambs.",
+  "Pilaster Shoes: Stainless steel, 3 inches high, Type 304.",
+  "Overhead Bracing: Continuous, extruded-aluminum headrail with antigrip profile, clear anodized finish.",
+  "Brackets (Fittings): Stainless steel, full-height (continuous) type, Type 304.",
+  "Color: One color and pattern in each room, as selected by Architect from manufacturer's full range.",
+]
+
+[[section.part2]]
+title = "HARDWARE AND ACCESSORIES"
+items = [
+  "Hardware and Accessories: Manufacturer's heavy-duty operating hardware and accessories, Type 304 stainless steel.",
+  ">Hinges: Continuous, cam type, self-closing, that can be adjusted to hold doors open at any angle up to 90 degrees; in-swinging doors normally closed and out-swinging accessible doors self-closing.",
+  ">Latch and Keeper: Surface-mounted slide latch unit designed for emergency access, operable with one hand without tight grasping, pinching, or twisting of the wrist.",
+  ">Coat Hook: Combination hook and rubber-tipped bumper, sized to prevent in-swinging door from hitting compartment-mounted accessories; mounted at 48 inches maximum in accessible compartments.",
+  ">Door Bumper: Rubber-tipped bumper at out-swinging doors.",
+  ">Door Pull: At out-swinging doors and both sides of accessible doors, U-shaped pull.",
+  "Anchorages and Fasteners: Manufacturer's standard exposed fasteners of stainless steel, finished to match the items they secure, with theft-resistant-type heads.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas and conditions, with Installer present, for correct spacing and location of plumbing fixtures, in-wall blocking, floor finishes, and other conditions affecting installation.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Comply with manufacturer's written installation instructions. Install units rigid, straight, level, and plumb. Secure units in position with manufacturer's recommended anchoring devices.",
+  ">Maximum Clearances: Pilasters and panels 1/2 inch; panels and walls 1 inch.",
+  ">Full-Height (Continuous) Brackets: Secure panels to walls and to pilasters with full-height brackets.",
+  "Floor-Anchored and Overhead-Braced Units: Secure pilasters to floor and level, plumb, and tighten. Set pilasters with anchors penetrating not less than 1-3/4 inches into structural floor unless otherwise indicated in manufacturer's written instructions. Secure continuous headrail to each pilaster with not less than two fasteners. Hang doors to align tops of doors with tops of panels, and adjust so tops of doors are parallel with overhead brace when doors are in closed position.",
+  "Urinal Screens: Attach with anchoring devices to suit supporting structure. Set units level and plumb, rigid, and secured to resist lateral impact.",
+  "Accessible Compartments: Locate grab bars and accessories in accordance with ICC A117.1 and coordinate with compartment dimensions indicated.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Hardware Adjustment: Adjust and lubricate hardware according to hardware manufacturer's written instructions for proper operation. Set hinges on in-swinging doors to hold doors open approximately 30 degrees from closed position when unlatched. Set hinges on out-swinging doors and entrance-screen doors to return doors to fully closed position.",
+  "Clean exposed surfaces and remove protective coverings; replace damaged components.",
+]
+
+[[section]]
+number = "10 28 00"
+title = "TOILET, BATH, AND LAUNDRY ACCESSORIES"
+when = ["toilet_accessories"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Public-use washroom accessories.",
+  ">Warm-air hand dryers, where indicated.",
+  ">Childcare accessories.",
+  ">Underlavatory guards.",
+  ">Residential bath accessories, including towel bars, robe hooks, paper holders, and shower rods.",
+  ">Custodial and laundry accessories.",
+  "Related Requirements:",
+  ">Section 08 83 00 \"Mirrors\" for frameless mirrors not part of accessories.",
+  ">Section 10 21 13 \"Toilet Compartments\" for compartment construction.",
+  ">Section 22 40 00 \"Plumbing Fixtures\" for fixtures.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Coordinate accessory locations with other work to prevent interference with clearances required for access by people with disabilities, and for proper installation, adjustment, operation, cleaning, and servicing of accessories.",
+  "Deliver inserts and anchoring devices set into concrete or masonry as required to prevent delaying the Work; furnish locations of in-wall blocking to framing installers.",
+  "Coordinate electrical requirements for hand dryers and electric dispensers with Division 26.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including construction details, material descriptions, dimensions of individual components and profiles, and finishes.",
+  "Accessory Schedule: Indicating types, quantities, sizes, and installation locations by room of each accessory required, using room names and numbers indicated on Drawings, with mounting heights.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For accessories to include in maintenance manuals.",
+  "Keys: Furnish three keys for each type of locked dispenser and receptacle, tagged and delivered to Owner.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Mirror Warranty: Manufacturer agrees to replace mirrors that develop visible silver spoilage defects within 15 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PUBLIC-USE WASHROOM ACCESSORIES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">American Specialties, Inc. (ASI).",
+  ">Bobrick Washroom Equipment, Inc.",
+  ">Bradley Corporation.",
+  ">GAMCO Specialty Accessories.",
+  "Source Limitations: Obtain accessories of each type from single source from single manufacturer.",
+  "Toilet Tissue Dispenser: Surface-mounted, double-roll, stainless steel, satin finish, with theft-resistant spindles; or Owner-furnished dispenser where indicated.",
+  "Paper Towel Dispenser: Recessed or semi-recessed combination towel dispenser and waste receptacle, stainless steel, 12 gallon receptacle capacity, with tumbler lock; or surface-mounted where walls do not allow recessing.",
+  "Liquid-Soap Dispenser: Surface-mounted or counter-mounted, 40 oz. capacity, stainless steel, operable with one hand with not more than 5 lbf.",
+  "Grab Bars: Stainless steel, 1-1/2 inch outside diameter, 0.05 inch wall thickness, concealed mounting, 1-1/2 inch clearance from wall, peened grip finish, capable of supporting a 250 lbf load applied in any direction per ICC A117.1.",
+  ">Configurations and Lengths: 42 inch side wall bar, 36 inch rear wall bar, and 18 inch vertical bar at accessible water closets, as indicated.",
+  "Mirror Unit: Stainless steel channel frame, 1/4 inch thick float glass mirror complying with ASTM C1503, with galvanized steel back and theft-resistant mounting, size 24 by 36 inches unless otherwise indicated.",
+  "Sanitary-Napkin Disposal Unit: Surface-mounted or partition-mounted, stainless steel, with self-closing, removable leak-proof receptacle.",
+  "Seat-Cover Dispenser: Surface-mounted, stainless steel, capacity of 250 seat covers.",
+  "Sanitary-Napkin/Tampon Vendor: Recessed, stainless steel, dual-product, [free-vend] [coin-operated].",
+  "Shelf: Stainless steel, 5 inches deep, with hemmed edges, length as indicated.",
+  "Mop and Broom Holder: Stainless steel, 36 inches long, with shelf and four spring-loaded holders, at janitor closets.",
+  "Material: Stainless steel sheet, ASTM A666, Type 304, No. 4 satin finish, 0.031 inch minimum nominal thickness unless otherwise indicated.",
+]
+
+[[section.part2]]
+title = "WARM-AIR HAND DRYERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Excel Dryer, Inc.",
+  ">World Dryer Corporation.",
+  ">Dyson Inc.",
+  "Description: High-speed, automatic, sensor-activated dryer, surface mounted, not projecting more than 4 inches from wall where mounted in circulation paths, with UL 507 listing and drying time of 15 seconds or less.",
+  "Electrical: 120 V, 20 A, with GFCI protection provided by Division 26.",
+]
+
+[[section.part2]]
+title = "CHILDCARE ACCESSORIES"
+items = [
+  "Diaper-Changing Station: Horizontal, surface-mounted or recessed, high-density polyethylene with antimicrobial treatment, supporting a static load of 250 lbf, complying with ASTM F2285, with dispenser for liners and safety straps.",
+]
+
+[[section.part2]]
+title = "UNDERLAVATORY GUARDS"
+items = [
+  "Underlavatory Guard: Insulating pipe covering for supply and drain piping assemblies that prevent direct contact with and burns from piping, molded flexible PVC, white, allowing service access without removing coverings, complying with ICC A117.1.",
+]
+
+[[section.part2]]
+title = "RESIDENTIAL BATH ACCESSORIES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Moen Incorporated.",
+  ">Kohler Co.",
+  ">Delta Faucet Company.",
+  "Items: Towel bars 24 inches long, towel ring, robe hook, toilet paper holder, and curved shower rod at tubs, in finish matching plumbing fittings, as selected by Architect.",
+  "Medicine Cabinets: Recessed, with mirrored door and adjustable glass shelves, where indicated.",
+]
+
+[[section.part2]]
+title = "CUSTODIAL AND LAUNDRY ACCESSORIES"
+items = [
+  "Utility Shelf: Stainless steel, with mop and broom holders, in each janitor closet.",
+  "Laundry Accessories: Wall-mounted recessed dryer vent box and washer supply and drain box are specified in Division 22 and Division 23; provide wall-mounted drying rack and shelf with hanging rod where indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine walls and blocking before installation; verify that concealed backing is in place for grab bars, dryers, and wall-mounted accessories and that finishes are complete.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install accessories according to manufacturers' written instructions, using fasteners appropriate to substrate indicated and recommended by unit manufacturer. Install units level, plumb, and firmly anchored in locations and at heights indicated.",
+  "Grab Bars: Install to withstand a downward load of at least 250 lbf when tested per ASTM F446, with top of gripping surface 33 to 36 inches above finished floor.",
+  "Mounting Heights: Comply with ICC A117.1 and the accessory schedule:",
+  ">Operable parts of dispensers, dryers, and soap dispensers: 48 inches maximum above finished floor, within forward or side reach range.",
+  ">Mirrors above lavatories and countertops: bottom edge of reflecting surface 40 inches maximum above finished floor.",
+  ">Toilet tissue dispensers: 7 to 9 inches in front of water closet, with outlet 15 to 48 inches above finished floor.",
+  "Protruding Objects: Do not install wall-mounted accessories with leading edges between 27 and 80 inches above finished floor that project more than 4 inches into circulation paths.",
+  "Recessed Units: Set in framed openings, plumb and square, with flanges tight to finished wall.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Adjust accessories for unencumbered, smooth operation. Replace damaged or defective items.",
+  "Remove temporary labels and protective coatings; clean and polish exposed surfaces according to manufacturer's written recommendations.",
+]
+
+[[section]]
+number = "10 44 00"
+title = "FIRE PROTECTION SPECIALTIES"
+when = ["commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Portable fire extinguishers.",
+  ">Fire-protection cabinets for portable fire extinguishers.",
+  ">Mounting brackets for fire extinguishers.",
+  "Related Requirements:",
+  ">Section 10 14 00 \"Signage\" for signs identifying extinguisher locations.",
+  ">Section 21 13 13 \"Wet-Pipe Sprinkler Systems\" for fire hose valves and cabinets.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including rating and classification, material descriptions, dimensions of individual components and profiles, and finishes for fire extinguishers and cabinets.",
+  ">Show door hardware, cabinet type, trim style, and panel style.",
+  ">Include roughing-in dimensions and details showing recessed-, semirecessed-, or surface-mounting method and relationships of box and trim to surrounding construction.",
+  "Fire Extinguisher and Cabinet Schedule: Indicate size, type, and rating of extinguishers and type of cabinet at each location, keyed to the Drawings.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For fire extinguishers and fire-protection cabinets to include in maintenance manuals.",
+  "Inspection Tags: Record of initial inspection and charge for each extinguisher, dated and signed by a licensed service company.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "NFPA Compliance: Fabricate and label fire extinguishers to comply with NFPA 10, Standard for Portable Fire Extinguishers.",
+  "Fire Extinguishers: Listed and labeled for type, rating, and classification by an independent testing agency acceptable to authorities having jurisdiction, {jurisdiction}; provide extinguishers approved, listed, and labeled by UL.",
+  "Fire-Rated Cabinets: Where cabinets are recessed in fire-resistance-rated walls, provide cabinets listed and labeled to maintain the rating of the wall assembly.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace fire extinguishers that fail in materials or workmanship, including failure of hydrostatic test per NFPA 10 and faulty operation of valves or release levers, within six years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PORTABLE FIRE EXTINGUISHERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Amerex Corporation.",
+  ">Badger Fire Protection (Kidde).",
+  ">JL Industries, Inc.",
+  ">Larsen's Manufacturing Company.",
+  "Fire Extinguishers: Type, size, and capacity for each fire-protection cabinet and mounting bracket indicated, with instruction label on front of cylinder and UL listing label.",
+  ">Valves: Manufacturer's standard, chrome-plated or forged brass.",
+  ">Handles and Levers: Manufacturer's standard.",
+  "Multipurpose Dry-Chemical Type in Steel Container: UL-rated 4-A:60-B:C, 10 lb nominal capacity, with monoammonium phosphate-based dry chemical in enameled-steel container, unless otherwise indicated.",
+  "Wet-Chemical Type (Commercial Kitchens): UL-rated 2-A:K, 6 liter nominal capacity, with potassium acetate-based chemical in stainless steel container, within 30 feet of cooking appliances.",
+  "Carbon Dioxide Type (Electrical and IT Rooms): UL-rated 10-B:C, 10 lb nominal capacity, where indicated.",
+  "Clean Agent Type: UL-rated 2-A:10-B:C, where indicated for sensitive electronic equipment.",
+]
+
+[[section.part2]]
+title = "FIRE-PROTECTION CABINETS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">JL Industries, Inc.",
+  ">Larsen's Manufacturing Company.",
+  ">Potter Roemer (Fire-End & Croker).",
+  ">Babcock-Davis.",
+  "Cabinet Construction: Nonrated, and fire rated where installed in fire-resistance-rated walls.",
+  ">Fire-Rated Cabinets: Construct with double walls fabricated from 0.043 inch thick cold-rolled steel sheet lined with minimum 5/8 inch thick fire-barrier material, listed and labeled for the rating of the wall.",
+  "Cabinet Material: Cold-rolled steel sheet, 0.043 inch thick.",
+  "Semirecessed Cabinet: One-piece combination trim and perimeter door frame overlapping surrounding wall surface with exposed trim face and wall return at outer edge (backbend), 1-1/2 inch rolled-edge trim, so that the cabinet projects not more than 4 inches from the wall.",
+  "Cabinet Trim Material: Stainless steel sheet, No. 4 finish.",
+  "Door Material: Stainless steel sheet, matching trim.",
+  "Door Style: Vertical duo panel with frame, with clear tempered float glass, 1/8 inch thick, or clear acrylic.",
+  "Door Hardware: Manufacturer's standard door-operating hardware of proper type for cabinet type, trim style, and door material and style indicated, with pull handle and continuous hinge; operable with one hand and not more than 5 lbf.",
+  "Accessories:",
+  ">Mounting Bracket: Manufacturer's standard steel, designed to secure fire extinguisher, one for each extinguisher.",
+  ">Identification: Lettering FIRE EXTINGUISHER applied to door, vertical orientation, in red vinyl, 1 inch high minimum, or as selected by Architect.",
+]
+
+[[section.part2]]
+title = "MOUNTING BRACKETS"
+items = [
+  "Mounting Brackets: Manufacturer's standard galvanized steel, designed to secure fire extinguisher to wall or structure, of sizes required for types and capacities of fire extinguishers indicated, with plated or red baked-enamel finish.",
+  "Identification: Where extinguishers are mounted on brackets in public areas, provide wall sign complying with Section 10 14 00 \"Signage\" identifying the extinguisher location.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine walls and partitions for suitable framing depth and blocking where semirecessed cabinets will be installed.",
+  "Verify that locations of cabinets and brackets provide travel distances to an extinguisher of not more than 75 feet for Class A hazards, per NFPA 10.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Prepare recesses for semirecessed fire-protection cabinets as required by type and size of cabinet and trim style.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Install fire-protection specialties in locations and at mounting heights indicated or, if not indicated, at heights acceptable to authorities having jurisdiction.",
+  ">Mounting Height: Top of fire extinguisher not more than 5 feet above finished floor for extinguishers weighing 40 lb or less, and bottom not less than 4 inches above finished floor, per NFPA 10; operable parts of cabinets 48 inches maximum above finished floor.",
+  "Fire-Protection Cabinets: Fasten cabinets to structure, square and plumb.",
+  ">Unless otherwise indicated, provide recessed fire-protection cabinets. If wall thickness is inadequate for recessed cabinets, provide semirecessed fire-protection cabinets.",
+  ">Provide inside latch and lock for break-glass panels.",
+  ">Fasten mounting brackets to inside surface of fire-protection cabinets, square and plumb.",
+  ">Fire-Rated Cabinets: Install cabinet with not more than 1/16 inch tolerance between pipe and cabinet hole, and seal through penetrations with firestopping sealant.",
+  "Mounting Brackets: Fasten mounting brackets to surfaces, square and plumb, at locations indicated.",
+  "Protruding Objects: Where brackets or cabinets are in circulation paths with leading edges between 27 and 80 inches above finished floor, limit projection to 4 inches.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Remove temporary protective coverings and strippable films, if any, as fire-protection specialties are installed unless otherwise indicated in manufacturer's written installation instructions.",
+  "Adjust fire-protection cabinet doors to operate easily without binding. Verify that integral locking devices operate properly.",
+  "On completion of fire-protection cabinet installation, clean interior and exterior surfaces as recommended by manufacturer.",
+  "Touch up marred finishes, or replace fire-protection cabinets that cannot be restored to factory-finished appearance.",
+  "Charge and tag extinguishers at time of installation; place in service only at Substantial Completion, or earlier where required for fire protection during construction.",
+]

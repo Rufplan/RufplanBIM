@@ -1,0 +1,2317 @@
+# Divisions 31-33: Earthwork, Exterior Improvements, Utilities
+
+[[section]]
+number = "31 10 00"
+title = "SITE CLEARING"
+when = ["sitework"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Protection of existing trees and vegetation to remain.",
+  ">Removal of trees, shrubs, groundcover and other vegetation.",
+  ">Clearing, grubbing and topsoil stripping.",
+  ">Removal of above-grade and below-grade site improvements indicated to be removed.",
+  ">Disconnection, capping or sealing, and removal of site utilities indicated to be removed.",
+  ">Temporary erosion and sedimentation control.",
+  "Related Requirements:",
+  ">Section 01 50 00 \"Temporary Facilities and Controls\" for temporary fencing and site access.",
+  ">Section 31 20 00 \"Earth Moving\" for excavation, fill and compaction.",
+  ">Section 32 93 00 \"Plants\" for replacement trees and shrubs.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Topsoil: Natural or cultivated surface-soil layer containing organic matter and sand, silt and clay particles, friable, pervious and black or dark brown, free of subsoil, clay lumps, stones over 1 inch, roots and weeds.",
+  "Tree Protection Zone: Area surrounding individual trees or groups of trees to remain, defined by the drip line unless otherwise indicated on Drawings.",
+  "Vegetation: Trees, shrubs, groundcover, grass and other plants.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Existing Conditions: Photographs or video recording of existing site improvements and vegetation to remain, adjoining construction and site conditions, before the Work begins.",
+  "Erosion Control Plan: Where not included in the Drawings, a plan showing temporary erosion and sedimentation control measures complying with authorities having jurisdiction.",
+  "Burning: Documentation of approval by authorities having jurisdiction if burning is permitted.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Arborist Qualifications: Certified by the International Society of Arboriculture (ISA), for tree pruning, root pruning and repair of trees to remain.",
+  "Preclearing Conference: Before starting site clearing, meet at the site with the Owner, the Architect and the arborist to review tree protection, limits of clearing and erosion control.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Traffic: Minimize interference with adjoining roads, streets, walks and other facilities. Do not close or obstruct streets, walks or other occupied facilities without permission from the Owner and authorities having jurisdiction.",
+  "Utility Locator Service: Notify the utility locator service for the area where the Project is located before site clearing.",
+  "Do not commence site clearing until temporary erosion and sedimentation control and tree protection measures are in place.",
+  "Salvageable Improvements: Carefully remove items indicated to be salvaged and store on the Owner's premises where indicated.",
+  "Hazardous Materials: If materials suspected of being hazardous are encountered, do not disturb; notify the Architect and the Owner immediately.",
+]
+
+[[section.part2]]
+title = "MATERIALS"
+items = [
+  "Satisfactory Soil Material: Requirements for satisfactory soil material are specified in Section 31 20 00 \"Earth Moving.\"",
+  ">Obtain approved borrow soil material off site when satisfactory soil material is not available on site.",
+  "Tree Protection Fencing: Orange high-density polyethylene mesh fence, 48 inches high, supported on steel posts at 8 feet on center maximum, or chain-link fencing where indicated.",
+  "Silt Fence: Geotextile fabric complying with ASTM D6461, on wood or steel stakes.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Protect and maintain benchmarks and survey control points from disturbance during construction.",
+  "Locate and clearly identify trees, shrubs and other vegetation to remain or to be relocated. Flag each tree trunk at 54 inches above the ground.",
+  "Protect existing site improvements to remain from damage during construction. Restore damaged improvements to their original condition, as acceptable to the Owner.",
+]
+
+[[section.part3]]
+title = "TEMPORARY EROSION AND SEDIMENTATION CONTROL"
+items = [
+  "Provide temporary erosion and sedimentation control measures to prevent soil erosion and discharge of soil-bearing water runoff or airborne dust to adjacent properties and walkways, according to the erosion and sedimentation control Drawings and requirements of authorities having jurisdiction.",
+  "Inspect, maintain and repair erosion and sedimentation control measures during construction until permanent vegetation has been established.",
+  "Remove erosion and sedimentation controls and restore and stabilize areas disturbed during removal.",
+]
+
+[[section.part3]]
+title = "TREE AND PLANT PROTECTION"
+items = [
+  "Erect and maintain temporary fencing around tree protection zones before starting site clearing. Remove fence when construction is complete.",
+  "Do not store construction materials, debris or excavated material within tree protection zones.",
+  "Do not permit vehicles, equipment or foot traffic within tree protection zones.",
+  "Maintain existing grade within tree protection zones unless otherwise indicated.",
+  "Where excavation for new construction is required within tree protection zones, hand clear and excavate to minimize damage to root systems. Cut roots cleanly with sharp pruning instruments; do not break, tear or chop.",
+  "Repair or replace trees and vegetation indicated to remain that are damaged by construction operations, as directed by the Architect.",
+]
+
+[[section.part3]]
+title = "EXISTING UTILITIES"
+items = [
+  "The Owner will arrange for disconnecting and sealing indicated utilities that serve existing structures before site clearing, when requested by the Contractor.",
+  "Locate, identify, disconnect and seal or cap off utilities indicated to be removed or abandoned in place.",
+  "Arrange with utility companies to shut off indicated utilities.",
+  "Do not interrupt utilities serving facilities occupied by the Owner or others unless permitted in writing by the Owner and then only after arranging to provide temporary utility services.",
+  "Excavate for and remove underground utilities indicated to be removed.",
+]
+
+[[section.part3]]
+title = "CLEARING AND GRUBBING"
+items = [
+  "Remove obstructions, trees, shrubs and other vegetation to permit installation of new construction.",
+  ">Grind down stumps and remove roots, obstructions and debris to a depth of 18 inches below exposed subgrade.",
+  ">Use only hand methods or air spade for grubbing within tree protection zones.",
+  "Fill depressions caused by clearing and grubbing operations with satisfactory soil material unless further excavation or earthwork is indicated.",
+  ">Place fill material in horizontal layers not exceeding a loose depth of 8 inches, and compact each layer to a density equal to adjacent original ground.",
+]
+
+[[section.part3]]
+title = "TOPSOIL STRIPPING"
+items = [
+  "Remove sod and grass before stripping topsoil.",
+  "Strip topsoil to full depth encountered in a manner to prevent intermingling with underlying subsoil or other waste materials.",
+  "Stockpile topsoil away from edge of excavations without intermixing with subsoil or other materials. Grade and shape stockpiles to drain surface water. Cover to prevent windblown dust and erosion by water.",
+  ">Limit height of topsoil stockpiles to 72 inches.",
+  ">Do not stockpile topsoil within tree protection zones.",
+  ">Stockpile surplus topsoil to allow for respreading deeper topsoil.",
+]
+
+[[section.part3]]
+title = "SITE IMPROVEMENTS"
+items = [
+  "Remove existing above- and below-grade improvements as indicated and necessary to facilitate new construction.",
+  "Remove slabs, paving, curbs, gutters and aggregate base as indicated.",
+  ">Unless existing full-depth joints coincide with line of demolition, neatly saw-cut along line of existing pavement to remain before removing adjacent existing pavement. Saw-cut faces vertically.",
+]
+
+[[section.part3]]
+title = "DISPOSAL OF SURPLUS AND WASTE MATERIALS"
+items = [
+  "Remove surplus soil material, unsuitable topsoil, obstructions, demolished materials and waste materials including trash and debris, and legally dispose of them off the Owner's property.",
+  "Burning of waste materials on site is not permitted unless approved in writing by authorities having jurisdiction and the Owner.",
+  "Separate recyclable materials produced during site clearing from other nonrecyclable materials, and transport them to recycling facilities where practical.",
+]
+
+[[section]]
+number = "31 20 00"
+title = "EARTH MOVING"
+when = ["sitework"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Excavating and filling for rough grading the site.",
+  ">Preparing subgrades for slabs-on-grade, walks, pavements, turf and planting.",
+  ">Excavating and backfilling for buildings and structures.",
+  ">Drainage course and capillary break for concrete slabs-on-grade.",
+  ">Subbase course and base course for concrete walks and pavements.",
+  ">Excavating and backfilling trenches for utilities and pits for buried utility structures.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for granular course if placed over vapor retarder and beneath the slab-on-grade.",
+  ">Section 31 10 00 \"Site Clearing\" for site stripping, grubbing, stripping topsoil and removal of above- and below-grade improvements.",
+  ">Section 31 31 16 \"Termite Control\" for soil treatment.",
+  ">Section 32 12 16 \"Asphalt Paving\" and Section 32 13 13 \"Concrete Paving\" for paving placed over base course.",
+  ">Division 33 Sections for utility piping installed in trenches.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Backfill: Soil material or controlled low-strength material used to fill an excavation.",
+  ">Initial Backfill: Backfill placed beside and over pipe in a trench, including haunches to support sides of pipe.",
+  ">Final Backfill: Backfill placed over initial backfill to fill a trench.",
+  "Base Course: Aggregate layer placed between the subbase course and hot-mix asphalt paving.",
+  "Bedding Course: Aggregate layer placed over the excavated subgrade in a trench before laying pipe.",
+  "Drainage Course: Aggregate layer supporting the slab-on-grade that also minimizes upward capillary flow of pore water.",
+  "Excavation: Removal of material encountered above subgrade elevations and to lines and dimensions indicated.",
+  ">Authorized Additional Excavation: Excavation below subgrade elevations or beyond indicated lines and dimensions as directed by the Architect. Authorized additional excavation and replacement material will be paid for according to Contract provisions for changes in the Work.",
+  ">Unauthorized Excavation: Excavation below subgrade elevations or beyond indicated lines and dimensions without direction by the Architect. Unauthorized excavation, as well as remedial work directed by the Architect, shall be without additional compensation.",
+  "Fill: Soil materials used to raise existing grades.",
+  "Rock: Rock material in beds, ledges, unstratified masses, conglomerate deposits and boulders of rock material exceeding 1 cubic yard that cannot be removed by a track-mounted hydraulic excavator of 42,000 lb minimum operating weight without systematic drilling, ram hammering, ripping or blasting.",
+  "Subgrade: Uppermost surface of an excavation or the top surface of a fill or backfill immediately below subbase, drainage fill, drainage course or topsoil materials.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For geotextiles, vapor retarder and controlled low-strength material mix design.",
+  "Samples: For each type of fill and aggregate material, 30 lb, in sealed containers.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Material Test Reports: For each on-site and borrow soil material proposed for fill and backfill, from a qualified testing agency, indicating:",
+  ">Classification according to ASTM D2487.",
+  ">Laboratory compaction curve according to ASTM D1557 or ASTM D698, as indicated.",
+  "Preexcavation Photographs or Video: Showing existing conditions of adjoining construction and site improvements that might be misconstrued as damage caused by earth-moving operations.",
+  "Blasting Plan: If blasting is permitted, approved by authorities having jurisdiction, with seismographic monitoring procedures.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Geotechnical Testing Agency Qualifications: Qualified according to ASTM E329 and ASTM D3740 for testing indicated.",
+  "Geotechnical Report: A geotechnical report for the Project is available for information only; recommendations in the report are superseded by requirements of the Contract Documents where they differ.",
+  "Preexcavation Conference: Conduct conference at Project site to review excavation, dewatering, protection of existing utilities and testing procedures.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Traffic: Minimize interference with adjoining roads, streets, walks and other adjacent occupied or used facilities during earth-moving operations.",
+  "Utility Locator Service: Notify the utility locator service for the area where the Project is located before beginning earth-moving operations.",
+  "Do not commence earth-moving operations until temporary erosion and sedimentation control measures and tree protection specified in Section 31 10 00 \"Site Clearing\" are in place.",
+  "Do not direct vehicle or equipment exhaust toward protection zones. Prohibit heat sources, flames, ignition sources and smoking within protection zones.",
+]
+
+[[section.part2]]
+title = "SOIL MATERIALS"
+items = [
+  "General: Provide borrow soil materials when sufficient satisfactory soil materials are not available from excavations.",
+  "Satisfactory Soils: Soil Classification Groups GW, GP, GM, SW, SP and SM according to ASTM D2487, or a combination of these groups; free of rock or gravel larger than 3 inches in any dimension, debris, waste, frozen materials, vegetation and other deleterious matter.",
+  "Unsatisfactory Soils: Soil Classification Groups GC, SC, CL, ML, OL, CH, MH, OH and PT according to ASTM D2487, or a combination of these groups.",
+  ">Unsatisfactory soils also include satisfactory soils not maintained within 2 percent of optimum moisture content at time of compaction.",
+  "Subbase Material: Naturally or artificially graded mixture of natural or crushed gravel, crushed stone and natural or crushed sand; ASTM D2940; with at least 90 percent passing a 1-1/2-inch sieve and not more than 12 percent passing a No. 200 sieve.",
+  "Base Course: Naturally or artificially graded mixture of natural or crushed gravel, crushed stone and natural or crushed sand; ASTM D2940; with at least 95 percent passing a 1-1/2-inch sieve and not more than 8 percent passing a No. 200 sieve.",
+  "Engineered Fill: Naturally or artificially graded mixture of natural or crushed gravel, crushed stone and natural or crushed sand; ASTM D2940; with at least 90 percent passing a 1-1/2-inch sieve and not more than 12 percent passing a No. 200 sieve.",
+  "Bedding Course: Naturally or artificially graded mixture of natural or crushed gravel, crushed stone and natural or crushed sand; ASTM D2940; except with 100 percent passing a 1-inch sieve and not more than 8 percent passing a No. 200 sieve.",
+  "Drainage Course: Narrowly graded mixture of washed crushed stone or crushed or uncrushed gravel; ASTM D448; coarse-aggregate grading Size 57; with 100 percent passing a 1-1/2-inch sieve and 0 to 5 percent passing a No. 8 sieve.",
+  "Filter Material: Narrowly graded mixture of natural or crushed gravel, or crushed stone and natural sand; ASTM D448; coarse-aggregate grading Size 67; with 100 percent passing a 1-inch sieve and 0 to 5 percent passing a No. 4 sieve.",
+  "Sand: ASTM C33, fine aggregate.",
+  "Impervious Fill: Clayey gravel and sand mixture capable of compacting to a dense state.",
+]
+
+[[section.part2]]
+title = "GEOTEXTILES"
+items = [
+  "Subsurface Drainage Geotextile: Nonwoven needle-punched geotextile, manufactured for subsurface drainage applications, made from polyolefins or polyesters; with elongation greater than 50 percent; complying with AASHTO M 288.",
+  ">Apparent Opening Size: No. 40 sieve, maximum; ASTM D4751.",
+  ">Permittivity: 0.5 per second, minimum; ASTM D4491.",
+  "Separation Geotextile: Woven geotextile fabric, manufactured for separation applications, complying with AASHTO M 288, Class 2.",
+]
+
+[[section.part2]]
+title = "CONTROLLED LOW-STRENGTH MATERIAL"
+items = [
+  "Controlled Low-Strength Material: Self-compacting, flowable concrete material produced from portland cement, fly ash, fine aggregate and water, complying with ACI 229R.",
+  ">Compressive Strength: 80 psi minimum and 150 psi maximum at 28 days, when tested according to ASTM D4832, so that it remains excavatable.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Warning Tape: Acid- and alkali-resistant, polyethylene film warning tape manufactured for marking and identifying underground utilities, 6 inches wide and 4 mils thick, continuously inscribed with a description of the utility, with metallic core encased in a protective jacket for corrosion protection, detectable by metal detector when tape is buried up to 30 inches deep; colored as follows:",
+  ">Red: Electric.",
+  ">Yellow: Gas, oil, steam and dangerous materials.",
+  ">Orange: Telephone and other communications.",
+  ">Blue: Water systems.",
+  ">Green: Sewer systems.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Protect structures, utilities, sidewalks, pavements and other facilities from damage caused by settlement, lateral movement, undermining, washout and other hazards created by earth-moving operations.",
+  "Protect and maintain erosion and sedimentation controls during earth-moving operations.",
+  "Protect subgrades and foundation soils from freezing temperatures and frost. Remove temporary protection before placing subsequent materials.",
+]
+
+[[section.part3]]
+title = "DEWATERING"
+items = [
+  "Prevent surface water and ground water from entering excavations, from ponding on prepared subgrades, and from flooding Project site and surrounding area.",
+  "Protect subgrades from softening, undermining, washout and damage by rain or water accumulation.",
+  ">Reroute surface water runoff away from excavated areas. Do not allow water to accumulate in excavations. Do not use excavated trenches as temporary drainage ditches.",
+]
+
+[[section.part3]]
+title = "EXCAVATION"
+items = [
+  "Unclassified Excavation: Excavate to subgrade elevations regardless of the character of surface and subsurface conditions encountered. Unclassified excavated materials may include rock, soil materials and obstructions. No changes in the Contract Sum or the Contract Time will be authorized for rock excavation or removal of obstructions.",
+  "Excavation for Structures: Excavate to indicated elevations and dimensions within a tolerance of plus or minus 1 inch. Extend excavations a sufficient distance from structures for placing and removing concrete formwork, for installing services and other construction, and for inspections.",
+  ">Excavations for Footings and Foundations: Do not disturb bottom of excavation. Excavate by hand to final grade just before placing concrete reinforcement. Trim bottoms to required lines and grades to leave solid base to receive other work.",
+  "Excavation for Walks and Pavements: Excavate surfaces under walks and pavements to indicated lines, cross sections, elevations and subgrades.",
+  "Excavation for Utility Trenches: Excavate trenches to indicated gradients, lines, depths and elevations.",
+  ">Excavate trenches to allow installation of top of pipe below frost line.",
+  ">Beyond building perimeter, excavate trenches to allow installation of top of pipe not less than 30 inches below finished grade unless otherwise indicated.",
+  ">Clearance: 12 inches each side of pipe or conduit, unless otherwise indicated.",
+  ">Trench Bottoms: Excavate and shape trench bottoms to provide uniform bearing and support of pipes and conduit. Shape subgrade to provide continuous support for bells, joints and barrels of pipes. Remove projecting stones and sharp objects along trench subgrade.",
+  "Excavate and protect trenches in accordance with OSHA 29 CFR 1926, Subpart P, Excavations. Provide shoring and bracing where sloping is not possible.",
+]
+
+[[section.part3]]
+title = "SUBGRADE INSPECTION"
+items = [
+  "Notify the Architect when excavations have reached required subgrade.",
+  "If the Architect or the geotechnical testing agency determines that unsatisfactory soil is present, continue excavation and replace with compacted backfill or fill material as directed.",
+  "Proof-roll subgrade below the building slabs and pavements with a pneumatic-tired and loaded 10-wheel, tandem-axle dump truck weighing not less than 15 tons to identify soft pockets and areas of excess yielding. Do not proof-roll wet or saturated subgrades.",
+  ">Completely proof-roll subgrade in one direction, repeating proof-rolling in direction perpendicular to first direction. Limit vehicle speed to 3 mph.",
+  ">Excavate soft spots, unsatisfactory soils and areas of excessive pumping or rutting, as determined by the Architect, and replace with compacted backfill or fill as directed.",
+  "Reconstruct subgrades damaged by freezing temperatures, frost, rain, accumulated water or construction activities, as directed by the Architect, without additional compensation.",
+]
+
+[[section.part3]]
+title = "UNAUTHORIZED EXCAVATION"
+items = [
+  "Fill unauthorized excavation under foundations or wall footings by extending bottom elevation of concrete foundation or footing to excavation bottom, without altering top elevation. Lean concrete fill, with 28-day compressive strength of 2500 psi, may be used when approved by the Architect.",
+  "Fill unauthorized excavations under other construction, pipe or conduit as directed by the Architect.",
+]
+
+[[section.part3]]
+title = "STORAGE OF SOIL MATERIALS"
+items = [
+  "Stockpile borrow soil materials and excavated satisfactory soil materials without intermixing. Place, grade and shape stockpiles to drain surface water. Cover to prevent windblown dust.",
+  ">Stockpile soil materials away from edge of excavations. Do not store within drip line of remaining trees.",
+]
+
+[[section.part3]]
+title = "UTILITY TRENCH BACKFILL"
+items = [
+  "Place backfill on subgrades free of mud, frost, snow or ice.",
+  "Place and compact bedding course on trench bottoms and where indicated. Shape bedding course to provide continuous support for bells, joints and barrels of pipes and for joints, fittings and bodies of conduits.",
+  "Trenches under Footings: Backfill trenches excavated under footings and within 18 inches of bottom of footings with satisfactory soil; fill with concrete to elevation of bottom of footings.",
+  "Initial Backfill: Place and compact initial backfill of satisfactory soil, free of particles larger than 1 inch in any dimension, to a height of 12 inches over the pipe or conduit.",
+  ">Carefully compact initial backfill under pipe haunches and compact evenly up on both sides and along the full length of piping or conduit to avoid damage or displacement of piping or conduit.",
+  "Final Backfill: Place and compact final backfill of satisfactory soil to final subgrade elevation.",
+  "Warning Tape: Install warning tape directly above utilities, 12 inches below finished grade, except 6 inches below subgrade under pavements and slabs.",
+]
+
+[[section.part3]]
+title = "SOIL FILL"
+items = [
+  "Plow, scarify, bench or break up sloped surfaces steeper than 1 vertical to 4 horizontal so fill material will bond with existing material.",
+  "Place and compact fill material in layers to required elevations as follows:",
+  ">Under grass and planted areas, use satisfactory soil material.",
+  ">Under walks and pavements, use satisfactory soil material.",
+  ">Under steps and ramps, use engineered fill.",
+  ">Under building slabs, use engineered fill.",
+  ">Under footings and foundations, use engineered fill.",
+  "Place soil fill on subgrades free of mud, frost, snow or ice.",
+]
+
+[[section.part3]]
+title = "SOIL MOISTURE CONTROL"
+items = [
+  "Uniformly moisten or aerate subgrade and each subsequent fill or backfill soil layer before compaction to within 2 percent of optimum moisture content.",
+  ">Do not place backfill or fill soil material on surfaces that are muddy, frozen or contain frost or ice.",
+  ">Remove and replace, or scarify and air dry, otherwise satisfactory soil material that exceeds optimum moisture content by 2 percent and is too wet to compact to specified dry unit weight.",
+]
+
+[[section.part3]]
+title = "COMPACTION OF SOIL BACKFILLS AND FILLS"
+items = [
+  "Place backfill and fill soil materials in layers not more than 8 inches in loose depth for material compacted by heavy compaction equipment and not more than 4 inches in loose depth for material compacted by hand-operated tampers.",
+  "Place backfill and fill soil materials evenly on all sides of structures to required elevations and uniformly along the full length of each structure.",
+  "Compact soil materials to not less than the following percentages of maximum dry unit weight according to [ASTM D1557 (modified Proctor)] [ASTM D698 (standard Proctor)]:",
+  ">Under structures, building slabs, steps and pavements, scarify and recompact top 12 inches of existing subgrade and each layer of backfill or fill soil material at 95 percent.",
+  ">Under walkways, scarify and recompact top 6 inches below subgrade and compact each layer of backfill or fill soil material at 92 percent.",
+  ">Under turf or unpaved areas, scarify and recompact top 6 inches below subgrade and compact each layer of backfill or fill soil material at 85 percent.",
+  ">For utility trenches, compact each layer of initial and final backfill soil material at 95 percent under paved areas and 90 percent elsewhere.",
+]
+
+[[section.part3]]
+title = "GRADING"
+items = [
+  "General: Uniformly grade areas to a smooth surface, free of irregular surface changes. Comply with compaction requirements and grade to cross sections, lines and elevations indicated.",
+  ">Provide a smooth transition between adjacent existing grades and new grades.",
+  ">Cut out soft spots, fill low spots and trim high spots to comply with required surface tolerances.",
+  "Site Rough Grading: Slope grades to direct water away from buildings and to prevent ponding. Finish subgrades to required elevations within the following tolerances:",
+  ">Turf or Unpaved Areas: Plus or minus 1 inch.",
+  ">Walks: Plus or minus 1 inch.",
+  ">Pavements: Plus or minus 1/2 inch.",
+  "Grading inside Building Lines: Finish subgrade to a tolerance of 1/2 inch when tested with a 10-foot straightedge.",
+  "Slope finished grade away from the building a minimum of 6 inches within the first 10 feet, or as required by {building_code}, unless otherwise indicated.",
+]
+
+[[section.part3]]
+title = "SUBBASE AND BASE COURSES UNDER PAVEMENTS AND WALKS"
+items = [
+  "Place subbase course and base course on subgrades free of mud, frost, snow or ice.",
+  "On prepared subgrade, place subbase course and base course under pavements and walks as follows:",
+  ">Install separation geotextile on prepared subgrade according to manufacturer's written instructions, overlapping sides and ends where indicated.",
+  ">Place base course material over subbase course under hot-mix asphalt pavement.",
+  ">Shape subbase course and base course to required crown elevations and cross-slope grades.",
+  ">Place subbase course and base course 6 inches or less in compacted thickness in a single layer; place in equal layers where thicker, with no compacted layer more than 6 inches thick or less than 3 inches thick.",
+  ">Compact subbase course and base course at optimum moisture content to required grades, lines, cross sections and thickness to not less than 95 percent of maximum dry unit weight according to ASTM D1557.",
+  "Pavement Shoulders: Place shoulders along edges of subbase course and base course to prevent lateral movement. Construct shoulders at least 12 inches wide of satisfactory soil materials and compact simultaneously with each subbase and base layer.",
+]
+
+[[section.part3]]
+title = "DRAINAGE COURSE UNDER CONCRETE SLABS-ON-GRADE"
+items = [
+  "Place drainage course on subgrades free of mud, frost, snow or ice.",
+  "On prepared subgrade, place and compact drainage course under cast-in-place concrete slabs-on-grade as follows:",
+  ">Install subsurface drainage geotextile on prepared subgrade where indicated, overlapping ends and edges at least 6 inches.",
+  ">Place drainage course 4 inches thick, minimum, unless otherwise indicated, in a single layer; place in equal layers where thicker, with no compacted layer more than 6 inches thick or less than 3 inches thick.",
+  ">Compact each layer of drainage course to required cross sections and thicknesses to not less than 95 percent of maximum dry unit weight according to ASTM D698.",
+  "Where a vapor retarder is indicated, install it over the drainage course as specified in Section 03 30 00 \"Cast-in-Place Concrete.\"",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Testing Agency: The Owner will engage a qualified geotechnical engineering testing agency to perform tests and inspections.",
+  "Allow testing agency to inspect and test subgrades and each fill or backfill layer. Proceed with subsequent earth moving only after test results for previously completed work comply with requirements.",
+  "Footing Subgrade: At footing subgrades, at least one test of each soil stratum will be performed to verify design bearing capacities.",
+  "Testing agency will test compaction of soils in place according to ASTM D6938 and ASTM D1556, as applicable. Tests will be performed at the following locations and frequencies:",
+  ">Paved and Building Slab Areas: At subgrade and at each compacted fill and backfill layer, at least one test for every 2000 square feet or less of paved area or building slab, but in no case fewer than three tests.",
+  ">Foundation Wall Backfill: At each compacted backfill layer, at least one test for every 100 feet or less of wall length, but no fewer than two tests.",
+  ">Trench Backfill: At each compacted initial and final backfill layer, at least one test for every 150 feet or less of trench length, but no fewer than two tests.",
+  "When testing agency reports that subgrades, fills or backfills have not achieved degree of compaction specified, scarify and moisten or aerate, or remove and replace soil materials to depth required; recompact and retest until specified compaction is obtained.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protecting Graded Areas: Protect newly graded areas from traffic, freezing and erosion. Keep free of trash and debris.",
+  "Repair and reestablish grades to specified tolerances where completed or partially completed surfaces become eroded, rutted, settled or where they lose compaction due to subsequent construction operations or weather conditions.",
+  "Where settling occurs before Project correction period elapses, remove finished surfacing, backfill with additional soil material, compact and reconstruct surfacing.",
+]
+
+[[section.part3]]
+title = "DISPOSAL OF SURPLUS AND WASTE MATERIALS"
+items = [
+  "Remove surplus satisfactory soil and waste materials, including unsatisfactory soil, trash and debris, and legally dispose of them off the Owner's property.",
+]
+
+[[section]]
+number = "31 31 16"
+title = "TERMITE CONTROL"
+when = ["termite"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Soil treatment with termiticide.",
+  ">Termite bait stations where indicated as an alternative or supplement to soil treatment.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for preservative-treated wood.",
+  ">Section 31 20 00 \"Earth Moving\" for drainage course under slabs-on-grade.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Provide termite protection complying with the International Residential Code or International Building Code as adopted by {jurisdiction}, and with state regulatory agencies for pesticide application.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of termite control product, including EPA-registered label.",
+  ">Include the EPA-Registered Label for termiticide products.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For qualified Installer.",
+  "Product Certificates: For termite control products, signed by product manufacturer.",
+  "Soil Treatment Application Report: After application of termiticide is completed, submit report for the Owner's record information, including the following as applicable:",
+  ">Date and time of application.",
+  ">Moisture content of soil before application.",
+  ">Termiticide brand name and manufacturer.",
+  ">Quantity of undiluted termiticide used.",
+  ">Dilutions, methods, volumes used and rates of application.",
+  ">Areas of application.",
+  ">Water source for application.",
+  "Bait Station System Report: After installation of bait stations, submit report for the Owner's record information, including locations of stations and bait product used.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance data for bait station systems, to include in maintenance manuals.",
+  "Certificate of Compliance: Issued by the applicator, as required by the building official, stating that the treatment has been applied according to the EPA-registered label.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A specialist who is licensed according to regulations of governing authorities for application of termite control treatment and products in the jurisdiction where the Project is located.",
+  "Regulatory Requirements: Formulate and apply termiticides, and label with a warning sign, according to the EPA-Registered Label.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Soil Treatment:",
+  ">Soil Moisture: Soils to be treated shall be within the moisture limits required by termiticide manufacturer's written instructions. Do not apply to frozen or excessively wet soils, or during inclement weather.",
+  ">Coordinate soil treatment application with excavating, filling, grading and concreting operations. Treat soil under footings, grade beams and ground-supported slabs before construction.",
+  "Bait Stations: Install bait stations after construction, including landscaping, is completed.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Soil Treatment Special Warranty: Manufacturer and Installer agree to repair damage caused by subterranean termites and to retreat as required to eliminate infestation within the specified warranty period.",
+  ">Warranty Period: Five years from date of Substantial Completion.",
+  "Bait Station System Special Warranty: Manufacturer and Installer agree to repair damage caused by subterranean termites and to monitor and replenish bait, as required, within the specified warranty period.",
+  ">Warranty Period: Five years from date of Substantial Completion.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE SERVICE"
+items = [
+  "Continuing Service: Beginning at Substantial Completion, provide 12 months' continuing service including monitoring, inspection and retreatment for occurrences of termite activity, from the applicator, to be performed at intervals not exceeding three months.",
+]
+
+[[section.part2]]
+title = "SOIL TREATMENT"
+items = [
+  "Termiticide: Provide an EPA-registered termiticide, complying with requirements of authorities having jurisdiction, in an aqueous solution formulated to prevent termite infestation. Provide quantity required for application at the label volume and rate for the maximum termiticide concentration allowed for each specific use, according to product's EPA-Registered Label.",
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">BASF Corporation; Termidor SC.",
+  ">Bayer Environmental Science (Envu); Premise.",
+  ">FMC Corporation; Talstar P.",
+  ">Syngenta; Demon Max.",
+]
+
+[[section.part2]]
+title = "BAIT STATIONS"
+items = [
+  "Bait-Station System: Termite bait stations, of a type that can be monitored and replenished, installed in the ground, with EPA-registered bait matrix.",
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Corteva Agriscience; Sentricon System.",
+  ">BASF Corporation; Trelona ATBS.",
+  ">Syngenta; Advance Termite Bait System.",
+]
+
+[[section.part2]]
+title = "PHYSICAL BARRIERS"
+items = [
+  "Where indicated, provide termite-resistant physical barriers, including termite shields of galvanized steel sheet not less than 26 gauge or copper sheet not less than 16 oz., at foundation walls and piers, complying with the International Residential Code.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, areas and conditions, with Installer present, for compliance with requirements for moisture content of soil, interfaces with earthwork, slab and foundation work, landscaping, utility installations and other conditions affecting performance of termite control.",
+  "Proceed with application only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "General: Comply with the most stringent requirements of authorities having jurisdiction and with manufacturer's EPA-Registered Label for termiticide product.",
+  "Scarify and break up compacted soil to be treated before application, as necessary for uniform distribution.",
+  "Complete filling of hollow CMU cells and void spaces in foundation walls, where required by the treatment method, before application.",
+]
+
+[[section.part3]]
+title = "APPLYING SOIL TREATMENT"
+items = [
+  "Application: Mix soil treatment termiticide solution to a uniform consistency. Distribute treatment evenly. Apply treatment at the product's EPA-Registered Label volume and rate for maximum specified concentration of termiticide, according to manufacturer's written instructions, to the following so that a continuous horizontal and vertical termiticidal barrier or treated zone is established around and under building construction:",
+  ">Slabs-on-Grade and Basement Slabs: Underground, including soil under footings and slabs, before placing vapor retarder and drainage course.",
+  ">Foundations: Adjacent soil, including soil forming the inside and outside of foundation walls, both sides of interior partition foundations, and surfaces at pipes, conduit and other penetrations.",
+  ">Crawlspaces: Soil under and adjacent to foundations.",
+  ">Masonry: Treat voids in masonry foundation walls.",
+  ">Penetrations: At expansion joints, control joints and areas where slabs will be penetrated.",
+  "Avoid disturbance of treated soil after application. Keep off treated areas until completely dry.",
+  "Protect termiticide solution dispersed in treated soils and fills from being diluted by exposure to water until ground-supported slabs are installed. Use a waterproof barrier over treated areas if rain is expected before slabs are placed.",
+  "Post warning signs in areas of application.",
+  "Reapply soil treatment solution to areas disturbed by subsequent excavation, grading, landscaping or other construction activities following application.",
+]
+
+[[section.part3]]
+title = "INSTALLING BAIT STATIONS"
+items = [
+  "Space stations in the ground in a continuous perimeter around the building, at the spacing recommended by the manufacturer but not more than 20 feet on center, and not more than 36 inches from the foundation.",
+  "Install bait stations flush with finished grade, with tops accessible for monitoring.",
+  "Monitor stations and replenish bait according to manufacturer's written instructions.",
+]
+
+[[section]]
+number = "32 12 16"
+title = "ASPHALT PAVING"
+when = ["paving"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Hot-mix asphalt paving for driveways and parking areas.",
+  ">Hot-mix asphalt patching and overlay of existing paving.",
+  ">Pavement-marking paint.",
+  ">Wheel stops.",
+  "Related Requirements:",
+  ">Section 31 20 00 \"Earth Moving\" for subgrade preparation, aggregate subbase and base courses.",
+  ">Section 32 13 13 \"Concrete Paving\" for concrete curbs, gutters and walks.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Hot-Mix Asphalt Paving Terminology: Refer to ASTM D8 for definitions of terms.",
+  "DOT: Department of Transportation of the state in which the Project is located.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product. Include technical data and tested physical and performance properties.",
+  ">Job-Mix Designs: Certification, by authorities having jurisdiction, of approval of each job mix proposed for the Work.",
+  "Shop Drawings: Indicate pavement markings, lane separations and defined parking spaces. Indicate, with international symbol of accessibility, spaces allocated for people with disabilities.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Material Certificates: For each paving material, from manufacturer or producer.",
+  "Field quality-control reports.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Manufacturer Qualifications: A paving-mix manufacturer registered with and approved by authorities having jurisdiction or the DOT.",
+  "Regulatory Requirements: Comply with materials, workmanship and other applicable requirements of the DOT standard specifications for asphalt paving work.",
+  ">Measurement and payment provisions and safety program submittals included in standard specifications do not apply to this Section.",
+  "Preinstallation Conference: Conduct conference at Project site to review subgrade and base course condition, mix designs, paving sequence and traffic control.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Environmental Limitations: Do not apply asphalt materials if subgrade is wet or excessively damp, if rain is imminent or expected before time required for adequate cure, or if the following conditions are not met:",
+  ">Tack Coats: Minimum surface temperature of 60 deg F.",
+  ">Asphalt Base Course: Minimum surface temperature of 40 deg F and rising at time of placement.",
+  ">Asphalt Surface Course: Minimum surface temperature of 60 deg F at time of placement.",
+  "Pavement-Marking Paint: Proceed with pavement marking only on clean, dry surfaces and at a minimum ambient or surface temperature of 40 deg F for alkyd materials and 55 deg F for water-based materials, and not exceeding 95 deg F.",
+]
+
+[[section.part2]]
+title = "AGGREGATES"
+items = [
+  "General: Use materials and gradations that have performed satisfactorily in previous installations.",
+  "Coarse Aggregate: ASTM D692, sound; angular crushed stone, crushed gravel or cured, crushed blast-furnace slag.",
+  "Fine Aggregate: ASTM D1073, sharp-edged natural sand or sand prepared from stone, gravel, cured blast-furnace slag or combinations thereof.",
+  "Mineral Filler: ASTM D242, rock or slag dust, hydraulic cement or other inert material.",
+]
+
+[[section.part2]]
+title = "ASPHALT MATERIALS"
+items = [
+  "Asphalt Binder: AASHTO M 320, performance grade as required by the DOT for the Project location, [PG 64-22] [PG 58-28].",
+  "Tack Coat: ASTM D977 emulsified asphalt, or ASTM D2397 cationic emulsified asphalt, slow setting, diluted in water, of suitable grade and consistency for application.",
+  "Water: Potable.",
+]
+
+[[section.part2]]
+title = "AUXILIARY MATERIALS"
+items = [
+  "Herbicide: Commercial chemical for weed control, registered by the EPA, in granular, liquid or wettable powder form.",
+  "Sand: ASTM D1073, Grade No. 2 or No. 3.",
+  "Joint Sealant: ASTM D6690, Type I, hot-applied, single-component, polymer-modified bituminous sealant.",
+]
+
+[[section.part2]]
+title = "MIXES"
+items = [
+  "Recycled Content of Hot-Mix Asphalt: Recycled asphalt pavement content not exceeding 20 percent by weight, where permitted by the DOT.",
+  "Hot-Mix Asphalt: Dense-graded, hot-laid, hot-mix asphalt plant mixes approved by authorities having jurisdiction and complying with the following requirements:",
+  ">Provide mixes with a history of satisfactory performance in geographical area where Project is located.",
+  ">Base Course: DOT standard base course mix, 2-1/2 inches compacted thickness, unless otherwise indicated.",
+  ">Surface Course: DOT standard surface course mix, 1-1/2 inches compacted thickness, unless otherwise indicated.",
+]
+
+[[section.part2]]
+title = "PAVEMENT MARKINGS AND WHEEL STOPS"
+items = [
+  "Pavement-Marking Paint: Alkyd-resin type, lead and chromate free, ready mixed, complying with FS TT-P-115, Type I, or AASHTO M 248, Type N; or MPI #97 latex traffic marking paint.",
+  ">Colors: White for parking stall lines; yellow for curbs and hazards; blue for accessible parking symbols; as indicated.",
+  "Wheel Stops: Precast, air-entrained concrete, 2500 psi minimum compressive strength, 6 inches high by 9 inches wide by 72 inches long. Provide chamfered corners and drainage slots on underside, and holes for anchoring to substrate.",
+  ">Dowels: Galvanized steel, 3/4-inch diameter, 10-inch minimum length.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that subgrade is dry and in suitable condition to begin paving.",
+  "Proof-roll subgrade below pavements with heavy pneumatic-tired equipment to identify soft pockets and areas of excess yielding. Do not proof-roll wet or saturated subgrades.",
+  ">Excavate soft spots, unsatisfactory soils and areas of excessive pumping or rutting, and replace with compacted backfill or fill as directed by the Architect.",
+  "Proceed with paving only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PATCHING AND REPAIRS"
+items = [
+  "Asphalt Pavement: Saw-cut perimeter of patch and excavate existing pavement section to sound base. Excavate rectangular or trapezoidal patches, extending 12 inches into adjacent sound pavement, unless otherwise indicated. Cut excavation faces vertically.",
+  "Tack Coat Application: Apply tack coat to contact surfaces of previously constructed asphalt or portland cement concrete and surfaces abutting or projecting into hot-mix asphalt pavement, at a rate of 0.05 to 0.15 gal./sq. yd.",
+  "Patching: Fill excavated pavement areas with hot-mix asphalt base mix and, while still hot, compact flush with adjacent surface.",
+]
+
+[[section.part3]]
+title = "SURFACE PREPARATION"
+items = [
+  "General: Immediately before placing asphalt materials, remove loose and deleterious material from substrate surfaces. Ensure that prepared subgrade is ready to receive paving.",
+  "Herbicide Treatment: Apply herbicide according to manufacturer's recommended rates and written application instructions. Apply to dry, prepared subgrade or surface of compacted-aggregate base before applying paving materials.",
+  "Tack Coat: Apply uniformly to surfaces of existing pavement and between courses at a rate of 0.05 to 0.15 gal./sq. yd.",
+  ">Allow tack coat to cure undisturbed before applying hot-mix asphalt paving.",
+  ">Avoid smoothing tack coat onto surfaces of adjacent construction. Remove spillages and clean affected surfaces.",
+]
+
+[[section.part3]]
+title = "HOT-MIX ASPHALT PLACEMENT"
+items = [
+  "Machine place hot-mix asphalt on prepared surface, spread uniformly and strike off. Place asphalt mix by hand in areas inaccessible to equipment in a manner that prevents segregation of mix. Place each course to required grade, cross section and thickness when compacted.",
+  ">Place hot-mix asphalt base course in number of lifts and thicknesses indicated.",
+  ">Place hot-mix asphalt surface course in single lift.",
+  ">Spread mix at a minimum temperature of 250 deg F.",
+  ">Begin applying mix along centerline of crown for crowned sections and on high side of one-way slopes unless otherwise indicated.",
+  ">Regulate paver machine speed to obtain smooth, continuous surface free of pulls and tears in asphalt-paving mat.",
+  "Place paving in consecutive strips not less than 10 feet wide unless infill edge strips of a lesser width are required.",
+  "Promptly correct surface irregularities in paving course behind paver. Use suitable hand tools to remove excess material forming high spots. Fill depressions with hot-mix asphalt to prevent segregation of mix.",
+]
+
+[[section.part3]]
+title = "JOINTS"
+items = [
+  "Construct joints to ensure a continuous bond between adjoining paving sections. Construct joints free of depressions, with same texture and smoothness as other sections of hot-mix asphalt course.",
+  ">Clean contact surfaces and apply tack coat to joints.",
+  ">Offset longitudinal joints, in successive courses, a minimum of 6 inches.",
+  ">Offset transverse joints, in successive courses, a minimum of 24 inches.",
+  ">Construct transverse joints at each point where paver ends a day's work and resumes work at a subsequent time. Cut back to full-depth vertical face and apply tack coat to joints.",
+  ">Compact joints as soon as hot-mix asphalt will bear roller weight without excessive displacement.",
+]
+
+[[section.part3]]
+title = "COMPACTION"
+items = [
+  "General: Begin compaction as soon as placed hot-mix paving will bear roller weight without excessive displacement. Compact hot-mix paving with hot, hand tampers or with vibratory-plate compactors in areas inaccessible to rollers.",
+  ">Complete compaction before mix temperature cools to 185 deg F.",
+  "Breakdown Rolling: Complete breakdown or initial rolling immediately after rolling joints and outside edge. Examine surface immediately after breakdown rolling for indicated crown, grade and smoothness. Correct laydown and rolling operations to comply with requirements.",
+  "Intermediate Rolling: Begin intermediate rolling immediately after breakdown rolling while hot-mix asphalt is still hot enough to achieve specified density. Continue rolling until hot-mix asphalt course has been uniformly compacted to the following density:",
+  ">Average Density: 92 percent of reference maximum theoretical density according to ASTM D2041, but not less than 90 percent nor greater than 96 percent.",
+  "Finish Rolling: Finish roll paved surfaces to remove roller marks while hot-mix asphalt is still warm.",
+  "Edge Shaping: While surface is being compacted and finished, trim edges of pavement to proper alignment. Bevel edges while asphalt is still hot; compact thoroughly.",
+  "Repairs: Remove paved areas that are defective or contaminated with foreign materials and replace with fresh, hot-mix asphalt. Compact by rolling to specified density and surface smoothness.",
+  "Protection: After final rolling, do not permit vehicular traffic on pavement until it has cooled and hardened.",
+]
+
+[[section.part3]]
+title = "INSTALLATION TOLERANCES"
+items = [
+  "Pavement Thickness: Compact each course to produce the thickness indicated within the following tolerances:",
+  ">Base Course: Plus or minus 1/2 inch.",
+  ">Surface Course: Plus 1/4 inch, no minus.",
+  "Pavement Surface Smoothness: Compact each course to produce a surface smoothness within the following tolerances as determined by using a 10-foot straightedge applied transversely or longitudinally to paved areas:",
+  ">Base Course: 1/4 inch.",
+  ">Surface Course: 1/8 inch.",
+  ">Crowned Surfaces: Test with crowned template centered and at right angle to crown. Maximum allowable variance from template is 1/4 inch.",
+  "Finished surfaces shall drain without ponding. Minimum slope in paved areas: 1 percent.",
+]
+
+[[section.part3]]
+title = "PAVEMENT MARKING AND WHEEL STOPS"
+items = [
+  "Do not apply pavement-marking paint until layout, colors and placement have been verified with the Architect.",
+  "Allow paving to age for 30 days before starting pavement marking, unless otherwise recommended by the paint manufacturer.",
+  "Sweep and clean surface to eliminate loose material and dust.",
+  "Apply paint with mechanical equipment to produce pavement markings, of dimensions indicated, with uniform, straight edges. Apply at manufacturer's recommended rates to provide a minimum wet film thickness of 15 mils.",
+  "Accessible Parking: Provide accessible spaces, access aisles and symbols complying with ICC A117.1 and the requirements of {jurisdiction}.",
+  "Wheel Stops: Install wheel stops in bed of adhesive as recommended by manufacturer. Securely attach wheel stops to pavement with not less than two galvanized-steel dowels embedded in holes drilled or cast in wheel stops at one-quarter to one-third the length of wheel stop. Firmly bond each dowel to wheel stop and to pavement.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Testing Agency: The Owner will engage a qualified testing agency to perform tests and inspections.",
+  "Thickness: In-place compacted thickness of hot-mix asphalt courses will be determined according to ASTM D3549.",
+  "Surface Smoothness: Finished surface of each hot-mix asphalt course will be tested for compliance with smoothness tolerances.",
+  "In-Place Density: Testing agency will take samples of uncompacted paving mixes delivered to the Project site and will test in-place density of compacted pavement according to ASTM D2726 or ASTM D2950, at one core or test for every 1000 sq. yd. or less of installed paving, with no fewer than three per day of paving.",
+  "Remove and replace or install additional hot-mix asphalt where test results or measurements indicate that it does not comply with specified requirements.",
+]
+
+[[section.part3]]
+title = "WASTE HANDLING"
+items = [
+  "General: Handle asphalt-paving waste according to approved waste management plan. Legally dispose of excess material off site.",
+]
+
+[[section]]
+number = "32 13 13"
+title = "CONCRETE PAVING"
+when = ["sitework"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Walks.",
+  ">Driveways and aprons.",
+  ">Curbs and gutters.",
+  ">Exterior steps and landings on grade.",
+  ">Detectable warning surfaces at curb ramps.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for general building applications of concrete.",
+  ">Section 07 92 00 \"Joint Sealants\" for joint sealants in expansion and contraction joints.",
+  ">Section 31 20 00 \"Earth Moving\" for subgrade preparation, grading and subbase course.",
+  ">Section 32 12 16 \"Asphalt Paving\" for asphalt pavement adjacent to concrete curbs.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including admixtures, curing compounds, joint fillers and detectable warning surfaces.",
+  "Design Mixtures: For each concrete paving mixture. Include alternate design mixtures when characteristics of materials, Project conditions, weather, test results or other circumstances warrant adjustments.",
+  "Samples: For exposed aggregate or colored concrete finishes, 12 by 12 inches.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Material Certificates: For cementitious materials, aggregates, admixtures and curing compounds.",
+  "Field quality-control reports.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Ready-Mix Concrete Manufacturer Qualifications: A firm experienced in manufacturing ready-mixed concrete products and that complies with ASTM C94 requirements for production facilities and equipment; certified according to the NRMCA Certification of Ready Mixed Concrete Production Facilities.",
+  "Testing Agency Qualifications: Qualified according to ASTM C1077 and ASTM E329 for testing indicated, with field personnel certified as ACI Concrete Field Testing Technician, Grade I.",
+  "Mockups: Build a mockup of a typical walk section, 10 by 10 feet, to demonstrate typical joints, surface finish, texture and color, and standard of workmanship. Approved mockup may become part of the completed Work if undisturbed at time of Substantial Completion.",
+  "Comply with ACI 301 and ACI 330 for concrete paving unless modified by requirements in the Contract Documents.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Traffic Control: Maintain access for vehicular and pedestrian traffic as required for other construction activities.",
+  "Cold-Weather Concrete Placement: Protect concrete work from physical damage or reduced strength that could be caused by frost, freezing or low temperatures, according to ACI 306.1.",
+  ">Do not use frozen materials or materials containing ice or snow. Do not place concrete on frozen subgrade or on subgrade containing frozen materials.",
+  ">Do not use calcium chloride, salt or other materials containing antifreeze agents or chemical accelerators.",
+  "Hot-Weather Concrete Placement: Comply with ACI 305.1 when hot-weather conditions exist; maintain concrete temperature at time of placement below 90 deg F.",
+]
+
+[[section.part2]]
+title = "FORMS"
+items = [
+  "Form Materials: Plywood, metal, metal-framed plywood or other approved panel-type materials to provide full-depth, continuous, straight, smooth exposed surfaces.",
+  ">Use flexible or curved forms for curves with a radius of 100 feet or less.",
+  "Form-Release Agent: Commercially formulated form-release agent that will not bond with, stain or adversely affect concrete surfaces.",
+]
+
+[[section.part2]]
+title = "STEEL REINFORCEMENT"
+items = [
+  "Plain-Steel Welded-Wire Reinforcement: ASTM A1064, fabricated from as-drawn steel wire into flat sheets.",
+  "Reinforcing Bars: ASTM A615, Grade 60, deformed.",
+  "Plain Steel Wire: ASTM A1064, as drawn.",
+  "Joint Dowel Bars: ASTM A615, Grade 60, plain-steel bars; cut bars true to length with ends square and free of burrs.",
+  "Bar Supports: Bolsters, chairs, spacers and other devices for spacing, supporting and fastening reinforcing bars, welded-wire reinforcement and dowels in place, manufactured according to CRSI Manual of Standard Practice.",
+]
+
+[[section.part2]]
+title = "CONCRETE MATERIALS"
+items = [
+  "Cementitious Materials: Portland cement, ASTM C150, Type I or Type II; fly ash, ASTM C618, Class C or F; slag cement, ASTM C989, Grade 100 or 120.",
+  "Normal-Weight Aggregates: ASTM C33, Class 4S coarse aggregate or better, uniformly graded, from a single source.",
+  ">Maximum Coarse-Aggregate Size: 1 inch nominal.",
+  ">Fine Aggregate: Free of materials with deleterious reactivity to alkali in cement.",
+  "Air-Entraining Admixture: ASTM C260.",
+  "Chemical Admixtures: ASTM C494, of type suitable for application, certified by manufacturer to be compatible with other admixtures and to contain not more than 0.1 percent water-soluble chloride ions by mass of cementitious material.",
+  "Water: Potable and complying with ASTM C94.",
+]
+
+[[section.part2]]
+title = "CURING MATERIALS"
+items = [
+  "Absorptive Cover: AASHTO M 182, Class 2, burlap cloth made from jute or kenaf, weighing approximately 9 oz./sq. yd. dry.",
+  "Moisture-Retaining Cover: ASTM C171, polyethylene film or white burlap-polyethylene sheet.",
+  "Membrane-Forming Curing Compound: ASTM C309, Type 2, white, waterborne.",
+]
+
+[[section.part2]]
+title = "RELATED MATERIALS"
+items = [
+  "Expansion- and Isolation-Joint-Filler Strips: ASTM D1751, asphalt-saturated cellulosic fiber, or ASTM D1752, cork or self-expanding cork, 1/2 inch thick.",
+  "Bonding Agent: ASTM C1059, Type II, non-redispersible, acrylic emulsion or styrene butadiene.",
+  "Detectable Warning Surfaces: Cast-in-place or surface-applied truncated dome panels complying with ICC A117.1 and the ADA Standards for Accessible Design, in color contrasting with adjacent paving.",
+  "Manufacturers: Subject to compliance with requirements, provide detectable warning surfaces by one of the following:",
+  ">ADA Solutions, Inc.",
+  ">Armor-Tile (Engineered Plastics Inc.).",
+  ">Detectable Warning Systems, Inc.",
+]
+
+[[section.part2]]
+title = "CONCRETE MIXTURES"
+items = [
+  "Prepare design mixtures, proportioned according to ACI 301, for each type and strength of normal-weight concrete, determined by either laboratory trial mixtures or field experience.",
+  "Proportion mixtures to provide normal-weight concrete with the following properties:",
+  ">Compressive Strength (28 Days): 4000 psi.",
+  ">Maximum Water-Cementitious Materials Ratio at Point of Placement: 0.45.",
+  ">Slump Limit: 4 inches, plus or minus 1 inch.",
+  ">Air Content: 6 percent, plus or minus 1.5 percent, for 1-inch nominal maximum aggregate size, for concrete exposed to freezing and thawing.",
+  "Limit water-soluble, chloride-ion content in hardened concrete to 0.30 percent by weight of cement.",
+  "Paving Thicknesses, unless otherwise indicated on Drawings:",
+  ">Walks: 4 inches.",
+  ">Driveways and Aprons: 6 inches, reinforced with welded-wire reinforcement.",
+  "Ready-Mixed Concrete: Measure, batch and mix according to ASTM C94. Furnish batch certificates for each batch discharged and used in the Work.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine exposed subgrades and subbase surfaces for compliance with requirements for dimensional, grading and elevation tolerances.",
+  "Proof-roll prepared subbase surface below concrete paving to identify soft pockets and areas of excess yielding.",
+  "Proceed with concrete paving only after nonconforming conditions have been corrected and subgrade is ready to receive paving.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Remove loose material from compacted subbase surface immediately before placing concrete.",
+  "Moisten subbase to provide a uniform dampened condition at time concrete is placed. Do not place concrete on surfaces with standing water.",
+]
+
+[[section.part3]]
+title = "EDGE FORMS AND SCREED CONSTRUCTION"
+items = [
+  "Set, brace and secure edge forms, bulkheads and intermediate screed guides to required lines, grades and elevations for pavement to be placed.",
+  "Clean forms after each use and coat with form-release agent to ensure separation from concrete without damage.",
+]
+
+[[section.part3]]
+title = "STEEL REINFORCEMENT INSTALLATION"
+items = [
+  "General: Comply with CRSI Manual of Standard Practice for fabricating, placing and supporting reinforcement.",
+  "Clean reinforcement of loose rust and mill scale, earth, ice or other bond-reducing materials.",
+  "Arrange, space and securely tie bars and bar supports to hold reinforcement in position during concrete placement. Maintain minimum cover to reinforcement.",
+  "Install welded-wire reinforcement in lengths as long as practicable. Lap adjoining pieces at least one full mesh, and lace splices with wire. Support welded-wire reinforcement on chairs at mid-depth of slab; do not rely on lifting mesh into place during placement.",
+]
+
+[[section.part3]]
+title = "JOINTS"
+items = [
+  "General: Form construction, isolation and contraction joints and tool edges true to line, with faces perpendicular to surface plane of concrete. Construct transverse joints at right angles to centerline unless otherwise indicated.",
+  ">When joining existing paving, place transverse joints to align with previously placed joints unless otherwise indicated.",
+  "Construction Joints: Set construction joints at side and end terminations of paving and at locations where paving operations are stopped for more than one-half hour unless paving terminates at isolation joints.",
+  ">Provide tie bars or doweled joints at sides of paving strips where indicated.",
+  "Isolation Joints: Form isolation joints of preformed joint-filler strips abutting concrete curbs, catch basins, manholes, inlets, structures, other fixed objects and where indicated.",
+  ">Locate expansion joints at intervals of 50 feet unless otherwise indicated.",
+  ">Extend joint fillers full width and depth of joint, terminating 1/2 inch below finished surface where joint sealant is indicated.",
+  "Contraction Joints: Form weakened-plane contraction joints, sectioning concrete into areas as indicated. Construct contraction joints for a depth equal to at least one-fourth of the concrete thickness, as follows:",
+  ">Grooved Joints: Form contraction joints after initial floating by grooving and finishing each edge of joint with grooving tool to a radius of 1/4 inch.",
+  ">Sawed Joints: Form contraction joints with power saws equipped with shatterproof abrasive or diamond-rimmed blades. Cut 1/8-inch-wide joints into concrete when cutting action will not tear, abrade or otherwise damage surface and before developing random cracks.",
+  ">Joint Spacing, Walks: Not more than 5 feet on center, or equal to walk width, whichever is less, unless otherwise indicated.",
+  ">Joint Spacing, Driveways: Not more than 12 feet on center in each direction.",
+  "Edging: After initial floating, tool edges of paving, gutters, curbs and joints in concrete with an edging tool to a 1/4-inch radius. Repeat tooling of edges after applying surface finishes.",
+]
+
+[[section.part3]]
+title = "CONCRETE PLACEMENT"
+items = [
+  "Before placing concrete, inspect and complete formwork installation, steel reinforcement and items to be embedded or cast in.",
+  "Do not add water to concrete during delivery or at Project site. Do not add water to fresh concrete after testing.",
+  "Deposit and spread concrete in a continuous operation between transverse joints. Do not push or drag concrete into place or use vibrators to move concrete into place.",
+  "Consolidate concrete according to ACI 301 by mechanical vibrating equipment supplemented by hand spading, rodding or tamping, to fill forms and avoid honeycombs.",
+  "Screed paving surfaces with a straightedge and strike off.",
+  "Curbs and Gutters: Where automatic machine placement is used, use a design mixture suited to it. Produce curbs and gutters to required cross section, lines, grades, finish and jointing.",
+  "Exterior Steps: Slope treads 1/8 inch per foot to drain, with risers of uniform height not exceeding 7 inches and treads of uniform depth not less than 11 inches, unless otherwise indicated.",
+]
+
+[[section.part3]]
+title = "FLOAT AND BROOM FINISHING"
+items = [
+  "General: Wetting of concrete surfaces during screeding, initial floating or finishing operations is prohibited.",
+  "Float Finish: Begin the second floating operation when bleed-water sheen has disappeared and concrete surface has stiffened sufficiently to permit operations. Float surface with power-driven floats or by hand floating if area is small or inaccessible to power units. Finish surfaces to true planes.",
+  "Medium-to-Fine-Textured Broom Finish: Draw a soft-bristle broom across float-finished concrete surface, perpendicular to line of traffic, to provide a uniform, fine-line texture.",
+]
+
+[[section.part3]]
+title = "DETECTABLE WARNING INSTALLATION"
+items = [
+  "Install detectable warning surfaces at curb ramps and hazardous vehicular areas as indicated, full width of ramp and 24 inches deep in direction of travel, according to manufacturer's written instructions.",
+  "Set cast-in-place panels flush with adjacent concrete surface while concrete is plastic, weighting panels to prevent floating.",
+]
+
+[[section.part3]]
+title = "CONCRETE PROTECTION AND CURING"
+items = [
+  "General: Protect freshly placed concrete from premature drying and excessive cold or hot temperatures.",
+  "Begin curing after finishing concrete but not before free water has disappeared from concrete surface.",
+  "Curing Methods: Cure concrete by moisture curing, moisture-retaining-cover curing, curing compound or a combination of these, for not less than seven days.",
+  ">Apply curing compound uniformly in continuous operation by power spray or roller according to manufacturer's written instructions. Recoat areas subjected to heavy rainfall within three hours after initial application.",
+]
+
+[[section.part3]]
+title = "PAVING TOLERANCES"
+items = [
+  "Comply with tolerances in ACI 117 and as follows:",
+  ">Elevation: 3/4 inch.",
+  ">Thickness: Plus 3/8 inch, minus 1/4 inch.",
+  ">Surface: Gap below 10-foot-long, unleveled straightedge not to exceed 1/4 inch.",
+  ">Alignment of Curbs: 1/4 inch in 10 feet.",
+  ">Lateral Alignment and Spacing of Dowels: 1 inch.",
+  ">Joint Spacing: 3 inches.",
+  "Accessible Routes: Running slope not to exceed 1:20 and cross slope not to exceed 1:48 on walks, unless designed as ramps, complying with ICC A117.1.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Testing Agency: The Owner will engage a qualified testing agency to perform tests and inspections.",
+  "Testing Services: Testing of composite samples of fresh concrete obtained according to ASTM C172 shall be performed according to the following requirements:",
+  ">Testing Frequency: Obtain at least one composite sample for each 100 cu. yd. or fraction thereof of each concrete mixture placed each day.",
+  ">Slump: ASTM C143, one test at point of placement for each composite sample.",
+  ">Air Content: ASTM C231, pressure method, one test for each composite sample.",
+  ">Concrete Temperature: ASTM C1064, one test hourly when air temperature is 40 deg F and below or 80 deg F and above, and one test for each composite sample.",
+  ">Compression Test Specimens: ASTM C31; cast and laboratory cure one set of four cylinders for each composite sample.",
+  ">Compressive-Strength Tests: ASTM C39; test one specimen at seven days and two specimens at 28 days; retain one specimen in reserve.",
+  "Strength of each concrete mixture will be satisfactory if average of any three consecutive compressive-strength tests equals or exceeds specified compressive strength and no compressive-strength test value falls below specified compressive strength by more than 500 psi.",
+]
+
+[[section.part3]]
+title = "REPAIR AND PROTECTION"
+items = [
+  "Remove and replace concrete paving that is broken, damaged or defective or that does not comply with requirements in this Section. Remove work in complete sections from joint to joint unless otherwise approved by the Architect.",
+  "Drill test cores, where directed by the Architect, when necessary to determine magnitude of cracks or defective areas. Fill drilled core holes in satisfactory paving areas with portland cement concrete bonded to paving with epoxy adhesive.",
+  "Protect concrete paving from damage. Exclude traffic from paving for at least 14 days after placement. When construction traffic is permitted, maintain paving as clean as possible by removing surface stains and spillage of materials as they occur.",
+  "Maintain concrete paving free of stains, discoloration, dirt and other foreign material. Sweep paving not more than two days before date scheduled for Substantial Completion inspections.",
+]
+
+[[section]]
+number = "32 31 13"
+title = "CHAIN LINK FENCES AND GATES"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Chain-link fences.",
+  ">Swing gates.",
+  ">Horizontal-slide gates, where indicated.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for post footings.",
+  ">Section 31 10 00 \"Site Clearing\" for temporary tree protection fencing.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Structural Performance: Chain-link fence framework shall withstand the effects of gravity loads and wind loads determined according to ASTM F1916 and ASCE/SEI 7 for the Project location, and comply with CLFMI WLG 2445 for post size and spacing.",
+  "Lightning Protection: Where required by authorities having jurisdiction, ground fences according to NFPA 780.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including fabric, posts, rails, gates, hardware and accessories.",
+  "Shop Drawings: Include plans, elevations, sections, details and attachments to other work. Show accessories, hardware, gate operation and post footings.",
+  "Samples: For each fence material and for each color specified, where polymer coating is required.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For framing strength according to ASTM F1043.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance data for gates, gate hardware and gate operators, to include in maintenance manuals.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A firm that has at least five years of experience installing chain-link fences and gates similar in material, design and extent to those indicated.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace components of chain-link fences and gates that fail in materials or workmanship, including rusting, chipping, peeling or cracking of coatings, within specified warranty period.",
+  ">Warranty Period: Five years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Master Halco, Inc.",
+  ">Merchants Metals.",
+  ">Stephens Pipe and Steel, LLC.",
+  ">Ameristar Perimeter Security USA Inc.",
+]
+
+[[section.part2]]
+title = "CHAIN-LINK FENCE FABRIC"
+items = [
+  "General: Height as indicated on Drawings; [48 inches] [72 inches] unless otherwise indicated. Comply with ASTM A392, CLFMI Product Manual and requirements indicated below:",
+  ">Steel Wire Fabric: Metallic-coated wire, 0.148-inch diameter (9 gauge).",
+  ">>Mesh Size: 2 inches.",
+  ">>Zinc-Coated Fabric: ASTM A392, Type II, Class 2, 2.0 oz./sq. ft., with zinc coating applied after weaving.",
+  ">>Polymer-Coated Fabric, where indicated: ASTM F668, Class 2b, over zinc-coated steel wire; color [black] [dark green], complying with ASTM F934.",
+  ">Selvage: Knuckled at both selvages.",
+]
+
+[[section.part2]]
+title = "FENCE FRAMING"
+items = [
+  "Posts and Rails: Comply with ASTM F1043 for framing, including rails, braces and line; terminal; and corner posts. Provide members with minimum dimensions and wall thickness according to ASTM F1043 or ASTM F1083 based on the following:",
+  ">Fence Height: As indicated on Drawings.",
+  ">Heavy Industrial Strength: Material Group IA, round steel pipe, Schedule 40, for commercial installations.",
+  ">Light Industrial Strength: Material Group IC-L, round steel pipe, electric-resistance-welded, for residential installations.",
+  ">Line Posts: 2.375-inch diameter.",
+  ">End, Corner and Pull Posts: 2.875-inch diameter.",
+  ">Top Rail: 1.66-inch diameter.",
+  ">Metallic Coating for Steel Framing: Type A, consisting of not less than minimum 2.0-oz./sq. ft. average zinc coating per ASTM A123 or 4.0-oz./sq. ft. zinc coating per ASTM A653.",
+  ">Polymer coating over metallic coating, where polymer-coated fabric is indicated, in matching color.",
+]
+
+[[section.part2]]
+title = "TENSION WIRE AND FITTINGS"
+items = [
+  "Metallic-Coated Steel Wire: 0.177-inch-diameter, marcelled tension wire complying with ASTM A817 and ASTM A824, with Class 2 zinc coating.",
+  "Fittings: Comply with ASTM F626. Provide post caps, rail and brace ends, rail sleeves, tension and brace bands, tension bars and truss rods, galvanized to match framework.",
+  "Tie Wires, Clips and Fasteners: According to ASTM F626; 0.148-inch-diameter galvanized steel or 0.192-inch-diameter aluminum wire.",
+]
+
+[[section.part2]]
+title = "SWING GATES"
+items = [
+  "General: Comply with ASTM F900 for gate posts and single and double swing gate types.",
+  ">Gate Leaf Width: As indicated on Drawings.",
+  ">Framing: 1.90-inch-diameter outside members, welded or assembled with fittings, and 1.66-inch-diameter internal members where needed for rigidity.",
+  "Pedestrian Gates: Where on an accessible route, provide clear width of not less than 36 inches and hardware operable without tight grasping, pinching or twisting of the wrist, complying with ICC A117.1.",
+  "Hardware:",
+  ">Hinges: 180-degree inward and outward swing, offset to permit full swing.",
+  ">Latch: Permitting operation from both sides of gate, with provision for padlock.",
+  ">Keeper: Galvanized-steel device for automatically engaging gate leaf and holding it in open position until manually released.",
+  ">Double Gates: Drop rod or plunger bar full-gate height and gate stop.",
+  ">Pool Enclosure Gates, where required: Self-closing and self-latching, with latch release at 54 inches minimum above grade, complying with the International Swimming Pool and Spa Code.",
+]
+
+[[section.part2]]
+title = "POST FOOTINGS"
+items = [
+  "Concrete: Normal-weight, air-entrained, ready-mixed concrete with a minimum 28-day compressive strength of 3000 psi, 3/4-inch maximum aggregate size, complying with ASTM C94.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas and conditions, with Installer present, for compliance with requirements for site clearing, earthwork, pavement work and other conditions affecting performance of the Work.",
+  ">Do not begin installation before final grading is completed unless otherwise permitted by the Architect.",
+  "Verify property lines and fence line locations. Stake locations of fence lines, gates and terminal posts.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install chain-link fencing according to ASTM F567 and more stringent requirements specified.",
+  "Post Excavation: Drill or hand-excavate holes for posts to diameters and spacings indicated, in firm, undisturbed soil. Minimum hole diameter: four times the post diameter; minimum depth: 36 inches or below frost line, whichever is deeper.",
+  "Post Setting: Set posts in concrete at indicated spacing into firm, undisturbed soil. Protect portion of posts aboveground from concrete splatter. Place concrete around posts to dimensions indicated and vibrate or tamp for consolidation. Check each post for vertical and top alignment, and maintain in position during placement and finishing operations.",
+  ">Extend concrete footing 2 inches above grade, and trowel and slope to shed water.",
+  ">Line Post Spacing: At intervals not exceeding 10 feet.",
+  "Terminal Posts: Locate terminal end, corner and gate posts per ASTM F567, and terminal pull posts at changes in horizontal or vertical alignment of 30 degrees or more.",
+  "Bracing: Install according to ASTM F567, maintaining plumb position and alignment of fence posts. Diagonally brace terminal posts to adjacent line posts with truss rods and turnbuckles.",
+  "Top Rail: Install according to ASTM F567, maintaining plumb position and alignment of fence posts. Run rail continuously through line post caps, bending to radius for curved runs. Provide expansion couplings as recommended in writing by fencing manufacturer.",
+  "Bottom Tension Wire: Install bottom tension wire within 6 inches of bottom of fabric and tie to each post with not less than same diameter and type of wire.",
+  "Chain-Link Fabric: Apply fabric to outside of enclosing framework. Leave 1 inch between finish grade or surface and bottom selvage unless otherwise indicated. Pull fabric taut and tie to posts, rails and tension wires. Anchor to framework so fabric remains under tension after pulling force is released.",
+  "Tie Wires: Tie fabric to line posts at 12 inches on center and to rails and braces at 24 inches on center, and to tension wires at 24 inches on center.",
+  "Fasteners: Install nuts for tension bands and carriage bolts on side of fence opposite fabric side. Peen ends of bolts or score threads to prevent removal of nuts.",
+]
+
+[[section.part3]]
+title = "GATE INSTALLATION"
+items = [
+  "Install gates according to manufacturer's written instructions, level, plumb and secure for full opening without interference. Attach fabric as for fencing. Attach hardware using tamper-resistant or concealed means. Install ground-set items in concrete for anchorage. Adjust hardware for smooth operation and lubricate where necessary.",
+]
+
+[[section.part3]]
+title = "ADJUSTING"
+items = [
+  "Gates: Adjust gates to operate smoothly, easily and quietly, free of binding, warp, excessive deflection, distortion, nonalignment, misplacement, disruption or malfunction, throughout entire operational range. Confirm that latches and locks engage accurately and securely without forcing or binding.",
+  "Lubricate hardware and other moving parts.",
+  "Repair damaged galvanized surfaces with zinc-rich paint complying with ASTM A780.",
+]
+
+[[section]]
+number = "32 84 00"
+title = "PLANTING IRRIGATION"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Piping, valves and specialties for an automatic underground irrigation system.",
+  ">Sprinklers, bubblers and drip irrigation.",
+  ">Automatic control valves, controller and sensors.",
+  "Related Requirements:",
+  ">Section 31 20 00 \"Earth Moving\" for excavation and backfill of trenches.",
+  ">Section 32 92 00 \"Turf and Grasses\" and Section 32 93 00 \"Plants\" for areas served.",
+  ">Division 22 Sections for water service piping and backflow preventers inside the building.",
+  ">Division 26 Sections for power to the controller.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Circuit Piping: Downstream from control valves to sprinklers, specialties and drain valves. Piping is under pressure during flow.",
+  "Main Piping: Downstream from point of connection to water distribution piping to, and including, control valves. Piping is under water-distribution-system pressure.",
+  "Low-Voltage Wiring: Wiring between controller and control valves; 24-V ac, Class 2 circuits according to NFPA 70.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Irrigation zone control shall be automatic operation with controller and automatic control valves.",
+  "Location of Sprinklers and Specialties: Design location is approximate. Make minor adjustments necessary to avoid plantings and obstructions such as signs and light standards. Maintain 100 percent irrigation coverage of areas indicated.",
+  "Minimum Working Pressures: The following are minimum pressure requirements for piping, valves and specialties unless otherwise indicated:",
+  ">Irrigation Main Piping: 200 psig.",
+  ">Circuit Piping: 150 psig.",
+  "Design Criteria: Provide head-to-head coverage for spray and rotor zones, with separate zones for turf, shrub beds and drip areas and for differing exposures.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including rated capacities, operating characteristics and furnished specialties and accessories.",
+  "Shop Drawings: Irrigation layout with piping sizes, zones, valve and sprinkler locations, controller location, point of connection and flow and pressure calculations, where design is delegated.",
+  "Wiring Diagrams: For power, signal and control wiring.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For qualified Installer.",
+  "Field quality-control reports.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For sprinklers, controllers and automatic control valves to include in operation and maintenance manuals, including seasonal startup and winterization procedures.",
+  "Record Drawings: Dimensioned locations of main piping, valves, controller, wiring and sleeves, measured from permanent structures.",
+  "Controller Chart: Reduced plan laminated and placed inside the controller door, color coded by zone.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An irrigation contractor with a certified irrigation contractor on staff, certified by the Irrigation Association, or licensed as required by {jurisdiction}.",
+  "Backflow Prevention: Comply with requirements of the plumbing code and water purveyor for backflow prevention on irrigation connections.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Installer Warranty: Installer agrees to repair or replace irrigation components that fail in materials or workmanship, and to repair settlement of trenches, within one year from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PIPES, TUBES AND FITTINGS"
+items = [
+  "PVC Pipe: ASTM D1785, PVC 1120 compound, Schedule 40, for main piping and sleeves.",
+  ">PVC Socket Fittings: ASTM D2466, Schedule 40.",
+  "PVC Pressure-Rated Pipe: ASTM D2241, PVC 1120 compound, SDR 21 (Class 200) for circuit piping.",
+  "Solvent Cement and Primer: ASTM D2564 and ASTM F656.",
+  "Drip Tubing: Polyethylene tubing with integral pressure-compensating emitters at 12 or 18 inches on center, as recommended by the manufacturer for soil type.",
+]
+
+[[section.part2]]
+title = "VALVES AND SPECIALTIES"
+items = [
+  "Automatic Control Valves: Plastic, diaphragm type, normally closed, with manual-flow adjustment, 24-V ac solenoid, and manual bleed.",
+  "Manufacturers: Subject to compliance with requirements, provide irrigation products by one of the following:",
+  ">Hunter Industries.",
+  ">Rain Bird Corporation.",
+  ">The Toro Company.",
+  "Quick-Coupler Valves: Brass, two-piece body with locking vinyl cover, at intervals indicated.",
+  "Drain Valves: Automatic or manual drain valves at low points of main piping, where freezing occurs.",
+  "Valve Boxes: Plastic, with locking cover marked IRRIGATION, sized to allow access to valves.",
+]
+
+[[section.part2]]
+title = "SPRINKLERS"
+items = [
+  "Pop-Up Spray Sprinklers: Plastic housing, 4-inch pop-up height in turf and 12-inch in shrub beds, with check valve and pressure-regulating stem, and matched-precipitation nozzles.",
+  "Rotors: Gear-driven, pop-up, with adjustable arc and interchangeable nozzles, for large turf areas.",
+  "Bubblers: Pressure-compensating, for trees.",
+]
+
+[[section.part2]]
+title = "CONTROLS"
+items = [
+  "Controller: Microprocessor-based, weather-based (smart) controller, with number of stations required plus 20 percent spare, battery backup of program, WaterSense labeled where available. Exterior controllers in NEMA 250, Type 3R enclosure.",
+  "Rain and Freeze Sensor: Wired or wireless, shutting down irrigation during rainfall and freezing conditions.",
+  "Low-Voltage Control Wire: UF, direct-burial type, solid copper, AWG No. 14 minimum; common wire of distinct color.",
+  "Splices: Waterproof, gel-filled direct-burial connectors.",
+]
+
+[[section.part3]]
+title = "EARTHWORK"
+items = [
+  "Excavation, trenching and backfilling are specified in Section 31 20 00 \"Earth Moving.\"",
+  "Install warning tape directly over piping and at outside edges of underground structures.",
+  "Provide minimum cover over top of underground piping according to the following:",
+  ">Irrigation Main Piping: Minimum depth of 18 inches below finished grade.",
+  ">Circuit Piping: 12 inches.",
+  ">Sleeves: 24 inches.",
+  "Drill under paving where possible, or provide sleeves before paving. Extend sleeves 12 inches beyond edges of paving.",
+]
+
+[[section.part3]]
+title = "PIPING AND VALVE INSTALLATION"
+items = [
+  "Install piping free of sags and bends. Install groups of pipes parallel to each other, spaced to permit valve servicing.",
+  "Install fittings for changes in direction and branch connections.",
+  "Install unions adjacent to valves and to final connections to other components.",
+  "Install backflow preventer at point of connection, with isolation valves, at height and location required by the plumbing code.",
+  "Install control valves in valve boxes, grouped where practical, with top of box flush with finished grade.",
+  "Flush circuit piping with full head of water before installing sprinklers.",
+]
+
+[[section.part3]]
+title = "SPRINKLER AND CONTROLLER INSTALLATION"
+items = [
+  "Install sprinklers after hydrostatic test is completed, on swing joints, flush with finished grade.",
+  "Locate part-circle sprinklers to maintain a minimum distance of 4 inches from walls and 2 inches from other boundaries unless otherwise indicated.",
+  "Install controller at location indicated, and connect to power supply specified in Division 26.",
+  "Install control wire in same trench as piping, bundled and taped at 10-foot intervals, with expansion loops at each valve and change of direction.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Hydrostatic Test: Before backfilling, test main piping at 150 psig for two hours with no loss of pressure.",
+  "Coverage Test: Operate each zone and adjust sprinklers to provide uniform coverage without overspray onto buildings, walks and paving.",
+  "Any irrigation product will be considered defective if it does not pass tests and inspections.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND DEMONSTRATION"
+items = [
+  "Adjust settings of controllers, arcs and radii of sprinklers, and flow controls of valves.",
+  "Program the controller with an initial watering schedule appropriate to the plant material and season.",
+  "Train the Owner's maintenance personnel to adjust, operate, winterize and maintain the irrigation system.",
+]
+
+[[section]]
+number = "32 92 00"
+title = "TURF AND GRASSES"
+when = ["planting"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Seeding.",
+  ">Sodding.",
+  ">Hydroseeding, where indicated.",
+  ">Erosion-control materials on slopes.",
+  "Related Requirements:",
+  ">Section 31 20 00 \"Earth Moving\" for rough grading and subgrade preparation.",
+  ">Section 32 84 00 \"Planting Irrigation\" for turf irrigation.",
+  ">Section 32 93 00 \"Plants\" for trees, shrubs and groundcover.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Finish Grade: Elevation of finished surface of planting soil.",
+  "Planting Soil: Existing, on-site soil; imported soil; or manufactured soil that has been modified with soil amendments and fertilizers to produce a soil mixture best for turf growth.",
+  "Subgrade: Surface or elevation of subsoil remaining after excavation is complete, or top surface of fill or backfill before planting soil is placed.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including seed mix, sod, fertilizer and erosion-control materials.",
+  ">Certification of Grass Seed: From seed vendor for each grass-seed monostand or mixture, stating the botanical and common name, percentage by weight of each species and variety, and percentage of purity, germination and weed seed. Include the year of production and date of packaging.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For qualified landscape Installer.",
+  "Product Certificates: For fertilizers, from manufacturer.",
+  "Soil Analysis: For planting soil, from a qualified soil-testing laboratory, stating percentages of organic matter, pH, and recommended quantities of amendments and fertilizers.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: Recommended procedures to be established by the Owner for maintenance of turf during a calendar year, including mowing heights, watering and fertilizing.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A qualified landscape installer whose work has resulted in successful turf establishment.",
+  ">Maintain an experienced full-time supervisor on Project site when work is in progress.",
+  "Soil-Testing Laboratory Qualifications: An independent laboratory, recognized by the State Department of Agriculture, with the experience and capability to conduct the testing indicated.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Seed and Other Packaged Materials: Deliver packaged materials in original, unopened containers showing weight, certified analysis, name and address of manufacturer, and indication of conformance with state and federal laws.",
+  "Sod: Harvest, deliver, store and handle sod according to requirements in the Turfgrass Producers International (TPI) Guideline Specifications to Turfgrass Sodding. Deliver sod within 24 hours of harvesting and in time for planting promptly. Protect sod from breakage and drying.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Planting Restrictions: Plant during one of the following periods; coordinate planting periods with maintenance periods to provide required maintenance from date of planting completion:",
+  ">Spring Planting: As recommended for the region and grass species.",
+  ">Fall Planting: As recommended for the region and grass species.",
+  "Weather Limitations: Proceed with planting only when existing and forecasted weather conditions permit planting to be performed when beneficial and optimum results may be obtained.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE SERVICE"
+items = [
+  "Initial Maintenance Service: Provide full maintenance by skilled employees of landscape Installer. Maintain as required in Part 3. Begin maintenance immediately after each area is planted and continue until acceptable turf is established, but for not less than the following periods:",
+  ">Seeded Turf: 60 days from date of planting completion.",
+  ">Sodded Turf: 30 days from date of planting completion.",
+]
+
+[[section.part2]]
+title = "SEED AND SOD"
+items = [
+  "Grass Seed: Fresh, clean, dry, new-crop seed complying with AOSA's Rules for Testing Seeds for purity and germination tolerances.",
+  "Seed Species: State-certified seed of grass species as follows, suited to the climate of the Project location:",
+  ">Sun and Partial Shade: Proportioned by weight as follows: 50 percent Kentucky bluegrass, 30 percent chewings red fescue, 20 percent perennial ryegrass; or [turf-type tall fescue blend] [bermudagrass] [zoysiagrass] as indicated for the region.",
+  ">Shade: Proportioned by weight as follows: 50 percent chewings red fescue, 35 percent rough bluegrass, 15 percent redtop.",
+  "Turfgrass Sod: Certified, complying with TPI Guideline Specifications to Turfgrass Sodding. Furnish viable sod of uniform density, color and texture that is strongly rooted and capable of vigorous growth and development when planted.",
+  ">Sod Species: Same species as specified for seed, unless otherwise indicated.",
+  ">Thickness: Machine cut, 5/8 inch, plus or minus 1/4 inch, excluding top growth and thatch.",
+]
+
+[[section.part2]]
+title = "INORGANIC AND ORGANIC SOIL AMENDMENTS"
+items = [
+  "Lime: ASTM C602, agricultural liming material containing a minimum of 80 percent calcium carbonate equivalent, with a minimum 99 percent passing through No. 8 sieve and a minimum 75 percent passing through No. 60 sieve.",
+  "Compost: Well-composted, stable and weed-free organic matter, pH range of 5.5 to 8, moisture content 35 to 55 percent by weight, 100 percent passing through 3/4-inch sieve, soluble salt content of 5 decisiemens/m maximum, not exceeding 0.5 percent inert contaminants, and free of substances toxic to plantings.",
+]
+
+[[section.part2]]
+title = "FERTILIZERS AND MULCHES"
+items = [
+  "Commercial Fertilizer: Commercial-grade complete fertilizer of neutral character, consisting of fast- and slow-release nitrogen, 50 percent derived from natural organic sources of urea formaldehyde, phosphorous and potassium, in proportions recommended by the soil analysis.",
+  "Straw Mulch: Provide air-dry, clean, mildew- and seed-free, salt hay or threshed straw of wheat, rye, oats or barley.",
+  "Fiber Mulch: Biodegradable, dyed-wood, cellulose-fiber mulch, nontoxic, free of plant-growth or germination inhibitors, with maximum moisture content of 15 percent and a pH range of 4.5 to 6.5, for hydroseeding.",
+]
+
+[[section.part2]]
+title = "EROSION-CONTROL MATERIALS"
+items = [
+  "Erosion-Control Blankets: Biodegradable wood excelsior, straw or coconut-fiber mat enclosed in a photodegradable plastic mesh. Include manufacturer's recommended steel wire staples, 6 inches long.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas to be planted for compliance with requirements and other conditions affecting performance.",
+  ">Verify that no foreign or deleterious material or liquid such as paint, paint washout, concrete slurry, concrete layers or chunks, cement, plaster, oils, gasoline, diesel fuel, paint thinner, turpentine, tar, roofing compound or acid has been deposited in soil within a planting area.",
+  ">Suspend soil spreading, grading and tilling operations during periods of excessive soil moisture until the moisture content reaches acceptable levels to attain the required results.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "TURF AREA PREPARATION"
+items = [
+  "Limit turf subgrade preparation to areas to be planted.",
+  "Newly Graded Subgrades: Loosen subgrade to a minimum depth of 4 inches. Remove stones larger than 1 inch in any dimension and sticks, roots, rubbish and other extraneous matter and legally dispose of them off the Owner's property.",
+  ">Apply soil amendments and fertilizers according to the soil analysis, and mix thoroughly into top 4 inches of soil.",
+  ">Spread planting soil to a depth of 4 inches but not less than required to meet finish grades after light rolling and natural settlement. Do not spread if planting soil or subgrade is frozen, muddy or excessively wet.",
+  "Finish Grading: Grade planting areas to a smooth, uniform surface plane with loose, uniformly fine texture. Grade to within plus or minus 1/2 inch of finish elevation. Roll and rake, remove ridges and fill depressions to meet finish grades. Limit finish grading to areas that can be planted in the immediate future.",
+  "Moisten prepared area before planting if soil is dry. Water thoroughly and allow surface to dry before planting. Do not create muddy soil.",
+]
+
+[[section.part3]]
+title = "SEEDING"
+items = [
+  "Sow seed with spreader or seeding machine. Do not broadcast or drop seed when wind velocity exceeds 5 mph. Evenly distribute seed by sowing equal quantities in two directions at right angles to each other.",
+  ">Do not use wet seed or seed that is moldy or otherwise damaged.",
+  "Sow seed at a total rate as recommended by the seed supplier for the species specified, typically 3 to 4 lb/1000 sq. ft. for bluegrass and fescue mixes.",
+  "Rake seed lightly into top 1/8 inch of soil, roll lightly and water with fine spray.",
+  "Protect seeded areas with slopes exceeding 1:4 with erosion-control blankets installed and stapled according to manufacturer's written instructions.",
+  "Protect seeded areas with slopes not exceeding 1:4 by spreading straw mulch. Spread uniformly at a minimum rate of 2 tons/acre to form a continuous blanket 1-1/2 inches in loose thickness over seeded areas.",
+]
+
+[[section.part3]]
+title = "HYDROSEEDING"
+items = [
+  "Hydroseeding: Mix specified seed, fertilizer and fiber mulch in water, using equipment specifically designed for hydroseed application. Continue mixing until uniformly blended into homogeneous slurry suitable for hydraulic application.",
+  ">Apply slurry uniformly to all areas to be seeded in a one-step process. Apply slurry at a rate so that mulch component is deposited at not less than 1500 lb/acre dry weight, and seed component is deposited at not less than the specified seed-sowing rate.",
+]
+
+[[section.part3]]
+title = "SODDING"
+items = [
+  "Lay sod within 24 hours of harvesting. Do not lay sod if dormant or if ground is frozen or muddy.",
+  "Lay sod to form a solid mass with tightly fitted joints. Butt ends and sides of sod; do not stretch or overlap. Stagger sod strips or pads to offset joints in adjacent courses. Avoid damage to soil or sod during installation. Tamp and roll lightly to ensure contact with soil, eliminate air pockets and form a smooth surface. Work sifted soil or fine sand into minor cracks between pieces of sod; remove excess to avoid smothering sod and adjacent grass.",
+  ">Lay sod across angle of slopes exceeding 1:3.",
+  ">Anchor sod on slopes exceeding 1:6 with wood pegs spaced as recommended by sod manufacturer but not less than two anchors per sod strip.",
+  "Saturate sod with fine water spray within two hours of planting. During first week after planting, water daily or more frequently as necessary to maintain moist soil to a minimum depth of 1-1/2 inches below sod.",
+]
+
+[[section.part3]]
+title = "TURF MAINTENANCE"
+items = [
+  "Maintain and establish turf by watering, fertilizing, weeding, mowing, trimming, replanting and performing other operations as required to establish healthy, viable turf. Roll, regrade and replant bare or eroded areas and remulch to produce a uniformly smooth turf.",
+  "Watering: Install and maintain temporary piping, hoses and turf-watering equipment to convey water from sources and to keep turf uniformly moist to a depth of 4 inches, unless the permanent irrigation system is operational.",
+  "Mow turf as soon as top growth is tall enough to cut. Repeat mowing to maintain specified height without cutting more than one-third of grass height. Remove no more than one-third of grass-leaf growth in initial or subsequent mowings. Mow grass to a height of 2-1/2 to 3 inches for cool-season grasses unless otherwise recommended for the species.",
+  "Turf Postfertilization: Apply fertilizer after initial mowing and when grass is dry, at a rate recommended by the soil analysis.",
+]
+
+[[section.part3]]
+title = "SATISFACTORY TURF"
+items = [
+  "Turf installations shall meet the following criteria as determined by the Architect:",
+  ">Satisfactory Seeded Turf: At end of maintenance period, a healthy, uniform, close stand of grass has been established, free of weeds and surface irregularities, with coverage exceeding 90 percent over any 10 sq. ft. and bare spots not exceeding 5 by 5 inches.",
+  ">Satisfactory Sodded Turf: At end of maintenance period, a healthy, well-rooted, even-colored, viable turf has been established, free of weeds, open joints, bare areas and surface irregularities.",
+  "Reestablish turf that does not comply with requirements, and continue maintenance until turf is satisfactory.",
+]
+
+[[section.part3]]
+title = "CLEANUP AND PROTECTION"
+items = [
+  "Promptly remove soil and debris created by turf work from paved areas. Clean wheels of vehicles before leaving site to avoid tracking soil onto roads, walks or other paved areas.",
+  "Erect temporary fencing or barricades and warning signs as required to protect newly planted areas from traffic. Maintain fencing and barricades throughout initial maintenance period and remove after plantings are established.",
+]
+
+[[section]]
+number = "32 93 00"
+title = "PLANTS"
+when = ["planting"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Trees.",
+  ">Shrubs.",
+  ">Ground covers.",
+  ">Plants, including perennials and ornamental grasses.",
+  ">Planting soil, mulch and tree stabilization.",
+  ">Edgings.",
+  "Related Requirements:",
+  ">Section 31 10 00 \"Site Clearing\" for protection of existing trees and plantings to remain.",
+  ">Section 32 84 00 \"Planting Irrigation\" for irrigation of planting beds.",
+  ">Section 32 92 00 \"Turf and Grasses\" for turf planting.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Balled and Burlapped Stock: Plants dug with firm, natural balls of earth in which they were grown, with ball size not less than sizes indicated; wrapped with burlap; tied, laced and pinned with twine or wire basket.",
+  "Container-Grown Stock: Healthy, vigorous, well-rooted plants grown in a container, with a well-established root system reaching sides of container and maintaining a firm ball when removed from container.",
+  "Caliper: Diameter of a trunk as measured by a diameter tape at a height 6 inches above the root flare for trees up to, and including, 4-inch size; and 12 inches above the root flare for trees larger than 4-inch size.",
+  "Root Flare: Also called trunk flare. The area at the base of the plant's stem or trunk where the stem or trunk broadens to form roots; the area of transition between the root system and the stem or trunk.",
+  "Plant Schedule: The plant list on the Drawings, indicating botanical and common names, quantities, sizes, root condition and remarks for each plant.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including planting soil, fertilizers, mulch and tree stabilization materials.",
+  "Plant Material Photographs: Color photographs of a representative specimen of each tree and shrub species, showing size, form and quality, with a scale reference.",
+  "Samples: For each type of mulch, 1-pint volume, in sealed plastic bags labeled with source.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For qualified landscape Installer.",
+  "Product Certificates: For each type of manufactured product, from manufacturer, and for plant material, from nursery, certifying that plants comply with requirements.",
+  "Soil Analysis: For planting soil, from a qualified soil-testing laboratory, with recommendations for amendments.",
+  "Sources: List of nurseries supplying each species, with location.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: Recommended procedures to be established by the Owner for maintenance of plants during a calendar year.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A qualified landscape installer whose work has resulted in successful establishment of plants.",
+  ">Professional Membership: Installer shall be a member in good standing of the National Association of Landscape Professionals or a state landscape contractors association.",
+  ">Maintain an experienced full-time supervisor on Project site when planting is in progress.",
+  "Provide quality, size, genus, species and variety of plants indicated, complying with applicable requirements in ANSI Z60.1 American Standard for Nursery Stock.",
+  "Selection of Plants Purchased under Allowances: The Architect will select plants to be purchased under allowances, at their place of growth.",
+  "Observation: The Architect may observe plant material either at place of growth or at site before planting for compliance with requirements for genus, species, variety, cultivar, size and quality. The Architect retains right to observe trees and shrubs further for size and condition of balls and root systems, pests, disease symptoms, injuries and latent defects and to reject unsatisfactory or defective material at any time during progress of work. Remove rejected trees or shrubs immediately from Project site.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver bare-root stock plants freshly dug. Immediately after digging up bare-root stock, pack root system in wet straw, hay or other suitable material to keep root system moist until planting.",
+  "Do not prune trees and shrubs before delivery. Protect bark, branches and root systems from sun scald, drying, wind burn, sweating, whipping and other handling and tying damage. Do not bend or bind-tie trees or shrubs in such a manner as to destroy their natural shape. Provide protective covering of plants during shipping and delivery. Do not drop plants during delivery and handling.",
+  "Handle planting stock by root ball.",
+  "Deliver plants after preparations for planting have been completed, and install immediately. If planting is delayed more than six hours after delivery, set plants and trees in their appropriate aspect (sun, filtered sun or shade), protect from weather and mechanical damage, and keep roots moist.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Planting Restrictions: Plant during one of the following periods; coordinate planting periods with maintenance periods to provide required maintenance from date of planting completion:",
+  ">Spring Planting: As recommended for the region.",
+  ">Fall Planting: As recommended for the region.",
+  "Weather Limitations: Proceed with planting only when existing and forecasted weather conditions permit planting to be performed when beneficial and optimum results may be obtained.",
+  "Coordination with Turf Areas: Plant trees, shrubs and other plants after finish grades are established and before planting turf areas unless otherwise indicated.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Installer agrees to repair or replace plantings and accessories that fail in materials, workmanship or growth within specified warranty period.",
+  ">Failures include, but are not limited to, death and unsatisfactory growth, except for defects resulting from abuse, lack of adequate maintenance or neglect by the Owner, or incidents that are beyond Contractor's control.",
+  ">Warranty Periods from Date of Substantial Completion:",
+  ">>Trees, Shrubs, Vines and Ornamental Grasses: 12 months.",
+  ">>Ground Covers, Biennials, Perennials and Other Plants: 12 months.",
+  ">Include the following remedial actions as a minimum: immediately remove dead plants and replace unless required to plant in the succeeding planting season; replace plants that are more than 25 percent dead or in an unhealthy condition at end of warranty period; a limit of one replacement of each plant will be required except for losses or replacements due to failure to comply with requirements.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE SERVICE"
+items = [
+  "Initial Maintenance Service for Trees and Shrubs: Provide maintenance by skilled employees of landscape Installer. Maintain as required in Part 3. Begin maintenance immediately after plants are installed and continue until plantings are acceptably healthy and well established, but for not less than 12 months from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PLANT MATERIAL"
+items = [
+  "General: Furnish nursery-grown plants true to genus, species, variety, cultivar, stem form, shearing and other features indicated in the Plant Schedule on Drawings and complying with ANSI Z60.1; with healthy root systems developed by transplanting or root pruning. Provide well-shaped, fully branched, healthy, vigorous stock, densely foliated when in leaf and free of disease, pests, eggs, larvae and defects such as knots, sun scald, injuries, abrasions and disfigurement.",
+  "Quantities, Sizes and Root Conditions: As indicated in the Plant Schedule on Drawings. Where the Plant Schedule and plan quantities differ, the plan count governs.",
+  "Provide plants of sizes, grades and ball or container sizes complying with ANSI Z60.1 for types and form of plants required. Plants of a larger size may be used if acceptable to the Architect, with a proportionate increase in size of roots or balls.",
+  "Root-Ball Depth: Furnish trees and shrubs with root balls measured from top of root ball, which shall begin at root flare according to ANSI Z60.1. Root flare shall be visible before planting.",
+  "Labeling: Label at least one plant of each variety, size and caliper with a securely attached, waterproof tag bearing legible designation of common name and full scientific name, including genus and species.",
+  "If formal arrangements or consecutive order of plants is indicated, select stock for uniform height and spread, and number the labels to assure symmetry in planting.",
+  "Substitutions: Do not substitute plant species or sizes without written approval of the Architect; submit proof of nonavailability with proposed substitutions.",
+]
+
+[[section.part2]]
+title = "PLANTING SOILS AND AMENDMENTS"
+items = [
+  "Planting Soil: Existing in-place surface soil or stockpiled topsoil, amended as recommended by the soil analysis; or imported topsoil, friable loam, free of stones 1 inch or larger in any dimension and other extraneous materials harmful to plant growth.",
+  ">Organic Matter Content: 3 to 5 percent by dry weight.",
+  ">pH: 5.5 to 7.0, or as appropriate for plants specified.",
+  "Compost: Well-composted, stable and weed-free organic matter, pH range of 5.5 to 8, moisture content 35 to 55 percent by weight, 100 percent passing through 1/2-inch sieve.",
+  "Fertilizer: Slow-release, granular or pelleted fertilizer, and planting tablets for trees and shrubs, in amounts recommended by the soil analysis.",
+]
+
+[[section.part2]]
+title = "MULCHES"
+items = [
+  "Organic Mulch: Free from deleterious materials and suitable as a top dressing of trees and shrubs, consisting of shredded hardwood bark, double-shredded, not dyed, unless otherwise indicated.",
+  "Mineral Mulch, where indicated: Hard, durable stone, washed free of loam, sand, clay and other foreign substances, 3/4 to 1-1/2 inches in size, color as selected by the Architect.",
+  "Weed-Control Barrier: Nonwoven geotextile landscape fabric, polypropylene or polyester, 3 oz./sq. yd. minimum, where indicated under mineral mulch.",
+]
+
+[[section.part2]]
+title = "TREE STABILIZATION AND EDGINGS"
+items = [
+  "Trunk-Stabilization Materials: Upright and guy stakes of rough-sawn, sound, new hardwood or treated softwood, 2 by 2 inches by 8 feet long, with flexible ties of polypropylene webbing or rubber-hose-covered wire; or proprietary below-ground root-ball anchoring system.",
+  "Edging: Steel edging, 3/16 inch thick by 4 inches deep, with stakes at 30 inches on center, factory-painted black; or aluminum edging of equivalent strength.",
+  "Manufacturers: Subject to compliance with requirements, provide edging by one of the following:",
+  ">Border Concepts, Inc.",
+  ">Col-Met Engineered Edging.",
+  ">JD Russell Company.",
+  ">Sure-loc Edging Corporation.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas to receive plants for compliance with requirements and conditions affecting installation and performance of the Work.",
+  ">Verify that no foreign or deleterious material or liquid has been deposited in soil within a planting area.",
+  ">Do not mix or place soils and soil amendments in frozen, wet or muddy conditions.",
+  ">Uniformly moisten excessively dry soil that is not workable and which is too dusty.",
+  "Verify locations of underground utilities before excavating planting pits.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Protect structures, utilities, sidewalks, pavements and other facilities, and turf areas and existing plants, from damage caused by planting operations.",
+  "Lay out individual tree and shrub locations and areas for multiple plantings. Stake locations, outline areas, adjust locations when requested, and obtain the Architect's acceptance of layout before excavating or planting. Make minor adjustments as required.",
+  "Planting Beds: Loosen subgrade of planting areas to a minimum depth of 12 inches, remove stones larger than 1 inch, spread planting soil to a depth of 12 inches, and mix amendments into the soil as recommended by the soil analysis.",
+]
+
+[[section.part3]]
+title = "EXCAVATION FOR TREES AND SHRUBS"
+items = [
+  "Planting Pits and Trenches: Excavate circular planting pits.",
+  ">Excavate planting pits with sides sloping. Excavate approximately three times as wide as ball diameter for balled and burlapped and container-grown stock.",
+  ">Do not excavate deeper than depth of the root ball, measured from the root flare to the bottom of the root ball.",
+  ">If area under the plant was initially dug too deep, add soil to raise it to the correct level and thoroughly tamp the added soil to prevent settling.",
+  ">Keep excavations covered or otherwise protected when unattended by Installer's personnel.",
+  "Drainage: Notify the Architect if subsoil conditions evidence unexpected water seepage or retention in tree or shrub planting pits.",
+]
+
+[[section.part3]]
+title = "TREE, SHRUB AND VINE PLANTING"
+items = [
+  "Before planting, verify that root flare is visible at top of root ball according to ANSI Z60.1. If root flare is not visible, remove soil in a level manner from the root ball to where the top-most root emerges from the trunk.",
+  "Remove stem girdling roots and kinked roots. Remove injured roots by cutting cleanly; do not break.",
+  "Balled and Burlapped Stock: Set each plant plumb and in center of planting pit or trench with root flare 1 inch above adjacent finish grades.",
+  ">After placing some backfill around root ball to stabilize plant, carefully cut and remove burlap, rope and wire baskets from tops of root balls and from sides, but do not remove from under root balls.",
+  ">Backfill around root ball in layers, tamping to settle soil and eliminate voids and air pockets. When planting pit is approximately one-half filled, water thoroughly before placing remainder of backfill. Repeat watering until no more water is absorbed.",
+  "Container-Grown Stock: Carefully remove root ball from container without damaging root ball or plant. Score roots that circle the container. Set each plant plumb and in center of planting pit with root flare 1 inch above adjacent finish grades, and backfill as for balled and burlapped stock.",
+  "Form a 3-inch-high saucer around the rim of each tree and shrub planting pit to retain water.",
+]
+
+[[section.part3]]
+title = "TREE AND SHRUB PRUNING"
+items = [
+  "Remove only dead, dying or broken branches. Do not prune for shape.",
+  "Prune, thin and shape trees, shrubs and vines as directed by the Architect, according to ANSI A300 Part 1 Pruning.",
+  "Do not apply pruning paint to wounds.",
+]
+
+[[section.part3]]
+title = "TREE STABILIZATION"
+items = [
+  "Stake trees only where required by site conditions or indicated on Drawings. Install trunk stabilization as follows unless otherwise indicated:",
+  ">Upright Staking and Tying: Stake trees of 2- through 5-inch caliper with two stakes. Set vertical stakes and space to avoid penetrating root balls or root masses.",
+  ">Support trees with bands of flexible ties at contact points with tree trunk. Allow enough slack to avoid rigid restraint of tree.",
+  "Remove stabilization materials at end of the first growing season or 12 months after planting, whichever is earlier.",
+]
+
+[[section.part3]]
+title = "GROUND COVER AND PLANT PLANTING"
+items = [
+  "Set out and space ground cover and plants other than trees, shrubs and vines as indicated on Drawings, in even rows with triangular spacing.",
+  "Use planting tools that will allow planting without disturbing adjacent plants.",
+  "Dig holes large enough to allow spreading of roots.",
+  "Work soil around roots to eliminate air pockets and leave a slight saucer around plants to hold water.",
+  "Water thoroughly after planting, taking care not to cover plant crowns with wet soil.",
+  "Protect plants from hot sun and wind; remove protection if plants show evidence of recovery from transplanting shock.",
+]
+
+[[section.part3]]
+title = "PLANTING AREA MULCHING"
+items = [
+  "Install weed-control barriers where indicated before mulching according to manufacturer's written instructions. Completely cover area to be mulched, overlapping edges a minimum of 6 inches and secure seams with galvanized pins.",
+  "Mulch backfilled surfaces of planting areas and other areas indicated.",
+  ">Trees in Turf Areas: Apply organic mulch ring of 3-inch average thickness, with 36-inch radius around trunks or stems. Do not place mulch within 3 inches of trunks or stems.",
+  ">Organic Mulch in Planting Areas: Apply 3-inch average thickness of organic mulch over whole surface of planting area, and finish level with adjacent finish grades. Do not place mulch within 3 inches of trunks or stems.",
+]
+
+[[section.part3]]
+title = "EDGING INSTALLATION"
+items = [
+  "Install edging where indicated to separate planting beds from turf, set with top 1/2 inch above finish grade, in smooth lines and curves, staked at spacing recommended by the manufacturer.",
+]
+
+[[section.part3]]
+title = "PLANT MAINTENANCE"
+items = [
+  "Maintain plantings by pruning, cultivating, watering, weeding, fertilizing, mulching, restoring planting saucers, adjusting and repairing stabilization devices, resetting to proper grades or vertical position, and performing other operations as required to establish healthy, viable plantings. Spray or treat as required to keep trees and shrubs free of insects and disease.",
+  "Fill in as necessary soil subsidence that may occur because of settling or other processes. Replace mulch materials damaged or lost in areas of subsidence.",
+  "Apply treatments as required to keep plant materials, planted areas and soils free of pests and pathogens or disease. Use integrated pest management practices whenever possible to minimize the use of pesticides.",
+]
+
+[[section.part3]]
+title = "CLEANUP AND PROTECTION"
+items = [
+  "During planting, keep adjacent paving and construction clean and work area in an orderly condition.",
+  "Protect plants from damage due to landscape operations and operations of other contractors and trades. Maintain protection during planting and maintenance periods. Treat, repair or replace damaged plantings.",
+  "After installation and before Substantial Completion, remove nursery tags, nursery stakes, tie tape, labels, wire, burlap and other debris from plant material, planting areas and Project site.",
+]
+
+[[section.part3]]
+title = "DISPOSAL"
+items = [
+  "Remove surplus soil and waste material, including excess subsoil, unsuitable soil, trash and debris, and legally dispose of it off the Owner's property.",
+]
+
+[[section]]
+number = "33 11 00"
+title = "WATER UTILITY DISTRIBUTION PIPING"
+when = ["sitework"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Water service piping from the utility main or meter to a point 5 feet outside the building.",
+  ">Fire-service water piping to the building, where indicated.",
+  ">Valves, valve boxes and corporation and curb stops.",
+  ">Fire hydrants, where indicated.",
+  ">Water meter and meter box, where provided by the Contractor.",
+  "Related Requirements:",
+  ">Section 31 20 00 \"Earth Moving\" for excavation, bedding and backfill of trenches.",
+  ">Division 21 Sections for fire-suppression piping inside the building.",
+  ">Division 22 Sections for domestic water piping inside the building and backflow preventers.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of pipe, fitting, valve, hydrant and specialty.",
+  "Shop Drawings: For precast concrete meter vaults and valve vaults, including frames and covers, and for thrust restraint where restrained joints are used.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Coordination Drawings: Plans showing water piping in relation to other utilities, with clearances and crossings.",
+  "Field quality-control reports, including hydrostatic test and disinfection reports with bacteriological test results.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and maintenance data for valves, hydrants and meters, to include in operation and maintenance manuals.",
+  "Record Drawings: Dimensioned locations and depths of piping, valves and fittings, measured from permanent structures.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Regulatory Requirements: Comply with requirements of the water utility and of authorities having jurisdiction for water service piping, connections and backflow prevention.",
+  "Piping materials shall bear label, stamp or other markings of specified testing agency.",
+  "Comply with NSF 61 and NSF 372 for materials for potable water.",
+  "Comply with standards of authorities having jurisdiction for fire-suppression water-service piping, including materials, hose threads, installation and testing, and with NFPA 24.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Preparation for Transport: Prepare valves according to the following: ensure that valves are dry and internally protected against rust and corrosion; protect valves against damage to threaded ends and flange faces; set valves in best position for handling.",
+  "Protect stored piping from moisture and dirt. Elevate above grade. Protect flanges, fittings and specialties from moisture and dirt.",
+  "Protect stored PVC piping from direct sunlight.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Interruption of Existing Water Distribution Service: Do not interrupt service to facilities occupied by the Owner or others unless permitted under the following conditions and then only after arranging to provide temporary water-distribution service according to requirements indicated:",
+  ">Notify the Owner and the water utility no fewer than two days in advance of proposed interruption of service.",
+  ">Do not proceed with interruption of water-distribution service without the Owner's written permission.",
+]
+
+[[section.part2]]
+title = "PIPING MATERIALS"
+items = [
+  "Comply with requirements in Part 3 piping schedule for applications of pipe, tube, fitting and joining materials.",
+  "Ductile-Iron Pipe and Fittings:",
+  ">Mechanical-Joint, Ductile-Iron Pipe: AWWA C151, with mechanical-joint bell and plain spigot end unless grooved or flanged ends are indicated.",
+  ">Push-On-Joint, Ductile-Iron Pipe: AWWA C151, with push-on-joint bell and plain spigot end.",
+  ">Fittings: AWWA C110 ductile or gray iron, or AWWA C153 ductile-iron compact fittings.",
+  ">Gaskets: AWWA C111, rubber.",
+  ">Lining: AWWA C104, cement-mortar lining.",
+  ">Polyethylene Encasement: AWWA C105, where required by soil conditions.",
+  "PVC Pipe and Fittings:",
+  ">PVC Pressure Pipe: AWWA C900, Class 235 (DR 18), for 4-inch and larger, with bell end with gasket and with spigot end.",
+  ">PVC Water Service Pipe: ASTM D1785, Schedule 40 or ASTM D2241, SDR 21, for sizes smaller than 4 inches.",
+  "Copper Tube: ASTM B88, Type K, annealed temper, for service piping 2 inches and smaller where required by the water utility.",
+  ">Copper Fittings: ASME B16.22 wrought copper, or ASME B16.26 cast copper-alloy flared fittings.",
+  "Polyethylene Pipe: AWWA C901, PE 4710, DR 9, copper-tube size (CTS), for service piping 3 inches and smaller where permitted by the water utility.",
+]
+
+[[section.part2]]
+title = "VALVES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide valves and hydrants by one of the following:",
+  ">American Flow Control.",
+  ">Clow Valve Company (McWane).",
+  ">Mueller Co.",
+  ">American AVK Company.",
+  "Resilient-Seated Gate Valves: AWWA C509 or AWWA C515, ductile-iron body and bonnet, bronze or stainless-steel stem, nonrising stem with 2-inch square operating nut, 250 psig minimum working pressure, with mechanical-joint ends.",
+  "Valve Boxes: Cast-iron, two-piece, adjustable, screw-type, with cover marked WATER, and extension as required for depth of valve.",
+  "Corporation Valves: Bronze body, ground-key plug or ball, complying with AWWA C800, with inlet end threaded to match the main and outlet end compatible with service piping.",
+  "Curb Valves: Bronze body, ground-key plug or ball, complying with AWWA C800, with curb box of cast iron or plastic and cover marked WATER.",
+  "Tapping Sleeves and Valves: Stainless-steel or ductile-iron tapping sleeve with resilient-seated gate valve, for connection to existing mains, as approved by the water utility.",
+]
+
+[[section.part2]]
+title = "FIRE HYDRANTS"
+items = [
+  "Dry-Barrel Fire Hydrants: AWWA C502, traffic-break type, with 5-1/4-inch main valve, one 4-1/2-inch pumper nozzle and two 2-1/2-inch hose nozzles, 6-inch mechanical-joint inlet, and bury depth to suit site conditions.",
+  ">Nozzle Threads and Operating Nut: As required by the local fire department.",
+  ">Finish: Factory-applied paint in color required by authorities having jurisdiction.",
+  "Hydrant auxiliary gate valve and valve box, with restrained connection to main.",
+]
+
+[[section.part2]]
+title = "WATER METERS AND ACCESSORIES"
+items = [
+  "Water Meters: Furnished by the water utility unless otherwise indicated. Where furnished by the Contractor, comply with AWWA C700 or AWWA C710 and the utility's requirements.",
+  "Meter Boxes: Precast concrete or high-density polyethylene, with cast-iron or composite lid, sized for meter and appurtenances, marked WATER METER.",
+  "Detector Tape and Tracer Wire: Detectable warning tape as specified in Section 31 20 00 \"Earth Moving\"; tracer wire of AWG No. 12 insulated copper for nonmetallic piping.",
+]
+
+[[section.part2]]
+title = "THRUST RESTRAINT"
+items = [
+  "Restrained Joints: Mechanical-joint wedge-action restraint glands complying with UNI-B-13 for PVC pipe or AWWA C111 for ductile-iron pipe.",
+  "Concrete Thrust Blocks: Concrete with a minimum 28-day compressive strength of 3000 psi, formed against undisturbed soil.",
+]
+
+[[section.part3]]
+title = "EARTHWORK"
+items = [
+  "Comply with excavation, trenching and backfilling requirements in Section 31 20 00 \"Earth Moving.\"",
+  "Cover: Provide minimum 48 inches of cover over water piping, or below frost depth required by authorities having jurisdiction, whichever is greater.",
+]
+
+[[section.part3]]
+title = "PIPING INSTALLATION"
+items = [
+  "Water-Main Connection: Arrange with the water utility for tap of size and in location indicated in water main, or install tapping sleeve and tapping valve where permitted.",
+  "Make connections larger than 2 inches with tapping machine according to the following: install tapping sleeve and tapping valve according to MSS SP-60; install tapping sleeve on pipe to be tapped; position flanged outlet for gate valve; use tapping machine compatible with valve and tapping sleeve; cut hole in main; remove tapping machine and connect water piping.",
+  "Make connections 2 inches and smaller with drilling machine according to the following: install service clamp to main, install corporation valve into service clamp, use drilling machine compatible with service clamp and corporation valve, and drill hole in main. Remove drilling machine and connect water piping.",
+  "Comply with NFPA 24 for fire-service-main piping materials and installation.",
+  "Install ductile-iron, water-service piping according to AWWA C600 and AWWA M41.",
+  "Install PVC water-service piping according to AWWA C605 and AWWA M23.",
+  "Install copper tube and polyethylene service piping according to the water utility's requirements.",
+  "Separation from Sewers: Maintain 10-foot horizontal separation between water piping and sanitary or storm sewer piping; where water piping crosses sewers, provide 18-inch minimum vertical separation with water piping above, or as otherwise required by authorities having jurisdiction.",
+  "Bury tracer wire along nonmetallic piping, and bring to grade at valve boxes and meter boxes.",
+  "Install underground piping with restrained joints at horizontal and vertical changes in direction. Use restrained-joint piping, thrust blocks, anchors, tie-rods and clamps as indicated, and at tees, bends, plugs and hydrants.",
+  "Extend water-service piping and connect to water-supply source and building-water-piping systems at outside face of building wall in locations and pipe sizes indicated. Terminate water-service piping within the building, with valve, where piping continues under Division 22.",
+  "Sleeves are specified in Division 22 Sections for piping passing through foundation walls.",
+]
+
+[[section.part3]]
+title = "VALVE AND HYDRANT INSTALLATION"
+items = [
+  "UL-Listed or FM-Approved Gate Valves: Comply with NFPA 24. Install UL-listed or FM-approved gate valves in fire-service piping.",
+  "AWWA-Type Gate Valves: Comply with AWWA C600 and AWWA M44. Install each underground valve with stem pointing up and with valve box, centered over the operating nut and set flush with finished grade.",
+  "Corporation Valves and Curb Valves: Install each underground curb valve with head pointed up and with service box.",
+  "Fire Hydrants: Install according to AWWA M17 and NFPA 24, with shutoff valve, restrained connection and drainage bed of 1/2 cu. yd. minimum of clean gravel around the drain opening. Set hydrants plumb, with pumper nozzle facing the street or fire lane, and with bottom of lowest nozzle 18 inches minimum above finished grade.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Hydrostatic Testing: Test water-distribution piping according to AWWA C600 for ductile-iron and AWWA C605 for PVC, and according to NFPA 24 for fire-service mains.",
+  ">Test Pressure: 200 psig or 50 psig above maximum working pressure, whichever is greater, for two hours.",
+  ">Allowable Leakage: Not to exceed amounts listed in AWWA C600 or AWWA C605, as applicable. Fire-service mains shall comply with the allowable leakage of NFPA 24.",
+  "Prepare reports of testing activities.",
+  "Engage the water utility or an authorized inspector where required by the utility.",
+]
+
+[[section.part3]]
+title = "CLEANING AND DISINFECTION"
+items = [
+  "Clean and disinfect water-distribution piping as follows:",
+  ">Purge new water-distribution piping systems and parts of existing systems that have been altered, extended or repaired before use.",
+  ">Use purging and disinfecting procedure prescribed by authorities having jurisdiction or, if method is not prescribed by authorities having jurisdiction, use procedure described in AWWA C651.",
+  "Bacteriological Testing: After disinfection and flushing, collect samples and have them analyzed by a laboratory certified by the state; repeat disinfection until samples show no evidence of coliform bacteria.",
+  "Prepare reports of purging and disinfecting activities.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION"
+items = [
+  "Install continuous underground detectable warning tape during backfilling of trench for underground water-distribution piping. Locate 12 inches below finished grade, directly over piping.",
+]
+
+[[section]]
+number = "33 31 00"
+title = "SANITARY UTILITY SEWERAGE PIPING"
+when = ["sitework"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Gravity sanitary sewer piping from a point 5 feet outside the building to the public sewer or on-site disposal system.",
+  ">Cleanouts.",
+  ">Manholes.",
+  ">Connection to the public sewer.",
+  "Related Requirements:",
+  ">Section 31 20 00 \"Earth Moving\" for excavation, bedding and backfill of trenches.",
+  ">Section 33 41 00 \"Storm Utility Drainage Piping\" for storm drainage.",
+  ">Division 22 Sections for sanitary waste piping inside the building.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of pipe, fitting, cleanout and manhole component.",
+  "Shop Drawings: For precast concrete manholes, including frames and covers, pipe connections and invert elevations.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field quality-control reports, including leakage and deflection test results.",
+  "Video inspection reports, where required by authorities having jurisdiction.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Record Drawings: Dimensioned locations, invert elevations and slopes of piping, cleanouts and manholes, measured from permanent structures.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Regulatory Requirements: Comply with requirements of the sewer utility and authorities having jurisdiction for sewer connections, materials, installation and testing.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Do not store plastic manholes, pipe and fittings in direct sunlight.",
+  "Protect pipe, pipe fittings and seals from dirt and damage.",
+  "Handle manholes according to manufacturer's written rigging instructions.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Interruption of Existing Sanitary Sewerage Service: Do not interrupt service to facilities occupied by the Owner or others unless permitted under the following conditions and then only after arranging to provide temporary service according to requirements indicated:",
+  ">Notify the Owner no fewer than two days in advance of proposed interruption of service.",
+  ">Do not proceed with interruption of service without the Owner's written permission.",
+]
+
+[[section.part2]]
+title = "PIPING MATERIALS"
+items = [
+  "Comply with requirements in Part 3 piping schedule for applications of pipe, tube, fitting and joining materials.",
+  "PVC Gravity Sewer Piping:",
+  ">Pipe and Fittings: ASTM D3034, SDR 35, for 4- through 15-inch sizes, with bell-and-spigot ends for gasketed joints.",
+  ">Gaskets: ASTM F477, elastomeric seals.",
+  "PVC Solid-Wall Pipe: ASTM D2665 or ASTM D1785, Schedule 40, drain, waste and vent, for building sewer connections where permitted.",
+  "Ductile-Iron Pipe: AWWA C151, with push-on joints and AWWA C111 gaskets, and interior lining suitable for sewage, where indicated for shallow cover or crossings.",
+  "Nonpressure-Type Transition Couplings: Elastomeric-sleeve couplings complying with ASTM C1173, with stainless-steel shear ring and bands, sized for pipe materials being joined.",
+  "Manufacturers: Subject to compliance with requirements, provide transition couplings by one of the following:",
+  ">Fernco, Inc.",
+  ">Mission Rubber Company, LLC.",
+  ">Charlotte Pipe and Foundry Company.",
+]
+
+[[section.part2]]
+title = "CLEANOUTS"
+items = [
+  "PVC Cleanouts: ASTM D3034, PVC cleanout threaded plug and threaded pipe hub, with riser of same material as sewer pipe.",
+  "Cast-Iron Cleanouts: ASME A112.36.2M, round, gray-iron housing with clamping device and round, secured, scoriated, gray-iron cover, heavy-duty type in paved and traffic areas. Include gray-iron ferrule with inside calk or spigot connection and countersunk, tapered-thread, brass closure plug.",
+]
+
+[[section.part2]]
+title = "MANHOLES"
+items = [
+  "Standard Precast Concrete Manholes: ASTM C478, precast, reinforced concrete, of depth indicated, with provision for sealant joints.",
+  ">Diameter: 48 inches minimum unless otherwise indicated.",
+  ">Ballast: Increase thickness of precast concrete sections or add concrete to base section as required to prevent flotation.",
+  ">Base Section: 6-inch minimum thickness for floor slab and 4-inch minimum thickness for walls and base riser section, with separate base slab or base section with integral floor.",
+  ">Riser Sections: 4-inch minimum thickness, of length to provide depth indicated.",
+  ">Top Section: Eccentric-cone type unless concentric-cone or flat-slab-top type is indicated; with top of cone of size that matches grade rings.",
+  ">Joint Sealant: ASTM C990, bitumen or butyl rubber.",
+  ">Resilient Pipe Connectors: ASTM C923, cast or fitted into manhole walls, for each pipe connection.",
+  ">Steps: Individual FRP steps or FRP ladder, wide enough to allow worker to place both feet on one step and designed to prevent lateral slippage off step; or ASTM A615 steel reinforcing rods encased in ASTM D4101 polypropylene, at 12- to 16-inch intervals.",
+  ">Grade Rings: Reinforced-concrete rings, 6- to 9-inch total thickness, to match diameter of manhole frame and cover.",
+  "Manhole Frames and Covers: Ferrous; 24-inch ID by 7- to 9-inch riser, with 4-inch-minimum-width flange and 26-inch-diameter cover; complying with ASTM A48, Class 35 gray iron, and AASHTO M 306 for heavy-duty traffic loading. Include indented top design with lettering cast into cover, using wording SANITARY SEWER.",
+]
+
+[[section.part3]]
+title = "EARTHWORK"
+items = [
+  "Excavation, trenching and backfilling are specified in Section 31 20 00 \"Earth Moving.\"",
+  "Provide minimum cover of 36 inches over piping, or below frost depth required by authorities having jurisdiction, whichever is greater, unless otherwise indicated. Where cover is less, provide insulation or ductile-iron pipe as indicated.",
+]
+
+[[section.part3]]
+title = "PIPING INSTALLATION"
+items = [
+  "General Locations and Arrangements: Drawing plans and details indicate general location and arrangement of underground sanitary sewer piping. Location and arrangement of piping layout take into account design considerations. Install piping as indicated, to extent practical. Where specific installation is not indicated, follow piping manufacturer's written instructions.",
+  "Install piping beginning at low point, true to grades and alignment indicated with unbroken continuity of invert. Place bell ends of piping facing upstream. Install gaskets, seals, sleeves and couplings according to manufacturer's written instructions for use of lubricants, cements and other installation requirements.",
+  "Install manholes for changes in direction unless fittings are indicated. Use fittings for branch connections unless direct tap into existing sewer is indicated.",
+  "Install proper size increasers, reducers and couplings where different sizes or materials of pipes and fittings are connected. Reducing size of piping in direction of flow is prohibited.",
+  "Install gravity-flow, nonpressure, drainage piping according to the following:",
+  ">Install piping pitched down in direction of flow at a minimum slope of 2 percent for 4-inch and 1 percent for 6-inch building sewers, and at slopes indicated for mains, but not less than required by the plumbing code.",
+  ">Install piping with 36-inch minimum cover.",
+  ">Install PVC gravity sewer piping according to ASTM D2321 and ASTM F1668.",
+  "Clear interior of piping and manholes of dirt and superfluous material as work progresses. Maintain swab or drag in piping, and pull past each joint as it is completed. Place plug in end of incomplete piping at end of day and when work stops.",
+  "Separation from Water Piping: Maintain separations from water piping as specified in Section 33 11 00 \"Water Utility Distribution Piping.\"",
+]
+
+[[section.part3]]
+title = "CLEANOUT INSTALLATION"
+items = [
+  "Install cleanouts and riser extensions from sewer pipes to cleanouts at grade. Use cast-iron cleanouts in paved and traffic areas and PVC cleanouts elsewhere. Set cleanout frames and covers in earth in cast-in-place concrete block, 18 by 18 by 12 inches deep. Set with tops 1 inch above surrounding earth grade; set cleanout frames and covers in concrete pavement and roads with tops flush with pavement surface.",
+  "Provide cleanouts at the building sewer within 5 feet of the building, at changes in direction greater than 45 degrees, and at intervals not exceeding 100 feet, or as required by the plumbing code.",
+]
+
+[[section.part3]]
+title = "MANHOLE INSTALLATION"
+items = [
+  "Install manholes complete with appurtenances and accessories indicated.",
+  "Install precast concrete manhole sections with sealants according to ASTM C891.",
+  "Form continuous concrete channels and benches between inlets and outlet.",
+  "Set tops of frames and covers flush with finished surface of manholes that occur in pavements. Set tops 3 inches above finished surface elsewhere unless otherwise indicated.",
+]
+
+[[section.part3]]
+title = "CONNECTIONS"
+items = [
+  "Connect nonpressure, gravity-flow drainage piping in building's sanitary building drains specified in Division 22.",
+  "Make connections to existing piping and underground manholes:",
+  ">Use commercially manufactured wye fittings for piping branch connections. Remove section of existing pipe; install wye fitting into existing piping; and encase entire wye fitting plus 6-inch overlap with not less than 6 inches of concrete with 28-day compressive strength of 3000 psi.",
+  ">Make branch connections from side into existing piping, NPS 4 to NPS 20. Remove section of existing pipe, install wye fitting into existing piping, and encase entire wye with not less than 6 inches of concrete.",
+  ">Make branch connections from side into existing manholes by core drilling and installing resilient pipe connectors. Reconstruct channels and benches as required.",
+  "Protect existing piping and manholes to prevent concrete or debris from entering while making tap connections. Remove debris or other extraneous material that may accumulate.",
+  "Connect to the public sewer according to the sewer utility's requirements, with permits and inspections obtained by the Contractor.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Inspect interior of piping to determine whether line displacement or other damage has occurred. Inspect after approximately 24 inches of backfill is in place, and again at completion of Project.",
+  ">Submit separate reports for each system inspection.",
+  ">Defects requiring correction include the following: alignment less than full diameter of inside of pipe is visible between structures; deflection of flexible piping greater than 5 percent; crushed, broken, cracked or otherwise damaged piping; infiltration of water into piping; and bells or couplings that are not tight.",
+  ">Replace defective piping using new materials, and repeat inspections until defects are within allowances specified.",
+  "Test new piping systems, and parts of existing systems that have been altered, extended or repaired, for leaks and defects.",
+  ">Do not enclose, cover or put into service before inspection and approval.",
+  ">Test completed piping systems according to requirements of authorities having jurisdiction.",
+  ">Schedule tests and inspections by authorities having jurisdiction with at least 24 hours' advance notice.",
+  ">Air Tests: Test PVC gravity sewer piping according to ASTM F1417.",
+  ">Deflection Tests: Test PVC piping with a mandrel sized for 5 percent maximum deflection, not less than 30 days after backfill, according to ASTM D3034.",
+  ">Manholes: Perform vacuum test according to ASTM C1244.",
+  "Leaks and loss in test pressure constitute defects that must be repaired. Replace leaking piping using new materials, and repeat testing until leakage is within allowances specified.",
+]
+
+[[section.part3]]
+title = "CLEANING"
+items = [
+  "Clean dirt and superfluous material from interior of piping. Flush piping between manholes, if required by authorities having jurisdiction, to remove collected debris.",
+]
+
+[[section]]
+number = "33 41 00"
+title = "STORM UTILITY DRAINAGE PIPING"
+when = ["sitework"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Storm drainage piping from a point 5 feet outside the building and from roof leaders and area drains to the point of discharge.",
+  ">Catch basins, area drains and yard inlets.",
+  ">Manholes and cleanouts.",
+  ">Downspout connections and splash blocks.",
+  ">Foundation and subsurface drainage piping, where indicated.",
+  ">Headwalls, flared end sections and riprap at outfalls.",
+  "Related Requirements:",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for gutters and downspouts.",
+  ">Section 31 20 00 \"Earth Moving\" for excavation, bedding, backfill and drainage aggregate.",
+  ">Section 33 31 00 \"Sanitary Utility Sewerage Piping\" for sanitary sewers.",
+  ">Division 22 Sections for storm drainage piping inside the building.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of pipe, fitting, drain, catch basin, grate and specialty.",
+  "Shop Drawings: For precast concrete catch basins, manholes and headwalls, including frames, grates, covers and pipe connections, with invert elevations.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field quality-control reports.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Record Drawings: Dimensioned locations, invert elevations and slopes of piping and structures, measured from permanent structures.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Regulatory Requirements: Comply with requirements of authorities having jurisdiction for storm drainage, stormwater management and connections to public storm sewers.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Do not store plastic pipe, fittings and structures in direct sunlight.",
+  "Protect pipe, pipe fittings and seals from dirt and damage.",
+  "Handle precast concrete structures according to manufacturer's written rigging instructions.",
+]
+
+[[section.part2]]
+title = "PIPING MATERIALS"
+items = [
+  "Comply with requirements in Part 3 piping schedule for applications of pipe, fitting and joining materials.",
+  "PVC Sewer Pipe and Fittings: ASTM D3034, SDR 35, for 4- through 15-inch sizes, with bell-and-spigot ends for gasketed joints and ASTM F477 elastomeric seals.",
+  "Corrugated Polyethylene Pipe: AASHTO M 294, Type S, dual-wall with smooth interior, for 12- through 60-inch sizes, with watertight bell-and-spigot joints and ASTM F477 gaskets; or ASTM F2648 for dual-wall pipe.",
+  "Reinforced-Concrete Sewer Pipe: ASTM C76, Class III, Wall B, with bell-and-spigot or tongue-and-groove ends and ASTM C443 rubber gasket joints, where indicated.",
+  "Perforated Drainage Pipe: AASHTO M 252, Type SP, corrugated polyethylene with smooth interior, 4- and 6-inch sizes; or ASTM D2729 perforated PVC, for foundation and subsurface drains.",
+  "Downspout Connection Pipe: ASTM D2729 or ASTM D3034 PVC, solid wall, 4-inch minimum, with adapters to downspouts.",
+  "Manufacturers: Subject to compliance with requirements, provide polyethylene pipe by one of the following:",
+  ">Advanced Drainage Systems, Inc. (ADS).",
+  ">Prinsco, Inc.",
+  ">JM Eagle.",
+]
+
+[[section.part2]]
+title = "CATCH BASINS AND DRAINS"
+items = [
+  "Standard Precast Concrete Catch Basins: ASTM C478, precast, reinforced concrete, of depth indicated, with provision for sealant joints, and 12-inch minimum sump below the outlet invert.",
+  ">Base Section: 6-inch minimum thickness for floor slab and 4-inch minimum thickness for walls.",
+  ">Joint Sealant: ASTM C990, bitumen or butyl rubber.",
+  ">Resilient Pipe Connectors: ASTM C923, cast or fitted into walls, for each pipe connection.",
+  "Frames and Grates: ASTM A536, Grade 60-40-18 ductile iron, or ASTM A48, Class 30 gray iron, designed for AASHTO H-20 heavy-duty traffic loading in paved areas. Provide heel-proof, ADA-compliant grates with openings not exceeding 1/2 inch in the direction of travel where in pedestrian routes.",
+  "Plastic Area Drains and Inlets: Polyethylene or PVC drain basins with ductile-iron or polyolefin grates, sized as indicated, for landscape and light-duty areas.",
+  "Manufacturers: Subject to compliance with requirements, provide frames, grates and drain basins by one of the following:",
+  ">EJ (East Jordan Iron Works).",
+  ">Neenah Enterprises, Inc.",
+  ">NDS, Inc.",
+  ">Nyloplast (Advanced Drainage Systems, Inc.).",
+  "Trench Drains, where indicated: Precast polymer concrete channels with ductile-iron grates, load class according to EN 1433 suited to the traffic indicated.",
+]
+
+[[section.part2]]
+title = "MANHOLES AND CLEANOUTS"
+items = [
+  "Manholes: Precast concrete complying with requirements of Section 33 31 00 \"Sanitary Utility Sewerage Piping,\" except with covers lettered STORM SEWER.",
+  "Cleanouts: PVC or cast-iron cleanouts as specified in Section 33 31 00 \"Sanitary Utility Sewerage Piping.\"",
+]
+
+[[section.part2]]
+title = "OUTFALLS AND ACCESSORIES"
+items = [
+  "Flared End Sections: Precast concrete, corrugated polyethylene or galvanized steel, matching pipe size and material.",
+  "Headwalls: Cast-in-place or precast concrete, with 28-day compressive strength of 4000 psi, of shape and size indicated.",
+  "Riprap: Broken, irregularly sized and shaped graded stone, of size and thickness indicated, over filter geotextile.",
+  "Splash Blocks: Precast concrete, 24 by 16 inches minimum, where downspouts discharge to grade.",
+  "Drainage Geotextile and Aggregate: As specified in Section 31 20 00 \"Earth Moving.\"",
+]
+
+[[section.part3]]
+title = "EARTHWORK"
+items = [
+  "Excavation, trenching and backfilling are specified in Section 31 20 00 \"Earth Moving.\"",
+  "Provide minimum cover of 24 inches over storm piping in landscape areas and 36 inches under paving, or as required by pipe manufacturer for traffic loads, unless otherwise indicated.",
+]
+
+[[section.part3]]
+title = "PIPING INSTALLATION"
+items = [
+  "General Locations and Arrangements: Drawing plans and details indicate general location and arrangement of underground storm drainage piping. Install piping as indicated, to extent practical.",
+  "Install piping beginning at low point, true to grades and alignment indicated with unbroken continuity of invert. Place bell ends of piping facing upstream.",
+  "Install manholes or catch basins for changes in direction unless fittings are indicated. Use fittings for branch connections unless direct tap into existing sewer is indicated.",
+  "Install gravity-flow, nonpressure drainage piping according to the following:",
+  ">Install piping pitched down in direction of flow at a minimum slope of 1 percent unless otherwise indicated.",
+  ">Install PVC sewer piping according to ASTM D2321 and ASTM F1668.",
+  ">Install corrugated polyethylene piping according to ASTM D2321 and manufacturer's written instructions.",
+  ">Install reinforced-concrete sewer piping according to ASTM C1479 and ACPA Concrete Pipe Installation Manual.",
+  "Downspout Connections: Connect downspouts to storm piping with adapters and cleanouts at grade where indicated. Where downspouts discharge to grade, install splash blocks sloped away from the building.",
+  "Clear interior of piping and structures of dirt and superfluous material as work progresses. Place plug in end of incomplete piping at end of day and when work stops.",
+]
+
+[[section.part3]]
+title = "SUBSURFACE DRAINAGE INSTALLATION"
+items = [
+  "Foundation Drains: Place drainage geotextile and a 4-inch-thick layer of drainage aggregate on the footing or subgrade, lay perforated pipe with perforations down, sloped 1/8 inch per foot minimum to outlet, and cover with drainage aggregate to a height of 6 inches above the top of the pipe. Wrap aggregate with geotextile.",
+  "Connect foundation drains to storm drainage system, sump or daylight outlet as indicated. Install cleanouts at upstream ends and at changes in direction greater than 45 degrees.",
+  "Do not connect foundation drains to sanitary sewers.",
+]
+
+[[section.part3]]
+title = "STRUCTURE INSTALLATION"
+items = [
+  "Install precast concrete catch basins and manholes on 6-inch compacted bed of bedding course, with sealants according to ASTM C891.",
+  "Set frames and grates to elevations indicated. In paving, set grates 1/4 inch below finished pavement surface and slope paving to grates. In turf and planted areas, set grates 1 inch below finished grade.",
+  "Install plastic area drains and inlets according to manufacturer's written instructions, with concrete collars in paved areas.",
+  "Form continuous concrete channels and benches between inlets and outlet in manholes.",
+  "Construct headwalls and install flared end sections at outfalls as indicated, and place riprap over filter geotextile to dimensions indicated.",
+]
+
+[[section.part3]]
+title = "CONNECTIONS"
+items = [
+  "Connect nonpressure, gravity-flow drainage piping to building's storm building drains specified in Division 22.",
+  "Connect to the public storm sewer or discharge point according to requirements of authorities having jurisdiction.",
+  "Make connections to existing piping and structures by core drilling and installing resilient pipe connectors, and reconstruct channels as required. Protect existing piping and structures to prevent debris from entering.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Inspect interior of piping to determine whether line displacement or other damage has occurred. Inspect after approximately 24 inches of backfill is in place, and again at completion of Project.",
+  ">Defects requiring correction include misalignment, deflection of flexible piping greater than 5 percent, damaged piping, infiltration and loose joints.",
+  ">Replace defective piping using new materials, and repeat inspections until defects are within allowances specified.",
+  "Test new piping systems, and parts of existing systems that have been altered, extended or repaired, for leaks and defects, according to requirements of authorities having jurisdiction.",
+  ">Do not enclose, cover or put into service before inspection and approval.",
+  ">Test PVC gravity piping by air test according to ASTM F1417 where required.",
+  "Flow Test: Before Substantial Completion, flood each catch basin, drain and downspout connection with water and verify free flow to the point of discharge.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean interior of piping and structures of dirt and superfluous materials. Remove sediment from catch basin sumps at Substantial Completion.",
+  "Protect inlets with inlet sediment filters until upstream areas are paved or permanently stabilized with vegetation. Remove filters after stabilization.",
+]

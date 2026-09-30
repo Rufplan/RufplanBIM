@@ -72,6 +72,7 @@ Read these before writing code:
 │  ├─ studio-io/       # .rfproj persistence (SQLite), IFC export
 │  ├─ studio-structural/ # Suggest Structure: features, schemes, layout, sizing (ADR-080)
 │  ├─ studio-mep/      # MEPT suggestions: features, mechanical/electrical/plumbing/technology (ADR-082)
+│  ├─ studio-specs/    # project manual: section library, picks, styles, PDF/Word, Edit Specs (ADR-085)
 │  └─ studio-sync/     # Supabase client, publish, (later) worksharing
 ├─ app/
 │  ├─ src-tauri/       # Tauri shell, IPC commands only
@@ -153,6 +154,11 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Specifications (ADR-085): studio-core `specs` (SpecBook element, sections/parts/articles/paragraphs,
+  save/set_section/add/remove/include); crate studio-specs (library/*.toml 136 sections + front matter,
+  features tags, generate/update/front, 6 styles, layout blocks, pdf with bundled OFL fonts, docx + zip,
+  coord cross-refs, edit ops for Claude); app spec_cmds; components/Specs.tsx (tab after Sheets, page
+  editor, EDIT SPECS pill). Samples: `cargo test --release -p studio-specs write_sample_books -- --ignored`.
 - Project Info tab (ADR-084): studio-core `project` (ProjectDetails on ProjectInfo `details`, get/set,
   Budget::totals), studio-regen `Model::gross_area`; app project_cmds; components/ProjectInfo.tsx (the
   first ribbon tab, laid out like Standards).

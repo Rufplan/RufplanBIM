@@ -1,0 +1,1568 @@
+# Rufplan Studio spec library: Divisions 11, 12, 14, 21 and 22.
+
+[[section]]
+number = "11 31 00"
+title = "RESIDENTIAL APPLIANCES"
+when = ["appliances"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Cooking appliances: ranges, cooktops, wall ovens, and microwave ovens.",
+  ">Range hoods and ventilation hoods.",
+  ">Refrigerators, freezers, and wine and beverage coolers.",
+  ">Dishwashers.",
+  ">Clothes washers and dryers.",
+  ">Garbage disposers.",
+  "Related Requirements:",
+  ">Section 06 41 16 \"Plastic-Laminate-Clad Architectural Cabinets\" for cabinet openings receiving appliances.",
+  ">Section 12 36 61 \"Simulated Stone Countertops\" for countertop cutouts for cooktops and sinks.",
+  ">Section 22 40 00 \"Plumbing Fixtures\" for sinks and water supplies to appliances.",
+  ">Division 23 for duct connections to range hoods and dryer exhaust ducts.",
+  ">Division 26 for electrical circuits, receptacles, and disconnects serving appliances.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each appliance, including dimensions, rough-in and utility requirements, capacities, electrical ratings, and finish.",
+  "Appliance Schedule: List each appliance by room, with manufacturer, model number, finish, and required accessories.",
+  "Shop Drawings: For built-in and panel-ready appliances, show cabinet cutouts, trim kits, custom panel dimensions, and clearances.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: For each appliance, showing ENERGY STAR qualification where specified.",
+  "Sample Warranties: For manufacturer's standard and special warranties.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: Manufacturer's use and care guides and installation instructions for each appliance, bound in a single binder, for inclusion in operation and maintenance manuals.",
+  "Warranty Documents: Completed registration cards or online registration confirmation in the Owner's name.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Electrical Components: Listed and labeled as defined in NFPA 70, by a qualified testing agency, and marked for intended location and application.",
+  "Gas-Fired Appliances: Design certified to ANSI Z21.1 Household Cooking Gas Appliances, as applicable.",
+  "Accessibility: Where appliances are indicated as accessible, comply with ICC A117.1 for controls, reach ranges, and clear floor space.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver appliances in manufacturer's original, unopened cartons with labels intact.",
+  "Store in a clean, dry, enclosed area protected from construction traffic. Do not deliver until spaces are enclosed and wet work is complete.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace appliances that fail in materials or workmanship within the specified warranty period.",
+  ">Warranty Period: One year from date of Substantial Completion for complete appliance, parts and labor.",
+  ">Extended Warranty: Manufacturer's standard extended warranty for sealed refrigeration systems, compressors, and magnetrons, typically five years.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Whirlpool Corporation (Whirlpool, KitchenAid, Maytag, JennAir).",
+  ">GE Appliances, a Haier company (GE, GE Profile, Cafe, Monogram).",
+  ">BSH Home Appliances Corporation (Bosch, Thermador).",
+  ">Sub-Zero Group, Inc. (Sub-Zero, Wolf, Cove).",
+  "Source Limitations: Obtain each type of appliance from a single manufacturer; provide matching finish for all appliances in the same room.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Energy Performance: Refrigerators, freezers, dishwashers, clothes washers, and clothes dryers shall be ENERGY STAR qualified.",
+  "Water Use: Dishwashers and clothes washers shall comply with water factors required by the ENERGY STAR program and {building_code}.",
+  "Sound: Dishwashers shall have a manufacturer-rated sound level of 44 dBA or less.",
+]
+
+[[section.part2]]
+title = "COOKING APPLIANCES"
+items = [
+  "Freestanding or Slide-In Range: 30 inches wide, [electric with smooth-top radiant or induction cooktop] [gas with sealed burners], with self-cleaning convection oven.",
+  ">Oven Capacity: Not less than 5.0 cu. ft.",
+  ">Anti-Tip Device: Manufacturer's anti-tip bracket, installed and anchored to floor or wall framing.",
+  ">Controls: Front-mounted electronic controls with digital display and timer.",
+  "Cooktop: 30 or 36 inches wide as indicated, [induction] [radiant electric] [gas with sealed burners and continuous cast-iron grates].",
+  "Wall Oven: Single or double as indicated, 30 inches wide, electric convection, self-cleaning, with hidden bake element.",
+  "Microwave Oven: [Built-in drawer type] [Over-the-range with integral exhaust] [Countertop with trim kit], not less than 1.2 cu. ft. capacity and 1000 W cooking power.",
+]
+
+[[section.part2]]
+title = "RANGE HOODS"
+items = [
+  "Range Hood: [Under-cabinet] [Wall-mounted chimney] [Insert] type, width not less than width of cooking appliance served, stainless steel.",
+  ">Airflow: Not less than 250 cfm and not more than 400 cfm unless makeup air is provided as required by {building_code}.",
+  ">Discharge: Ducted to exterior; recirculating hoods only where indicated.",
+  ">Lighting: Integral LED lighting.",
+  ">Filters: Removable, dishwasher-safe stainless-steel baffle or mesh filters.",
+  ">Sound: Not more than 3 sones at the lowest speed setting.",
+]
+
+[[section.part2]]
+title = "REFRIGERATION APPLIANCES"
+items = [
+  "Refrigerator/Freezer: [French-door] [Side-by-side] [Top-freezer] [Built-in panel-ready] configuration, 36 inches wide unless otherwise indicated, frost-free.",
+  ">Total Capacity: Not less than 20 cu. ft.",
+  ">Ice Maker: Automatic ice maker with water filter; provide water supply connection kit.",
+  ">Door Swing: As indicated on Drawings; field-reversible where available.",
+  "Undercounter Beverage Center: 24 inches wide, front-vented for built-in installation, glass door, where indicated.",
+]
+
+[[section.part2]]
+title = "DISHWASHERS"
+items = [
+  "Dishwasher: Built-in undercounter, 24 inches wide, stainless-steel tub, [stainless-steel front] [panel-ready], with concealed top controls.",
+  ">Capacity: Not less than 12 place settings.",
+  ">Features: Third rack, soil sensor, and sanitize cycle certified to NSF/ANSI 184.",
+  ">Installation Accessories: Mounting brackets, side-mount kit for stone countertops, and drain hose with high-loop or air-gap connection as required by plumbing code.",
+]
+
+[[section.part2]]
+title = "LAUNDRY APPLIANCES"
+items = [
+  "Clothes Washer: Front-load, high-efficiency, not less than 4.5 cu. ft. capacity, stackable where indicated.",
+  "Clothes Dryer: [Electric] [Gas] [Electric heat pump, ventless] type, matching washer, not less than 7.0 cu. ft. capacity, with moisture sensor.",
+  "Accessories: Stacking kit where indicated, new supply hoses with braided stainless-steel jackets, and dryer transition duct of rigid or semi-rigid metal complying with UL 2158A.",
+]
+
+[[section.part2]]
+title = "GARBAGE DISPOSERS"
+items = [
+  "Garbage Disposer: Continuous-feed, 3/4 hp minimum, with stainless-steel grinding components, sound insulation, and dishwasher drain connection; UL 430 listed.",
+  ">Control: Wall switch or air switch as indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine cabinet openings, rough-in utilities, and ventilation provisions for compliance with manufacturer's requirements and for conditions affecting installation.",
+  "Verify that electrical, gas, water, drain, and duct connections are in place and correctly located before installing appliances.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install appliances according to manufacturer's written instructions, level and plumb, and securely anchored.",
+  "Built-In Appliances: Install trim kits and custom panels to align with adjacent casework; maintain manufacturer's required clearances and ventilation openings.",
+  "Ranges: Install anti-tip devices and verify engagement.",
+  "Range Hoods: Mount at height recommended by manufacturer above cooking surface; connect to exhaust duct with airtight joints and backdraft damper.",
+  "Dishwashers: Secure to countertop underside or cabinet sides; connect drain with high loop or air gap.",
+  "Clothes Dryers: Connect to exhaust duct with shortest practical transition duct; do not use plastic or foil transition ducts.",
+  "Utility Connections: Make final connections to plumbing, gas, and electrical services provided under other Sections; comply with applicable codes.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test each appliance for proper operation through all cycles and functions. Check gas connections for leaks.",
+  "Replace appliances that are damaged or do not operate properly.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove packing materials, protective films, and labels other than required listing labels. Clean exposed surfaces according to manufacturer's instructions.",
+  "Protect installed appliances from damage until Substantial Completion.",
+  "Demonstration: Train Owner's personnel in operation and maintenance of appliances.",
+]
+
+[[section]]
+number = "12 24 13"
+title = "ROLLER WINDOW SHADES"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Manually operated roller shades with single and dual rollers.",
+  ">Motorized roller shades.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for blocking for shade brackets.",
+  ">Division 26 for power wiring to motorized shades.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of shade, including fabric data and operating hardware.",
+  "Shop Drawings: Show location and extent of shades, mounting details, head and jamb conditions, pocket details, and wiring diagrams for motorized units.",
+  "Samples: For each shadecloth color and openness factor, not less than 10 by 10 inches, and for each exposed hardware finish.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For shadecloth, showing compliance with flame-resistance requirements.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For roller shades, including motor and control programming instructions.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Field Measurements: Verify actual dimensions of openings by field measurement before fabrication.",
+  "Mockup: Install one shade in a typical window to show operation, fabric, and light-gap control; approved mockup may remain as part of the Work.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver shades in factory packages marked with manufacturer, product name, and installation location.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace components that fail in materials or workmanship.",
+  ">Warranty Period: Shadecloth and manual hardware, 10 years; motors and controls, 5 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Draper, Inc.",
+  ">Hunter Douglas Contract.",
+  ">Lutron Electronics Co., Inc.",
+  ">MechoShade Systems, LLC.",
+]
+
+[[section.part2]]
+title = "ROLLER SHADES"
+items = [
+  "Shade Rollers: Extruded aluminum tubes sized by manufacturer to limit deflection for the shade width, with removable spline for fabric attachment.",
+  "Shadecloth: PVC-coated polyester or fiberglass, [3 percent] [5 percent] openness solar screen, or blackout fabric where indicated.",
+  ">Flame Resistance: Pass NFPA 701 Standard Methods of Fire Tests for Flame Propagation of Textiles and Films.",
+  ">Environmental: Certified for low chemical emissions by UL GREENGUARD Gold or equivalent.",
+  "Bottom Bar: Enclosed or sealed extruded aluminum hembar, finish to match hardware.",
+  "Manual Operation: Continuous-loop bead chain with clutch, chain tensioner complying with WCMA A100.1 Safety of Window Covering Products, and limit stops.",
+  "Motorized Operation: Concealed tubular motor, [120 V AC] [low-voltage DC], with electronic limit setting, obstruction detection, and wall-mounted keypad controls.",
+  ">Integration: Compatible with building lighting control or home automation system where indicated.",
+  "Mounting: [Fascia] [Pocket] [Inside-mounted brackets] as indicated; provide side channels where light-blocking is indicated.",
+  "Hardware Finish: Manufacturer's standard anodized or powder-coat finish, color as selected by Architect.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine openings, blocking, and power provisions. Verify that window frames are installed and finishes are complete before shade installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install roller shades level, plumb, and aligned with adjacent units, according to manufacturer's written instructions.",
+  "Locate shades so that shadecloth is not closer than 2 inches to interior face of glass; allow for window hardware operation.",
+  "Anchor brackets into blocking or structure with fasteners suitable for substrate.",
+  "Motorized Shades: Connect to power and controls provided under Division 26; program limits and group controls.",
+]
+
+[[section.part3]]
+title = "ADJUSTING, CLEANING, AND DEMONSTRATION"
+items = [
+  "Adjust shades for smooth operation, level hembars, and straight tracking without telescoping.",
+  "Clean shadecloth and hardware according to manufacturer's instructions.",
+  "Train Owner's personnel to operate, adjust, and maintain roller shades.",
+]
+
+[[section]]
+number = "12 36 61"
+title = "SIMULATED STONE COUNTERTOPS"
+when = ["countertops"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Quartz agglomerate (engineered quartz) countertops, backsplashes, and end splashes.",
+  ">Quartz window sills and vanity tops where indicated.",
+  "Related Requirements:",
+  ">Section 06 41 16 \"Plastic-Laminate-Clad Architectural Cabinets\" for base cabinets supporting countertops.",
+  ">Section 11 31 00 \"Residential Appliances\" for cooktops and dishwashers requiring cutouts.",
+  ">Section 22 40 00 \"Plumbing Fixtures\" for undermount sinks and faucets.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of quartz surfacing, adhesive, and sealant.",
+  "Shop Drawings: Show layout, seam locations, edge profiles, backsplashes, cutouts for sinks and appliances, overhangs, and support brackets. Base on field measurements.",
+  "Samples: For each color and finish, not less than 6 by 6 inches, showing full range of pattern variation.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For fabricator.",
+  "Product Certificates: Showing NSF/ANSI 51 certification for food zone use.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: Manufacturer's care and cleaning instructions for inclusion in maintenance manuals.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Fabricator Qualifications: Shop certified or approved by quartz surfacing manufacturer, with not less than three years of experience fabricating quartz countertops of similar scope.",
+  "Slab Selection: Architect or Owner may review slabs at fabricator's facility before fabrication for projects with visible veining.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Transport and store fabricated pieces on edge on A-frames with padded supports; protect finished surfaces and edges.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Field Measurements: Template countertop locations after base cabinets are installed and before fabrication; indicate measurements on Shop Drawings.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer's standard limited warranty against manufacturing defects in quartz surfacing, 10 years or longer from date of Substantial Completion.",
+  "Installer's Warranty: One year against defects in fabrication and installation.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Cambria.",
+  ">Caesarstone USA.",
+  ">Cosentino North America (Silestone).",
+  ">MSI (Q Premium Natural Quartz).",
+]
+
+[[section.part2]]
+title = "QUARTZ SURFACING"
+items = [
+  "Quartz Agglomerate: Solid slabs of not less than 90 percent natural quartz aggregate bound with polymer resins and pigments, complying with ICPA SS-1 Performance Standard for Quartz Surfaces.",
+  ">Thickness: [3 cm (1-1/4 inch)] [2 cm (3/4 inch) with laminated edge buildup].",
+  ">Water Absorption: Not more than 0.05 percent according to ASTM C97.",
+  ">Flexural Strength: Not less than 5,000 psi according to ASTM C880.",
+  ">Food Safety: NSF/ANSI 51 certified.",
+  ">Color and Pattern: As indicated on Drawings or as selected by Architect from manufacturer's full range.",
+  ">Finish: [Polished] [Honed] [Textured].",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Adhesive: Two-part epoxy or polyester seaming adhesive recommended by surfacing manufacturer, tinted to match.",
+  "Setting Adhesive: 100 percent silicone sealant or construction adhesive recommended by manufacturer.",
+  "Sealant for Countertop Joints: Mildew-resistant silicone sealant complying with ASTM C920, Type S, Grade NS, Class 25, color to match.",
+  "Support Brackets: Concealed steel brackets for overhangs exceeding manufacturer's unsupported limits.",
+  "Sink Clips: Stainless-steel undermount sink clips and epoxy-anchored inserts recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "FABRICATION"
+items = [
+  "Fabricate countertops in one piece where practical; locate seams as indicated on approved Shop Drawings, away from sink and cooktop cutouts, and not less than 6 inches from cutout corners.",
+  "Edge Profile: [Eased] [1/8 inch radius] [Half bullnose] [Mitered] as indicated.",
+  "Backsplash: 4 inches high unless otherwise indicated, same material and thickness as countertop, with eased top edge.",
+  "Cutouts: Cut with water-cooled saw; provide minimum 3/8 inch inside corner radius. Polish undermount sink cutout edges.",
+  "Overhangs: Do not exceed manufacturer's unsupported overhang limits, typically 10 inches for 3 cm material and 6 inches for 2 cm material, without supports.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine base cabinets and supports for level, alignment, and adequate anchorage. Verify cabinets are level within 1/8 inch in 10 feet.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install countertops level, true, and plumb, with adhesive or silicone beads at cabinet supports according to manufacturer's written instructions.",
+  "Seams: Make seams tight and flush with color-matched adhesive; maximum joint width 1/16 inch, with no lippage.",
+  "Undermount Sinks: Secure with sink clips and epoxy-set anchors; seal perimeter with silicone sealant.",
+  "Backsplashes: Adhere to wall and countertop; seal joint between countertop and backsplash.",
+  "Dishwashers: Provide mounting provisions acceptable to both countertop and appliance manufacturers.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean countertops with cleaner recommended by manufacturer; remove adhesive residue.",
+  "Protect surfaces with nonstaining protective covering until Substantial Completion.",
+]
+
+[[section]]
+number = "12 48 13"
+title = "ENTRANCE FLOOR MATS AND FRAMES"
+when = ["commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Recessed entrance grilles and mats in metal frames.",
+  ">Surface-mounted walk-off mats.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for recessed slab depressions.",
+  ">Section 09 65 19 \"Resilient Tile Flooring\" and Section 09 68 13 \"Tile Carpeting\" for adjacent flooring.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Shop Drawings: Show layout, dimensions, frame profiles, pit depth, drain provisions, and joints between sections.",
+  "Samples: For each tread insert color and frame finish, not less than 6 inches long.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For cleaning and maintenance of mats and grilles.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Five years against defects in materials and workmanship, including frame and rail integrity, from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Construction Specialties, Inc. (Pedimat, Pedigrid).",
+  ">Balco, Inc.",
+  ">Kadee Industries.",
+  ">Mats Inc.",
+]
+
+[[section.part2]]
+title = "RECESSED ENTRANCE GRILLES"
+items = [
+  "Rails: Extruded aluminum, ASTM B221 alloy 6063-T5 or 6063-T6, spaced to provide openings not more than 1/4 inch at walking surface to comply with the ADA Standards for Accessible Design.",
+  "Tread Inserts: [Carpet of solution-dyed nylon fibers] [Abrasive-filled vinyl] [Rubber] inserts, replaceable, color as selected by Architect.",
+  "Depth: [3/8 inch] [3/4 inch] recessed unit to suit slab depression indicated.",
+  "Frames: Extruded aluminum, 1/4 inch deep lip, with integral anchors; mill or clear anodized finish.",
+  "Load Capacity: Suitable for pedestrian traffic and wheeled loads of 350 lb per wheel minimum.",
+  "Drainage: Pit with drain connection where indicated at exterior vestibules.",
+  "Size: Not less than 10 feet in the direction of travel at primary entrances unless otherwise indicated.",
+]
+
+[[section.part2]]
+title = "SURFACE-MOUNTED MATS"
+items = [
+  "Walk-Off Mats: Heavy-duty carpet or rubber-backed mats with beveled vinyl edges not more than 1/2 inch high and slope not steeper than 1:2, secured to floor.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine recessed slab depressions for correct depth, level, and drainage. Verify that substrate is dry, clean, and level within 1/8 inch in 10 feet.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install frames level and flush with adjacent finished floor, anchored and grouted solid according to manufacturer's written instructions.",
+  "Install grilles and mats so rails run perpendicular to direction of traffic unless otherwise indicated.",
+  "Coordinate top of frame with thickness of adjacent floor finishes.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Cover installed units with protective material; do not permit construction traffic on grilles. Replace damaged tread inserts before Substantial Completion.",
+]
+
+[[section]]
+number = "14 24 00"
+title = "HYDRAULIC ELEVATORS"
+when = ["elevator"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Holeless or in-ground hydraulic passenger elevators.",
+  ">Machine-room-less hydraulic elevators where indicated.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for pit construction.",
+  ">Section 04 20 00 \"Unit Masonry\" for hoistway walls where indicated.",
+  ">Section 05 50 00 \"Metal Fabrications\" for pit ladders, sill supports, and divider beams.",
+  ">Section 09 29 00 \"Gypsum Board\" for rated hoistway enclosures.",
+  ">Division 21 for sprinklers in hoistway and machine room.",
+  ">Division 26 for power to disconnect switches, lighting, and receptacles in machine room and pit.",
+  ">Division 28 for fire alarm initiating devices and elevator recall interface.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Definitions in ASME A17.1/CSA B44 apply to Work of this Section.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: Include capacities, sizes, performances, operations, safety features, finishes, and similar information for each elevator.",
+  "Shop Drawings: Show plans, elevations, sections, and large-scale details of hoistway, pit, machine room, cab, and entrances. Indicate reactions at points of support, required clearances, and electrical characteristics and loads.",
+  "Samples: For each exposed finish on cab interior and entrances.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer.",
+  "Manufacturer Certificates: Signed by elevator manufacturer, certifying that hoistway, pit, and machine room layout and dimensions as indicated on Drawings, and electrical service as indicated in Division 26, are adequate for elevator system being provided.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: Include diagnostic and repair information available to manufacturer's and Installer's maintenance personnel.",
+  "Inspection and Acceptance Certificates: Certificate of operation from authority having jurisdiction.",
+  "Continuing Maintenance Proposal: Proposal for full maintenance service beginning at end of warranty maintenance period.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Elevator manufacturer or an authorized representative who is trained and approved by manufacturer, with licensed elevator mechanics as required by {jurisdiction}.",
+  "Regulatory Requirements: Comply with ASME A17.1/CSA B44 Safety Code for Elevators and Escalators, {building_code}, and requirements of authorities having jurisdiction.",
+  "Accessibility Requirements: Comply with Section 407 of ICC A117.1 and the ADA Standards for Accessible Design.",
+  "Emergency Operation: Comply with firefighters' emergency operation requirements of ASME A17.1/CSA B44.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver, store, and handle materials, components, and equipment in manufacturer's protective packaging. Store in a dry location protected from weather and construction activities.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Coordinate installation of sleeves, block-outs, anchors, and items embedded in concrete or masonry. Furnish templates and setting drawings.",
+  "Coordinate sizes and locations of pit, hoistway, and machine room, including ventilation, with elevator system requirements.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair, restore, or replace elevator work that fails in materials or workmanship within one year from date of Substantial Completion.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE SERVICE"
+items = [
+  "Initial Maintenance Service: Beginning at Substantial Completion, provide 12 months of full maintenance by skilled employees of elevator Installer, including monthly preventive maintenance, repair or replacement of worn or defective components, lubrication, cleaning, and adjusting. Include 24-hour-per-day, 7-day-per-week emergency callback service.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Otis Elevator Company.",
+  ">Schindler Elevator Corporation.",
+  ">TK Elevator Corporation.",
+  ">KONE Inc.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Seismic Performance: Elevator system shall withstand the effects of earthquake motions determined according to ASCE/SEI 7 and ASME A17.1/CSA B44 Section 8.4.",
+  "Rated Load: 2500 lb minimum; 3500 lb where a stretcher-accommodating car is required by {building_code}.",
+  "Rated Speed: 100 fpm up and down, unless otherwise indicated.",
+  "Travel and Stops: As indicated on Drawings.",
+]
+
+[[section.part2]]
+title = "HYDRAULIC ELEVATOR SYSTEM"
+items = [
+  "Hydraulic Jack: [Holeless telescopic jacks, twin-post] [In-ground single-stage jack with PVC or HDPE casing and cylinder corrosion protection complying with ASME A17.1/CSA B44].",
+  "Power Unit: Submersible pump and motor assembly in oil reservoir, with integral control valve, muffler, and oil cooler where required for duty cycle.",
+  "Hydraulic Fluid: Manufacturer's standard mineral-oil fluid; biodegradable fluid where indicated.",
+  "Pump Motor Starting: Solid-state soft starter.",
+  "Car Frame and Platform: Welded or bolted steel, with fire-resistant platform construction.",
+  "Guide Rails: Machined steel T-section guide rails with roller guides.",
+  "Buffers: Spring buffers as required by ASME A17.1/CSA B44.",
+]
+
+[[section.part2]]
+title = "OPERATION AND CONTROLS"
+items = [
+  "Control System: Microprocessor-based, selective collective automatic operation.",
+  "Auxiliary Operations:",
+  ">Battery-powered automatic lowering to lowest landing on loss of normal power, with doors opening automatically.",
+  ">Independent service.",
+  ">Firefighters' emergency operation Phases I and II.",
+  ">Automatic re-leveling and door re-opening.",
+  "Car Operating Panel: Stainless-steel faceplate with illuminated tactile call buttons, raised and braille markings, alarm button, door open and door close buttons, key switches, and digital position indicator.",
+  "Hall Fixtures: Illuminated tactile call buttons and hall lanterns with audible signals at each landing.",
+  "Emergency Communication: Two-way communication system complying with ASME A17.1/CSA B44 and ICC A117.1, with visible signals.",
+]
+
+[[section.part2]]
+title = "DOOR OPERATION AND ENTRANCES"
+items = [
+  "Door Operator: Closed-loop, variable-frequency door operator; door reopening by infrared light curtain.",
+  "Entrances: Single-speed side-opening or center-opening as indicated, 42 inches wide by 84 inches high minimum.",
+  ">Fire Rating: Hoistway entrances labeled and listed for fire-protection rating to match hoistway enclosure, tested according to UL 10B.",
+  ">Finish: Satin stainless steel, No. 4 finish.",
+  "Sills: Extruded aluminum or nickel silver.",
+]
+
+[[section.part2]]
+title = "CAR ENCLOSURES"
+items = [
+  "Car Walls: Manufacturer's standard steel shell with [plastic-laminate] [stainless-steel] removable panels.",
+  "Car Ceiling: Suspended panels with LED lighting and emergency lighting.",
+  "Car Floor: As indicated, recessed to receive finish flooring.",
+  "Handrails: Stainless steel, on rear and side walls.",
+  "Protective Pads: Provide pad hooks and one complete set of full-height protective pads.",
+  "Ventilation: Two-speed exhaust fan.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine elevator areas, with Installer present, for compliance with requirements for hoistway, pit, and machine room construction, dimensional tolerances, and other conditions affecting performance.",
+  "Verify hoistway plumb within tolerances required by manufacturer and that pit is dry and waterproofed.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install elevator according to manufacturer's written instructions and ASME A17.1/CSA B44.",
+  "Welded Construction: Comply with AWS D1.1/D1.1M.",
+  "Alignment: Align guide rails vertically within tolerances recommended by manufacturer.",
+  "Sills: Set sills flush with finished floor surface, grouted level.",
+  "Leveling Tolerance: 1/4 inch, up or down, regardless of load and travel direction.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Acceptance Tests: Perform tests required by ASME A17.1/CSA B44 and authorities having jurisdiction; notify Architect and Owner in advance.",
+  "Correct deficiencies and retest until elevator passes inspection and a certificate of operation is issued.",
+]
+
+[[section.part3]]
+title = "PROTECTION AND DEMONSTRATION"
+items = [
+  "Temporary use of elevators for construction purposes is permitted only with Owner's written approval and with protective pads and car protection installed.",
+  "Train Owner's personnel to operate elevators, including emergency operation and Phase I recall.",
+]
+
+[[section]]
+number = "21 13 13"
+title = "WET-PIPE SPRINKLER SYSTEMS"
+when = ["sprinklers"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Wet-pipe automatic sprinkler systems, including piping, valves, sprinklers, alarm devices, and fire department connections, from the point of connection to the water service to the most remote sprinkler.",
+  ">Combined domestic and fire sprinkler (multipurpose) piping systems for one- and two-family dwellings where permitted by NFPA 13D and indicated.",
+  "Design Responsibility: The sprinkler system is a delegated design. The fire protection contractor shall design the system, including hydraulic calculations and working plans, to comply with the performance requirements specified and indicated. Drawings indicate design intent, areas to be protected, and coordination constraints only. Coordinate the Work with the engineer of record and the Architect.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping of pipe penetrations.",
+  ">Section 22 05 00 \"Common Work Results for Plumbing\" for sleeves, escutcheons, and hangers.",
+  ">Section 22 11 16 \"Domestic Water Piping\" for water service and backflow prevention where shared.",
+  ">Division 28 for fire alarm connections to waterflow and supervisory switches.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Standard-Pressure Sprinkler Piping: Piping designed to operate at a working pressure of 175 psig maximum.",
+  "Working Plans: Drawings, calculations, and data prepared according to NFPA 13, NFPA 13R, or NFPA 13D, as applicable, for review by authorities having jurisdiction.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including listing and pressure ratings.",
+  "Working Plans and Hydraulic Calculations: Prepared, signed, and sealed as required by {jurisdiction}, by a qualified professional engineer or a technician certified by NICET at Level III or IV in water-based systems layout. Include sprinkler layout coordinated with reflected ceiling plans, pipe sizes and routing, hanger and seismic brace locations, and hydraulic calculations.",
+  "Delegated-Design Submittal: Submit working plans to authorities having jurisdiction for approval and to Architect for coordination review before installation. Architect's and engineer of record's review is for general conformance with design intent only.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For installer and designer.",
+  "Water Flow Test Report: Current hydrant flow test data, not more than 12 months old, used as the basis for hydraulic calculations.",
+  "Coordination Drawings: Show sprinklers, piping, and bracing coordinated with structure, ductwork, lighting, and ceiling systems.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Contractor's Material and Test Certificates: For aboveground and underground piping, on forms from NFPA 13 and NFPA 24.",
+  "Operation and Maintenance Data: For sprinkler specialties, including NFPA 25 inspection, testing, and maintenance guidance.",
+  "Record Drawings: As-built working plans and final hydraulic calculations.",
+  "Hydraulic Design Information Sign: Installed at system riser as required by NFPA 13.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Licensed fire sprinkler contractor as required by {jurisdiction}, with design personnel certified by NICET in water-based systems layout at Level III or higher.",
+  "Listings: Provide components listed by UL or approved by FM Approvals for fire protection service, marked with the listing mark.",
+  "Standards: Comply with the following, as applicable to building occupancy and as required by {building_code}:",
+  ">NFPA 13 Standard for the Installation of Sprinkler Systems.",
+  ">NFPA 13R Standard for the Installation of Sprinkler Systems in Low-Rise Residential Occupancies.",
+  ">NFPA 13D Standard for the Installation of Sprinkler Systems in One- and Two-Family Dwellings and Manufactured Homes.",
+  ">NFPA 24 Standard for the Installation of Private Fire Service Mains and Their Appurtenances, for underground piping.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Interruption of Existing Services: Do not interrupt fire protection service to occupied facilities unless permitted in writing by Owner and authorities having jurisdiction, and only after arranging a temporary fire watch.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Installer's Warranty: One year from date of Substantial Completion against defects in materials and workmanship, including leaks.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Design sprinkler systems by hydraulic calculation using the following, unless more stringent requirements are imposed by authorities having jurisdiction:",
+  ">Light-Hazard Occupancies: 0.10 gpm per sq. ft. over 1500 sq. ft. design area.",
+  ">Ordinary-Hazard Group 1 Occupancies: 0.15 gpm per sq. ft. over 1500 sq. ft. design area.",
+  ">Ordinary-Hazard Group 2 Occupancies: 0.20 gpm per sq. ft. over 1500 sq. ft. design area.",
+  ">Residential Occupancies under NFPA 13R or NFPA 13D: Discharge according to residential sprinkler listing, for the number of design sprinklers required by the standard.",
+  "Safety Margin: Provide not less than 10 psi between available water supply and system demand at the base of riser.",
+  "Maximum Protection Area per Sprinkler: As permitted by NFPA 13 and the sprinkler listing.",
+  "Velocity: Not more than 20 fps in any pipe section.",
+  "Seismic Performance: Where required by ASCE/SEI 7, brace piping according to NFPA 13.",
+]
+
+[[section.part2]]
+title = "PIPING MATERIALS"
+items = [
+  "Steel Pipe: ASTM A53/A53M or ASTM A795/A795M, Schedule 40 for sizes 2 inches and smaller with threaded joints; Schedule 10 for sizes 2-1/2 inches and larger with roll-grooved joints.",
+  "Fittings: Cast-iron threaded fittings complying with ASME B16.4, malleable-iron threaded fittings complying with ASME B16.3, or listed grooved-joint couplings and fittings.",
+  "CPVC Pipe and Fittings: Listed for fire sprinkler service and complying with ASTM F442/F442M, where permitted for light-hazard and residential occupancies, installed as required by the listing.",
+  "Copper Tube: ASTM B88, Type L or M, with brazed or listed press joints, where permitted.",
+  "PEX Tubing: Listed for residential fire sprinkler service under NFPA 13D, where multipurpose systems are indicated.",
+]
+
+[[section.part2]]
+title = "VALVES AND SPECIALTIES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Tyco Fire Protection Products (Johnson Controls).",
+  ">The Viking Corporation.",
+  ">Victaulic Company.",
+  ">Reliable Automatic Sprinkler Co., Inc.",
+  "Control Valves: Listed indicating-type butterfly or gate valves, 175 psig minimum working pressure, with integral supervisory (tamper) switches.",
+  "Check Valves: Listed swing or grooved-end check valves.",
+  "Waterflow Indicators: Vane-type waterflow switches with adjustable retard, connected to fire alarm system.",
+  "Backflow Preventer: Listed double-check detector assembly or reduced-pressure detector assembly as required by water purveyor, complying with ASSE 1048 or ASSE 1047.",
+  "Fire Department Connection: Brass or chrome-plated body with 2-1/2 inch inlets having threads matching local fire department equipment, caps, and identification plate; locate as approved by fire department.",
+  "Inspector's Test and Drain Assemblies: Listed combination units with sight glass and orifice matching the smallest sprinkler orifice in the system.",
+  "Pressure Gauges: Complying with UL 393, 0 to 300 psig range.",
+]
+
+[[section.part2]]
+title = "SPRINKLERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Tyco Fire Protection Products (Johnson Controls).",
+  ">The Viking Corporation.",
+  ">Reliable Automatic Sprinkler Co., Inc.",
+  ">Victaulic Company.",
+  "Sprinklers: UL listed or FM approved, quick-response, with 175 psig minimum pressure rating.",
+  ">Residential Sprinklers: Listed to UL 1626, in dwelling units.",
+  ">Standard Sprinklers: Listed to UL 199, in other areas.",
+  "Types: [Concealed pendent with flat cover plate] [Recessed pendent] in finished ceilings; upright in unfinished spaces; sidewall where indicated; dry pendent or dry sidewall in areas subject to freezing.",
+  "Finishes: White polyester cover plates and escutcheons in finished areas; chrome-plated or white elsewhere; natural brass in unfinished areas.",
+  "Sprinkler Guards: Listed wire guards where sprinklers are subject to mechanical damage.",
+  "Spare Sprinklers: Cabinet with not fewer than the number of spare sprinklers of each type required by NFPA 13, with sprinkler wrenches.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine roughing-in, structure, and ceiling layouts for suitability for sprinkler installation. Verify water supply pressure and flow match the hydraulic calculation basis.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install sprinkler systems according to approved working plans, NFPA 13, NFPA 13R, or NFPA 13D as applicable, and manufacturer's listing requirements.",
+  "Piping: Install concealed in finished spaces unless otherwise indicated; locate to avoid conflict with ductwork, lighting, and structure. Pitch piping to drain.",
+  "Hangers and Supports: Comply with NFPA 13 for spacing and type; do not hang from ductwork or ceiling suspension systems.",
+  "Sprinkler Locations: Center sprinklers in ceiling tiles and align with lighting and air devices in finished ceilings; locate as indicated on reflected ceiling plans where shown.",
+  "Freeze Protection: Do not install wet-pipe piping in spaces subject to freezing; in dwellings, locate piping within the heated envelope on the warm side of insulation.",
+  "Penetrations: Provide sleeves at walls and floors, and firestop penetrations of rated assemblies under Section 07 84 13 \"Penetration Firestopping\".",
+  "Identification: Provide signs at control valves, drains, test connections, and fire department connection as required by NFPA 13.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Flushing: Flush underground supply piping before connection to aboveground piping, according to NFPA 24.",
+  "Hydrostatic Test: Test piping at 200 psig, or 50 psig above maximum working pressure where working pressure exceeds 150 psig, for two hours with no loss of pressure and no visible leakage. Test NFPA 13D systems as required by that standard.",
+  "Operational Tests: Test waterflow alarms, supervisory switches, and fire alarm interface in coordination with Division 28.",
+  "Inspections: Arrange for inspections and acceptance tests by authorities having jurisdiction; notify Architect and engineer of record in advance.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Protect sprinklers from paint and overspray; replace sprinklers that are painted, damaged, or corroded. Do not clean sprinklers with solvents.",
+  "Leave systems in service, filled, with all control valves open and supervised.",
+]
+
+[[section]]
+number = "22 05 00"
+title = "COMMON WORK RESULTS FOR PLUMBING"
+when = ["plumbing"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">General requirements for plumbing Work.",
+  ">Sleeves, escutcheons, and sealing of penetrations.",
+  ">Hangers and supports for plumbing piping and equipment.",
+  ">Piping, valve, and equipment identification.",
+  ">Insulation for plumbing piping.",
+  ">Seismic restraint of plumbing piping and equipment where required.",
+  "Design Responsibility: Plumbing Work is designed as indicated on Drawings and specified in Division 22 Sections. Where Drawings or Specifications assign design of components or systems to the Contractor, that work is a delegated design to be performed by a qualified professional engineer licensed in {jurisdiction}. Coordinate plumbing Work with the engineer of record, who is responsible for the plumbing design indicated.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping at rated assemblies.",
+  ">Section 09 91 23 \"Interior Painting\" for painting of exposed piping.",
+  ">Division 26 for electrical connections to plumbing equipment.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including rated capacities, operating characteristics, and furnished specialties.",
+  "Delegated-Design Submittals: For hangers, supports, and seismic restraints requiring design by the Contractor, signed and sealed by the qualified professional engineer responsible for their preparation.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Coordination Drawings: Plans and sections, drawn to scale, showing plumbing piping and equipment coordinated with structure, ductwork, electrical, fire protection, and ceiling systems, including access provisions.",
+  "Qualification Data: For Installer.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For plumbing equipment and specialties.",
+  "Record Drawings: Marked-up Drawings showing actual routing, sizes, invert elevations, and locations of valves, cleanouts, and access panels.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Licensed plumbing contractor as required by {jurisdiction}; perform Work by licensed journeyman plumbers under supervision of a licensed master plumber.",
+  "Regulatory Requirements: Comply with {building_code}, the plumbing code adopted by {jurisdiction}, and requirements of the local water and sewer purveyors.",
+  "Lead-Free Requirements: Components in contact with potable water shall comply with NSF/ANSI 61 and NSF/ANSI 372.",
+  "Electrical Components: Listed and labeled as defined in NFPA 70.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Coordinate plumbing Work with the engineer of record, other trades, and building structure. Do not cut, bore, or notch structural members without written approval of the Architect and structural engineer.",
+  "Coordinate locations of access panels for concealed valves, cleanouts, and equipment; furnish access panels to the trade responsible for their installation.",
+  "Coordinate rough-in for fixtures and appliances furnished under other Sections.",
+]
+
+[[section.part2]]
+title = "SLEEVES AND ESCUTCHEONS"
+items = [
+  "Sleeves: Galvanized-steel pipe or PVC pipe sleeves; cast-iron wall pipes with integral water stop at below-grade exterior walls.",
+  "Sleeve Seals: Modular mechanical sleeve seals with EPDM interlocking links at exterior and below-grade penetrations.",
+  "Escutcheons: One-piece or split-hinged, chrome-plated or stainless-steel escutcheons at exposed penetrations in finished spaces.",
+]
+
+[[section.part2]]
+title = "HANGERS AND SUPPORTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Eaton (B-Line).",
+  ">nVent CADDY.",
+  ">Anvil International.",
+  ">Unistrut (Atkore).",
+  "Pipe Hangers: Factory-fabricated, complying with MSS SP-58, with electrogalvanized finish in dry areas and hot-dip galvanized or stainless-steel finish in damp areas.",
+  "Copper Pipe Hangers: Copper-plated or plastic-coated to prevent galvanic contact.",
+  "Plastic Pipe Supports: Hangers at spacing recommended by pipe manufacturer, with continuous channel support where required.",
+  "Insulation Protection Shields: Galvanized-steel shields with high-density insulation insert at hangers for insulated piping.",
+]
+
+[[section.part2]]
+title = "IDENTIFICATION"
+items = [
+  "Pipe Labels: Preprinted, color-coded, pressure-sensitive or snap-on vinyl markers complying with ASME A13.1, indicating service and flow direction.",
+  "Valve Tags: 1-1/2 inch diameter brass tags with stamped numbers, with a framed valve schedule mounted in the mechanical room.",
+  "Equipment Labels: Engraved plastic nameplates for water heaters, pumps, and major equipment.",
+]
+
+[[section.part2]]
+title = "PIPE INSULATION"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Johns Manville.",
+  ">Owens Corning.",
+  ">Knauf Insulation.",
+  ">Armacell LLC.",
+  "Mineral-Fiber Pipe Insulation: Preformed, ASTM C547, Type I, with factory-applied all-service jacket; thermal conductivity not more than 0.26 Btu x in./h x sq. ft. x deg F at 75 deg F mean temperature.",
+  "Flexible Elastomeric Insulation: Closed-cell, ASTM C534/C534M, Type I, where indicated.",
+  "Surface-Burning Characteristics: Flame-spread index of 25 or less and smoke-developed index of 50 or less when tested according to ASTM E84, for insulation in plenums and exposed locations.",
+  "Insulation Thickness: As required by the energy code adopted by {jurisdiction}, but not less than the following:",
+  ">Domestic Hot-Water and Recirculation Piping, 1-1/2 Inches and Smaller: 1 inch.",
+  ">Domestic Hot-Water Piping, 2 Inches and Larger: 1-1/2 inches.",
+  ">Domestic Cold-Water Piping in Unconditioned Spaces: 1/2 inch, with vapor-retarder jacket.",
+  ">Horizontal Storm Drainage Piping and Roof Drain Bodies: 1/2 inch, with vapor-retarder jacket.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine rough-in locations and conditions for compliance with requirements and for conditions affecting installation. Report discrepancies between Drawings and field conditions to the Architect and engineer of record before proceeding.",
+]
+
+[[section.part3]]
+title = "PIPING INSTALLATION, GENERAL"
+items = [
+  "Drawings indicate general location and arrangement of piping. Install piping as indicated unless deviations are approved on coordination drawings reviewed by the engineer of record.",
+  "Install piping concealed within walls, chases, and ceilings in finished spaces unless otherwise indicated.",
+  "Install piping parallel or perpendicular to building lines, with clearance for insulation and access to valves and specialties.",
+  "Provide dielectric fittings or unions at connections of dissimilar metals.",
+  "Protect piping from freezing; do not install water piping in exterior walls, attics, or unheated spaces unless insulated and protected as indicated.",
+  "Sleeves: Install at penetrations of walls, floors, and roofs, and seal annular spaces. Firestop penetrations of rated assemblies under Section 07 84 13 \"Penetration Firestopping\".",
+]
+
+[[section.part3]]
+title = "HANGER AND SUPPORT INSTALLATION"
+items = [
+  "Install hangers and supports according to MSS SP-58 and the plumbing code, at spacing not exceeding code maximums or pipe manufacturer's recommendations, whichever is less.",
+  "Attach supports to structure; do not support piping from other piping, ductwork, or ceiling suspension systems.",
+  "Seismic Restraints: Install where required by ASCE/SEI 7 and {building_code}, according to approved delegated-design submittals.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION AND INSULATION INSTALLATION"
+items = [
+  "Label piping at intervals not exceeding 25 feet, at each valve, at each change in direction, and on each side of wall and floor penetrations in accessible locations.",
+  "Install insulation continuous through hangers and sleeves, with joints sealed and vapor retarders unbroken on cold-water and storm piping.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Arrange and attend inspections by authorities having jurisdiction before concealing Work.",
+  "Perform tests specified in individual Division 22 Sections; record results and submit to Architect and engineer of record.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Cap open ends of piping and protect fixtures and equipment during construction. Clean exposed piping and equipment before Substantial Completion.",
+]
+
+[[section]]
+number = "22 11 16"
+title = "DOMESTIC WATER PIPING"
+when = ["plumbing"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Aboveground and underground domestic cold-water, hot-water, and hot-water recirculation piping inside the building.",
+  ">Copper tube and fittings.",
+  ">PEX tubing and fittings.",
+  ">Valves, backflow preventers, water hammer arresters, and hose bibbs.",
+  "Design Responsibility: Domestic water piping is designed as indicated on Drawings. Pipe sizing for systems or portions of systems not sized on Drawings is delegated to the Contractor and shall be determined according to the plumbing code by a qualified person. Coordinate the Work with the engineer of record.",
+  "Related Requirements:",
+  ">Section 22 05 00 \"Common Work Results for Plumbing\" for hangers, sleeves, identification, and insulation.",
+  ">Section 22 33 00 \"Electric Domestic Water Heaters\" for water heaters.",
+  ">Section 22 40 00 \"Plumbing Fixtures\" for fixture supplies and stops.",
+  ">Division 33 for water service piping outside the building.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of pipe, tubing, fitting, valve, and specialty.",
+  "Delegated-Design Submittal: Pipe sizing calculations for portions of the system sized by the Contractor.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Test and Disinfection Reports: Pressure test records and water quality test results from an approved laboratory.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For valves, backflow preventers, and specialties.",
+  "Backflow Preventer Test Reports: By a certified tester as required by the water purveyor.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Potable-Water Components: Pipe, fittings, valves, solder, and specialties in contact with potable water shall comply with NSF/ANSI 61 and NSF/ANSI 372 and bear the certification mark.",
+  "PEX Installer Qualifications: Trained and certified by PEX system manufacturer for the joining method used.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Working Pressure: Components shall be rated for not less than 125 psig working pressure at 180 deg F.",
+  "Static Pressure: Provide pressure-reducing valve where static service pressure exceeds 80 psig; set outlet to 60 psig unless otherwise indicated.",
+  "Velocity: Size piping for velocity not exceeding 8 fps in cold-water piping and 5 fps in hot-water piping.",
+  "Hot-Water Delivery: Provide recirculation or trace heating where required by the energy code so that hot water reaches fixtures within the time or volume limits of the code.",
+]
+
+[[section.part2]]
+title = "COPPER TUBE AND FITTINGS"
+items = [
+  "Hard Copper Tube: ASTM B88, Type L, water tube, drawn temper, for aboveground piping.",
+  "Soft Copper Tube: ASTM B88, Type K, annealed temper, for underground piping within the building.",
+  "Cast-Copper Solder-Joint Fittings: ASME B16.18. Wrought-Copper Solder-Joint Fittings: ASME B16.22.",
+  "Copper Press Fittings: Complying with ASME B16.51, with EPDM O-ring seals.",
+  ">Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">>Viega LLC.",
+  ">>NIBCO INC.",
+  ">>Mueller Industries, Inc.",
+  "Solder: ASTM B32, lead-free alloys. Flux: ASTM B813, water flushable.",
+  "Brazing Filler Metals: AWS A5.8/A5.8M, BCuP series.",
+]
+
+[[section.part2]]
+title = "PEX TUBING AND FITTINGS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Uponor, Inc.",
+  ">Viega LLC.",
+  ">Zurn Elkay Water Solutions.",
+  ">SharkBite (Reliance Worldwide Corporation).",
+  "PEX Tubing: ASTM F876 and ASTM F877, rated 100 psig at 180 deg F, with chlorine resistance rating complying with ASTM F2023 for continuous recirculation where used in hot-water recirculation.",
+  "Fittings: Cold-expansion fittings complying with ASTM F1960, or crimp fittings complying with ASTM F1807 or ASTM F2159, as recommended by tubing manufacturer.",
+  "Manifolds: Manufacturer's multiport manifolds with individual shutoff valves where indicated.",
+]
+
+[[section.part2]]
+title = "VALVES"
+items = [
+  "Ball Valves: Two-piece, full port, lead-free bronze body, stainless-steel or chrome-plated brass ball, 600 psig CWP, complying with MSS SP-110.",
+  "Check Valves: Lead-free bronze swing check, Class 125, complying with MSS SP-80.",
+  "Balancing Valves: Calibrated, lead-free, with memory stop and pressure ports, on hot-water recirculation branches.",
+  "Pressure-Reducing Valve: Lead-free, complying with ASSE 1003, with integral strainer.",
+  "Thermostatic Mixing Valves: Complying with ASSE 1017 at water heaters where distribution temperature is limited, and ASSE 1070 at point-of-use fixtures where required by code.",
+]
+
+[[section.part2]]
+title = "SPECIALTIES"
+items = [
+  "Backflow Preventers: As required by the water purveyor and plumbing code: reduced-pressure principle assemblies complying with ASSE 1013, double-check assemblies complying with ASSE 1015, and vacuum breakers complying with ASSE 1011 or ASSE 1019 at hose connections.",
+  "Water Hammer Arresters: Piston type, complying with ASSE 1010 or PDI-WH 201, sized by fixture units.",
+  "Hose Bibbs and Wall Hydrants: Frost-proof, self-draining, with integral vacuum breaker, complying with ASSE 1019; key-operated at exterior walls.",
+  "Thermal Expansion Tank: Pre-charged diaphragm type, sized for water heater volume, where a check valve or pressure-reducing valve creates a closed system.",
+]
+
+[[section.part3]]
+title = "PIPING INSTALLATION"
+items = [
+  "Install domestic water piping according to the plumbing code and piping manufacturer's written instructions.",
+  "Install shutoff valves at each branch serving a fixture group, at each dwelling unit, and at equipment connections.",
+  "Install drain valves at low points and at base of risers.",
+  "Install underground copper tube without joints below slabs where practical; protect piping passing through or under concrete with sleeves or wrapping.",
+  "PEX Tubing: Install with allowance for thermal expansion; do not expose to direct sunlight; maintain clearance of 18 inches from water heater flue, or as required by manufacturer.",
+  "Joints: Make soldered joints with lead-free solder; ream tube ends; make press and expansion joints with tools recommended by fitting manufacturer.",
+  "Install water hammer arresters at quick-closing valves, including clothes washers and dishwashers.",
+  "Install hot-water recirculation piping with balancing valves at each branch and a check valve at the connection to the water heater.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Pressure Test: Test domestic water piping hydrostatically at 1.5 times working pressure, but not less than 100 psig, for not less than two hours without loss of pressure, or as required by the plumbing code, before concealing.",
+  "Backflow Preventers: Test by a certified backflow tester after installation and submit reports.",
+  "Repair leaks and retest until no leaks exist.",
+]
+
+[[section.part3]]
+title = "CLEANING AND DISINFECTION"
+items = [
+  "Flush piping to remove debris before placing in service.",
+  "Disinfect water piping according to AWWA C651 or the procedure required by the plumbing code and authorities having jurisdiction.",
+  "Submit water samples to an approved laboratory for bacteriological testing; repeat disinfection until tests show no contamination.",
+]
+
+[[section]]
+number = "22 13 16"
+title = "SANITARY WASTE AND VENT PIPING"
+when = ["plumbing"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Soil, waste, and vent piping inside the building and to 5 feet outside the building.",
+  ">PVC and ABS plastic drain, waste, and vent pipe and fittings.",
+  ">Hubless and hub-and-spigot cast-iron soil pipe and fittings.",
+  ">Cleanouts, floor drains, and air admittance valves.",
+  "Design Responsibility: Sanitary waste and vent piping is designed as indicated on Drawings. Portions of the system not sized on Drawings shall be sized by the Contractor according to the plumbing code, as a delegated design. Coordinate the Work with the engineer of record.",
+  "Related Requirements:",
+  ">Section 22 05 00 \"Common Work Results for Plumbing\" for hangers, sleeves, and identification.",
+  ">Section 22 40 00 \"Plumbing Fixtures\" for fixture traps and tailpieces.",
+  ">Division 33 for sanitary sewer piping outside the building.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For pipe, fittings, cleanouts, drains, and specialties.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Field Test Reports: Records of drainage and vent system tests.",
+  "Video Inspection Report: For building drain and underground piping, where required by Owner.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Plastic Pipe and Fittings: Bear NSF certification mark for DWV service, complying with NSF/ANSI 14.",
+  "Cast-Iron Soil Pipe and Fittings: Bear the CISPI trademark or equivalent third-party certification.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Components and installation shall withstand a water or air test at the pressures specified without leakage.",
+  "Slope: Horizontal drainage piping 3 inches and smaller, 1/4 inch per foot minimum; 4 inches and larger, 1/8 inch per foot minimum where permitted by code.",
+  "Acoustic Performance: Provide cast-iron piping or insulated plastic piping where indicated to limit noise in occupied spaces, and in plenums where plastic is not permitted.",
+]
+
+[[section.part2]]
+title = "PLASTIC PIPE AND FITTINGS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Charlotte Pipe and Foundry Company.",
+  ">JM Eagle.",
+  ">IPEX USA LLC.",
+  ">NIBCO INC.",
+  "PVC Pipe: ASTM D2665 solid-wall Schedule 40 or ASTM F891 cellular-core Schedule 40, DWV.",
+  "PVC Fittings: ASTM D2665, socket type, DWV patterns.",
+  "ABS Pipe and Fittings: ASTM D2661, Schedule 40, where permitted by code and indicated.",
+  "Solvent Cements: PVC, ASTM D2564 with ASTM F656 primer; ABS, ASTM D2235. Use low-VOC cements.",
+  "Transition Couplings: ASTM C1173 elastomeric couplings for joining dissimilar materials.",
+]
+
+[[section.part2]]
+title = "CAST-IRON SOIL PIPE AND FITTINGS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Charlotte Pipe and Foundry Company.",
+  ">AB&I Foundry (McWane).",
+  ">Tyler Pipe (McWane).",
+  "Hubless Pipe and Fittings: ASTM A888 or CISPI 301.",
+  "Hubless Couplings: CISPI 310 standard shielded couplings; heavy-duty couplings complying with ASTM C1540 for pipe 4 inches and larger and below slabs where required.",
+  "Hub-and-Spigot Pipe and Fittings: ASTM A74, Service class, with ASTM C564 rubber compression gaskets, for underground piping where indicated.",
+]
+
+[[section.part2]]
+title = "DRAINAGE SPECIALTIES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Zurn Elkay Water Solutions.",
+  ">Jay R. Smith Mfg. Co.",
+  ">Watts Water Technologies (Watts Drainage).",
+  ">Josam Company.",
+  "Cleanouts: Complying with ASME A112.36.2M, with threaded plugs; floor cleanouts with adjustable nickel-bronze tops matching floor finish; wall cleanouts with stainless-steel covers.",
+  "Floor Drains: Complying with ASME A112.6.3, cast-iron body with flashing collar, adjustable nickel-bronze strainer, and trap primer connection where required by code.",
+  "Trap Seal Protection: Trap primer valves complying with ASSE 1018 or trap seal protection devices complying with ASSE 1072.",
+  "Air Admittance Valves: Complying with ASSE 1050 or ASSE 1051, only where permitted by the plumbing code and authorities having jurisdiction, and accessible.",
+  "Vent Flashing: Manufacturer's roof flashing boot compatible with roofing system.",
+]
+
+[[section.part3]]
+title = "EXCAVATION AND BEDDING"
+items = [
+  "Excavate, bed, and backfill underground piping as specified in Division 31; provide uniform bearing on compacted granular bedding for full length of pipe.",
+]
+
+[[section.part3]]
+title = "PIPING INSTALLATION"
+items = [
+  "Install sanitary waste and vent piping according to the plumbing code and pipe manufacturer's written instructions.",
+  "Install drainage piping at uniform slope; do not reduce pipe size in the direction of flow.",
+  "Make changes in direction with long-sweep fittings, wyes, and eighth bends as required by code; do not use sanitary tees for horizontal-to-horizontal changes.",
+  "Install cleanouts at base of each stack, at each change in direction greater than 45 degrees, at intervals not exceeding 100 feet in horizontal runs, and where required by code; locate accessible.",
+  "Extend vents through roof not less than 12 inches above roof surface, or higher where required by code; locate not less than 10 feet from air intakes, operable windows, and doors unless 3 feet above them.",
+  "Plastic Piping: Do not install in return-air plenums or exposed where prohibited; provide firestopping listed for plastic pipe at rated penetrations.",
+  "Support cast-iron hubless piping at each joint and at each change in direction; brace horizontal piping 4 inches and larger at changes in direction.",
+  "Install floor drains with top of strainer 1/4 inch below finished floor, and slope floors to drains where indicated.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Rough-In Test: Test drainage and vent piping before concealing by filling with water to not less than 10 feet of head above the highest joint, held for 15 minutes without leakage, or by air test where permitted. Do not air test plastic piping unless permitted by pipe manufacturer.",
+  "Final Test: After fixtures are set and traps filled, perform smoke or peppermint test where required by authorities having jurisdiction.",
+  "Repair leaks and retest until no leaks exist.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean interior of piping; remove debris and flush the system. Keep open ends of piping capped during construction.",
+]
+
+[[section]]
+number = "22 33 00"
+title = "ELECTRIC DOMESTIC WATER HEATERS"
+when = ["plumbing"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Residential and light-commercial electric storage water heaters.",
+  ">Heat pump water heaters with integral storage tanks.",
+  ">Electric point-of-use and tankless water heaters where indicated.",
+  ">Water heater accessories.",
+  "Design Responsibility: Water heaters are selected and sized as indicated on Drawings and schedules by the engineer of record. Coordinate substitutions, capacities, and electrical characteristics with the engineer of record and Division 26.",
+  "Related Requirements:",
+  ">Section 22 05 00 \"Common Work Results for Plumbing\" for seismic restraint and identification.",
+  ">Section 22 11 16 \"Domestic Water Piping\" for piping connections, expansion tanks, and mixing valves.",
+  ">Division 26 for power wiring and disconnects.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type and size of water heater, including rated storage volume, first-hour rating, recovery, uniform energy factor, electrical characteristics, and dimensions.",
+  "Shop Drawings: For heat pump water heaters, show required room volume or ducting, clearances, and condensate disposal.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: Showing ENERGY STAR qualification for heat pump water heaters and compliance with energy code efficiency requirements.",
+  "Seismic Restraint Details: Strapping and anchorage details as required by the plumbing code.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For water heaters, including control settings, filter cleaning for heat pump units, and anode inspection.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Listings: Water heaters shall be listed and labeled to UL 174 for storage-tank electric water heaters or UL 1453 for electric booster and commercial water heaters, and UL 60335-2-40 or UL 1995 for heat pump components, as applicable.",
+  "Efficiency: Comply with US DOE efficiency standards and the energy code adopted by {jurisdiction}; ASHRAE 90.1 for commercial units.",
+  "Potable-Water Components: Comply with NSF/ANSI 372.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace water heaters that fail in materials or workmanship.",
+  ">Warranty Period for Storage Tanks: [6] [10] years from date of Substantial Completion.",
+  ">Warranty Period for Heat Pump Components and Controls: Not less than [6] [10] years for sealed system, and 1 year for labor where offered.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">A.O. Smith Corporation.",
+  ">Bradford White Corporation.",
+  ">Rheem Manufacturing Company.",
+  ">State Water Heaters (A.O. Smith).",
+]
+
+[[section.part2]]
+title = "HEAT PUMP WATER HEATERS"
+items = [
+  "Description: Integrated heat pump water heater with glass-lined steel storage tank, integral compressor and evaporator, and backup electric resistance elements.",
+  ">Storage Capacity: [50] [65] [80] gallons, as scheduled.",
+  ">Uniform Energy Factor: Not less than 3.3, ENERGY STAR certified.",
+  ">Refrigerant: Low-GWP refrigerant as offered by manufacturer.",
+  ">Operating Modes: Heat pump only, hybrid, high demand, electric resistance, and vacation.",
+  ">Electrical: [240 V, single phase, 30 A circuit] [120 V plug-in, 15 A dedicated circuit] as scheduled.",
+  ">Controls: Electronic controls with display, leak detection, and Wi-Fi or demand-response connectivity where offered, compatible with CTA-2045.",
+  ">Condensate: Condensate drain connection with condensate pump where gravity drain is not available.",
+  "Installation Space: Locate in a space meeting manufacturer's minimum volume or provide ducted inlet and outlet as indicated; space temperature within manufacturer's operating range.",
+]
+
+[[section.part2]]
+title = "ELECTRIC STORAGE WATER HEATERS"
+items = [
+  "Description: Glass-lined steel tank complying with UL 174, with two immersed resistance elements with non-simultaneous operation, adjustable surface-mounted thermostats, and high-limit cutoff.",
+  ">Storage Capacity: As scheduled.",
+  ">Element Rating: 4500 W at 240 V unless otherwise scheduled.",
+  ">Insulation: Foam insulation to meet efficiency requirements.",
+  ">Anode: Magnesium or powered anode rod.",
+  ">Relief Valve: ASME-rated combination temperature and pressure relief valve complying with ANSI Z21.22/CSA 4.4, sized for heater input.",
+]
+
+[[section.part2]]
+title = "POINT-OF-USE AND TANKLESS ELECTRIC WATER HEATERS"
+items = [
+  "Description: Electric instantaneous water heater with flow-activated, modulating electronic temperature control, listed to UL 499, sized for the scheduled flow and temperature rise.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Drain Pans: Corrosion-resistant pan not less than 1-1/2 inches deep and 2 inches larger than heater diameter, with 3/4 inch minimum drain piped to an approved location, where required by code or where heater is above finished spaces.",
+  "Seismic Straps: Manufacturer's or listed strapping kit at upper and lower thirds of tank.",
+  "Thermal Expansion Tank: As specified in Section 22 11 16 \"Domestic Water Piping\".",
+  "Water Heater Stand: Where required by code or manufacturer.",
+  "Leak Detector and Automatic Shutoff Valve: Where heater is located above finished spaces.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine locations and utility connections for compliance with clearances, room volume, drain provisions, and electrical requirements before installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install water heaters level and plumb according to manufacturer's written instructions and the plumbing code, with service clearances maintained.",
+  "Anchor and strap water heaters to resist seismic displacement as required by code.",
+  "Install shutoff valve on cold-water inlet, unions or flexible connectors at inlet and outlet, and drain valve.",
+  "Pipe temperature and pressure relief valve discharge full size to an approved location, terminating not more than 6 inches above floor or receptor.",
+  "Install thermostatic mixing valve where hot water is stored above 120 deg F; set storage temperature at 140 deg F where required for Legionella control.",
+  "Heat Pump Water Heaters: Pipe condensate to indirect waste or approved location; install ducting where indicated; confirm air filter access.",
+  "Electrical Connections: Coordinate with Division 26; verify nameplate ratings match circuits provided.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL AND DEMONSTRATION"
+items = [
+  "Fill, vent, and start water heaters according to manufacturer's instructions; do not energize elements before tank is full.",
+  "Test operation of controls, relief valve, and safety devices; set operating mode and temperature as directed by engineer of record.",
+  "Train Owner's personnel in operation and maintenance of water heaters.",
+]
+
+[[section]]
+number = "22 40 00"
+title = "PLUMBING FIXTURES"
+when = ["plumbing"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Water closets and toilet seats.",
+  ">Urinals where indicated.",
+  ">Lavatories and faucets.",
+  ">Kitchen, bar, and utility sinks and faucets.",
+  ">Showers, shower valves, and shower receptors.",
+  ">Bathtubs.",
+  ">Supply stops, supplies, and traps.",
+  ">Laundry outlet boxes and ice maker boxes.",
+  "Design Responsibility: Plumbing fixtures are selected as indicated on Drawings and fixture schedules. Coordinate substitutions and accessible fixture requirements with the engineer of record and the Architect.",
+  "Related Requirements:",
+  ">Section 10 28 00 \"Toilet, Bath, and Laundry Accessories\" for grab bars and accessories.",
+  ">Section 12 36 61 \"Simulated Stone Countertops\" for countertops receiving sinks and lavatories.",
+  ">Section 22 11 16 \"Domestic Water Piping\" for supply piping and mixing valves.",
+  ">Section 22 13 16 \"Sanitary Waste and Vent Piping\" for waste piping.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of fixture and trim, including dimensions, rough-in requirements, flow and flush rates, and finishes.",
+  "Fixture Schedule: Listing each fixture by tag, with manufacturer, model, trim, and accessible designation.",
+  "Samples: For each exposed finish where requested by Architect.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: Showing WaterSense labeling and listings for fixtures and fittings.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For fixtures and faucets, including cartridge replacement and flush valve adjustment.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Extra Materials: Furnish faucet cartridges and flush valve repair kits equal to 5 percent of amount installed for each type, but not fewer than one of each.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Standards: Comply with the following:",
+  ">Vitreous China Fixtures: ASME A112.19.2/CSA B45.1 Ceramic Plumbing Fixtures.",
+  ">Stainless-Steel Fixtures: ASME A112.19.3/CSA B45.4.",
+  ">Plastic Bathtubs and Shower Units: IAPMO/ANSI Z124.1.2.",
+  ">Enameled Cast-Iron and Steel Fixtures: ASME A112.19.1/CSA B45.2.",
+  ">Faucets and Fittings: ASME A112.18.1/CSA B125.1 Plumbing Supply Fittings.",
+  ">Shower Valves: ASSE 1016/ASME A112.1016/CSA B125.16 pressure-balancing or thermostatic type.",
+  ">Lead Content: NSF/ANSI 61 and NSF/ANSI 372 for fittings delivering drinking water.",
+  "Water Efficiency: Provide fixtures and fittings bearing the EPA WaterSense label where a category exists.",
+  "Accessibility: Accessible fixtures shall comply with ICC A117.1 and the ADA Standards for Accessible Design for heights, clearances, controls, and knee and toe space.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer's standard warranty; faucets, not less than limited lifetime for cartridges against leaks and drips for residential use, and five years for commercial use.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Kohler Co.",
+  ">American Standard (LIXIL Americas).",
+  ">TOTO USA, Inc.",
+  ">Moen Incorporated.",
+  "Commercial Flushometers and Sensor Faucets: Sloan Valve Company, Zurn Elkay Water Solutions, or approved equal.",
+]
+
+[[section.part2]]
+title = "WATER CLOSETS"
+items = [
+  "Residential Water Closet: Vitreous china, two-piece or one-piece, floor-mounted, close-coupled, elongated bowl, gravity tank, 12 inch rough-in.",
+  ">Flush Volume: 1.28 gpf maximum, WaterSense labeled, with MaP rating of not less than 800 g.",
+  ">Accessible Height: 17 to 19 inches to top of seat where indicated as accessible.",
+  ">Seat: Solid plastic, closed front with cover, slow-close hinges.",
+  "Commercial Water Closet: Vitreous china, [wall-hung with carrier complying with ASME A112.6.1M] [floor-mounted], elongated, top spud, with manual or sensor-operated flushometer valve complying with ASSE 1037, 1.28 gpf maximum.",
+  ">Seat: Solid plastic, open front, less cover, for commercial fixtures.",
+]
+
+[[section.part2]]
+title = "URINALS"
+items = [
+  "Urinal: Vitreous china, wall-hung, washout, with flushometer valve 0.125 gpf maximum, or 0.5 gpf where required by drain line carry, WaterSense labeled; accessible units with rim not more than 17 inches above floor.",
+]
+
+[[section.part2]]
+title = "LAVATORIES AND FAUCETS"
+items = [
+  "Lavatories: [Vitreous china undermount] [Vitreous china wall-hung with concealed arm carrier] [Vitreous china drop-in], nominal 20 by 17 inches, with overflow.",
+  "Lavatory Faucets: Single-handle or two-handle, lead-free brass, ceramic disc cartridge, 1.2 gpm maximum flow in residential occupancies and 0.5 gpm in public lavatories, WaterSense labeled where applicable.",
+  ">Finish: Polished chrome unless otherwise indicated.",
+  ">Accessible Faucets: Lever or sensor operation, operable with one hand without tight grasping and with not more than 5 lbf.",
+  "Drains: Grid or pop-up drain with offset tailpiece at accessible lavatories.",
+]
+
+[[section.part2]]
+title = "SINKS AND FAUCETS"
+items = [
+  "Kitchen Sinks: Stainless steel, 18 gauge, Type 304, undermount, [single] [double] bowl, sound-deadened, complying with ASME A112.19.3/CSA B45.4; accessible units not more than 6-1/2 inches deep.",
+  "Kitchen Faucets: Single-handle, pull-down spray, lead-free brass, 1.8 gpm maximum, with deck plate as required.",
+  "Utility and Laundry Sinks: [Stainless steel] [Molded composite] floor-mounted or wall-hung, with service faucet having integral vacuum breaker.",
+]
+
+[[section.part2]]
+title = "SHOWERS AND BATHTUBS"
+items = [
+  "Shower Valves: Pressure-balancing or thermostatic mixing valve complying with ASSE 1016/ASME A112.1016/CSA B125.16, with integral stops and adjustable high-temperature limit stop set at 120 deg F maximum.",
+  "Showerheads: 1.8 gpm maximum, WaterSense labeled; hand-held shower on slide bar with 59 inch minimum hose at accessible showers.",
+  "Shower Receptors: [Acrylic or solid-surface base complying with IAPMO/ANSI Z124.2] [Tile shower with bonded waterproof membrane and linear drain, under Division 09].",
+  "Bathtubs: [Enameled cast iron] [Enameled steel] [Acrylic] alcove tub, 60 by 30 or 32 inches, slip-resistant bottom complying with ASTM F462, with integral apron and tile flange; drain and overflow with pop-up stopper.",
+  "Tub and Shower Trim: Diverter spout and showerhead matching shower valve trim finish.",
+]
+
+[[section.part2]]
+title = "SUPPLIES, STOPS, AND TRAPS"
+items = [
+  "Supply Stops: Lead-free brass quarter-turn angle stops with chrome-plated finish, loose-key type in public areas.",
+  "Supplies: Braided stainless-steel flexible supplies or chrome-plated copper risers.",
+  "Traps: Chrome-plated cast-brass P-traps with cleanout, 17 gauge tubing; PVC traps concealed in cabinets where permitted.",
+  "Accessible Insulation: Molded insulation covers complying with ASME A112.18.9 on exposed supplies and traps at accessible lavatories and sinks.",
+  "Outlet Boxes: Recessed plastic or metal laundry outlet boxes with quarter-turn valves and drain; ice maker box with valve and hammer arrester.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine roughing-in of water supply and waste piping, backing, and support systems to verify actual locations and sizes before fixture installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install fixtures level and plumb according to manufacturer's written instructions and plumbing code, at mounting heights indicated or required by accessibility standards.",
+  "Anchor fixtures securely to supports and structure; install wall-hung fixtures on concealed carriers.",
+  "Install supply stops on each supply to each fixture; install traps on fixtures lacking integral traps.",
+  "Seal joints between fixtures and walls, floors, and countertops with mildew-resistant silicone sealant, color to match fixture.",
+  "Set water closets with wax or waxless seal and corrosion-resistant bolts and caps.",
+  "Install bathtubs level on setting bed or leveling supports recommended by manufacturer; protect finished surfaces.",
+  "Set shower valve limit stops and verify maximum discharge temperature.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Test fixtures for proper operation, flushing, and drainage; verify flow rates and absence of leaks.",
+  "Adjust flush valves, faucets, and sensors for proper operation; replace damaged or defective fixtures.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean fixtures, faucets, and trim using manufacturer's recommended cleaning methods; remove labels other than required listings.",
+  "Protect fixtures from damage and prohibit use until Substantial Completion.",
+]

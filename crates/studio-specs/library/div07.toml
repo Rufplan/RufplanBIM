@@ -1,0 +1,2324 @@
+# Division 07 - Thermal and Moisture Protection
+
+[[section]]
+number = "07 11 13"
+title = "BITUMINOUS DAMPPROOFING"
+when = ["basement"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Cold-applied, emulsified-asphalt dampproofing on below-grade exterior faces of foundation walls.",
+  ">Cold-applied, cut-back asphalt dampproofing where emulsions are not suitable for the substrate or temperature.",
+  ">Protection board.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for foundation walls and curing.",
+  ">Section 07 13 26 \"Self-Adhering Sheet Waterproofing\" for waterproofing where hydrostatic pressure is anticipated.",
+  ">Section 31 20 00 \"Earth Moving\" for backfill and foundation drainage.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including manufacturer's written application instructions, coverage rates and cure times.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: Signed by manufacturer certifying that products comply with VOC limits of authorities having jurisdiction.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver materials in original, unopened containers bearing manufacturer's name, product name and batch number.",
+  "Store emulsions above 40 deg F and protect from freezing. Store solvent-based products away from ignition sources.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Weather Limitations: Apply only when ambient and substrate temperatures are above 40 deg F and rising, and not when rain or freezing temperatures are expected within 24 hours.",
+  "Ventilation: Provide adequate ventilation during application of solvent-based products in enclosed areas.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Henry Company.",
+  ">Karnak Corporation.",
+  ">W.R. Meadows, Inc.",
+  ">Tremco Incorporated.",
+  "Source Limitations: Obtain primary dampproofing materials and primers from single source from single manufacturer.",
+]
+
+[[section.part2]]
+title = "BITUMINOUS DAMPPROOFING"
+items = [
+  "Emulsified-Asphalt Dampproofing: Cold-applied, non-fibered or fibered asphalt emulsion complying with ASTM D1227, Type III or Type II, Class 1.",
+  ">Brush and Spray Coats: Non-fibered, ASTM D1227, Type III.",
+  ">Trowel Coats: Fibered, ASTM D1227, Type II, Class 1.",
+  "Cut-Back-Asphalt Dampproofing: Cold-applied, asphalt solution complying with ASTM D4479, Type I (brush or spray grade) or Type II (fibered, trowel grade), with VOC content complying with authorities having jurisdiction.",
+  "Primer: Asphalt primer complying with ASTM D41, or as recommended by dampproofing manufacturer for substrate.",
+]
+
+[[section.part2]]
+title = "AUXILIARY MATERIALS"
+items = [
+  "Patching Compound: Asphalt-based, fibered mastic of type recommended by dampproofing manufacturer for filling voids and tie holes.",
+  "Protection Board: Premolded, semirigid asphalt composition board, 1/8 inch thick, or 1/2 inch thick extruded-polystyrene board complying with ASTM C578, as recommended by dampproofing manufacturer.",
+  "Reinforcing Fabric: Woven glass-fiber fabric treated for use with asphalt, as recommended by dampproofing manufacturer.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for compliance with requirements and other conditions affecting performance of the Work.",
+  "Verify that concrete has cured and aged for minimum time period recommended by dampproofing manufacturer, and that surfaces are dry to the touch.",
+  "Proceed with application only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Clean substrates of projections, form-release agents, laitance, loose mortar, dirt, oil and other contaminants that would impair adhesion.",
+  "Fill tie holes, honeycombs and voids with patching compound; strike off flush with surface.",
+  "Protect adjacent surfaces not indicated to receive dampproofing. Remove overspray immediately.",
+]
+
+[[section.part3]]
+title = "APPLICATION, GENERAL"
+items = [
+  "Comply with manufacturer's written instructions for application, including coverage rates and cure times between coats.",
+  "Apply dampproofing to exterior face of foundation walls from 6 inches below finished grade down to and over top of footing, and extend over outside face and top of footing.",
+  "Apply additional coat at inside and outside corners, construction joints and joints between walls and footings, embedding reinforcing fabric 6 inches wide each side of joint.",
+  "Where dampproofing adjoins waterproofing, overlap waterproofing 6 inches and seal as recommended by manufacturers of both products.",
+]
+
+[[section.part3]]
+title = "APPLICATION OF DAMPPROOFING"
+items = [
+  "Concrete Foundations: Apply one coat of primer where recommended, followed by two brush or spray coats at not less than 1.25 gal./100 sq. ft. per coat for non-fibered emulsion, or one trowel coat at not less than 4 gal./100 sq. ft. for fibered emulsion.",
+  "Unit Masonry Foundations: Parge masonry per Section 04 20 00 \"Unit Masonry\" before applying dampproofing, then apply as specified for concrete.",
+  "Allow each coat to dry before applying next coat. Produce a continuous, uniform film free of pinholes and voids.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF PROTECTION BOARD"
+items = [
+  "Install protection board over dampproofing while final coat is still tacky, or adhere with manufacturer's recommended adhesive.",
+  "Butt joints tightly and stagger vertical joints. Protect board from damage until backfill is placed.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protect dampproofing from damage during backfilling. Repair damaged areas before backfilling proceeds.",
+  "Do not backfill until dampproofing has cured as recommended by manufacturer.",
+]
+
+[[section]]
+number = "07 13 26"
+title = "SELF-ADHERING SHEET WATERPROOFING"
+when = ["basement"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Modified bituminous self-adhering sheet waterproofing on below-grade walls.",
+  ">Accessory materials including primers, mastics, detail membranes and termination bars.",
+  ">Drainage composite and protection course.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for substrates and curing.",
+  ">Section 07 11 13 \"Bituminous Dampproofing\" for dampproofing of other below-grade surfaces.",
+  ">Section 31 20 00 \"Earth Moving\" for backfill and subsurface drainage.",
+]
+
+[[section.part1]]
+title = "PREINSTALLATION MEETINGS"
+items = [
+  "Preinstallation Conference: Conduct conference at Project site with waterproofing Installer, manufacturer's representative and installers of adjoining work. Review substrate conditions, details, sequencing, protection and inspection procedures.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including technical data and tested physical properties.",
+  "Shop Drawings: Show locations and extent of waterproofing, and details for terminations, inside and outside corners, penetrations, expansion and control joints, and transitions to other waterproofing and air barrier systems.",
+  "Samples: For each type of membrane, 8 by 8 inches.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer.",
+  "Manufacturer's Field Reports: For each inspection by manufacturer's technical representative.",
+  "Sample Warranties: For manufacturer's and Installer's warranties.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A firm approved or licensed by waterproofing manufacturer, with not less than three years of experience installing similar systems.",
+  "Mockups: Install a 100 sq. ft. area of waterproofing, including an inside corner, an outside corner and a penetration, to demonstrate surface preparation, laps, details and protection. Approved mockup may become part of the completed Work.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver liquid materials in original containers with seals unbroken. Store rolls on end or as recommended by manufacturer, on pallets, protected from moisture and direct sunlight.",
+  "Maintain storage temperatures within range recommended by manufacturer.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Apply waterproofing within the range of ambient and substrate temperatures recommended by manufacturer, and not less than 40 deg F unless a low-temperature membrane is used.",
+  "Do not apply to wet, frozen or frost-covered substrates, or during precipitation.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to furnish waterproofing material to repair or replace material that fails to remain watertight within five years from date of Substantial Completion.",
+  "Installer's Warranty: Installer agrees to repair or replace waterproofing that does not comply with requirements or that fails to remain watertight within two years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Provide waterproofing that prevents passage of water under hydrostatic pressure indicated, and that remains watertight when subjected to normal structural movement of substrate.",
+]
+
+[[section.part2]]
+title = "MODIFIED BITUMINOUS SHEET WATERPROOFING"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Carlisle Coatings and Waterproofing Inc.",
+  ">GCP Applied Technologies (Saint-Gobain).",
+  ">Henry Company.",
+  ">W.R. Meadows, Inc.",
+  "Membrane: Self-adhering, 60-mil-thick composite of rubberized asphalt laminated to cross-laminated, high-density polyethylene film, with release liner, complying with the following:",
+  ">Tensile Strength, Film: 5000 psi minimum; ASTM D882.",
+  ">Low-Temperature Flexibility: Pass at minus 20 deg F; ASTM D1970.",
+  ">Crack Cycling: Unaffected after 100 cycles of 1/8-inch movement; ASTM C836.",
+  ">Puncture Resistance: 40 lbf minimum; ASTM E154.",
+  ">Hydrostatic-Head Resistance: 200 feet minimum; ASTM D5385.",
+  ">Water Absorption: 0.2 percent maximum weight gain after 48 hours; ASTM D570.",
+  ">Vapor Permeance: 0.05 perm maximum; ASTM E96, Water Method.",
+]
+
+[[section.part2]]
+title = "AUXILIARY MATERIALS"
+items = [
+  "Primer: Liquid primer recommended by waterproofing manufacturer for substrate and temperature conditions.",
+  "Liquid Membrane and Mastic: Elastomeric, two-component or single-component liquid as recommended by manufacturer for detailing corners, penetrations and terminations.",
+  "Substrate Patching Material: Manufacturer's recommended patching material.",
+  "Metal Termination Bars: Aluminum or stainless steel, 1 inch wide by 1/8 inch thick, predrilled at 8 inches on center.",
+  "Protection Course: Semirigid sheets of fiberglass or mineral-reinforced asphaltic core, 1/8 inch thick, or extruded-polystyrene board, as recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "MOLDED-SHEET DRAINAGE PANELS"
+items = [
+  "Drainage Composite: Prefabricated composite of molded polymeric core with nonwoven geotextile facing on the soil side, with a flow rate of not less than 15 gpm per foot when tested according to ASTM D4716, and compressive strength of not less than 10,000 lbf/sq. ft. per ASTM D1621.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for compliance with requirements and other conditions affecting performance of the Work.",
+  "Verify that concrete has cured and is dry, and that surfaces are smooth, sound and free of voids, spalls, fins and sharp projections.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "SURFACE PREPARATION"
+items = [
+  "Clean, prepare and treat substrates according to manufacturer's written instructions. Remove dust, dirt, form-release agents, curing compounds and other contaminants.",
+  "Fill voids, tie holes and honeycombed areas with patching material. Grind off irregularities and fins.",
+  "Prepare, fill, prime and treat joints and cracks in substrate. Install a 3/4-inch cant or fillet of liquid membrane at inside corners.",
+  "Prime substrate at rate recommended by manufacturer and allow to dry.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF MODIFIED BITUMINOUS SHEETS"
+items = [
+  "Install membrane according to manufacturer's written instructions and approved Shop Drawings.",
+  "Apply a double thickness of membrane or a 12-inch-wide strip of detail membrane at inside and outside corners, extending 6 inches each way.",
+  "Install sheets starting at low point of surface, lapping side and end laps not less than 2-1/2 inches, shingled in the direction of water flow. Stagger end laps not less than 12 inches.",
+  "Roll membrane firmly with a hand roller to ensure full adhesion without voids, wrinkles or fishmouths.",
+  "Seal edges of sheets at terminations and seal laps and T-joints with mastic.",
+  "Terminate membrane at top of wall with termination bar mechanically fastened at 8 inches on center and sealed with mastic.",
+  "Seal around penetrations with liquid membrane or detail sheets as recommended by manufacturer.",
+  "Repair tears, voids and lapped seams not complying with requirements, extending patches 6 inches beyond repaired area.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF PROTECTION AND DRAINAGE"
+items = [
+  "Install protection course or drainage composite over completed membrane before backfilling, with joints butted and secured in place as recommended by manufacturer.",
+  "Install drainage composite with geotextile facing away from wall, extending down to the foundation drain and lapped as recommended by manufacturer.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Manufacturer's Field Service: Engage manufacturer's technical representative to inspect substrate before installation, observe installation and inspect completed waterproofing before covering.",
+  "Flood Testing: Where horizontal waterproofing is indicated, flood test with 2 inches of water for not less than 24 hours and repair leaks before covering.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Do not expose membrane to sunlight longer than recommended by manufacturer.",
+  "Protect installed waterproofing from damage during backfill and subsequent construction. Repair damage before covering.",
+]
+
+[[section]]
+number = "07 21 00"
+title = "THERMAL INSULATION"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Glass-fiber and mineral-wool blanket (batt) insulation.",
+  ">Extruded-polystyrene and polyisocyanurate board insulation.",
+  ">Mineral-wool board insulation.",
+  ">Loose-fill (blown) insulation in attics.",
+  ">Insulation baffles and accessories.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood framing and blocking.",
+  ">Section 07 21 19 \"Foamed-in-Place Insulation\" for spray polyurethane foam.",
+  ">Section 07 25 00 \"Weather Barriers\" for water-resistive and air barriers.",
+  ">Section 07 26 00 \"Vapor Retarders\" for separate vapor retarders.",
+  ">Section 09 29 00 \"Gypsum Board\" for sound attenuation blankets in partitions.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, indicating thermal resistance (R-value), density, facing and fire-test-response characteristics.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For each product, based on tests by a qualified testing agency, showing compliance with thermal and fire-test-response requirements.",
+  "Energy Code Compliance: Insulation certificate listing type, manufacturer, R-value and installed thickness of each insulation, as required by the energy code adopted by {jurisdiction}.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Surface-Burning Characteristics: Where exposed or required by code, provide insulation with flame-spread index of 25 or less and smoke-developed index of 450 or less when tested according to ASTM E84, unless covered by an approved thermal barrier.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Protect insulation from physical damage and from becoming wet, soiled or covered with ice or snow. Comply with manufacturer's written instructions for handling, storing and protecting during installation.",
+  "Protect plastic insulation from exposure to sunlight, open flame and ignition sources. Install and cover within the time recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Thermal Performance: Provide insulation with installed R-values not less than those indicated on Drawings, and not less than those required by the International Energy Conservation Code or ASHRAE 90.1 as adopted by {jurisdiction} for the Project's climate zone.",
+  "Unless otherwise indicated, provide the following minimum R-values:",
+  ">Exterior Wood-Framed Walls, 2 by 6: R-20 cavity or R-13 cavity plus R-5 continuous.",
+  ">Attic, Ceiling Below Vented Attic: R-49.",
+  ">Floors Over Unconditioned Space: R-30.",
+  ">Basement and Crawlspace Walls: R-15 continuous or R-19 cavity.",
+  ">Slab Edge: R-10, 24 inches deep.",
+]
+
+[[section.part2]]
+title = "GLASS-FIBER BLANKET INSULATION"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">CertainTeed (Saint-Gobain).",
+  ">Johns Manville.",
+  ">Knauf Insulation.",
+  ">Owens Corning.",
+  "Unfaced Glass-Fiber Blanket Insulation: ASTM C665, Type I; with maximum flame-spread and smoke-developed indexes of 25 and 50, respectively, per ASTM E84; passing ASTM E136 for combustion characteristics.",
+  "Kraft-Faced Glass-Fiber Blanket Insulation: ASTM C665, Type II, Class C; kraft facing with vapor permeance of 1 perm maximum, with stapling flanges. Do not leave exposed.",
+  "Foil-Faced Glass-Fiber Blanket Insulation: ASTM C665, Type III, Class A; with foil-scrim-kraft vapor-retarder facing, where exposed installation is indicated.",
+]
+
+[[section.part2]]
+title = "MINERAL-WOOL INSULATION"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Johns Manville.",
+  ">Owens Corning (Thermafiber).",
+  ">ROCKWOOL.",
+  "Mineral-Wool Blanket Insulation: ASTM C665, Type I, unfaced; noncombustible per ASTM E136; nominal density 2.5 pcf.",
+  "Mineral-Wool Board Insulation: ASTM C612, Type IVA; unfaced, 8 pcf nominal density; R-4.2 per inch minimum; noncombustible per ASTM E136, for continuous exterior insulation where indicated.",
+]
+
+[[section.part2]]
+title = "EXTRUDED-POLYSTYRENE BOARD INSULATION"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">DuPont (Styrofoam).",
+  ">Kingspan Insulation LLC.",
+  ">Owens Corning (Foamular).",
+  "Extruded-Polystyrene Board: ASTM C578, Type X (15 psi) for walls and Type IV (25 psi) for below-grade and under-slab applications; square edges; R-5 per inch minimum; flame-spread and smoke-developed indexes of 75 and 450 or less, per ASTM E84.",
+]
+
+[[section.part2]]
+title = "POLYISOCYANURATE BOARD INSULATION"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Atlas Roofing Corporation.",
+  ">Carlisle Construction Materials (Hunter Panels).",
+  ">Firestone Building Products (Holcim).",
+  ">Rmax, a Sika company.",
+  "Foil-Faced Polyisocyanurate Board: ASTM C1289, Type I, Class 1 or 2; foil facing both sides; R-6.0 per inch minimum; flame-spread index of 25 or less per ASTM E84; qualified for use in exterior walls of Type I-IV construction per NFPA 285 where required.",
+]
+
+[[section.part2]]
+title = "LOOSE-FILL INSULATION"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">CertainTeed (Saint-Gobain).",
+  ">Johns Manville.",
+  ">Knauf Insulation.",
+  ">Owens Corning.",
+  "Glass-Fiber Loose-Fill Insulation: ASTM C764, Type I for pneumatic application; installed at density and thickness required to achieve indicated R-value per manufacturer's coverage chart.",
+  "Cellulose Loose-Fill Insulation: ASTM C739; chemically treated for flame resistance, processing and handling characteristics, where indicated.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Insulation Baffles: Rigid polystyrene or cardboard vent baffles designed to maintain a 1-1/2-inch minimum airspace between insulation and roof sheathing at eaves.",
+  "Attic Depth Markers: Markers showing minimum installed thickness, one per 300 sq. ft.",
+  "Adhesive for Bonding Insulation: Product compatible with insulation and substrate and recommended by insulation manufacturer.",
+  "Insulation Fasteners: Mechanical anchors, impaling pins or wire supports as recommended by manufacturer for application indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and conditions, with Installer present, for compliance with requirements that affect installation and performance of insulation.",
+  "Verify that framing, blocking and utilities within insulated cavities are complete and that air sealing of top and bottom plates and penetrations has been completed.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Clean substrates of substances that are harmful to insulation or adhesives, including removing projections capable of puncturing insulation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION, GENERAL"
+items = [
+  "Comply with insulation manufacturer's written instructions applicable to products and applications.",
+  "Install insulation that is undamaged, dry and unsoiled and that has not been left exposed to ice, rain or snow.",
+  "Extend insulation to envelop entire area to be insulated. Fit tightly around obstructions and fill voids with insulation. Remove projections that interfere with placement.",
+  "Provide sizes to fit applications and selected from manufacturer's standard thicknesses, widths and lengths. Apply single layer of insulation units unless multiple layers are otherwise shown or required to make up total thickness or to achieve R-value.",
+  "Install to Grade I installation quality as defined by RESNET: no gaps, voids, compression or misalignment.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF BLANKET INSULATION"
+items = [
+  "Install in cavities formed by framing members to produce a friction fit between edges of insulation and adjoining framing members.",
+  "Split batts around wiring and piping rather than compressing insulation behind them.",
+  "Faced Blankets: Install with vapor-retarder facing toward warm-in-winter side of construction, stapled to face of framing members at 6 inches on center unless otherwise indicated.",
+  "Maintain 3-inch clearance of insulation around recessed lighting fixtures not rated for or protected from contact with insulation.",
+  "Floors Over Unconditioned Space: Install in full contact with underside of subfloor and support with wire insulation supports at 18 inches on center.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF BOARD INSULATION"
+items = [
+  "Below-Grade Walls and Slab Edges: Adhere boards to foundation walls with adhesive at manufacturer's recommended coverage, butting edges tightly. Extend perimeter insulation to depth indicated.",
+  "Under Slabs: Set boards on level, compacted fill with joints butted tightly and staggered.",
+  "Continuous Exterior Insulation: Install boards over sheathing with joints staggered and butted tight, fastened with manufacturer's recommended fasteners through furring or cladding attachment. Tape joints where board serves as part of the air barrier, per Section 07 25 00 \"Weather Barriers.\"",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF LOOSE-FILL INSULATION"
+items = [
+  "Install baffles at each rafter space at eaves before placing insulation.",
+  "Apply loose-fill insulation pneumatically to uniform thickness and density to achieve the R-value indicated, per manufacturer's coverage chart. Install depth markers and post the attic insulation certificate near the attic access.",
+  "Insulate and weatherstrip attic access hatches to R-value equal to surrounding ceiling.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protect installed insulation from damage due to harmful weather exposures, physical abuse and other causes. Provide temporary coverings or enclosures where insulation is subject to abuse and cannot be concealed and protected by permanent construction immediately after installation.",
+]
+
+[[section]]
+number = "07 21 19"
+title = "FOAMED-IN-PLACE INSULATION"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Closed-cell spray polyurethane foam insulation.",
+  ">Open-cell spray polyurethane foam insulation.",
+  ">Thermal and ignition barrier coatings.",
+  "Related Requirements:",
+  ">Section 07 21 00 \"Thermal Insulation\" for batt, board and loose-fill insulation.",
+  ">Section 07 25 00 \"Weather Barriers\" for air barriers.",
+  ">Section 09 29 00 \"Gypsum Board\" for thermal barriers over foam plastic.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including R-value, density, vapor permeance and fire-test-response characteristics.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer.",
+  "Evaluation Reports: ICC-ES evaluation report for each spray foam product and each thermal or ignition barrier assembly.",
+  "Field Quality-Control Reports: Daily logs recording ambient and substrate conditions, product batch numbers and installed thickness.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Firm accredited by the Spray Polyurethane Foam Alliance (SPFA) or certified by the foam manufacturer, with installers holding SPFA Professional Certification.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Apply only when ambient and substrate temperatures and humidity are within limits recommended by manufacturer, and substrate moisture content is below manufacturer's limit.",
+  "Ventilate spaces during and after application as recommended by manufacturer. Restrict access to the work area by unprotected persons during application and for the re-occupancy period recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "CLOSED-CELL SPRAY POLYURETHANE FOAM"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">BASF Corporation.",
+  ">Carlisle Spray Foam Insulation.",
+  ">Huntsman Building Solutions.",
+  ">Johns Manville.",
+  "Closed-Cell Polyurethane Foam: ASTM C1029, Type II, with the following properties:",
+  ">Nominal Density: 2.0 pcf minimum; ASTM D1622.",
+  ">Aged Thermal Resistance: R-6.5 per inch minimum at 75 deg F mean temperature; ASTM C518.",
+  ">Water Vapor Permeance: 1.0 perm maximum at 1-1/2 inches thick; ASTM E96.",
+  ">Air Permeance: 0.004 cfm/sq. ft. maximum at 1.57 lbf/sq. ft.; ASTM E2178.",
+  ">Surface-Burning Characteristics: Flame-spread index of 25 or less and smoke-developed index of 450 or less; ASTM E84.",
+  ">Blowing Agent: Low global-warming-potential (HFO) blowing agent.",
+]
+
+[[section.part2]]
+title = "OPEN-CELL SPRAY POLYURETHANE FOAM"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">BASF Corporation.",
+  ">Huntsman Building Solutions (Icynene).",
+  ">Johns Manville.",
+  "Open-Cell Polyurethane Foam: Water-blown, with the following properties:",
+  ">Nominal Density: 0.4 to 0.6 pcf; ASTM D1622.",
+  ">Thermal Resistance: R-3.7 per inch minimum; ASTM C518.",
+  ">Air Permeance: 0.02 cfm/sq. ft. maximum at 1.57 lbf/sq. ft.; ASTM E2178.",
+  ">Surface-Burning Characteristics: Flame-spread index of 25 or less and smoke-developed index of 450 or less; ASTM E84.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Primer: Product recommended by foam manufacturer for substrate.",
+  "Ignition Barrier Coating: Intumescent coating tested with the foam product per ICC-ES AC377, for exposed foam in attics and crawlspaces.",
+  "Thermal Barrier: 1/2-inch gypsum board per Section 09 29 00 \"Gypsum Board,\" or intumescent coating tested with the foam product per NFPA 275, where foam is exposed to occupied space.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for dryness, cleanliness and compatibility. Measure substrate moisture content before application.",
+  "Verify that electrical boxes, piping and other items within the cavity are installed and inspected before applying foam.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Mask and protect adjacent surfaces, windows, equipment and finishes from overspray.",
+  "Clean substrates of dust, oil and other contaminants that impair adhesion. Prime where recommended by manufacturer.",
+]
+
+[[section.part3]]
+title = "APPLICATION"
+items = [
+  "Apply foam according to manufacturer's written instructions, in passes not exceeding the maximum lift thickness recommended by manufacturer, allowing cooling between passes.",
+  "Apply to thickness required to achieve R-value indicated, with tolerance of plus 1/2 inch, minus 0 inch.",
+  "Seal continuously to framing and at perimeters, penetrations and transitions to form a continuous air barrier.",
+  "Trim foam protruding beyond face of framing where gypsum board or other finishes will be applied.",
+  "Apply ignition or thermal barrier over exposed foam as required by the building code and the foam's evaluation report.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Measure installed thickness at not less than one location per 500 sq. ft. and record in daily log.",
+  "Cut and inspect core samples where directed for cell structure, adhesion and density. Patch sample locations.",
+  "Remove and replace foam that is off-ratio, discolored, poorly adhered or does not comply with requirements.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove overspray and masking. Clean adjacent surfaces damaged by foam application.",
+  "Protect foam from ultraviolet exposure; cover within period recommended by manufacturer.",
+]
+
+[[section]]
+number = "07 25 00"
+title = "WEATHER BARRIERS"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Building wrap (water-resistive barrier and air barrier) over exterior sheathing.",
+  ">Fluid-applied water-resistive and air barrier where indicated.",
+  ">Flexible flashing and seam tape at openings, penetrations and transitions.",
+  "Related Requirements:",
+  ">Section 06 16 00 \"Sheathing\" for wall sheathing and integral water-resistive-barrier sheathing systems.",
+  ">Section 07 21 00 \"Thermal Insulation\" for continuous exterior insulation.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for head and sill flashings.",
+  ">the Division 08 window Sections for window installation and integration with water-resistive barrier.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including tested physical and performance properties.",
+  "Shop Drawings: Show details for integrating weather barrier with window and door openings, penetrations, foundation, roof and dissimilar cladding transitions.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Evaluation Reports: ICC-ES evaluation report for water-resistive barrier, showing compliance with the building code.",
+  "Field Quality-Control Reports: Results of air-leakage testing, where required.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Mockups: As part of exterior wall mockup, demonstrate installation of weather barrier and flashing at a typical window opening and a penetration. Obtain Architect's approval before proceeding with the Work.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store rolls and containers off the ground, protected from weather and ultraviolet exposure, within temperature limits recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Water-Resistive Barrier: Comply with the International Building Code and International Residential Code requirements for water-resistive barriers behind exterior cladding.",
+  "Air Barrier: Provide a continuous air barrier across the building enclosure, joined airtight to foundation, roof air barrier, fenestration and penetrations, with material air permeance not more than 0.004 cfm/sq. ft. at 1.57 lbf/sq. ft. when tested according to ASTM E2178.",
+  "Whole-Building Air Leakage: Assembly shall be capable of achieving the air-leakage rate required by the energy code adopted by {jurisdiction}.",
+]
+
+[[section.part2]]
+title = "BUILDING WRAP"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">DuPont (Tyvek).",
+  ">Kingspan Insulation LLC (GreenGuard).",
+  ">Owens Corning (PinkWrap).",
+  ">VaproShield LLC.",
+  "Building Wrap: Nonwoven or spun-bonded polyolefin sheet, with the following properties:",
+  ">Water Penetration Resistance: Hydrostatic head of 210 cm minimum; AATCC 127.",
+  ">Water Vapor Permeance: 10 perms minimum; ASTM E96, Desiccant Method.",
+  ">Air Permeance: 0.004 cfm/sq. ft. maximum at 1.57 lbf/sq. ft.; ASTM E2178.",
+  ">Tensile Strength: 30 lbf minimum; ASTM D882 or ASTM D5034.",
+  ">Surface-Burning Characteristics: Flame-spread index of 25 or less and smoke-developed index of 450 or less; ASTM E84.",
+  ">UV Exposure: Rated by manufacturer for not less than 120 days of exposure before cladding.",
+  "Drainable Building Wrap: Where behind stucco, adhered stone or directly applied cladding, provide wrap with integral drainage texture or spacer providing drainage efficiency of 90 percent minimum per ASTM E2273.",
+  "Building-Wrap Tape: Pressure-sensitive tape recommended by building-wrap manufacturer for sealing seams and penetrations.",
+  "Fasteners: Cap nails or cap staples with 1-inch-diameter plastic caps, as recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "FLUID-APPLIED WEATHER BARRIER"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Carlisle Coatings and Waterproofing Inc.",
+  ">Henry Company.",
+  ">Prosoco, Inc.",
+  ">Tremco Incorporated.",
+  "Vapor-Permeable Fluid-Applied Membrane: Single-component, silyl-terminated polyether or silicone, with water vapor permeance of 10 perms minimum per ASTM E96, material air permeance of 0.004 cfm/sq. ft. maximum per ASTM E2178, and assembly air leakage of 0.04 cfm/sq. ft. maximum per ASTM E2357.",
+  ">Dry Film Thickness: As recommended by manufacturer, not less than 12 mils.",
+  "Joint and Transition Materials: Manufacturer's joint filler, reinforcing fabric and transition membranes for sheathing joints, rough openings and transitions.",
+]
+
+[[section.part2]]
+title = "FLEXIBLE FLASHING"
+items = [
+  "Self-Adhering Flexible Flashing: Butyl or rubberized-asphalt membrane laminated to polyethylene film or nonwoven facing, 25 mils minimum total thickness, complying with AAMA 711, Level 3, for openings and penetrations.",
+  "Stretchable Sill Flashing: Self-adhering, extensible flashing capable of forming a seamless sill pan with end dams, complying with AAMA 711.",
+  "Primer: As recommended by flashing manufacturer for substrate.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine sheathing for proper attachment, surface condition and joint treatment. Verify that sheathing is dry and free of projecting fasteners and damaged areas.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF BUILDING WRAP"
+items = [
+  "Install building wrap according to manufacturer's written instructions, covering sheathing with sheets installed horizontally, starting at the bottom and shingled so upper courses lap lower courses.",
+  "Lap horizontal seams not less than 6 inches and vertical seams not less than 12 inches. Stagger vertical seams.",
+  "Extend wrap over sill plate and foundation interface not less than 2 inches, and lap over flashings and weep screeds so water drains to the exterior.",
+  "Fasten with cap fasteners at 12 to 18 inches on center along studs, or as recommended by manufacturer.",
+  "Seal vertical and horizontal seams with building-wrap tape where wrap serves as air barrier.",
+  "Seal around penetrations with tape or flexible flashing, shingled to shed water.",
+  "Repair tears and punctures with tape or patches lapped to shed water.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF FLUID-APPLIED WEATHER BARRIER"
+items = [
+  "Treat sheathing joints, inside and outside corners and rough openings with joint materials before applying field membrane.",
+  "Apply membrane by spray, roller or trowel to a continuous, uniform film at the thickness recommended by manufacturer, free of voids and pinholes.",
+  "Verify wet-film thickness during application with a wet-film gauge, not less than one reading per 100 sq. ft.",
+]
+
+[[section.part3]]
+title = "FLASHING AT OPENINGS"
+items = [
+  "Flash rough openings in sequence with window and door installation according to ASTM E2112, AAMA 2400 and the window manufacturer's written instructions.",
+  "Sill: Install sill pan flashing with end dams turned up not less than 6 inches at jambs, before setting window.",
+  "Jambs: Install flexible flashing over window flange, lapped over sill flashing.",
+  "Head: Install head flashing over jamb flashing, and lap building-wrap flap over head flashing. Tape diagonal cuts at head.",
+  "Leave the sill flange unsealed or provide a drainage path so water collected in the sill pan drains to exterior.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Inspection: Notify Architect when weather barrier and flashings are complete and before cladding is installed; allow 48 hours for observation.",
+  "Air-Leakage Testing: Where required by the energy code, test completed building enclosure according to ASTM E779 or ASTM E3158, and report results. Seal leaks identified and retest.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Cover weather barrier with cladding within the exposure period recommended by manufacturer. Replace barrier exposed longer than permitted.",
+  "Protect from damage by other trades; repair before concealment.",
+]
+
+[[section]]
+number = "07 26 00"
+title = "VAPOR RETARDERS"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Polyethylene vapor retarders on interior face of framing.",
+  ">Variable-permeance (smart) vapor retarders.",
+  ">Below-slab vapor retarders.",
+  ">Crawlspace ground-cover vapor retarders.",
+  "Related Requirements:",
+  ">Section 03 30 00 \"Cast-in-Place Concrete\" for placement of concrete over below-slab vapor retarder.",
+  ">Section 07 21 00 \"Thermal Insulation\" for faced insulation with integral vapor retarder.",
+  ">Section 07 25 00 \"Weather Barriers\" for exterior air and water-resistive barriers.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, indicating vapor permeance, thickness and puncture resistance.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance of below-slab vapor retarder with ASTM E1745.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store rolls off the ground, protected from sunlight, puncture and extreme temperatures.",
+]
+
+[[section.part2]]
+title = "WALL AND CEILING VAPOR RETARDERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">CertainTeed (Saint-Gobain).",
+  ">Pro Clima (475 High Performance Building Supply).",
+  ">Raven Engineered Films.",
+  "Polyethylene Vapor Retarder: ASTM D4397, 6 mils thick, with vapor permeance of 0.06 perm maximum per ASTM E96, Desiccant Method.",
+  "Variable-Permeance Vapor Retarder: Polyamide or copolymer membrane with vapor permeance of 1 perm or less at low relative humidity and 10 perms or more at high relative humidity per ASTM E96, qualifying as a Class II vapor retarder under the International Building Code.",
+  "Vapor-Retarder Tape: Pressure-sensitive tape of type recommended by vapor-retarder manufacturer for sealing joints and penetrations.",
+  "Vapor-Retarder Sealant: Nonhardening acoustical or butyl sealant recommended by manufacturer for sealing to framing and substrates.",
+]
+
+[[section.part2]]
+title = "BELOW-SLAB VAPOR RETARDERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Raven Engineered Films (VaporBlock).",
+  ">Stego Industries, LLC.",
+  ">W.R. Meadows, Inc.",
+  "Below-Slab Vapor Retarder: Multilayer polyolefin sheet complying with ASTM E1745, Class A, not less than 15 mils thick, with water vapor permeance of 0.01 perm maximum per ASTM E96 or ASTM F1249.",
+  "Accessories: Manufacturer's seam tape, pipe boots and mastic.",
+]
+
+[[section.part2]]
+title = "CRAWLSPACE VAPOR RETARDERS"
+items = [
+  "Crawlspace Ground Cover: Reinforced polyethylene sheet, 10 mils minimum, complying with ASTM E1745, Class C, with seam tape and termination strips.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that insulation is installed and inspected before installing interior vapor retarders.",
+  "Verify that subgrade or base below slabs is compacted, level and free of sharp projections.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF WALL AND CEILING VAPOR RETARDERS"
+items = [
+  "Install on warm-in-winter side of insulation, as indicated, according to manufacturer's written instructions.",
+  "Extend vapor retarder to extremities of areas to be protected, from sill plate to top plate and over ceiling framing.",
+  "Lap joints over framing members not less than 6 inches and seal with tape or sealant.",
+  "Seal perimeters to framing with sealant and seal around electrical boxes, pipes and other penetrations.",
+  "Repair tears or punctures immediately, before concealment.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF BELOW-SLAB VAPOR RETARDERS"
+items = [
+  "Install according to ASTM E1643 and manufacturer's written instructions, placed directly under the slab or over the granular base as indicated.",
+  "Lap joints 6 inches and seal with manufacturer's tape. Turn up at perimeter and seal to foundation walls or grade beams.",
+  "Seal penetrations with pipe boots or manufacturer's details.",
+  "Repair damaged areas with patches of vapor retarder lapped 6 inches beyond damage and taped.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF CRAWLSPACE GROUND COVER"
+items = [
+  "Cover entire crawlspace floor, lapping joints 12 inches and taping. Extend up foundation walls 6 inches minimum and secure with termination strips and sealant.",
+]
+
+[[section.part3]]
+title = "PROTECTION"
+items = [
+  "Protect vapor retarders from damage until concealed. Inspect below-slab vapor retarder immediately before concrete placement and repair damage.",
+]
+
+[[section]]
+number = "07 31 13"
+title = "ASPHALT SHINGLES"
+when = ["roof_shingle"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Laminated (architectural) asphalt shingles.",
+  ">Underlayment, ice-barrier underlayment and hip and ridge shingles.",
+  ">Metal drip edges and step flashing furnished as part of the roofing system.",
+  ">Ridge vents.",
+  "Roof types: {roof_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 06 16 00 \"Sheathing\" for roof sheathing.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for counterflashing, valley flashing and gutters.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including installation instructions for high-wind application.",
+  "Samples for Initial Selection: For each type of shingle, showing manufacturer's full range of colors.",
+  "Samples for Verification: Full-size shingle strip in color selected.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with ASTM D3462, wind-resistance class per ASTM D3161 and ASTM D7158, and fire classification per UL 790.",
+  "Sample Warranty: For manufacturer's warranty.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For asphalt shingles, to include in maintenance manuals.",
+  "Warranty documents, executed by manufacturer and Installer.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Furnish extra materials: One bundle of shingles for each color and style installed, packaged and labeled.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A firm credentialed by the shingle manufacturer to install the specified warranted roofing system.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store bundles flat on pallets, not higher than recommended by manufacturer, under cover and protected from weather, sunlight and excessive heat.",
+  "Store underlayment rolls on end, protected from moisture.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Install shingles only when ambient temperature is above the minimum recommended by manufacturer. Hand-seal shingles installed in cold weather.",
+  "Do not install on wet or frosted sheathing.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Limited lifetime materials warranty, with non-prorated coverage for the first 10 years, and wind-resistance warranty of 130 mph when installed with manufacturer's high-wind application.",
+  "Algae-Resistance Warranty: 10 years against discoloration from algae.",
+  "Workmanship Warranty: Installer's warranty of two years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Wind Resistance: ASTM D3161, Class F, and ASTM D7158, Class H.",
+  "Fire Resistance: Class A per ASTM E108 or UL 790.",
+  "Impact Resistance: Where indicated, UL 2218, Class 4.",
+]
+
+[[section.part2]]
+title = "ASPHALT SHINGLES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">CertainTeed (Saint-Gobain).",
+  ">GAF.",
+  ">Owens Corning.",
+  ">TAMKO Building Products LLC.",
+  "Laminated-Strip Asphalt Shingles: ASTM D3462, glass-fiber reinforced, multi-ply laminated, with self-sealing adhesive strips and algae-resistant granules.",
+  ">Butt Edge: Random-cut, dimensional profile.",
+  ">Weight: Not less than 225 lb per square.",
+  ">Color: As selected by Architect from manufacturer's full range.",
+  "Hip and Ridge Shingles: Manufacturer's matching, preformed hip and ridge units, color to match field shingles.",
+  "Starter Strip: Manufacturer's factory-made starter strip with sealant line.",
+]
+
+[[section.part2]]
+title = "UNDERLAYMENT MATERIALS"
+items = [
+  "Synthetic Underlayment: Woven or spun-bonded polypropylene or polyethylene, UV-stabilized, evaluated per ICC-ES AC188 and approved by shingle manufacturer.",
+  "Self-Adhering Ice-Barrier Underlayment: Polymer-modified bitumen sheet with slip-resisting surface, 40 mils thick minimum, complying with ASTM D1970.",
+]
+
+[[section.part2]]
+title = "RIDGE VENTS"
+items = [
+  "Ridge Vent: Rigid, corrugated polypropylene or fiber-mat ridge vent with external baffle, designed to be covered with ridge shingles, providing net free area of not less than 12.5 sq. in. per linear foot, compatible with shingle manufacturer's warranty.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Roofing Nails: ASTM F1667, aluminum or hot-dip galvanized steel, 11- or 12-gauge shank, 3/8-inch head, long enough to penetrate 3/4 inch into sheathing or through sheathing.",
+  "Drip Edge: Prefinished aluminum 0.019 inch thick or galvanized steel 26 gauge, with 2-inch roof flange and 1-1/2-inch face with kick.",
+  "Step Flashing: Prefinished aluminum or galvanized steel, 5 by 7 inches, bent 4 inches on roof and 3 inches on wall.",
+  "Plastic Cement: ASTM D4586, asbestos free.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine roof sheathing for dryness, flatness, secure attachment and completion of nailing. Verify that vent stacks and other penetrations are installed.",
+  "Verify that attic ventilation is installed or provided for, as indicated.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF UNDERLAYMENT"
+items = [
+  "Ice Barrier: Install self-adhering ice barrier at eaves, extending from edge of eave to a point not less than 24 inches inside the exterior wall line, and in valleys 36 inches wide centered on valley. Install around penetrations and at rake edges.",
+  "Synthetic Underlayment: Install on remaining roof surfaces, lapped 4 inches at horizontal seams and 6 inches at end laps, or as recommended by manufacturer, fastened with cap nails.",
+  "Low-Slope Roofs, 2:12 to less than 4:12: Install two layers of underlayment or full coverage of self-adhering ice barrier, as required by the building code.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF METAL FLASHING"
+items = [
+  "Install drip edge at eaves under underlayment, and at rakes over underlayment. Lap joints 2 inches.",
+  "Install step flashing at each course where roof abuts walls, with each piece lapped over the one below and under the weather barrier on the wall.",
+  "Install valley flashing and counterflashing per Section 07 62 00 \"Sheet Metal Flashing and Trim.\"",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF ASPHALT SHINGLES"
+items = [
+  "Install shingles according to manufacturer's written instructions and the ARMA Residential Asphalt Roofing Manual.",
+  "Install starter strip along eaves and rakes, overhanging drip edge 1/4 to 3/4 inch.",
+  "Install first and successive courses with exposure and offsets recommended by manufacturer, maintaining uniform alignment.",
+  "Fastening: Six nails per shingle, placed in the manufacturer's nailing zone, driven flush without breaking the shingle surface.",
+  "Valleys: Install closed-cut valleys unless otherwise indicated, with shingles of the higher-flow slope trimmed 2 inches from valley centerline.",
+  "Hips and Ridges: Install hip and ridge shingles lapped to shed water, fastened with two nails each, and cover ridge vent where indicated.",
+  "Seal shingles at rakes and exposed edges with plastic cement.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove debris and loose nails from roof and grounds daily.",
+  "Replace damaged shingles and leave roof watertight.",
+]
+
+[[section]]
+number = "07 41 13"
+title = "METAL ROOF PANELS"
+when = ["roof_metal"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Standing-seam metal roof panels, concealed-fastener, mechanically seamed.",
+  ">Underlayment, trim, closures and accessories.",
+  "Roof types: {roof_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 06 16 00 \"Sheathing\" for roof sheathing.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for flashings not part of the panel system.",
+  ">Section 07 72 00 \"Roof Accessories\" for snow guards and roof hatches.",
+]
+
+[[section.part1]]
+title = "PREINSTALLATION MEETINGS"
+items = [
+  "Preinstallation Conference: Conduct conference at Project site to review panel layout, deck condition, flashing details, penetrations and schedule.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of panel and accessory.",
+  "Shop Drawings: Show roof plan with panel layout, seam direction, clip spacing, attachment, and eave, rake, ridge, valley, hip and penetration details. Include uplift calculations signed and sealed by a qualified professional engineer.",
+  "Samples: For each type of panel, 12 inches long by actual width, in color selected, and for trim, 12 inches long.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For wind uplift (UL 580 and ASTM E1592), air infiltration (ASTM E1680) and water penetration (ASTM E1646).",
+  "Sample Warranties: For special warranties.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An entity employing installers and supervisors trained and approved by panel manufacturer.",
+  "Mockups: Build a mockup of typical roof eave including accessories, 10 feet long by full panel width, to verify details and finishes.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver panels with protective strippable film. Stack panels on platforms or pallets, covered with ventilated tarpaulins and sloped to drain, to prevent contact with the ground and condensation.",
+  "Protect panels from bending, abrasion and contact with dissimilar metals. Remove strippable film immediately after installation.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Weathertightness Warranty: Manufacturer agrees to repair or replace panel assemblies that fail to remain weathertight within 20 years from date of Substantial Completion.",
+  "Special Finish Warranty: Manufacturer agrees to repair or replace panels whose finish shows chalking beyond No. 8 rating per ASTM D4214, color change exceeding 5 Hunter units per ASTM D2244, or cracking, checking, peeling or loss of adhesion, within 30 years from date of Substantial Completion.",
+  "Installer's Warranty: Two years from date of Substantial Completion for workmanship.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Structural Performance: Provide panel assemblies capable of withstanding the design wind and snow loads determined per ASCE 7 and the building code, without permanent deformation or failure.",
+  "Wind-Uplift Resistance: UL 580, Class 90, and ASTM E1592 tested to the design uplift pressures with a factor of safety of not less than 1.65.",
+  "Air Infiltration: 0.06 cfm/sq. ft. maximum at 1.57 lbf/sq. ft. per ASTM E1680.",
+  "Water Penetration: No water penetration at test pressure of 6.24 lbf/sq. ft. per ASTM E1646.",
+  "Thermal Movements: Allow for thermal movement from ambient temperature range of 120 deg F and material surface temperature range of 180 deg F.",
+  "Fire Classification: Class A per UL 790 or ASTM E108 over the specified deck and underlayment.",
+]
+
+[[section.part2]]
+title = "STANDING-SEAM METAL ROOF PANELS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">AEP Span (BlueScope).",
+  ">Berridge Manufacturing Company.",
+  ">Englert, Inc.",
+  ">Petersen Aluminum Corporation (PAC-CLAD).",
+  "Panel Type: Vertical-rib, mechanically seamed, double-lock standing seam, with concealed clips allowing for thermal movement.",
+  ">Material: Aluminum-zinc alloy-coated steel sheet, ASTM A792/A792M, AZ50, 24 gauge (0.024 inch) nominal.",
+  ">Seam Height: 2 inches.",
+  ">Panel Coverage: 16 inches.",
+  ">Panel Surface: Smooth with striations in pan to reduce oil canning.",
+  ">Exterior Finish: Two-coat fluoropolymer, AAMA 621, 70 percent PVDF resin, 1.0 mil minimum dry film thickness; color as selected by Architect.",
+  ">Interior Finish: Manufacturer's standard wash coat.",
+  "Clips: Two-piece floating clips of 16-gauge galvanized steel with stainless steel tabs, designed to allow panel movement.",
+]
+
+[[section.part2]]
+title = "UNDERLAYMENT MATERIALS"
+items = [
+  "High-Temperature Self-Adhering Underlayment: Polymer-modified bitumen or butyl sheet, 30 mils minimum, complying with ASTM D1970, rated for service temperatures of 240 deg F minimum, with slip-resistant surface.",
+  "Slip Sheet: Rosin-sized building paper, 3 lb/100 sq. ft., where recommended by manufacturer.",
+]
+
+[[section.part2]]
+title = "MISCELLANEOUS MATERIALS"
+items = [
+  "Trim and Flashing: Formed from same material and finish as panels, including eave, rake, ridge, hip, valley, headwall, sidewall and transition trim.",
+  "Closures: Metal ridge and eave closures matching panels, and closed-cell foam closures profiled to panels.",
+  "Fasteners: Self-drilling or self-tapping stainless steel or zinc-alloy-coated steel screws with EPDM washers; exposed fasteners color-matched to panels.",
+  "Panel Sealants: Butyl tape sealant as recommended by manufacturer, and ASTM C920 elastomeric sealant for exposed joints.",
+  "Snow Guards: Clamp-on, non-penetrating bar-type snow guards attached to standing seams, as specified in Section 07 72 00 \"Roof Accessories.\"",
+]
+
+[[section.part2]]
+title = "FABRICATION"
+items = [
+  "Fabricate panels in continuous lengths from eave to ridge without end laps, where practical.",
+  "Fabricate trim and flashing according to SMACNA Architectural Sheet Metal Manual and manufacturer's details, with hemmed exposed edges.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrate for flatness within 1/4 inch in 20 feet, secure attachment and dryness. Verify that curbs and penetrations are in place.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF UNDERLAYMENT"
+items = [
+  "Install high-temperature self-adhering underlayment over entire roof deck, lapped 3-1/2 inches at sides and 6 inches at ends, shingled to shed water, rolled to full adhesion.",
+  "Install slip sheet over underlayment where recommended by panel manufacturer.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF METAL PANELS"
+items = [
+  "Install panels according to manufacturer's written instructions and approved Shop Drawings, plumb and square, with seams parallel.",
+  "Attach clips at spacing required by uplift calculations, not exceeding 24 inches on center, with closer spacing in corner and perimeter zones.",
+  "Fix panels at one point only (ridge or eave, as recommended) and allow remaining length to move thermally.",
+  "Seam panels with manufacturer's mechanical seamer to full double-lock profile.",
+  "Install eave, rake, ridge and hip trim with closures and sealant to provide weathertight installation.",
+  "Flash penetrations with manufacturer's pipe flashings or crickets as detailed, to divert water around penetrations.",
+  "Separate dissimilar metals and protect from contact with preservative-treated wood.",
+]
+
+[[section.part3]]
+title = "ERECTION TOLERANCES"
+items = [
+  "Install panels to within 1/4 inch in 20 feet, non-cumulative, level, plumb and on location lines as indicated.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Manufacturer's Field Service: Engage manufacturer's representative to inspect completed installation for compliance with warranty requirements.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove metal shavings and filings daily to prevent rust staining.",
+  "Touch up minor finish damage with manufacturer's touch-up paint. Replace panels that are dented or have damaged finish.",
+]
+
+[[section]]
+number = "07 42 13"
+title = "METAL WALL PANELS"
+when = ["siding_metal"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Concealed-fastener, single-skin metal wall panels.",
+  ">Exposed-fastener corrugated metal wall panels where indicated.",
+  ">Subgirts, trim, closures and accessories.",
+  "Related Requirements:",
+  ">Section 06 16 00 \"Sheathing\" for wall sheathing.",
+  ">Section 07 25 00 \"Weather Barriers\" for water-resistive barrier behind panels.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for flashing not part of the panel system.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of panel and accessory.",
+  "Shop Drawings: Show panel layout on each elevation, joints, attachments, subgirts, trim, and details at openings, corners, base and top of wall.",
+  "Samples: For each type of panel, 12 inches long by actual width, in color selected.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For structural performance (ASTM E330), air infiltration (ASTM E283) and water penetration (ASTM E331).",
+  "NFPA 285 Compliance: Where required by the building code, documentation that the wall assembly including panels, insulation and weather barrier complies with NFPA 285.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An entity employing installers experienced in installing metal wall panels similar in material, design and extent to those indicated.",
+  "Mockups: Build a mockup of typical wall area 8 by 8 feet, including a window opening and outside corner, to verify details and finishes.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver panels with protective strippable film and store on pallets, sloped to drain, covered with ventilated tarpaulins.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Finish Warranty: Manufacturer agrees to repair or replace panels whose finish shows chalking beyond No. 8 rating per ASTM D4214, color change exceeding 5 Hunter units per ASTM D2244, or cracking, checking, peeling or loss of adhesion, within 20 years from date of Substantial Completion.",
+  "Installer's Warranty: Two years from date of Substantial Completion for weathertightness and workmanship.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Structural Performance: Withstand design wind pressures determined per ASCE 7 and the building code, with deflection not exceeding L/180 of span, when tested per ASTM E330.",
+  "Air Infiltration: 0.06 cfm/sq. ft. maximum at 1.57 lbf/sq. ft. per ASTM E283.",
+  "Water Penetration: No uncontrolled water penetration at 6.24 lbf/sq. ft. per ASTM E331.",
+  "Thermal Movements: Allow for ambient temperature range of 120 deg F and material surface temperature range of 180 deg F.",
+]
+
+[[section.part2]]
+title = "CONCEALED-FASTENER METAL WALL PANELS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">AEP Span (BlueScope).",
+  ">ATAS International, Inc.",
+  ">Berridge Manufacturing Company.",
+  ">Petersen Aluminum Corporation (PAC-CLAD).",
+  "Panel Type: Flush or reveal-joint, interlocking panels with concealed fasteners.",
+  ">Material: Aluminum-zinc alloy-coated steel sheet, ASTM A792/A792M, AZ50, 24 gauge (0.024 inch) nominal, or aluminum sheet, ASTM B209, 0.040 inch thick, where indicated.",
+  ">Panel Coverage: 12 inches.",
+  ">Panel Depth: 1 inch.",
+  ">Orientation: [Vertical] [Horizontal], as indicated on Drawings.",
+  ">Exterior Finish: Two-coat fluoropolymer, AAMA 621 (steel) or AAMA 2605 (aluminum), 70 percent PVDF resin; color as selected by Architect.",
+]
+
+[[section.part2]]
+title = "EXPOSED-FASTENER CORRUGATED WALL PANELS"
+items = [
+  "Panel Type: 7/8-inch-deep corrugated profile, 2-2/3-inch pitch, of aluminum-zinc alloy-coated steel, 24 gauge, with fluoropolymer finish, where indicated.",
+]
+
+[[section.part2]]
+title = "MISCELLANEOUS MATERIALS"
+items = [
+  "Subgirts: Galvanized steel hat channels or Z-girts, ASTM A653/A653M, G90, 18 gauge minimum, spaced as required by structural performance. Use thermally broken clip systems where continuous insulation is indicated.",
+  "Trim and Flashing: Same material, thickness and finish as panels, including base, head, sill, jamb, inside and outside corner and coping trim.",
+  "Closures: Closed-cell foam closures profiled to panels.",
+  "Fasteners: Stainless steel or zinc-alloy-coated steel screws with EPDM washers; exposed fasteners color-matched.",
+  "Sealants: ASTM C920 elastomeric sealant and butyl tape as recommended by manufacturer.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and framing for alignment and attachment, and verify completion of weather barrier and opening flashings.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install subgirts plumb and level, fastened to framing, at spacing indicated on approved Shop Drawings.",
+  "Install panels according to manufacturer's written instructions, starting at the location recommended, with panels plumb or level and joints aligned.",
+  "Fasten concealed-fastener panels at each subgirt through the fastener flange, allowing for thermal movement.",
+  "Install trim, closures and flashings to provide weathertight installation, lapped in the direction of water flow.",
+  "Maintain a drainage space between panels and weather barrier where indicated, and provide insect screen at top and bottom of the drainage cavity.",
+  "Separate dissimilar metals with isolation tape or coatings.",
+]
+
+[[section.part3]]
+title = "ERECTION TOLERANCES"
+items = [
+  "Install panels within 1/4 inch in 20 feet, non-cumulative, level, plumb and on location lines as indicated.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Remove strippable film immediately after installation. Remove metal shavings daily.",
+  "Replace panels that are damaged or that have deformed finish. Touch up minor abrasions with manufacturer's touch-up paint.",
+]
+
+[[section]]
+number = "07 46 23"
+title = "WOOD SIDING"
+when = ["siding_wood"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Horizontal bevel and shiplap wood siding.",
+  ">Vertical board-and-batten wood siding where indicated.",
+  ">Wood trim and corner boards.",
+  ">Rainscreen furring.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for blocking.",
+  ">Section 07 25 00 \"Weather Barriers\" for water-resistive barrier behind siding.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for head and base flashings.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for field finishing.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of siding, trim and factory finish.",
+  "Samples: For each species and profile, 12 inches long, showing range of grain and finish.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Grading Certificates: Grade stamps or certificates of inspection from the grading agency for each shipment.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store siding off the ground, under cover and ventilated, protected from weather and direct sunlight. Acclimate to site conditions as recommended by supplier.",
+  "Do not deliver siding until building is closed in sufficiently to prevent wetting.",
+]
+
+[[section.part2]]
+title = "WOOD SIDING"
+items = [
+  "Grading: Comply with the grading rules of WWPA or WCLIB for the species indicated.",
+  "Species and Grade: Western red cedar, Clear Heart or A and Better, kiln dried, unless otherwise indicated.",
+  "Horizontal Siding: Bevel siding, 1/2 by 6 inches nominal, smooth face, installed with 4-1/2-inch exposure, or shiplap/channel siding, 1 by 6 inches nominal, as indicated.",
+  "Vertical Siding: Board-and-batten, 1 by 10 inch boards with 1 by 3 inch battens, rough-sawn face, where indicated.",
+  "Trim: Same species and grade as siding, 5/4 inch thick nominal, widths as indicated.",
+  "Moisture Content: 12 to 15 percent maximum at time of installation.",
+]
+
+[[section.part2]]
+title = "FACTORY FINISH"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide factory-primed or prefinished siding using finishes by one of the following:",
+  ">PPG Industries, Inc.",
+  ">Sherwin-Williams Company.",
+  ">Sikkens (AkzoNobel).",
+  "Prime siding and trim on all six sides with alkyd or acrylic primer before installation, or apply penetrating semi-transparent stain as selected by Architect.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Fasteners: Stainless steel, Type 304 or 316, ring-shank siding nails, of length to penetrate framing or blocking 1-1/2 inches. Do not use electroplated or uncoated nails.",
+  "Rainscreen Furring: Preservative-treated wood furring, 3/4 by 1-1/2 inches, or proprietary drainage mat providing 3/8-inch minimum cavity.",
+  "Insect Screen: Aluminum or polymer vent strip at top and bottom of rainscreen cavity.",
+  "Sealant: ASTM C920 paintable sealant, per Section 07 92 00 \"Joint Sealants.\"",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that weather barrier and opening flashings are complete and inspected before installing furring or siding.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Back-prime and end-seal all siding and trim, including field cuts, before installation.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install rainscreen furring vertically at each stud, plumb, fastened to framing, with insect screen at top and bottom of cavity.",
+  "Install siding level and plumb, with courses aligned at corners and openings, and butt joints staggered and located over framing.",
+  "Bevel Siding: Lap each course not less than 1 inch over course below; face-nail with one nail per bearing positioned to miss the course below.",
+  "Board-and-Batten: Nail boards once at center per bearing; nail battens through the gap between boards so boards can move.",
+  "Install corner boards and trim before siding, with siding butted to trim and sealed.",
+  "Maintain clearance of 6 inches above finished grade and 2 inches above roofs, decks and paved surfaces.",
+  "Install head flashing over openings and horizontal trim per Section 07 62 00 \"Sheet Metal Flashing and Trim.\"",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Replace split or damaged boards. Set exposed nails flush without crushing wood.",
+  "Finish siding within 30 days of installation according to Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting,\" where not factory finished.",
+]
+
+[[section]]
+number = "07 46 46"
+title = "FIBER-CEMENT SIDING"
+when = ["siding_fiber_cement"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Fiber-cement lap siding.",
+  ">Fiber-cement panel siding and soffit panels.",
+  ">Fiber-cement trim.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for blocking.",
+  ">Section 07 25 00 \"Weather Barriers\" for water-resistive barrier behind siding.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for head and base flashings.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for field painting of primed siding.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including installation instructions.",
+  "Samples for Initial Selection: For factory-finished siding, manufacturer's color charts showing full range of colors and textures.",
+  "Samples for Verification: 12-inch-long pieces of each type of siding and trim, in finish and color selected.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Evaluation Reports: ICC-ES evaluation report showing compliance with the building code and fastening schedules for the design wind speed.",
+  "Sample Warranty: For manufacturer's warranty.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An installer trained by manufacturer or with not less than three years of experience installing fiber-cement siding.",
+  "Mockups: Build a mockup of typical wall area 8 by 8 feet, including an outside corner, a window opening and trim, to verify details and finishes.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store siding flat on a smooth, level surface, off the ground, covered and protected from moisture. Keep packaging on factory-finished products until installation.",
+  "Carry siding on edge; do not drag or flex.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace siding that fails in materials within 30 years from date of Substantial Completion.",
+  "Finish Warranty: For factory-finished products, manufacturer agrees to repair or refinish siding whose finish peels, cracks or chips within 15 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "FIBER-CEMENT SIDING"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Allura (Plycem USA).",
+  ">American Fiber Cement Corporation.",
+  ">James Hardie Building Products, Inc.",
+  ">Nichiha USA, Inc.",
+  "General: Fiber-cement products complying with ASTM C1186, Type A, Grade II, and noncombustible when tested according to ASTM E136, with flame-spread index of 0 and smoke-developed index of 5 or less per ASTM E84.",
+  "Lap Siding: 5/16 inch thick by 8-1/4 inches wide, installed with 7-inch exposure.",
+  ">Texture: [Smooth] [Wood grain].",
+  "Panel Siding: 5/16 inch thick, 4 by 8 or 4 by 10 feet, with smooth face, where indicated.",
+  "Soffit Panels: 1/4 inch thick, [vented] [solid], widths as indicated.",
+  "Trim: Fiber-cement trim, 3/4 or 5/4 inch thick, smooth face, widths as indicated.",
+  "Finish: [Factory primed for field painting] [Factory-applied, baked finish in color selected by Architect].",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Fasteners: Hot-dip galvanized or stainless steel siding nails or corrosion-resistant screws, of type, size and spacing required by the manufacturer and evaluation report for the design wind speed.",
+  "Joint Flashing: Manufacturer's recommended flashing strips behind butt joints, or 6-inch-wide strips of flexible flashing.",
+  "Touch-Up Paint: Manufacturer's matching touch-up paint for factory-finished products.",
+  "Sealant: ASTM C920, paintable, as recommended by siding manufacturer, per Section 07 92 00 \"Joint Sealants.\"",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that framing is plumb and true, blocking is installed, and weather barrier and opening flashings are complete.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install siding according to manufacturer's written instructions and approved evaluation report.",
+  "Cut siding using manufacturer's recommended dust-reducing methods and tools, and cut outdoors. Prime or seal field-cut edges as recommended by manufacturer.",
+  "Install trim at corners, openings and transitions before siding, with 1/8-inch gap between siding and trim for sealant where recommended.",
+  "Lap Siding: Install level with minimum 1-1/4-inch lap, blind-nailed or face-nailed as recommended, with butt joints over framing or with joint flashing, and staggered.",
+  "Panel Siding: Install with vertical joints over framing, flashed at horizontal joints with Z-flashing.",
+  "Maintain clearance of 6 inches above finished grade, 2 inches above roofs and decks, and 1/4 inch above horizontal flashings.",
+  "Install head flashing over openings and horizontal trim per Section 07 62 00 \"Sheet Metal Flashing and Trim.\"",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Touch up scratches and exposed cut edges of factory-finished products with manufacturer's touch-up paint.",
+  "Paint primed siding within 180 days of installation, or sooner if recommended by manufacturer, per Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting.\"",
+  "Remove dust and debris from siding surfaces.",
+]
+
+[[section]]
+number = "07 54 23"
+title = "THERMOPLASTIC-POLYOLEFIN (TPO) ROOFING"
+when = ["roof_membrane"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Mechanically fastened or fully adhered TPO membrane roofing system.",
+  ">Roof insulation and cover board.",
+  ">Membrane flashings, walkway pads and accessories.",
+  "Roof types: {roof_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood nailers, curbs and blocking.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for metal edge, copings and counterflashing.",
+  ">Section 07 72 00 \"Roof Accessories\" for roof hatches, curbs and pipe supports.",
+]
+
+[[section.part1]]
+title = "PREINSTALLATION MEETINGS"
+items = [
+  "Preinstallation Roofing Conference: Conduct conference at Project site with Owner, Architect, roofing Installer, manufacturer's representative, deck installer and installers of rooftop equipment. Review deck condition, drainage, attachment, flashing details, protection, weather and inspection procedures.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Shop Drawings: Roof plan showing slopes, crickets, tapered insulation layout, drains, attachment pattern by roof zone, and details of perimeter, curbs, penetrations and terminations.",
+  "Samples: 12 by 12 inch sample of membrane in color selected.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer and manufacturer.",
+  "Manufacturer Certificate: Signed by roofing manufacturer certifying that the roofing system complies with requirements and is acceptable for the specified warranty.",
+  "Product Test Reports: For wind-uplift (FM 4474 or UL 1897) and fire classification (UL 790 or ASTM E108).",
+  "Field Quality-Control Reports: Manufacturer's inspection reports.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For roofing system, including inspection and repair procedures.",
+  "Executed warranties.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A firm approved by roofing manufacturer to install the specified system and eligible to receive the specified warranty.",
+  "Manufacturer Qualifications: A manufacturer with not less than 10 years of producing TPO membrane.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store liquids and adhesives in original containers within temperature range recommended by manufacturer. Store rolls lying down on pallets, covered.",
+  "Protect insulation from moisture; do not use insulation that has become wet. Do not overload roof deck with stored materials.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Weather Limitations: Proceed with installation only when weather conditions permit roofing to be installed according to manufacturer's written instructions and warranty requirements. Install only as much insulation as can be covered with membrane the same day.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer's no-dollar-limit system warranty covering membrane, insulation, flashings, fasteners and accessories, agreeing to repair or replace components that leak or fail within 20 years from date of Substantial Completion.",
+  "Installer's Warranty: Two years from date of Substantial Completion for workmanship.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "General: Provide an installed roofing system that remains watertight and resists specified uplift pressures, thermally induced movement and exposure to weather without failure.",
+  "Wind-Uplift Resistance: Design roofing system to resist wind-uplift pressures calculated per ASCE 7 for each roof zone, based on tested assemblies per FM 4474 or UL 1897.",
+  "Fire Classification: Class A per ASTM E108 or UL 790.",
+  "Energy Performance: Initial solar reflectance of not less than 0.70 and thermal emittance of not less than 0.75, as rated by the Cool Roof Rating Council, where required by the energy code.",
+  "Thermal Resistance: Provide insulation with average R-value of not less than R-30, continuous above deck, or as required by the energy code adopted by {jurisdiction}.",
+]
+
+[[section.part2]]
+title = "TPO MEMBRANE ROOFING"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Carlisle SynTec Systems.",
+  ">Elevate (Holcim Building Envelope).",
+  ">GAF.",
+  ">Johns Manville.",
+  "TPO Sheet: ASTM D6878, internally fabric reinforced, 60 mils thick minimum, [white] [gray] [tan].",
+  "Flashing Membrane: Manufacturer's unreinforced TPO flashing sheet, 60 mils thick, for field-formed flashings.",
+]
+
+[[section.part2]]
+title = "ROOF INSULATION"
+items = [
+  "Polyisocyanurate Board Insulation: ASTM C1289, Type II, Class 1, Grade 2 (20 psi), felt or glass-fiber mat facers, in two layers with staggered joints.",
+  "Tapered Insulation: Polyisocyanurate, ASTM C1289, with a slope of 1/4 inch per 12 inches minimum, and crickets at 1/2 inch per 12 inches.",
+  "Cover Board: ASTM C1177 glass-mat gypsum roof board, 1/2 inch thick, or high-density polyisocyanurate cover board, ASTM C1289, Type II, Class 4, Grade 1, as approved by roofing manufacturer.",
+]
+
+[[section.part2]]
+title = "AUXILIARY ROOFING MATERIALS"
+items = [
+  "General: Auxiliary materials recommended by roofing manufacturer for intended use and compatible with membrane roofing.",
+  "Bonding Adhesive: Manufacturer's standard, low-VOC.",
+  "Fasteners and Plates: Factory-coated steel fasteners and plates complying with corrosion-resistance provisions of FM 4470, of size and type required for deck and wind-uplift requirements.",
+  "Insulation Adhesive: Manufacturer's low-rise polyurethane foam adhesive, where adhered insulation is indicated.",
+  "Termination Bars, Pipe Boots, Corner Flashings, Sealants and Cut-Edge Sealant: Manufacturer's standard.",
+  "Walkway Pads: Manufacturer's heat-weldable TPO walkway pads, 30 by 30 inches minimum, contrasting color, at rooftop equipment and access points.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, with Installer present, for compliance with requirements and conditions affecting performance of roofing system.",
+  "Verify that roof openings, curbs, drains and penetrations are in place, that wood nailers are installed and anchored, and that deck is dry and free of debris.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Clean substrate of dust, debris, moisture and other substances detrimental to roofing installation.",
+  "Prevent materials from entering and clogging roof drains and conductors. Install temporary drain protection.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF INSULATION"
+items = [
+  "Install insulation boards in two or more layers with joints staggered not less than 6 inches from joints of previous layer, and tapered insulation to provide drainage to drains and scuppers.",
+  "Fasten or adhere insulation and cover board according to manufacturer's requirements for the specified wind-uplift zones.",
+  "Trim insulation neatly around penetrations. Fill gaps exceeding 1/4 inch with insulation.",
+  "Install tapered edge strips at perimeter edges and crickets on high side of curbs.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF MEMBRANE"
+items = [
+  "Install membrane according to roofing manufacturer's written instructions and requirements of the warranty, starting at low point of roof.",
+  "Mechanically Fastened: Fasten sheets in seams at spacing required for each roof zone. Use half-width sheets in perimeter and corner zones where required.",
+  "Fully Adhered: Apply bonding adhesive to substrate and underside of membrane at rate recommended by manufacturer and roll to full adhesion.",
+  "Seams: Hot-air weld side and end laps with automatic welder, minimum weld width of 1-1/2 inches. Probe all seams and repair voids.",
+  "Apply cut-edge sealant to exposed reinforced edges.",
+  "Secure membrane at perimeter, curbs and penetrations with termination bars or fastening required by manufacturer.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF FLASHINGS"
+items = [
+  "Install base flashings over cant strips and other sloping and vertical surfaces, extending not less than 8 inches above roofing surface, adhered and heat-welded to field membrane.",
+  "Flash penetrations with prefabricated pipe boots or field-formed flashings, and install sealant pockets only where no other method is practical.",
+  "Install roof drain flashings with clamping rings set in water cut-off mastic.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF WALKWAYS"
+items = [
+  "Heat-weld walkway pads to membrane at locations indicated, spaced 3 inches apart for drainage.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Manufacturer's Inspection: Arrange for roofing manufacturer's technical representative to inspect roofing installation on completion and submit report.",
+  "Repair or remove and replace components of roofing system where inspections indicate noncompliance.",
+]
+
+[[section.part3]]
+title = "PROTECTION AND CLEANING"
+items = [
+  "Protect membrane from damage by other trades. Provide plywood protection where traffic or material handling occurs over completed roofing.",
+  "Correct deficiencies in or remove roofing that does not comply with requirements; repair substrates and reinstall roofing to a condition free of damage and eligible for the warranty.",
+]
+
+[[section]]
+number = "07 62 00"
+title = "SHEET METAL FLASHING AND TRIM"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Formed roof drainage sheet metal: gutters and downspouts.",
+  ">Formed low-slope roof sheet metal: roof edge flashing, copings and counterflashing.",
+  ">Formed steep-slope roof sheet metal: valley flashing, apron and chimney flashing.",
+  ">Formed wall sheet metal: head, sill and base flashing, and through-wall flashing where indicated.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood nailers and blocking.",
+  ">Section 07 31 13 \"Asphalt Shingles\" for drip edge and step flashing provided with shingle roofing.",
+  ">Section 07 54 23 \"Thermoplastic-Polyolefin (TPO) Roofing\" for membrane flashing.",
+  ">Section 07 92 00 \"Joint Sealants\" for field-applied sealants.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including finish.",
+  "Shop Drawings: Show layout, profiles, dimensions, material, thickness, joints, expansion joints, attachment, and relationship to adjoining work. Include details at a scale of not less than 1-1/2 inches per 12 inches.",
+  "Samples: For each exposed finish, 12-inch-long formed sample.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For roof-edge flashing and copings, showing compliance with ANSI/SPRI/FM 4435/ES-1.",
+  "Sample Warranty: For finish warranty.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Fabricator Qualifications: Shop that employs skilled workers who custom fabricate sheet metal flashing and trim similar to that required for this Project.",
+  "Mockups: Build mockup of typical roof edge, including coping and counterflashing, approximately 10 feet long, including supporting construction and attachments.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver sheet metal items undamaged and protected with strippable film where prefinished. Store in a dry, ventilated location, off the ground, sloped to drain.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Finish Warranty: Manufacturer agrees to repair or replace prefinished sheet metal whose finish shows chalking beyond No. 8 rating per ASTM D4214, color change exceeding 5 Hunter units per ASTM D2244, or cracking, checking, peeling or loss of adhesion, within 20 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "General: Sheet metal flashing and trim assemblies shall prevent water penetration, allow for thermal movement and resist design wind loads without failure.",
+  "SMACNA Standard: Comply with the SMACNA Architectural Sheet Metal Manual for details, gauges, joints and attachment unless more stringent requirements are indicated.",
+  "FM Approvals: Roof-edge flashing and copings shall comply with ANSI/SPRI/FM 4435/ES-1 for the wind zone and building height indicated, and with FM Approvals RoofNav listing where FM Global coverage is required.",
+  "Thermal Movements: Allow for thermal movements from ambient temperature range of 120 deg F and material surface temperature range of 180 deg F.",
+]
+
+[[section.part2]]
+title = "SHEET METALS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide prefinished sheet metal by one of the following:",
+  ">Berridge Manufacturing Company.",
+  ">Englert, Inc.",
+  ">Firestone Building Products (UNA-CLAD).",
+  ">Petersen Aluminum Corporation (PAC-CLAD).",
+  "Prefinished Aluminum-Zinc Alloy-Coated Steel Sheet: ASTM A792/A792M, AZ50 coating, 24 gauge (0.024 inch) minimum, with two-coat fluoropolymer finish complying with AAMA 621, color as selected by Architect.",
+  "Prefinished Aluminum Sheet: ASTM B209, alloy 3003-H14, 0.040 inch thick minimum, with fluoropolymer finish complying with AAMA 2605.",
+  "Copper Sheet: Where indicated, ASTM B370, cold-rolled temper H00, 16 oz./sq. ft.",
+  "Stainless Steel Sheet: ASTM A240/A240M, Type 304, dead soft, 26 gauge, 2D finish, for concealed through-wall flashing where indicated.",
+]
+
+[[section.part2]]
+title = "UNDERLAYMENT MATERIALS"
+items = [
+  "Self-Adhering, High-Temperature Sheet Underlayment: 30 mils thick minimum, complying with ASTM D1970, rated for 240 deg F.",
+  "Slip Sheet: Rosin-sized building paper, 3 lb/100 sq. ft.",
+]
+
+[[section.part2]]
+title = "MISCELLANEOUS MATERIALS"
+items = [
+  "Fasteners: Same metal as flashing or other noncorrosive metal compatible with the sheet metal, with exposed fastener heads finished to match.",
+  "Solder: For copper, ASTM B32, lead-free; for stainless steel, ASTM B32 with acid flux.",
+  "Sealing Tape: Pressure-sensitive, 100 percent solids, polyisobutylene or butyl tape.",
+  "Elastomeric Sealant: ASTM C920, silicone or polyurethane, compatible with sheet metal and adjacent materials.",
+  "Bituminous Coating: Cold-applied asphalt mastic, SSPC-Paint 12, for separation of dissimilar metals.",
+]
+
+[[section.part2]]
+title = "FABRICATION, GENERAL"
+items = [
+  "Custom fabricate sheet metal to comply with details shown and the SMACNA Architectural Sheet Metal Manual for each application indicated. Shop fabricate items where practicable.",
+  "Form exposed sheet metal accurately to profiles, true to line and free of oil canning, buckles and tool marks.",
+  "Hem exposed edges on the concealed side 1/2 inch; miter and seal corners.",
+  "Expansion Provisions: Form expansion joints at intervals not exceeding 10 feet for steel and 8 feet for aluminum, of intermeshing hooked flanges not less than 1 inch deep, filled with butyl sealant.",
+  "Provide cleats and continuous edge strips of same metal, one gauge heavier than item secured.",
+]
+
+[[section.part2]]
+title = "ROOF DRAINAGE SHEET METAL FABRICATIONS"
+items = [
+  "Gutters: K-style or half-round as indicated, formed in sections not less than 10 feet long, sized per SMACNA for the rainfall intensity at the Project location, with end caps, outlets and expansion joints. Support with hangers at 36 inches on center maximum.",
+  "Downspouts: Rectangular or round as indicated, formed in 10-foot sections with telescoping joints, fastened to wall with straps at 60 inches on center maximum, and with elbows and splash blocks or connections to storm drainage.",
+]
+
+[[section.part2]]
+title = "LOW-SLOPE ROOF SHEET METAL FABRICATIONS"
+items = [
+  "Roof-Edge Flashing: Two-piece fascia and gravel stop with continuous cleat, in 10-foot sections, tested to ANSI/SPRI/FM 4435/ES-1.",
+  "Copings: Snap-on coping with continuous cleats or anchor chairs, sloped toward roof, joined with concealed splice plates and sealant.",
+  "Counterflashing and Reglets: Two-piece removable counterflashing with receiver, lapping base flashing not less than 4 inches.",
+]
+
+[[section.part2]]
+title = "STEEP-SLOPE ROOF SHEET METAL FABRICATIONS"
+items = [
+  "Valley Flashing: Open-valley W-profile with 1-inch center crimp and hemmed edges, 24 inches wide, in 10-foot sections lapped 6 inches.",
+  "Apron, Step and Chimney Flashing: Formed to profiles indicated, with counterflashing set in reglets.",
+]
+
+[[section.part2]]
+title = "WALL SHEET METAL FABRICATIONS"
+items = [
+  "Opening Flashings: Head and sill flashings with end dams and drip edges, extending 3 inches beyond openings.",
+  "Base and Transition Flashing: Z-flashing at horizontal transitions and base of wall, with 3/8-inch drip, lapping weather barrier.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, blocking and nailers for correct location, secure attachment and compliance with requirements for installation tolerances.",
+  "Verify that roofing and weather barrier are in place where sheet metal must lap over them.",
+]
+
+[[section.part3]]
+title = "INSTALLATION, GENERAL"
+items = [
+  "Install sheet metal flashing and trim according to the SMACNA Architectural Sheet Metal Manual and approved Shop Drawings, true to line, level and plumb, with limited oil canning.",
+  "Anchor sheet metal securely in place, with provisions for thermal and structural movement. Use concealed fasteners where possible.",
+  "Install underlayment beneath sheet metal on roofs where indicated, lapped 2 inches minimum.",
+  "Separation: Separate dissimilar metals and metal in contact with concrete, mortar or preservative-treated wood with bituminous coating or sealing tape.",
+  "Install exposed sheet metal with lap joints lapped in direction of water flow, not less than 4 inches, and with expansion joints as specified.",
+  "Seal joints as indicated or as required for watertight construction. Solder copper and stainless steel seams.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF ROOF DRAINAGE SYSTEM"
+items = [
+  "Install gutters with a slope of not less than 1/16 inch per foot toward downspouts. Provide expansion joints at 50 feet maximum and at mid-length between downspouts.",
+  "Install downspouts plumb, with straps at top, bottom and 60 inches on center.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF ROOF FLASHINGS"
+items = [
+  "Install copings and roof-edge flashing with cleats and fasteners per the tested ANSI/SPRI/FM 4435/ES-1 assembly.",
+  "Install counterflashing over base flashing, lapped not less than 4 inches, with vertical joints lapped 3 inches and sealed.",
+]
+
+[[section.part3]]
+title = "ERECTION TOLERANCES"
+items = [
+  "Install sheet metal to within 1/4 inch in 20 feet on slope and location lines as indicated, and within 1/8-inch offset of adjoining faces and alignment of matching profiles.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean exposed metal surfaces of substances that interfere with uniform oxidation and weathering. Remove strippable film and metal filings.",
+  "Replace sheet metal that is damaged or has deteriorated finish beyond successful repair.",
+]
+
+[[section]]
+number = "07 72 00"
+title = "ROOF ACCESSORIES"
+when = ["roof_membrane"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Roof curbs and equipment supports.",
+  ">Roof hatches.",
+  ">Pipe and conduit supports.",
+  ">Snow guards, where indicated.",
+  ">Guardrail systems at roof hatches.",
+  "Related Requirements:",
+  ">Section 07 54 23 \"Thermoplastic-Polyolefin (TPO) Roofing\" for membrane flashing of accessories.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for counterflashing.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of roof accessory, including dimensions, materials, finishes and load capacities.",
+  "Shop Drawings: Show roof plan with locations of accessories, attachment, and flashing details. Coordinate curb sizes with equipment.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Coordination Drawings: Roof plan showing accessories, equipment, penetrations and walkways, coordinated with mechanical and electrical work.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Roof hatches against defects in materials and workmanship for five years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Structural Performance: Accessories shall withstand design wind, snow and equipment loads per ASCE 7 and the building code, and seismic loads where required.",
+  "Hatch Loads: Roof hatch covers shall withstand 40 lbf/sq. ft. live load and 20 lbf/sq. ft. wind uplift minimum.",
+]
+
+[[section.part2]]
+title = "ROOF CURBS AND EQUIPMENT SUPPORTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Pate Company.",
+  ">RPS Roof Products and Systems (ThyCurb).",
+  ">Portals Plus, Inc.",
+  "Roof Curbs: Galvanized steel, ASTM A653/A653M, G90, 18 gauge minimum, with integral base plate, welded corners, wood nailer, and factory-installed 1-1/2-inch rigid insulation. Height: 12 inches minimum above finished roof, with top level where roof slopes.",
+  "Equipment Supports (Rails): Galvanized steel rails with wood nailer and removable counterflashing cap, height 14 inches minimum above finished roof.",
+]
+
+[[section.part2]]
+title = "ROOF HATCHES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Babcock-Davis.",
+  ">The Bilco Company.",
+  ">Milcor (Hart and Cooley).",
+  "Roof Hatch: Single-leaf, 30 by 36 inches for ladder access, or size indicated; 11-gauge galvanized steel curb and 14-gauge cover, 3-inch insulated cover and curb, with compression spring operators, hold-open arm, slam latch with interior and exterior handles, and padlock hasps.",
+  "Ladder Safety Post: Telescoping safety post, galvanized steel, attached to ladder rungs, per OSHA 29 CFR 1910.",
+  "Hatch Guardrail: Manufacturer's fixed guardrail system with self-closing gate, complying with OSHA 29 CFR 1910 and the building code.",
+]
+
+[[section.part2]]
+title = "PIPE AND CONDUIT SUPPORTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Eaton (B-Line).",
+  ">MIRO Industries, Inc.",
+  ">PHP Systems/Design.",
+  "Supports: Non-penetrating, UV-stabilized polycarbonate or recycled rubber base with galvanized steel strut or roller, sized for pipe and load, set on a slip sheet or walkway pad compatible with roofing.",
+]
+
+[[section.part2]]
+title = "SNOW GUARDS"
+items = [
+  "Snow Guards: Where indicated, aluminum bar-type or individual pad-type snow guards, mechanically attached or clamped as recommended by roofing manufacturer, spaced per manufacturer's calculations for design snow load.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Verify that substrate, blocking and structural supports are in place and that curb locations and dimensions are coordinated with equipment.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install roof accessories according to manufacturer's written instructions, level, plumb, true to line and elevation, and securely anchored to structure.",
+  "Coordinate installation with roofing so accessories are flashed into roofing system as required by roofing manufacturer's warranty.",
+  "Separate dissimilar metals with bituminous coating or isolation pads.",
+  "Install pipe supports on protection pads, not attached to roof, at spacing recommended by manufacturer for pipe size.",
+  "Operational Units: Test operate hatches and adjust hardware for smooth operation and weathertight closing.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean exposed surfaces and touch up damaged coatings with galvanizing repair paint complying with ASTM A780.",
+]
+
+[[section]]
+number = "07 84 13"
+title = "PENETRATION FIRESTOPPING"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Penetration firestopping systems for penetrations through fire-resistance-rated walls, floors and floor-ceiling assemblies, including both empty openings and openings containing penetrating items.",
+  ">Smoke-seal systems at penetrations of smoke barriers.",
+  "Related Requirements:",
+  ">Section 07 21 00 \"Thermal Insulation\" for safing insulation.",
+  ">Section 07 92 00 \"Joint Sealants\" for non-fire-rated joints.",
+  ">Section 09 29 00 \"Gypsum Board\" for fire-resistance-rated gypsum board assemblies.",
+  ">Divisions 21, 22, 23, 26 and 27 for piping, ductwork, conduit and cable penetrations requiring firestopping.",
+]
+
+[[section.part1]]
+title = "PREINSTALLATION MEETINGS"
+items = [
+  "Preinstallation Conference: Conduct conference at Project site with firestopping Installer and installers of penetrating items to review rated assemblies, system selection, sequencing and inspection.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product.",
+  "Product Schedule: For each penetration firestopping system, indicating location, rated assembly, penetrating item, annular space, F- and T-ratings, and the design designation of the testing and inspecting agency.",
+  "Shop Drawings: For each system, the listed system drawing from UL Product iQ or Intertek Directory of Building Products, and engineering judgments where no tested system exists.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer.",
+  "Engineering Judgments: For conditions not covered by a listed system, signed by the firestop manufacturer's engineering staff, following IFC guidelines for engineering judgments.",
+  "Field Quality-Control Reports: Inspection reports from the special inspector.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: A firm approved under FM 4991 (FM Approved Firestop Contractor) or UL Qualified Firestop Contractor Program, or a firm trained and approved by firestopping manufacturer.",
+  "Source Limitations: Obtain firestopping products for each type of penetration from single manufacturer.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Install firestopping only when ambient and substrate temperatures and humidity are within limits recommended by manufacturer, and substrates are dry.",
+  "Ventilate firestopping work per manufacturer's written instructions.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Coordinate construction of openings and penetrating items so that annular spaces and sleeve sizes comply with the listed systems.",
+  "Do not conceal firestopping until inspections have been completed.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Fire-Test-Response Characteristics: Provide penetration firestopping systems tested according to ASTM E814 or UL 1479, with a positive pressure differential of 0.01 inch of water, by a qualified testing agency.",
+  "F-Rating: Not less than the fire-resistance rating of the constructions penetrated, as determined per ASTM E119 or UL 263.",
+  "T-Rating: Where required by the building code, not less than one hour, but not less than the fire-resistance rating of the floor penetrated.",
+  "L-Rating: Where penetrating smoke barriers or where required, 5.0 cfm/sq. ft. of opening or less at both ambient and 400 deg F, per UL 1479.",
+  "W-Rating: Class 1 water resistance per UL 1479, for floor penetrations in wet areas where indicated.",
+  "Surface-Burning Characteristics: Flame-spread index of 25 or less and smoke-developed index of 450 or less for exposed firestopping per ASTM E84.",
+]
+
+[[section.part2]]
+title = "PENETRATION FIRESTOPPING SYSTEMS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">3M Fire Protection Products.",
+  ">Hilti, Inc.",
+  ">Specified Technologies Inc. (STI).",
+  ">Tremco Incorporated.",
+  "Products: Provide the listed system components, including sealants, mortars, putties, wraps, collars, pillows, sleeves, forming materials and devices, as required by each tested system and compatible with each other and with substrates.",
+  ">Intumescent Sealant: Latex or silicone-based, for metallic and nonmetallic pipes and cables.",
+  ">Wrap Strips and Collars: Intumescent, for combustible (plastic) pipes and insulated pipes.",
+  ">Firestop Devices: Factory-assembled sleeves with intumescent inserts, for cable penetrations and future cabling.",
+  ">Mortar: Portland-cement-based, for large openings and multiple penetrations in floors.",
+  ">Forming and Packing Materials: Mineral wool or other materials required by the listed system.",
+  "Color: Identifiable red or manufacturer's standard color for concealed work; for exposed work, color as selected by Architect where available.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES"
+items = [
+  "Identification Labels: Pressure-sensitive, preprinted labels reading \"Warning - Penetration Firestopping - Do Not Disturb,\" with spaces for listed system designation, manufacturer, Installer and date.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and penetrating items, with Installer present, for compliance with requirements for opening configurations, penetrating items, substrates and other conditions affecting performance of the Work.",
+  "Verify that penetrating items are permanently supported and that insulation, sleeves and coverings are complete as required by the listed system.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Clean out openings immediately before installing firestopping to remove debris, oils, loose materials and other substances that impair bonding.",
+  "Prime substrates where recommended by manufacturer. Mask adjacent surfaces where required to prevent staining.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Install penetration firestopping to comply with the listed system and manufacturer's written installation instructions for each type of penetration.",
+  "Install forming materials and other accessories of types required to support fill materials during application and in the position needed to produce cross-sectional shapes and depths required to achieve fire ratings.",
+  "Install fill materials by proven techniques to produce the following results:",
+  ">Fill voids and cavities formed by openings, forming materials, accessories and penetrating items as required to achieve fire-resistance ratings.",
+  ">Apply materials so they contact and adhere to substrates formed by openings and penetrating items.",
+  ">For fill materials that will remain exposed after completing the Work, finish to produce smooth, uniform surfaces flush with adjoining finishes.",
+  "Install firestopping at both sides of rated walls where the listed system requires it.",
+]
+
+[[section.part3]]
+title = "IDENTIFICATION"
+items = [
+  "Wall Identification: Permanently label walls containing penetrations sealed with firestopping systems with the fire-resistance rating and the words \"Fire and/or Smoke Barrier - Protect All Openings,\" located above ceilings at 30 feet on center maximum, as required by the building code.",
+  "Penetration Identification: Attach identification labels to surfaces adjacent to each firestopping system, within 6 inches of the edge, where visible to anyone seeking to remove penetrating items.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Inspecting Agency: Owner will engage a qualified special inspector to perform inspections according to ASTM E2174 and the building code.",
+  "Where deficiencies are found or firestopping is damaged or removed because of testing, repair or replace to comply with requirements.",
+  "Proceed with enclosing firestopping with other construction only after inspection reports are issued and firestopping complies with requirements.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean off excess fill materials adjacent to openings as the Work progresses, by methods and with cleaning materials approved by manufacturer.",
+  "Protect firestopping from damage during construction. Remove and replace damaged firestopping, and firestopping disturbed by later penetrations, to comply with the listed system.",
+]
+
+[[section]]
+number = "07 92 00"
+title = "JOINT SEALANTS"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Silicone joint sealants.",
+  ">Urethane joint sealants.",
+  ">Mildew-resistant joint sealants.",
+  ">Latex joint sealants.",
+  ">Acoustical joint sealants.",
+  "Related Requirements:",
+  ">Section 07 84 13 \"Penetration Firestopping\" for firestopping sealants.",
+  ">Section 08 80 00 \"Glazing\" for glazing sealants.",
+  ">Section 09 29 00 \"Gypsum Board\" for sealing of acoustical partitions.",
+]
+
+[[section.part1]]
+title = "PREINSTALLATION MEETINGS"
+items = [
+  "Preinstallation Conference: Conduct conference at Project site to review joint conditions, substrate preparation, adhesion testing and sequencing.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each joint-sealant product.",
+  "Samples for Initial Selection: Manufacturer's color charts consisting of strips of cured sealants showing the full range of colors available for each product exposed to view.",
+  "Joint-Sealant Schedule: Include the following information:",
+  ">Joint-sealant application, joint location and designation.",
+  ">Joint-sealant manufacturer and product name.",
+  ">Joint-sealant formulation.",
+  ">Joint-sealant color.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For each sealant, showing compliance with ASTM C920 and compatibility and adhesion with Project substrates per ASTM C1087 and ASTM C794.",
+  "Field-Adhesion Test Reports: For each sealant application tested.",
+  "Sample Warranties: For special warranties.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An authorized representative who is trained and approved by manufacturer.",
+  "Preconstruction Laboratory Testing: Submit samples of substrates to sealant manufacturer for adhesion and compatibility testing, and follow manufacturer's recommendations for primers and surface preparation.",
+  "Mockups: Install sealant in mockups of assemblies specified in other Sections to demonstrate joint preparation, tooling and appearance.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Do not proceed with installation of joint sealants under the following conditions:",
+  ">When ambient and substrate temperature conditions are outside limits permitted by joint-sealant manufacturer or are below 40 deg F.",
+  ">When joint substrates are wet.",
+  ">Where joint widths are less than those allowed by joint-sealant manufacturer for applications indicated.",
+  ">Where contaminants capable of interfering with adhesion have not yet been removed from joint substrates.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Installer's Warranty: Installer agrees to repair or replace elastomeric joint sealants that do not comply with performance and other requirements specified in this Section within two years from date of Substantial Completion.",
+  "Special Manufacturer's Warranty: Manufacturer agrees to furnish elastomeric joint sealants to repair or replace those that do not comply with performance and other requirements specified in this Section within five years from date of Substantial Completion; 20 years for silicone sealants.",
+]
+
+[[section.part2]]
+title = "MATERIALS, GENERAL"
+items = [
+  "Compatibility: Provide joint sealants, backings and other related materials that are compatible with one another and with joint substrates under conditions of service and application, as demonstrated by sealant manufacturer based on testing and field experience.",
+  "VOC Content: Sealants and primers shall comply with the limits of authorities having jurisdiction.",
+  "Stain-Test-Response Characteristics: Where sealants are specified to be nonstaining to porous substrates, provide products that have undergone testing according to ASTM C1248 and have not stained porous joint substrates indicated for Project.",
+  "Colors of Exposed Joint Sealants: As selected by Architect from manufacturer's full range.",
+]
+
+[[section.part2]]
+title = "SILICONE JOINT SEALANTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Dow (DOWSIL).",
+  ">GE Sealants (Momentive).",
+  ">Sika Corporation.",
+  ">Tremco Incorporated.",
+  "Silicone, Nonsag, Neutral Curing: ASTM C920, Type S, Grade NS, Class 100/50, for Use NT, M, G, A and O, low modulus.",
+  "Silicone, Mildew Resistant, Acid Curing: ASTM C920, Type S, Grade NS, Class 25, for Use NT, G, A and O, formulated with fungicide, for sanitary applications.",
+  "Silicone, Traffic Grade: ASTM C920, Type S, Grade P or NS, Class 100/50, for Use T, NT, M and A, where indicated.",
+]
+
+[[section.part2]]
+title = "URETHANE JOINT SEALANTS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">BASF (MasterSeal).",
+  ">Pecora Corporation.",
+  ">Sika Corporation.",
+  ">Tremco Incorporated.",
+  "Urethane, Nonsag: ASTM C920, Type S or M, Grade NS, Class 50, for Use NT, M, A and O.",
+  "Urethane, Traffic Grade: ASTM C920, Type S or M, Grade P, Class 25, for Use T, M and O, for horizontal joints in paving and floors.",
+]
+
+[[section.part2]]
+title = "LATEX JOINT SEALANTS"
+items = [
+  "Acrylic Latex: Siliconized acrylic latex complying with ASTM C834, Type OP, Grade NF, paintable, for interior joints with limited movement.",
+]
+
+[[section.part2]]
+title = "ACOUSTICAL JOINT SEALANTS"
+items = [
+  "Acoustical Sealant: Nonsag, paintable, nonstaining latex sealant complying with ASTM C834, effective in reducing airborne sound transmission through perimeter joints and openings in building construction as demonstrated by testing representative assemblies according to ASTM E90.",
+]
+
+[[section.part2]]
+title = "JOINT-SEALANT BACKING"
+items = [
+  "Sealant Backing Material, General: Nonstaining; compatible with joint substrates, sealants, primers and other joint fillers; and approved for applications indicated by sealant manufacturer based on field experience and laboratory testing.",
+  "Cylindrical Sealant Backings: ASTM C1330, Type C (closed-cell material with a surface skin) or Type B (bicellular material with a surface skin), of size and density to control sealant depth and otherwise contribute to producing optimum sealant performance.",
+  "Bond-Breaker Tape: Polyethylene tape or other plastic tape recommended by sealant manufacturer for preventing sealant from adhering to rigid, inflexible joint-filler materials or joint surfaces at back of joint.",
+]
+
+[[section.part2]]
+title = "MISCELLANEOUS MATERIALS"
+items = [
+  "Primer: Material recommended by joint-sealant manufacturer where required for adhesion of sealant to joint substrates indicated, as determined from preconstruction joint-sealant-substrate tests and field tests.",
+  "Cleaners for Nonporous Surfaces: Chemical cleaners acceptable to manufacturers of sealants and sealant backing materials.",
+  "Masking Tape: Nonstaining, nonabsorbent material compatible with joint sealants and surfaces adjacent to joints.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine joints indicated to receive joint sealants, with Installer present, for compliance with requirements for joint configuration, installation tolerances and other conditions affecting performance of the Work.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Surface Cleaning of Joints: Clean out joints immediately before installing joint sealants to comply with joint-sealant manufacturer's written instructions and the following:",
+  ">Remove foreign material from joint substrates that could interfere with adhesion of joint sealant, including dust, paints (except permanent, protective coatings tested and approved for sealant adhesion), old joint sealants, oil, grease, waterproofing and curing compounds.",
+  ">Clean porous joint substrate surfaces by brushing, grinding, mechanical abrading or a combination of these methods. Remove loose particles by vacuuming or blowing out joints with oil-free compressed air.",
+  ">Remove laitance and form-release agents from concrete.",
+  ">Clean nonporous joint substrate surfaces with chemical cleaners or other means that do not stain, harm substrates or leave residues capable of interfering with adhesion.",
+  "Joint Priming: Prime joint substrates where recommended by joint-sealant manufacturer or as indicated by preconstruction testing.",
+  "Masking Tape: Use masking tape where required to prevent contact of sealant or primer with adjoining surfaces that otherwise would be permanently stained or damaged by such contact or by cleaning methods required to remove sealant smears.",
+]
+
+[[section.part3]]
+title = "INSTALLATION OF JOINT SEALANTS"
+items = [
+  "General: Comply with joint-sealant manufacturer's written installation instructions for products and applications indicated, unless more stringent requirements apply.",
+  "Sealant Installation Standard: Comply with recommendations in ASTM C1193 for use of joint sealants as applicable to materials, applications and conditions indicated.",
+  "Acoustical Sealant Installation: Comply with ASTM C919 and manufacturer's written recommendations.",
+  "Install sealant backings of type indicated to support sealants during application and at position required to produce cross-sectional shapes and depths of installed sealants relative to joint widths that allow optimum sealant movement capability.",
+  ">Do not leave gaps between ends of sealant backings.",
+  ">Do not stretch, twist, puncture or tear sealant backings.",
+  ">Remove absorbent sealant backings that have become wet before sealant application, and replace them with dry materials.",
+  "Install bond-breaker tape behind sealants where sealant backings are not used between sealants and backs of joints.",
+  "Install sealants using proven techniques that comply with the following and at the same time backings are installed:",
+  ">Place sealants so they directly contact and fully wet joint substrates.",
+  ">Completely fill recesses in each joint configuration.",
+  ">Produce uniform, cross-sectional shapes and depths relative to joint widths that allow optimum sealant movement capability.",
+  "Tooling of Nonsag Sealants: Immediately after sealant application and before skinning or curing begins, tool sealants according to requirements specified to form smooth, uniform beads of configuration indicated; to eliminate air pockets; and to ensure contact and adhesion of sealant with sides of joint. Provide concave joint profile per ASTM C1193 unless otherwise indicated.",
+  "Sealant Depth: Unless otherwise recommended by manufacturer, install sealant to a width-to-depth ratio of 2:1, with depth not less than 1/4 inch nor more than 1/2 inch.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Field-Adhesion Testing: Test joint sealants according to Method A, Field-Applied Sealant Joint Hand Pull Tab, in Appendix X1 of ASTM C1193 or Method A, Tail Procedure, in ASTM C1521.",
+  ">Extent of Testing: Test completed and cured sealant joints as follows: perform 10 tests for the first 1000 feet of joint length for each kind of sealant and joint substrate, and one test for each 1000 feet thereafter or one test per each floor per elevation.",
+  ">Inspect tested joints and report on whether sealant filled joint cavities and is free of voids, whether dimensions and configurations comply with requirements, and whether sealants showed adhesive or cohesive failure.",
+  "Evaluation of Field-Adhesion-Test Results: Sealants not evidencing adhesive failure from testing or noncompliance with other indicated requirements will be considered satisfactory. Remove sealants that fail to adhere to joint substrates during testing, and retest until test results prove sealants comply with indicated requirements.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean off excess sealant or sealant smears adjacent to joints as the Work progresses by methods and with cleaning materials approved in writing by manufacturers of joint sealants and of products in which joints occur.",
+  "Protect joint sealants during and after curing period from contact with contaminating substances and from damage resulting from construction operations. Cut out and remove damaged or deteriorated joint sealants immediately, and reseal joints with new materials.",
+]
+
+[[section.part3]]
+title = "JOINT-SEALANT SCHEDULE"
+items = [
+  "Joint-Sealant Application: Exterior joints in vertical surfaces and horizontal nontraffic surfaces.",
+  ">Joint Locations: Control and expansion joints in cast-in-place concrete and unit masonry; perimeter joints between cladding and frames of doors, windows and louvers; joints between metal panels; joints in siding and trim.",
+  ">Joint Sealant: Silicone, nonsag, neutral curing, Class 100/50.",
+  ">Joint-Sealant Color: As selected by Architect from manufacturer's full range.",
+  "Joint-Sealant Application: Exterior joints in horizontal traffic surfaces.",
+  ">Joint Locations: Isolation and contraction joints in cast-in-place concrete slabs, paving and walkways; joints between paving and building.",
+  ">Joint Sealant: Urethane, traffic grade, or silicone, traffic grade.",
+  ">Joint-Sealant Color: Gray, or as selected by Architect.",
+  "Joint-Sealant Application: Interior joints in horizontal traffic surfaces.",
+  ">Joint Locations: Isolation joints in cast-in-place concrete slabs and control and expansion joints in tile flooring.",
+  ">Joint Sealant: Urethane, traffic grade.",
+  ">Joint-Sealant Color: As selected by Architect to match adjacent finish.",
+  "Joint-Sealant Application: Interior joints in vertical surfaces and horizontal nontraffic surfaces.",
+  ">Joint Locations: Perimeter joints of interior door and window frames; control and expansion joints in gypsum board and masonry; joints between interior trim and walls.",
+  ">Joint Sealant: Acrylic latex, paintable.",
+  ">Joint-Sealant Color: As selected by Architect, or paint to match adjacent finish.",
+  "Joint-Sealant Application: Mildew-resistant interior joints in vertical surfaces and horizontal nontraffic surfaces.",
+  ">Joint Locations: Joints between plumbing fixtures and adjoining walls, floors and counters; tile control and expansion joints in showers and wet areas; countertop backsplashes.",
+  ">Joint Sealant: Silicone, mildew resistant, acid curing.",
+  ">Joint-Sealant Color: White or clear, or as selected by Architect.",
+  "Joint-Sealant Application: Interior acoustical joints.",
+  ">Joint Locations: Perimeter joints and penetrations in sound-rated partitions and ceilings.",
+  ">Joint Sealant: Acoustical sealant.",
+]

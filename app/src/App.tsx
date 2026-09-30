@@ -37,6 +37,13 @@ import {
   ProjectInfoSummary,
   ProjectInfoView,
 } from "./components/ProjectInfo";
+import {
+  SpecsBrowser,
+  SpecsDialogs,
+  SpecsProperties,
+  SpecsStatus,
+  SpecsView,
+} from "./components/Specs";
 import { StandardChoicesDialog } from "./components/StandardChoices";
 import { EditModelDialog } from "./components/EditModel";
 import { RufplanDialog } from "./components/RufplanDialog";
@@ -121,6 +128,8 @@ export function App() {
   const standards = useAppStore((s) => s.ribbonTab === "Standards" && !s.app?.sketch);
   // So does the Project Info tab (ADR-084).
   const projectTab = useAppStore((s) => s.ribbonTab === "Project Info" && !s.app?.sketch);
+  // And the Specifications tab (ADR-085).
+  const specsTab = useAppStore((s) => s.ribbonTab === "Specifications" && !s.app?.sketch);
   const tool = useAppStore((s) => s.tool);
 
   useEffect(() => {
@@ -250,7 +259,17 @@ export function App() {
       {app ? (
         <>
           <Ribbon />
-          {projectTab ? (
+          {specsTab ? (
+            <>
+              <div className="main std-main">
+                <SpecsBrowser />
+                <SpecsView />
+                <SpecsProperties />
+              </div>
+              <SpecsStatus />
+              <SpecsDialogs />
+            </>
+          ) : projectTab ? (
             <>
               <div className="main std-main">
                 <ProjectInfoBrowser />

@@ -2475,6 +2475,8 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::Site { .. } => crate::site::properties(doc, id, &mut props),
         // Edited on the Standards tab (ADR-047).
         ElementData::Standards(_) => {}
+        // Edited on the Specifications tab (ADR-085).
+        ElementData::SpecBook(_) => {}
         ElementData::SpotElevation { .. }
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }
@@ -3245,6 +3247,7 @@ pub fn set_property(
         | ElementData::ElevationMarkerType { .. }
         | ElementData::Site { .. }
         | ElementData::Standards(_)
+        | ElementData::SpecBook(_)
         | ElementData::SpotElevation { .. }
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }

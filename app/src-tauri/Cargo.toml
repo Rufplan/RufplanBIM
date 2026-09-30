@@ -28,6 +28,7 @@ studio-geom.workspace = true
 studio-sheets.workspace = true
 studio-structural.workspace = true
 studio-mep.workspace = true
+studio-specs.workspace = true
 keyring = "4.2.0"
 tauri-plugin-opener = "2"
 studio-sync = { version = "0.0.1", path = "../../crates/studio-sync" }

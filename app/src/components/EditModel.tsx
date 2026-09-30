@@ -37,7 +37,9 @@ const sparkle = (color: string) => (
 /** Where Edit Model is offered: plans (floor, ceiling, site), elevations, sections and 3D;
  * not sheets, schedules or the Standards tab. */
 export function editModelAllowed(s: UiStore): boolean {
-  if (!s.app || s.app.sketch || s.activeViewport || s.ribbonTab === "Standards") return false;
+  if (!s.app || s.app.sketch || s.activeViewport) return false;
+  // Tabs that replace the views (Specifications has its own Edit Specs).
+  if (["Standards", "Project Info", "Specifications"].includes(s.ribbonTab)) return false;
   const t = activeViewInfo(s)?.viewType;
   return (
     t === "Plan" || t === "CeilingPlan" || t === "Elevation" || t === "Section" || t === "ThreeD"

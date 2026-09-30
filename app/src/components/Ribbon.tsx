@@ -25,6 +25,7 @@ import { modelInPlace } from "../inplace";
 import { startFilledRegion } from "../details";
 import { startComponent } from "../components";
 import { ProjectInfoRibbon } from "./ProjectInfo";
+import { SpecsRibbon } from "./Specs";
 import { StandardsRibbon } from "./Standards";
 import {
   ContextPanels,
@@ -378,6 +379,7 @@ type Tab =
   | "Details"
   | "View"
   | "Sheets"
+  | "Specifications"
   | "Collaborate"
   | "Manage"
   | "Rufplan";
@@ -398,6 +400,7 @@ const TABS: Tab[] = [
   "Details",
   "View",
   "Sheets",
+  "Specifications",
   "Collaborate",
   "Manage",
   "Rufplan",
@@ -497,6 +500,7 @@ export function Ribbon() {
       </div>
       <div className="rb-body">
         {tab === "Project Info" && <ProjectInfoRibbon />}
+        {tab === "Specifications" && <SpecsRibbon />}
         {tab === "Standards" && <StandardsRibbon />}
         {/* Modify, Move and Delete live on the Modify tab only (Esc still returns to Modify). */}
         {tab === "Modify" && (

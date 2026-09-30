@@ -1,0 +1,2370 @@
+# Division 00 - Procurement and Contracting Requirements
+# Division 01 - General Requirements
+
+[[section]]
+number = "00 11 16"
+title = "INVITATION TO BID"
+when = ["bidding"]
+kind = "document"
+
+[[section.articles]]
+title = "PROJECT INFORMATION"
+items = [
+  "Notice to Bidders: Qualified bidders are invited to submit bids for the Project described in this Invitation.",
+  "Project Identification:",
+  ">Project: {project_name}.",
+  ">Project Number: {project_number}.",
+  ">Project Location: {project_address}.",
+  "Owner: {owner}.",
+  "Architect: {architect}.",
+  "Project Description: The Project consists of the construction of the building and associated site work indicated on the Drawings and specified in the Project Manual.",
+  "Construction Contract: Bids will be received for a single prime contract on a stipulated-sum basis.",
+]
+
+[[section.articles]]
+title = "BID SUBMITTAL AND OPENING"
+items = [
+  "Owner will receive sealed bids until the bid time and date stated below, at the location indicated. Bids received after the stated time will be returned unopened.",
+  ">Bid Date: [date].",
+  ">Bid Time: [time], local time.",
+  ">Location: [address], or by electronic submittal as described in the Instructions to Bidders.",
+  "Bids will be opened privately and are not subject to public reading. Owner will notify all bidders of the outcome.",
+]
+
+[[section.articles]]
+title = "BID SECURITY"
+items = [
+  "Bid security in the amount of 5 percent of the Bid amount is [required] [not required]. When required, provide a bid bond on AIA Document A310 or a certified check made payable to Owner.",
+]
+
+[[section.articles]]
+title = "PREBID MEETING"
+items = [
+  "A prebid meeting for all bidders will be held at the Project site at [time] on [date]. Attendance is [strongly recommended] [mandatory].",
+]
+
+[[section.articles]]
+title = "DOCUMENTS"
+items = [
+  "Procurement and Contracting Documents: Obtain after [date] from Architect by electronic download. Printed sets are available at the bidder's cost.",
+  "Examination: Procurement and Contracting Documents may be examined at the office of Architect and through the Owner's online project listing.",
+]
+
+[[section.articles]]
+title = "TIME OF COMPLETION"
+items = [
+  "Successful bidder shall begin the Work on receipt of the Notice to Proceed and shall achieve Substantial Completion within the number of calendar days stated in the Bid Form.",
+]
+
+[[section.articles]]
+title = "BIDDER'S QUALIFICATIONS"
+items = [
+  "Bidders shall be licensed as general contractors in {jurisdiction} and shall submit AIA Document A305 Contractor's Qualification Statement with their bids when requested.",
+  "Owner reserves the right to reject any or all bids and to waive informalities and irregularities.",
+]
+
+[[section]]
+number = "00 21 13"
+title = "INSTRUCTIONS TO BIDDERS"
+when = ["bidding"]
+kind = "document"
+
+[[section.articles]]
+title = "INSTRUCTIONS TO BIDDERS"
+items = [
+  "AIA Document A701, Instructions to Bidders, is hereby incorporated by reference into the Procurement and Contracting Requirements for {project_name}. A copy is available for review at the office of Architect.",
+  "The following supplements modify AIA Document A701. Where a portion of A701 is modified or deleted by these supplements, the unaltered portions remain in effect.",
+]
+
+[[section.articles]]
+title = "BIDDER'S REPRESENTATIONS"
+items = [
+  "Add the following to Section 2.1 of A701:",
+  ">The Bidder has visited the site, become familiar with local conditions under which the Work is to be performed, and correlated personal observations with requirements of the proposed Contract Documents.",
+  ">The Bidder has reviewed the geotechnical data made available and understands that such data is for information only and is not a Contract Document.",
+]
+
+[[section.articles]]
+title = "BIDDING DOCUMENTS"
+items = [
+  "Interpretation or Correction: Submit requests for clarification in writing to Architect no fewer than seven days before the bid date. Architect will issue responses as Addenda only.",
+  "Substitutions: Requests for substitution before bid shall be submitted on the form in Document 00 43 25 \"Substitution Request Form\" no fewer than ten days before the bid date. Approved substitutions will be listed in an Addendum.",
+  "Addenda: Addenda will be issued to all registered holders of Bidding Documents no later than four days before the bid date, except an Addendum withdrawing the request for bids or postponing the bid date.",
+]
+
+[[section.articles]]
+title = "BIDDING PROCEDURES"
+items = [
+  "Form of Bid: Submit bids on Document 00 41 13 \"Bid Form - Stipulated Sum (Single-Prime Contract)\" with all blanks filled in and all Addenda acknowledged.",
+  "Bid Security: Where required by the Invitation to Bid, bid security shall accompany the bid.",
+  "Submission: Submit bids in a sealed opaque envelope marked with the Project name and the Bidder's name, or by the electronic method identified in the Invitation to Bid.",
+  "Modification or Withdrawal: A bid may be modified or withdrawn in writing before the bid time. No bid may be withdrawn for 60 days after the bid date.",
+]
+
+[[section.articles]]
+title = "CONSIDERATION OF BIDS"
+items = [
+  "Owner may accept or reject any bid, accept alternates in any order or combination, and negotiate with the lowest responsible bidder whose bid is within the Owner's budget.",
+  "Owner's selection will be based on price, qualifications, schedule and any other factors Owner considers to be in its interest.",
+]
+
+[[section.articles]]
+title = "POST-BID INFORMATION"
+items = [
+  "Within seven days of notification of selection, the apparent successful bidder shall submit the following:",
+  ">A list of proposed subcontractors and principal suppliers for each major portion of the Work.",
+  ">A preliminary construction schedule.",
+  ">A schedule of values.",
+  ">Certificates of insurance as required by Document 00 73 00 \"Supplementary Conditions.\"",
+]
+
+[[section.articles]]
+title = "PERFORMANCE AND PAYMENT BONDS"
+items = [
+  "Performance and payment bonds, each in the amount of 100 percent of the Contract Sum, are [required] [not required]. When required, provide bonds on AIA Document A312 from a surety licensed in {jurisdiction}. The cost of bonds shall be [included in the Bid] [listed separately on the Bid Form].",
+]
+
+[[section]]
+number = "00 31 32"
+title = "GEOTECHNICAL DATA"
+when = ["optional"]
+kind = "document"
+
+[[section.articles]]
+title = "GEOTECHNICAL DATA"
+items = [
+  "This Document identifies and describes geotechnical data made available to bidders for {project_name} at {project_address}.",
+  "A geotechnical report for the Project, prepared by [geotechnical engineer] and dated [date], is available for viewing at the office of Architect and is included as an attachment to this Document.",
+  "The report was obtained for Owner's use in the design of the Project and is not part of the Contract Documents.",
+  "The report is made available for information only. Owner and Architect do not warrant the accuracy of subsurface information, soil interpretation, or conclusions contained in the report.",
+  "Bidders may conduct their own subsurface investigations at no cost to Owner, subject to Owner's approval of the time and method of access to the site. Restore the site to its original condition after investigation.",
+  "Recommendations in the report are incorporated into the Contract Documents only to the extent they are specifically included in the Drawings and Specifications.",
+  "Related Requirements:",
+  ">Document 00 21 13 \"Instructions to Bidders\" for the Bidder's representations regarding site and subsurface conditions.",
+]
+
+[[section]]
+number = "00 41 13"
+title = "BID FORM - STIPULATED SUM (SINGLE-PRIME CONTRACT)"
+when = ["bidding"]
+kind = "document"
+
+[[section.articles]]
+title = "BID INFORMATION"
+items = [
+  "Bidder: [company name].",
+  "Project: {project_name}, {project_address}.",
+  "Project Number: {project_number}.",
+  "Owner: {owner}.",
+  "Architect: {architect}.",
+]
+
+[[section.articles]]
+title = "CERTIFICATIONS AND BASE BID"
+items = [
+  "The undersigned Bidder, having carefully examined the Procurement and Contracting Requirements, Conditions of the Contract, Drawings, Specifications and all subsequent Addenda, and having visited the site, hereby proposes to furnish all labor, materials, equipment and services required to complete the Work for the stipulated sum of:",
+  ">[amount in words] Dollars ($[amount in figures]).",
+  "The stipulated sum includes all allowances described in Section 01 21 00 \"Allowances\" and all applicable taxes.",
+]
+
+[[section.articles]]
+title = "ALTERNATES"
+items = [
+  "The Bidder proposes the following adjustments to the Base Bid for each alternate described in Section 01 23 00 \"Alternates\":",
+  ">Alternate No. 1: [Add] [Deduct] $[amount].",
+  ">Alternate No. 2: [Add] [Deduct] $[amount].",
+]
+
+[[section.articles]]
+title = "BID GUARANTEE"
+items = [
+  "The Bidder agrees to hold this bid open for 60 days after the bid date and to accept the Owner's selection of alternates in any combination.",
+  "Where bid security is required, it is attached in the amount of 5 percent of the Base Bid.",
+]
+
+[[section.articles]]
+title = "TIME OF COMPLETION"
+items = [
+  "The Bidder agrees to begin the Work on receipt of the Notice to Proceed and to achieve Substantial Completion within [number] calendar days.",
+]
+
+[[section.articles]]
+title = "ACKNOWLEDGEMENT OF ADDENDA"
+items = [
+  "The Bidder acknowledges receipt of the following Addenda:",
+  ">Addendum No. [__], dated [date].",
+  ">Addendum No. [__], dated [date].",
+]
+
+[[section.articles]]
+title = "BIDDER'S LICENSE AND SUBMISSION"
+items = [
+  "Contractor's license number in {jurisdiction}: [number].",
+  "Submitted on [date] by [authorized signatory, name and title], who certifies authority to bind the Bidder.",
+  "Signature: ____________________.",
+]
+
+[[section]]
+number = "00 43 25"
+title = "SUBSTITUTION REQUEST FORM"
+when = ["bidding"]
+kind = "document"
+
+[[section.articles]]
+title = "REQUEST INFORMATION"
+items = [
+  "Project: {project_name}, Project Number {project_number}.",
+  "To: {architect}.",
+  "From: [bidder or Contractor].",
+  "Specification Section, Article and Paragraph: [reference].",
+  "Specified Product: [manufacturer, product name, model number].",
+  "Proposed Substitution: [manufacturer, product name, model number].",
+]
+
+[[section.articles]]
+title = "SUPPORTING DATA"
+items = [
+  "Attach the following:",
+  ">Product data, drawings and samples as applicable.",
+  ">A point-by-point comparison of the proposed substitution with the specified product, listing all differences.",
+  ">Changes required in other work to accommodate the substitution.",
+  ">Effect on the construction schedule and the Contract Sum.",
+  ">Reference projects where the product has been used, with contact information.",
+  ">Warranty and availability of maintenance service and replacement parts.",
+]
+
+[[section.articles]]
+title = "CERTIFICATION"
+items = [
+  "The undersigned certifies that the proposed substitution has been fully investigated and is equal or superior in all respects to the specified product, will perform the same function, will not affect dimensions or functional clearances, and that the undersigned will pay for changes to the design and to other work that result from its acceptance.",
+  "Submitted by: [name, firm, signature, date].",
+]
+
+[[section.articles]]
+title = "ARCHITECT'S REVIEW"
+items = [
+  "Action:",
+  ">Substitution accepted.",
+  ">Substitution accepted as noted.",
+  ">Substitution not accepted.",
+  ">Received too late; use specified product.",
+  "Reviewed by: [name, date].",
+]
+
+[[section]]
+number = "00 52 13"
+title = "AGREEMENT FORM - STIPULATED SUM"
+when = ["always"]
+kind = "document"
+
+[[section.articles]]
+title = "AGREEMENT"
+items = [
+  "The Agreement for {project_name} shall be AIA Document A101, Standard Form of Agreement Between Owner and Contractor where the basis of payment is a Stipulated Sum, as modified for this Project.",
+  "A copy of the proposed Agreement is available for review at the office of Architect. The executed Agreement will be incorporated into the Contract Documents.",
+]
+
+[[section.articles]]
+title = "PROJECT-SPECIFIC INFORMATION"
+items = [
+  "Owner: {owner}.",
+  "Contractor: [to be determined by bidding].",
+  "Project: {project_name}, {project_address}.",
+  "Architect: {architect}.",
+  "Contract Sum: The Base Bid plus accepted alternates, as stated in the successful bidder's Bid Form.",
+  "Contract Time: As stated in the successful bidder's Bid Form, measured from the date of commencement stated in the Notice to Proceed.",
+  "Liquidated Damages: [$__ per calendar day] [Not applicable] for each day Substantial Completion is delayed beyond the Contract Time.",
+  "Retainage: As stated in Document 00 73 00 \"Supplementary Conditions.\"",
+]
+
+[[section.articles]]
+title = "GENERAL CONDITIONS"
+items = [
+  "The General Conditions of the Contract are AIA Document A201, General Conditions of the Contract for Construction, as referenced in Document 00 72 13 \"General Conditions\" and modified by Document 00 73 00 \"Supplementary Conditions.\"",
+]
+
+[[section]]
+number = "00 72 13"
+title = "GENERAL CONDITIONS"
+when = ["always"]
+kind = "document"
+
+[[section.articles]]
+title = "GENERAL CONDITIONS"
+items = [
+  "AIA Document A201, General Conditions of the Contract for Construction, is hereby incorporated by reference into the Contract Documents for {project_name}.",
+  "A copy of AIA Document A201 is available for review at the office of Architect and will be bound with the executed Agreement.",
+  "The General Conditions are modified by Document 00 73 00 \"Supplementary Conditions.\" Where a provision of A201 is modified or deleted, the unaltered portions remain in effect.",
+  "The General Conditions apply to all Sections of the Specifications and to all work performed under the Contract, including work by subcontractors of every tier.",
+]
+
+[[section.articles]]
+title = "RELATED DOCUMENTS"
+items = [
+  "The General Conditions are to be read together with the following:",
+  ">Document 00 52 13 \"Agreement Form - Stipulated Sum\" (AIA Document A101).",
+  ">Document 00 73 00 \"Supplementary Conditions.\"",
+  ">Division 01 General Requirements, which expand on the administrative and procedural provisions of A201.",
+  "Where Division 01 and A201 address the same subject, the Division 01 requirement governs to the extent it is more specific, provided it does not conflict with the Supplementary Conditions.",
+]
+
+[[section.articles]]
+title = "DEFINITIONS"
+items = [
+  "Terms defined in A201, including Contract Documents, Work, Project, Substantial Completion, Change Order and Construction Change Directive, have the meanings given in A201 wherever used in the Project Manual.",
+  "Owner, Contractor and Architect are as identified in the Agreement: Owner is {owner}; Architect is {architect}.",
+]
+
+[[section]]
+number = "00 73 00"
+title = "SUPPLEMENTARY CONDITIONS"
+when = ["always"]
+kind = "document"
+
+[[section.articles]]
+title = "GENERAL"
+items = [
+  "The following supplements modify AIA Document A201, General Conditions of the Contract for Construction, for {project_name}. Article and paragraph numbers refer to A201. Where a portion of A201 is modified or deleted, the unaltered portions remain in effect.",
+]
+
+[[section.articles]]
+title = "ARTICLE 1 - GENERAL PROVISIONS"
+items = [
+  "Add to Section 1.2.1: In case of conflict within the Contract Documents, the more stringent requirement or the greater quantity shall govern, unless Architect directs otherwise in writing.",
+  "Add to Section 1.5: Electronic model files furnished by Architect are for the Contractor's convenience only and are not Contract Documents unless expressly stated.",
+]
+
+[[section.articles]]
+title = "ARTICLE 3 - CONTRACTOR"
+items = [
+  "Add to Section 3.4: Contractor shall obtain and pay for all permits and fees required for the Work other than the building permit, which is [obtained by Owner] [obtained by Contractor], and shall comply with the requirements of {jurisdiction}.",
+  "Add to Section 3.5: The warranty period for the Work shall be one year from the date of Substantial Completion, unless a longer period is specified in the Specifications.",
+  "Add to Section 3.10: Submit the construction schedule within 14 days after the date of the Agreement, in the format specified in Section 01 32 00 \"Construction Progress Documentation.\"",
+]
+
+[[section.articles]]
+title = "ARTICLE 7 - CHANGES IN THE WORK"
+items = [
+  "Add to Section 7.3.4: Overhead and profit on changes shall not exceed the following:",
+  ">For work performed by the Contractor's own forces: 10 percent of cost.",
+  ">For work performed by a subcontractor: 5 percent of the subcontractor's cost to the Contractor.",
+  ">For work performed by a subcontractor's own forces: 10 percent of cost.",
+]
+
+[[section.articles]]
+title = "ARTICLE 8 - TIME"
+items = [
+  "Add to Section 8.3.1: Extensions of time for weather shall be granted only for days of adverse weather in excess of the average for the month, as recorded by the nearest National Weather Service station, that prevent work on the critical path.",
+]
+
+[[section.articles]]
+title = "ARTICLE 9 - PAYMENTS AND COMPLETION"
+items = [
+  "Add to Section 9.3.1: Submit Applications for Payment on AIA Documents G702 and G703 on or about the 25th day of each month.",
+  "Retainage: Owner will retain 10 percent of each progress payment until the Work is 50 percent complete, after which no further retainage will be withheld on the remaining work, provided progress is satisfactory. Retainage shall be released with final payment.",
+  "Add to Section 9.8: Request for inspection for Substantial Completion shall be accompanied by the Contractor's list of incomplete items.",
+]
+
+[[section.articles]]
+title = "ARTICLE 11 - INSURANCE AND BONDS"
+items = [
+  "Add to Section 11.1: Contractor shall purchase and maintain the following insurance, with insurers licensed in {jurisdiction} and rated A- VII or better by A.M. Best:",
+  ">Commercial General Liability: $1,000,000 each occurrence; $2,000,000 general aggregate; $2,000,000 products-completed operations aggregate.",
+  ">Automobile Liability: $1,000,000 combined single limit.",
+  ">Umbrella Excess Liability: $2,000,000 each occurrence and aggregate.",
+  ">Workers' Compensation: Statutory limits.",
+  ">Employer's Liability: $500,000 each accident; $500,000 disease each employee; $500,000 disease policy limit.",
+  "Name Owner and Architect as additional insureds on the Commercial General Liability, Automobile and Umbrella policies, on a primary and noncontributory basis.",
+  "Property Insurance: [Owner] [Contractor] shall purchase builder's risk insurance on an all-risk basis for the full replacement value of the Work.",
+  "Deliver certificates of insurance before commencing the Work.",
+]
+
+[[section.articles]]
+title = "ARTICLE 15 - CLAIMS AND DISPUTES"
+items = [
+  "Add to Section 15.4: Arbitration, if selected in the Agreement, shall take place in {jurisdiction}.",
+]
+
+[[section]]
+number = "01 10 00"
+title = "SUMMARY"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "PROJECT INFORMATION"
+items = [
+  "Project Identification: {project_name}.",
+  ">Project Number: {project_number}.",
+  ">Project Location: {project_address}.",
+  "Owner: {owner}.",
+  ">Owner's Representative: [name], who is authorized to act on Owner's behalf for the Project.",
+  "Architect: {architect}.",
+  "Authority Having Jurisdiction: {jurisdiction}. Applicable building code: {building_code}.",
+]
+
+[[section.part1]]
+title = "WORK COVERED BY CONTRACT DOCUMENTS"
+items = [
+  "The Work of the Project is defined by the Contract Documents and consists of the following:",
+  ">Construction of the building indicated on the Drawings, including foundations, structure, enclosure, interior construction, and mechanical, plumbing and electrical systems.",
+  ">Site work within the limits of construction indicated, including grading, utilities, paving and landscaping.",
+  "Type of Contract: The Project will be constructed under a single prime contract on a stipulated-sum basis.",
+]
+
+[[section.part1]]
+title = "WORK UNDER SEPARATE CONTRACTS"
+items = [
+  "Owner may award separate contracts for the following, which will be performed concurrently with the Work:",
+  ">Telecommunications and security systems beyond the rough-in indicated.",
+  ">Furniture, furnishings and movable equipment.",
+  "Cooperate with separate contractors so that work under those contracts can be carried out without interference or delay.",
+]
+
+[[section.part1]]
+title = "OWNER-FURNISHED PRODUCTS"
+items = [
+  "Owner will furnish products indicated as Owner-furnished, Contractor-installed (OFCI). Contractor shall:",
+  ">Designate delivery dates in the construction schedule.",
+  ">Receive, unload, inspect and store Owner-furnished products, and report damaged or defective items.",
+  ">Install, connect and protect Owner-furnished products as if furnished by the Contractor.",
+]
+
+[[section.part1]]
+title = "PHASED CONSTRUCTION"
+items = [
+  "Conduct the Work in phases where indicated on the Drawings. Obtain Architect's acceptance of each phase before starting the next.",
+  "Coordinate the schedule of each phase with Owner's requirements for access and occupancy.",
+]
+
+[[section.part1]]
+title = "OWNER OCCUPANCY"
+items = [
+  "Owner reserves the right to occupy and use completed portions of the Work before Substantial Completion of the entire Work, provided such occupancy does not interfere with completion of the Work.",
+  "Before partial occupancy, obtain a temporary certificate of occupancy from {jurisdiction} for the area to be occupied, and complete life-safety systems serving that area.",
+  "Owner will assume responsibility for utilities, maintenance and insurance of occupied areas from the date of partial occupancy.",
+]
+
+[[section.part1]]
+title = "WORK RESTRICTIONS"
+items = [
+  "Use of Site: Limit use of the premises to the areas within the limits of construction indicated. Do not disturb portions of the site beyond those areas.",
+  ">Keep driveways and entrances serving adjacent properties clear and available at all times.",
+  ">Schedule deliveries to minimize space and time requirements for storage on site.",
+  "Hours of Work: Limit work to between 7:00 a.m. and 6:00 p.m., Monday through Friday, except as otherwise permitted by {jurisdiction} and approved by Owner.",
+  "Noise, Vibration and Odors: Coordinate operations that may cause noise, vibration or odors with Owner not less than two days in advance.",
+  "Utility Interruptions: Do not interrupt utilities serving occupied facilities except with Owner's written permission and after arranging temporary service.",
+  "Smoking and Controlled Substances: Smoking, vaping and use of controlled substances are not permitted on the site.",
+]
+
+[[section.part1]]
+title = "SPECIFICATION AND DRAWING CONVENTIONS"
+items = [
+  "Specifications are written in imperative mood and abbreviated form. Words such as shall, shall be and the Contractor shall are implied.",
+  "Division 01 General Requirements apply to all Sections of the Specifications.",
+  "Requirements for materials and products shown on Drawings are specified in the Sections that cover those products.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 21 00"
+title = "ALLOWANCES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for handling and processing allowances.",
+  "Types of allowances include the following:",
+  ">Lump-sum allowances.",
+  ">Unit-cost allowances.",
+  ">Contingency allowance.",
+  "Related Requirements:",
+  ">Section 01 23 00 \"Alternates\" for procedures for alternates.",
+  ">Section 01 26 00 \"Contract Modification Procedures\" for procedures for submitting and handling Change Orders for allowances.",
+]
+
+[[section.part1]]
+title = "SELECTION AND PURCHASE"
+items = [
+  "At the earliest practical date after award of the Contract, advise Architect of the date when final selection and purchase of each product or system described by an allowance must be completed to avoid delaying the Work.",
+  "At Architect's request, obtain proposals for each allowance for use in making final selections. Include recommendations that are relevant to performing the Work.",
+  "Purchase products and systems selected by Architect from the designated supplier.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Submit proposals for purchase of products or systems included in allowances, in the form specified for Change Orders.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Submit invoices or delivery slips to show actual quantities of materials delivered to the site for use in fulfillment of each allowance.",
+  "Submit time sheets and other documentation to show labor time and cost for installation of allowance items that include installation as part of the allowance.",
+  "Coordinate and process submittals for allowance items in the same manner as for other portions of the Work.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Coordinate allowance items with other portions of the Work. Furnish templates as required to coordinate installation.",
+]
+
+[[section.part1]]
+title = "LUMP-SUM AND UNIT-COST ALLOWANCES"
+items = [
+  "Allowance shall include cost to Contractor of specific products and materials ordered by Owner or selected by Architect under the allowance and shall include taxes, freight and delivery to the Project site.",
+  "Unless otherwise indicated, Contractor's costs for receiving and handling at the Project site, labor, installation, overhead and profit, and similar costs related to products and materials selected under the allowance shall be included as part of the Contract Sum and not part of the allowance.",
+  "Unused Materials: Return unused materials purchased under an allowance to the manufacturer or supplier for credit to Owner, after installation has been completed and accepted.",
+]
+
+[[section.part1]]
+title = "CONTINGENCY ALLOWANCES"
+items = [
+  "Use the contingency allowance only as directed by Architect for Owner's purposes and only by Change Orders that indicate amounts to be charged to the allowance.",
+  "Contractor's overhead, profit and related costs for products and equipment ordered by Owner under the contingency allowance are included in the allowance and are not part of the Contract Sum.",
+  "At Project closeout, credit unused amounts remaining in the contingency allowance to Owner by Change Order.",
+]
+
+[[section.part1]]
+title = "ADJUSTMENT OF COSTS"
+items = [
+  "Adjust the Contract Sum for each allowance by Change Order, as follows:",
+  ">Lump-sum allowance: The difference between the actual cost of the selected items and the allowance amount.",
+  ">Unit-cost allowance: The actual quantity installed multiplied by the unit cost, compared to the allowance amount.",
+  "Submit claims for increased costs because of a change in the scope or nature of the allowance within 21 days of receipt of the Change Order authorizing work to proceed.",
+  "No change to Contractor's indirect expense is permitted for selection of higher- or lower-priced materials within the allowance.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine products covered by an allowance promptly on delivery for damage or defects. Return damaged or defective products to the manufacturer for replacement.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Coordinate materials and their installation for each allowance with related materials and installations to ensure that each allowance item is completely integrated and interfaced with related work.",
+]
+
+[[section.part3]]
+title = "SCHEDULE OF ALLOWANCES"
+items = [
+  "Allowance No. 1: Lump-Sum Allowance: Include the sum of $[amount] for [description], as selected by Architect.",
+  "Allowance No. 2: Unit-Cost Allowance: Include the sum of $[amount] per [unit] for [description], based on a quantity of [quantity].",
+  "Allowance No. 3: Contingency Allowance: Include a contingency allowance of $[amount] for use according to Owner's instructions.",
+]
+
+[[section]]
+number = "01 23 00"
+title = "ALTERNATES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for alternates.",
+  "Related Requirements:",
+  ">Document 00 41 13 \"Bid Form - Stipulated Sum (Single-Prime Contract)\" for the form on which alternate prices are submitted.",
+  ">Section 01 21 00 \"Allowances\" for allowances.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Alternate: An amount proposed by bidders and stated on the Bid Form for work defined in the Bidding Requirements that may be added to or deducted from the Base Bid if Owner decides to accept a corresponding change in the amount of construction to be completed or in the products, materials, equipment, systems or installation methods described in the Contract Documents.",
+  "The cost or credit for each alternate is the net addition to or deduction from the Contract Sum to incorporate the alternate into the Work. No other adjustments are made to the Contract Sum.",
+]
+
+[[section.part1]]
+title = "PROCEDURES"
+items = [
+  "Coordination: Revise or adjust affected adjacent work as necessary to completely integrate work of the alternate into the Project.",
+  ">Include as part of each alternate the miscellaneous devices, accessories and similar items incidental to or required for a complete installation, whether or not indicated as part of the alternate.",
+  "Notification: Immediately following award of the Contract, notify each party involved, in writing, of the status of each alternate. Indicate whether alternates have been accepted, rejected or deferred for later consideration.",
+  "Owner may accept alternates in any order or combination within the period stated on the Bid Form.",
+  "Execute accepted alternates under the same conditions as other work of the Contract.",
+  "Schedule: A schedule of alternates is included at the end of this Section. Specification Sections referenced in the schedule contain requirements for materials necessary to achieve the work described under each alternate.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "SCHEDULE OF ALTERNATES"
+items = [
+  "Alternate No. 1: [Description of alternate].",
+  ">Base Bid: [Description of work included in the Base Bid].",
+  ">Alternate: [Description of work to be added, deducted or substituted].",
+  "Alternate No. 2: [Description of alternate].",
+  ">Base Bid: [Description of work included in the Base Bid].",
+  ">Alternate: [Description of work to be added, deducted or substituted].",
+]
+
+[[section]]
+number = "01 25 00"
+title = "SUBSTITUTION PROCEDURES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for substitutions made after award of the Contract.",
+  "Related Requirements:",
+  ">Document 00 21 13 \"Instructions to Bidders\" for substitutions requested during the bidding period.",
+  ">Section 01 60 00 \"Product Requirements\" for requirements for submitting comparable product submittals for products by listed manufacturers.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Substitutions: Changes in products, materials, equipment and methods of construction from those required by the Contract Documents and proposed by Contractor.",
+  ">Substitutions for Cause: Changes proposed by Contractor that are required because of unavailability of a specified product, regulatory changes or other circumstances beyond Contractor's control.",
+  ">Substitutions for Convenience: Changes proposed by Contractor or Owner that are not required to meet other Project requirements but may offer an advantage to Contractor or Owner.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Substitution Requests: Submit one electronic copy of each request for consideration, using Document 00 43 25 \"Substitution Request Form.\" Identify the product or fabrication or installation method to be replaced. Include Specification Section number and title and Drawing numbers and titles.",
+  "Documentation: Show compliance with requirements for substitutions and the following, as applicable:",
+  ">Statement indicating why the specified product or method cannot be provided, if applicable.",
+  ">Coordination of information, including a list of changes needed to other parts of the Work and to construction performed by Owner and separate contractors.",
+  ">Detailed comparison of significant qualities of the proposed substitution with those of the specified product, including performance, weight, size, durability, visual effect and sustainable design characteristics.",
+  ">Product data, including drawings and descriptions of products and fabrication and installation procedures.",
+  ">Samples, where applicable or requested.",
+  ">Certificates and qualification data, where applicable or requested.",
+  ">List of similar installations for completed projects, with project names and addresses and names and addresses of architects and owners.",
+  ">Material test reports from a qualified testing agency indicating and interpreting test results for compliance with requirements.",
+  ">Research reports evidencing compliance with the building code in effect for the Project, from ICC-ES.",
+  ">Detailed comparison of Contractor's construction schedule using the proposed substitution with products specified, indicating the effect on Substantial Completion.",
+  ">Cost information, including a proposal of change, if any, in the Contract Sum.",
+  ">Contractor's certification that the proposed substitution complies with requirements in the Contract Documents except as indicated, and is appropriate for the applications indicated.",
+  ">Contractor's waiver of rights to additional payment or time that may subsequently become necessary because of failure of the proposed substitution to produce indicated results.",
+  "Architect's Action: If necessary, Architect will request additional information within seven days of receipt of a request. Architect will notify Contractor of acceptance or rejection of the proposed substitution within 15 days of receipt of the request, or seven days of receipt of additional information, whichever is later.",
+  ">Forms of Acceptance: Change Order, Construction Change Directive or Architect's Supplemental Instructions for minor changes in the Work.",
+  ">Use the specified product if Architect does not issue a decision on use of a proposed substitution within the time allocated.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Compatibility of Substitutions: Investigate and document compatibility of the proposed substitution with related products and materials. Engage a qualified testing agency to perform compatibility tests recommended by manufacturers.",
+]
+
+[[section.part1]]
+title = "PROCEDURES"
+items = [
+  "Coordination: Revise or adjust affected work as necessary to integrate work of the approved substitutions.",
+]
+
+[[section.part2]]
+title = "SUBSTITUTIONS"
+items = [
+  "Substitutions for Cause: Submit requests for substitution immediately on discovery of need for change, but not later than 15 days prior to the time required for preparation and review of related submittals.",
+  ">Architect will consider Contractor's request for substitution when the following conditions are satisfied:",
+  ">>Requested substitution is consistent with the Contract Documents and will produce indicated results.",
+  ">>Requested substitution provides sustainable design characteristics that equal or exceed those specified.",
+  ">>Substitution request is fully documented and properly submitted.",
+  ">>Requested substitution will not adversely affect Contractor's construction schedule.",
+  ">>Requested substitution has received necessary approvals of authorities having jurisdiction.",
+  ">>Requested substitution is compatible with other portions of the Work and has been coordinated with other portions of the Work.",
+  ">>Requested substitution provides specified warranty.",
+  "Substitutions for Convenience: Architect will consider requests for substitution only if submitted within 60 days after the Notice to Proceed, and only when the conditions above are satisfied and the substitution offers Owner a substantial advantage in cost, time, energy conservation or other considerations, after deducting additional responsibilities Owner must assume.",
+]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 26 00"
+title = "CONTRACT MODIFICATION PROCEDURES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for handling and processing Contract modifications.",
+  "Related Requirements:",
+  ">Section 01 21 00 \"Allowances\" for procedural requirements for handling and processing allowances.",
+  ">Section 01 25 00 \"Substitution Procedures\" for administrative procedures for handling requests for substitutions made after award of the Contract.",
+]
+
+[[section.part1]]
+title = "MINOR CHANGES IN THE WORK"
+items = [
+  "Architect will issue supplemental instructions authorizing minor changes in the Work, not involving adjustment to the Contract Sum or the Contract Time, on AIA Document G710, Architect's Supplemental Instructions.",
+]
+
+[[section.part1]]
+title = "PROPOSAL REQUESTS"
+items = [
+  "Owner-Initiated Proposal Requests: Architect will issue a detailed description of proposed changes in the Work that may require adjustment to the Contract Sum or the Contract Time. If necessary, the description will include supplemental or revised Drawings and Specifications.",
+  ">Work Change Proposal Requests issued by Architect are not instructions either to stop work in progress or to execute the proposed change.",
+  ">Within 20 days after receipt of a Proposal Request, submit a quotation estimating cost adjustments to the Contract Sum and the Contract Time necessary to execute the change.",
+  ">>Include a list of quantities of products required or eliminated and unit costs, with total amount of purchases and credits to be made.",
+  ">>Indicate applicable taxes, delivery charges, equipment rental and amounts of trade discounts.",
+  ">>Include costs of labor and supervision directly attributable to the change.",
+  ">>Include an updated construction schedule that indicates the effect of the change, including changes in activity duration, start and finish times, and activity relationship.",
+  "Contractor-Initiated Proposals: If latent or changed conditions require modifications to the Contract, Contractor may initiate a claim by submitting a request for a change to Architect.",
+  ">Include a statement outlining reasons for the change and the effect of the change on the Work. Provide a complete description of the proposed change. Indicate the effect of the proposed change on the Contract Sum and the Contract Time.",
+  ">Include costs of labor, materials and supervision, with the same breakdown required for Owner-initiated proposals.",
+  ">Comply with requirements in Section 01 25 00 \"Substitution Procedures\" if the proposed change requires substitution of one product or system for another.",
+]
+
+[[section.part1]]
+title = "ADMINISTRATIVE CHANGE ORDERS"
+items = [
+  "Allowance Adjustment: See Section 01 21 00 \"Allowances\" for administrative procedures for preparation of Change Order Proposals for adjusting the Contract Sum to reflect actual costs of allowances.",
+]
+
+[[section.part1]]
+title = "CHANGE ORDER PROCEDURES"
+items = [
+  "On Owner's approval of a Work Change Proposal, Architect will issue a Change Order for signatures of Owner and Contractor on AIA Document G701.",
+]
+
+[[section.part1]]
+title = "CONSTRUCTION CHANGE DIRECTIVE"
+items = [
+  "Construction Change Directive: Architect may issue a Construction Change Directive on AIA Document G714. Construction Change Directive instructs Contractor to proceed with a change in the Work, for subsequent inclusion in a Change Order.",
+  ">Construction Change Directive contains a complete description of change in the Work. It also designates method to be followed to determine change in the Contract Sum or the Contract Time.",
+  "Documentation: Maintain detailed records on a time and material basis of work required by the Construction Change Directive.",
+  ">After completion of change, submit an itemized account and supporting data necessary to substantiate cost and time adjustments to the Contract.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 29 00"
+title = "PAYMENT PROCEDURES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements necessary to prepare and process Applications for Payment.",
+  "Related Requirements:",
+  ">Section 01 26 00 \"Contract Modification Procedures\" for administrative procedures for handling changes to the Contract.",
+  ">Section 01 32 00 \"Construction Progress Documentation\" for administrative requirements governing the preparation and submittal of the Contractor's construction schedule.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Schedule of Values: A statement furnished by Contractor allocating portions of the Contract Sum to various portions of the Work and used as the basis for reviewing Contractor's Applications for Payment.",
+]
+
+[[section.part1]]
+title = "SCHEDULE OF VALUES"
+items = [
+  "Coordination: Coordinate preparation of the schedule of values with preparation of Contractor's construction schedule.",
+  ">Correlate line items in the schedule of values with other required administrative forms and schedules, including the Application for Payment forms, the list of subcontractors and the submittal schedule.",
+  ">Submit the schedule of values to Architect at earliest possible date, but no later than seven days before the date scheduled for submittal of initial Applications for Payment.",
+  "Format and Content: Use Project Manual table of contents as a guide to establish line items for the schedule of values. Provide at least one line item for each Specification Section.",
+  ">Arrange schedule of values consistent with format of AIA Document G703.",
+  ">Provide a breakdown of the Contract Sum in enough detail to facilitate continued evaluation of Applications for Payment and progress reports. Break principal subcontract amounts down into several line items.",
+  ">Include separate line items under Contractor and principal subcontracts for Project closeout requirements, in an amount totaling 5 percent of the Contract Sum.",
+  ">Show line-item value of each allowance as a separate line item.",
+  ">Round amounts to nearest whole dollar; total shall equal the Contract Sum.",
+  ">Update and resubmit the schedule of values before the next Application for Payment when Change Orders or Construction Change Directives result in a change in the Contract Sum.",
+]
+
+[[section.part1]]
+title = "APPLICATIONS FOR PAYMENT"
+items = [
+  "Each Application for Payment following the initial Application for Payment shall be consistent with previous applications and payments as certified by Architect and paid for by Owner.",
+  ">Initial Application for Payment, Application for Payment at time of Substantial Completion, and final Application for Payment involve additional requirements.",
+  "Payment Application Times: Submit Application for Payment to Architect by the 25th of the month. The period covered by each Application for Payment is one month, ending on the last day of the month.",
+  "Application for Payment Forms: Use AIA Document G702 and AIA Document G703 as the form for Applications for Payment.",
+  "Application Preparation: Complete every entry on form. Notarize and execute by a person authorized to sign legal documents on behalf of Contractor. Architect will return incomplete applications without action.",
+  ">Entries shall match data on the schedule of values and Contractor's construction schedule. Use updated schedules if revisions were made.",
+  ">Include amounts for work completed following previous Application for Payment, whether or not payment has been received. Include only amounts for work completed at time of Application for Payment.",
+  ">Include amounts of Change Orders and Construction Change Directives issued before last day of construction period covered by application.",
+  "Stored Materials: Include in Application for Payment amounts applied for materials or equipment purchased or fabricated and stored, but not yet installed. Provide certificate of insurance, evidence of transfer of title to Owner and consent of surety to payment for stored materials stored off site.",
+  "Waivers of Mechanic's Lien: With each Application for Payment, submit waivers of mechanic's lien from entities lawfully entitled to file a mechanic's lien arising out of the Contract and related to the Work covered by the payment, in a form acceptable to Owner and required by the laws of {jurisdiction}.",
+  "Initial Application for Payment: Administrative actions and submittals that must precede or coincide with submittal of first Application for Payment include the following:",
+  ">List of subcontractors and principal suppliers.",
+  ">Schedule of values.",
+  ">Contractor's construction schedule (preliminary if not final).",
+  ">Submittal schedule (preliminary if not final).",
+  ">Copies of building permits and certificates of insurance.",
+  ">Performance and payment bonds, where required.",
+  "Application for Payment at Substantial Completion: After Architect issues the Certificate of Substantial Completion, submit an Application for Payment showing 100 percent completion for portion of the Work claimed as substantially complete, including a reduction of retainage as provided in the Contract.",
+  "Final Payment Application: After completing Project closeout requirements, submit final Application for Payment with releases and supporting documentation not previously submitted and accepted, including the following:",
+  ">Evidence of completion of Project closeout requirements.",
+  ">Insurance certificates for products and completed operations where required and proof that taxes, fees and similar obligations were paid.",
+  ">Updated final statement, accounting for final changes to the Contract Sum.",
+  ">AIA Document G706, Contractor's Affidavit of Payment of Debts and Claims.",
+  ">AIA Document G706A, Contractor's Affidavit of Release of Liens.",
+  ">AIA Document G707, Consent of Surety to Final Payment, where bonds are required.",
+  ">Evidence that claims have been settled.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 31 00"
+title = "PROJECT MANAGEMENT AND COORDINATION"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative provisions for coordinating construction operations on the Project, including the following:",
+  ">General coordination procedures.",
+  ">Coordination drawings and building information modeling.",
+  ">Requests for Information (RFIs).",
+  ">Digital project management procedures.",
+  ">Project meetings.",
+  "Related Requirements:",
+  ">Section 01 32 00 \"Construction Progress Documentation\" for preparing and submitting the construction schedule.",
+  ">Section 01 73 00 \"Execution\" for procedures for coordinating field engineering with other construction activities.",
+  ">Section 01 77 00 \"Closeout Procedures\" for coordinating closeout of the Contract.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Subcontract List: Prepare a written summary identifying individuals or firms proposed for each portion of the Work, including those who are to furnish products or equipment fabricated to a special design. Include name, address, telephone number and email address of the entity performing the subcontract or supplying products, and the number and title of the related Specification Section.",
+  "Key Personnel Names: Within 15 days of starting construction operations, submit a list of key personnel assignments, including superintendent and other personnel in attendance at the Project site. Identify individuals and their duties and responsibilities; list addresses, cellular telephone numbers and email addresses.",
+]
+
+[[section.part1]]
+title = "GENERAL COORDINATION PROCEDURES"
+items = [
+  "Coordination: Coordinate construction operations included in different Sections of the Specifications to ensure efficient and orderly installation of each part of the Work. Coordinate construction operations that depend on each other for proper installation, connection and operation.",
+  ">Schedule construction operations in sequence required to obtain the best results, where installation of one part of the Work depends on installation of other components.",
+  ">Coordinate installation of different components to ensure maximum performance and efficient installation.",
+  ">Make adequate provisions to accommodate items scheduled for later installation.",
+  "Prepare memoranda for distribution to each party involved, outlining special procedures required for coordination. Include such items as required notices, reports and list of attendees at meetings.",
+  "Conservation: Coordinate construction activities to ensure that operations are carried out with consideration given to conservation of energy, water and materials, and to salvage of materials and equipment involved in performance of, but not actually incorporated into, the Work.",
+]
+
+[[section.part1]]
+title = "COORDINATION DRAWINGS"
+items = [
+  "Coordination Drawings: Prepare coordination drawings where careful coordination is needed for installation of products and materials fabricated by separate entities, and where limited space availability requires maximum utilization of space for efficient installation of different components.",
+  ">Content: Project-specific information, drawn accurately to a scale not less than 1/4 inch per foot. Include plans, sections and elevations showing the following:",
+  ">>Structural members, ductwork, piping, conduit and equipment above ceilings, with required clearances and access.",
+  ">>Locations of ceiling-mounted items, including lighting fixtures, diffusers, sprinkler heads and access panels.",
+  ">>Penetrations of fire-rated assemblies.",
+  "Building Information Model: Contractor may use the Architect's model, where furnished, as the basis for a coordination model. Perform clash detection among trades and resolve conflicts before fabrication. The model remains a reference and does not modify the Contract Documents.",
+]
+
+[[section.part1]]
+title = "REQUESTS FOR INFORMATION (RFIS)"
+items = [
+  "General: Immediately on discovery of the need for additional information, clarification or interpretation of the Contract Documents, Contractor shall prepare and submit an RFI in the form specified.",
+  ">Architect will return without response those RFIs submitted to Architect by other entities controlled by Contractor.",
+  ">Coordinate and submit RFIs in a prompt manner so as to avoid delays in Contractor's work or work of subcontractors.",
+  "Content of the RFI: Include a detailed, legible description of item needing information or interpretation and the following:",
+  ">Project name and number, date, and name of Contractor.",
+  ">RFI number, numbered sequentially.",
+  ">RFI subject, and Specification Section number, title and related paragraphs, as appropriate.",
+  ">Drawing number and detail references, as appropriate.",
+  ">Field dimensions and conditions, as appropriate.",
+  ">Contractor's suggested resolution. If Contractor's suggested resolution impacts the Contract Time or the Contract Sum, Contractor shall state impact in the RFI.",
+  "Architect's Action: Architect will review each RFI, determine action required, and respond. Allow seven working days for Architect's response for each RFI. RFIs received by Architect after 1:00 p.m. will be considered as received the following working day.",
+  ">If Contractor believes the RFI response warrants change in the Contract Time or the Contract Sum, notify Architect in writing within ten days of receipt of the RFI response.",
+  "RFI Log: Prepare, maintain and submit a tabular log of RFIs organized by the RFI number. Submit log weekly.",
+]
+
+[[section.part1]]
+title = "DIGITAL PROJECT MANAGEMENT PROCEDURES"
+items = [
+  "Use of Architect's Digital Data Files: Digital data files of Architect's model and drawings will be provided by Architect for Contractor's use during construction, subject to execution of Architect's standard form of data licensing agreement.",
+  ">Digital data files may be used by Contractor in preparing coordination drawings, Shop Drawings and Project record drawings.",
+  ">Architect makes no representations as to the accuracy or completeness of digital data files as they relate to Contract Drawings.",
+  "Web-Based Project Management: Use a web-based project management platform accessible to Owner, Architect and Contractor for exchange of RFIs, submittals, meeting minutes and other Project documents. At closeout, provide Owner with a complete archive in a portable format.",
+]
+
+[[section.part1]]
+title = "PROJECT MEETINGS"
+items = [
+  "General: Schedule and conduct meetings and conferences at Project site unless otherwise indicated. Inform participants and others involved of the date and time of each meeting. Record minutes and distribute them within three days of the meeting.",
+  "Preconstruction Conference: Architect will schedule and conduct a preconstruction conference before starting construction, at a time convenient to Owner and Architect, but no later than 15 days after execution of the Agreement.",
+  ">Attendees: Authorized representatives of Owner, Architect and their consultants; Contractor and its superintendent; major subcontractors; and other concerned parties.",
+  ">Agenda: Discuss tentative construction schedule, critical work sequencing, designation of key personnel, procedures for RFIs and submittals, preparation of record documents, use of the premises, work restrictions, safety and security, and responsibility for temporary facilities and controls.",
+  "Preinstallation Conferences: Conduct a preinstallation conference at the Project site before each construction activity when required by other Sections and when required for coordination with other construction.",
+  "Progress Meetings: Conduct progress meetings at weekly intervals. Review items of significance that could affect progress, including status of the construction schedule, submittals, RFIs, deliveries, off-site fabrication, site use, temporary facilities, quality and safety, and changes in the Work.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 32 00"
+title = "CONSTRUCTION PROGRESS DOCUMENTATION"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for documenting the progress of construction during performance of the Work, including the following:",
+  ">Contractor's construction schedule.",
+  ">Construction schedule updating reports.",
+  ">Daily construction reports.",
+  ">Material location reports.",
+  ">Site condition reports.",
+  ">Construction photographs.",
+  "Related Requirements:",
+  ">Section 01 33 00 \"Submittal Procedures\" for submitting schedules and reports.",
+  ">Section 01 40 00 \"Quality Requirements\" for submitting a schedule of tests and inspections.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Activity: A discrete part of a project that can be identified for planning, scheduling, monitoring and controlling the construction project. Activities included in a construction schedule consume time and resources.",
+  "Critical Path: The longest connected chain of interdependent activities through the network schedule that establishes the minimum overall Project duration.",
+  "Float: The measure of leeway in starting and completing an activity. Float time is not for exclusive use or benefit of either Owner or Contractor, but is a jointly owned, expiring Project resource available to both parties as needed to meet schedule milestones and Contract completion date.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Format for Submittals: Submit required submittals in PDF format, and in the native format of the scheduling software.",
+  "Startup construction schedule: Submit within seven days of the Notice to Proceed.",
+  "Contractor's Construction Schedule: Submit initial schedule, large enough to show entire schedule for entire construction period, within 30 days of the Notice to Proceed.",
+  "Daily Construction Reports: Submit weekly, compiled for the preceding week.",
+  "Site Condition Reports: Submit at time of discovery of differing conditions.",
+  "Construction Photographs: Submit monthly with each Application for Payment.",
+]
+
+[[section.part1]]
+title = "CONTRACTOR'S CONSTRUCTION SCHEDULE, GENERAL"
+items = [
+  "Time Frame: Extend schedule from date established for the Notice to Proceed to date of final completion.",
+  ">Contract completion date shall not be changed by submission of a schedule that shows an early completion date, unless specifically authorized by Change Order.",
+  "Activities: Treat each story or separate area as a separate numbered activity for each main element of the Work. Comply with the following:",
+  ">Activity Duration: Define activities so no activity is longer than 20 days, unless specifically allowed by Architect.",
+  ">Procurement Activities: Include procurement process activities for long lead items and major items requiring a cycle of more than 60 days, as separate activities in the schedule.",
+  ">Submittal Review Time: Include review and resubmittal times indicated in Section 01 33 00 \"Submittal Procedures\" in schedule. Coordinate submittal review times in Contractor's construction schedule with submittal schedule.",
+  ">Startup and Testing Time: Include no fewer than 15 days for startup and testing.",
+  ">Substantial Completion: Indicate completion in advance of date established for Substantial Completion, and allow time for Architect's administrative procedures necessary for certification of Substantial Completion.",
+  "Constraints: Include constraints and work restrictions indicated in the Contract Documents and as follows in schedule, and show how the sequence of the Work is affected:",
+  ">Phasing and work stages, and Owner occupancy of completed portions of the Work.",
+  ">Owner-furnished products, and work by separate contractors.",
+  "Milestones: Include milestones indicated in the Contract Documents in schedule, including Notice to Proceed, Substantial Completion and final completion.",
+  "Recovery Schedule: When periodic update indicates the Work is 14 or more calendar days behind the current approved schedule, submit a separate recovery schedule indicating means by which Contractor intends to regain compliance with the schedule.",
+  "Computer Scheduling Software: Prepare schedules using current version of a program that has been developed specifically to manage construction schedules and can produce a critical path method (CPM) Gantt-chart schedule.",
+]
+
+[[section.part1]]
+title = "REPORTS"
+items = [
+  "Daily Construction Reports: Prepare a daily construction report recording the following information concerning events at Project site:",
+  ">List of subcontractors at Project site, and approximate count of personnel.",
+  ">High and low temperatures and general weather conditions, including presence of rain or snow.",
+  ">Accidents and emergency procedures.",
+  ">Meetings and significant decisions, and stoppages, delays, shortages and losses.",
+  ">Orders and requests of authorities having jurisdiction.",
+  ">Services connected and disconnected, and equipment or system tests and startups.",
+  ">Partial completions and occupancies, and Substantial Completions authorized.",
+  "Site Condition Reports: Immediately on discovery of a difference between site conditions and the Contract Documents, prepare and submit a detailed report. Submit with an RFI. Include a detailed description of the differing conditions, together with recommendations for changing the Contract Documents.",
+]
+
+[[section.part1]]
+title = "CONSTRUCTION PHOTOGRAPHS"
+items = [
+  "Digital Images: Provide digital images in JPG format, with minimum sensor size of 12 megapixels, and date and time stamped. Identify each image with Project name, location, orientation and date.",
+  "Preconstruction Photographs: Before starting construction, take photographs of Project site and surrounding properties, including existing items to remain during construction, from different vantage points.",
+  "Periodic Construction Photographs: Take 20 photographs monthly, coordinated with the cutoff date associated with each Application for Payment. Select vantage points to show status of construction and progress since last photographs were taken.",
+  "Concealed Work Photographs: Before concealing work in walls, floors and ceilings, take photographs of framing, insulation, piping, ductwork, conduit and other concealed work.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 33 00"
+title = "SUBMITTAL PROCEDURES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes requirements for the submittal schedule and administrative and procedural requirements for submitting Shop Drawings, Product Data, Samples and other submittals.",
+  "Related Requirements:",
+  ">Section 01 29 00 \"Payment Procedures\" for submitting Applications for Payment and the schedule of values.",
+  ">Section 01 32 00 \"Construction Progress Documentation\" for submitting schedules and reports, including Contractor's construction schedule.",
+  ">Section 01 78 23 \"Operation and Maintenance Data\" for submitting operation and maintenance manuals.",
+  ">Section 01 78 39 \"Project Record Documents\" for submitting record Drawings, record Specifications and record Product Data.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Action Submittals: Written and graphic information and physical samples that require Architect's responsive action. Action submittals are those submittals indicated in individual Specification Sections as action submittals.",
+  "Informational Submittals: Written and graphic information and physical samples that do not require Architect's responsive action. Submittals may be rejected for not complying with requirements. Informational submittals are those submittals indicated in individual Specification Sections as informational submittals.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Submittal Schedule: Submit a schedule of submittals, arranged in chronological order by dates required by construction schedule. Include time required for review, ordering, manufacturing, fabrication and delivery when establishing dates.",
+  ">Coordinate submittal schedule with list of subcontracts, the schedule of values and Contractor's construction schedule.",
+  ">Initial Submittal: Submit concurrently with startup construction schedule.",
+  ">Final Submittal: Submit concurrently with the first complete submittal of Contractor's construction schedule.",
+]
+
+[[section.part1]]
+title = "SUBMITTAL ADMINISTRATIVE REQUIREMENTS"
+items = [
+  "Architect's Digital Data Files: Electronic copies of digital data files of the Contract Drawings will be provided by Architect for Contractor's use in preparing submittals, subject to Section 01 31 00 \"Project Management and Coordination.\"",
+  "Coordination: Coordinate preparation and processing of submittals with performance of construction activities.",
+  ">Coordinate each submittal with fabrication, purchasing, testing, delivery, other submittals and related activities that require sequential activity.",
+  ">Submit all submittal items required for each Specification Section concurrently unless partial submittals for portions of the Work are indicated on approved submittal schedule.",
+  ">Architect reserves the right to withhold action on a submittal requiring coordination with other submittals until related submittals are received.",
+  "Processing Time: Allow time for submittal review, including time for resubmittals, as follows. Time for review shall commence on Architect's receipt of submittal. No extension of the Contract Time will be authorized because of failure to transmit submittals enough in advance of the Work to permit processing, including resubmittals.",
+  ">Initial Review: Allow 15 days for initial review of each submittal. Allow additional time if coordination with subsequent submittals is required.",
+  ">Concurrent Consultant Review: Allow 21 days for review of each submittal where the Architect's consultants must also review.",
+  ">Resubmittal Review: Allow 15 days for review of each resubmittal.",
+  "Electronic Submittals: Identify and incorporate information in each electronic submittal file as follows:",
+  ">Assemble complete submittal package into a single indexed file incorporating submittal requirements of a single Specification Section and transmittal form with links enabling navigation to each item.",
+  ">Name file with submittal number or other unique identifier, including revision identifier, such as 061000.01.A.",
+  ">Provide means for insertion to permanently record Contractor's review and approval markings and action taken by Architect.",
+  "Resubmittals: Make resubmittals in same form and number of copies as initial submittal. Note date and content of previous submittal, and identify changes made since previous submittal.",
+  "Distribution: Furnish copies of final submittals to manufacturers, subcontractors, suppliers, fabricators, installers, authorities having jurisdiction and others as necessary for performance of construction activities.",
+  "Use for Construction: Retain complete copies of submittals on Project site. Use only final action submittals that are marked with approval notation from Architect's action stamp.",
+]
+
+[[section.part2]]
+title = "SUBMITTAL PROCEDURES"
+items = [
+  "General Submittal Procedure Requirements: Prepare and submit submittals required by individual Specification Sections.",
+  ">Submit electronic submittals via email or the Project management platform as PDF electronic files.",
+  ">Certificates and Certifications Submittals: Provide a statement that includes signature of entity responsible for preparing certification. Certificates and certifications shall be signed by an officer or other individual authorized to sign documents on behalf of that entity.",
+  "Product Data: Collect information into a single submittal for each element of construction and type of product or equipment.",
+  ">If information must be specially prepared for submittal because standard published data are unsuitable for use, submit as Shop Drawings, not as Product Data.",
+  ">Mark each copy of each submittal to show which products and options are applicable.",
+  ">Include manufacturer's written recommendations, product specifications, installation instructions and compliance with specified referenced standards.",
+  "Shop Drawings: Prepare Project-specific information, drawn accurately to scale. Do not base Shop Drawings on reproductions of the Contract Documents or standard printed data, unless submittal based on Architect's digital data drawing files is otherwise permitted.",
+  ">Include fabrication and installation drawings, dimensions, identification of products, compliance with specified standards, notation of coordination requirements and notation of dimensions established by field measurement.",
+  ">Sheet Size: Except for templates, patterns and similar full-size drawings, submit Shop Drawings on sheets at least 8-1/2 by 11 inches, but no larger than 30 by 42 inches.",
+  "Samples: Submit Samples for review of kind, color, pattern and texture for a check of these characteristics with other elements and for a comparison of these characteristics between submittal and actual component as delivered and installed.",
+  ">Transmit Samples that contain multiple, related components such as accessories together in one submittal package.",
+  ">Samples for Initial Selection: Submit manufacturer's color charts consisting of units or sections of units showing the full range of colors, textures and patterns available.",
+  ">Samples for Verification: Submit full-size units or Samples of size indicated, prepared from same material to be used for the Work, cured and finished in manner specified. Submit three sets; Architect will retain two.",
+  "Delegated-Design Services: Where performance and design criteria are specified for a system, provide calculations and drawings signed and sealed by a professional engineer licensed in {jurisdiction}, responsible for their preparation.",
+]
+
+[[section.part3]]
+title = "CONTRACTOR'S REVIEW"
+items = [
+  "Action and Informational Submittals: Review each submittal and check for coordination with other Work of the Contract and for compliance with the Contract Documents. Note corrections and field dimensions. Mark with approval stamp before submitting to Architect.",
+  "Project Closeout and Maintenance Material Submittals: See requirements in Section 01 77 00 \"Closeout Procedures.\"",
+  "Approval Stamp: Stamp each submittal with a uniform, approval stamp. Include Project name and location, submittal number, Specification Section title and number, name of reviewer, date of Contractor's approval, and statement certifying that submittal has been reviewed, checked and approved for compliance with the Contract Documents.",
+]
+
+[[section.part3]]
+title = "ARCHITECT'S ACTION"
+items = [
+  "Action Submittals: Architect will review each submittal, make marks to indicate corrections or revisions required, and return it. Architect will stamp each submittal with an action stamp and will mark stamp appropriately to indicate action, as follows:",
+  ">No Exceptions Taken.",
+  ">Exceptions Noted; Resubmittal Not Required.",
+  ">Revise and Resubmit.",
+  ">Rejected.",
+  "Informational Submittals: Architect will review each submittal and will not return it, or will return it if it does not comply with requirements. Architect will forward each submittal to appropriate party.",
+  "Incomplete submittals are unacceptable, will be considered nonresponsive, and will be returned for resubmittal without review.",
+  "Submittals not required by the Contract Documents may be returned by the Architect without action.",
+]
+
+[[section]]
+number = "01 40 00"
+title = "QUALITY REQUIREMENTS"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for quality assurance and quality control.",
+  "Testing and inspecting services are required to verify compliance with requirements specified or indicated. These services do not relieve Contractor of responsibility for compliance with the Contract Document requirements.",
+  ">Specified tests, inspections and related actions do not limit Contractor's other quality-assurance and -control procedures that facilitate compliance with the Contract Document requirements.",
+  ">Requirements for Contractor to provide quality-assurance and -control services required by Architect, Owner or authorities having jurisdiction are not limited by provisions of this Section.",
+  "Related Requirements:",
+  ">Divisions 02 through 49 Sections for specific test and inspection requirements.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Quality-Assurance Services: Activities, actions and procedures performed before and during execution of the Work, to guard against defects and deficiencies and substantiate that proposed construction will comply with requirements.",
+  "Quality-Control Services: Tests, inspections, procedures and related actions during and after execution of the Work, to evaluate that actual products incorporated into the Work and completed construction comply with requirements.",
+  "Mockups: Full-size physical assemblies that are constructed on-site. Mockups are constructed to verify selections made under Sample submittals; to demonstrate aesthetic effects and qualities of materials and execution; to review coordination, testing or operation; to show interface between dissimilar materials; and to demonstrate compliance with specified installation tolerances. Mockups are not Samples. Unless otherwise indicated, approved mockups establish the standard by which the Work will be judged.",
+  "Testing Agency: An entity engaged to perform specific tests, inspections or both. The term testing laboratory shall have the same meaning as the term testing agency.",
+]
+
+[[section.part1]]
+title = "CONFLICTING REQUIREMENTS"
+items = [
+  "Referenced Standards: If compliance with two or more standards is specified and the standards establish different or conflicting requirements for minimum quantities or quality levels, comply with the most stringent requirement. Refer conflicting requirements that are different, but apparently equal, to Architect for a decision before proceeding.",
+  "Minimum Quantity or Quality Levels: The quantity or quality level shown or specified shall be the minimum provided or performed. The actual installation may comply exactly with the minimum quantity or quality specified, or it may exceed the minimum within reasonable limits.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Contractor's Quality-Control Plan: For quality-assurance and quality-control activities and responsibilities.",
+  "Qualification Data: For testing agencies specified in Quality Assurance article to demonstrate their capabilities and experience. Include proof of qualifications in the form of a recent report on the inspection of the testing agency by a recognized authority.",
+  "Schedule of Tests and Inspections: Prepare in tabular form and include the Specification Section number and title, entity responsible for performing tests and inspections, description of test and inspection, identification of applicable standards and test method, and requirements for obtaining samples.",
+]
+
+[[section.part1]]
+title = "REPORTS AND DOCUMENTS"
+items = [
+  "Test and Inspection Reports: Prepare and submit certified written reports specified in other Sections. Include the following:",
+  ">Date of issue, Project title and number, and name, address and telephone number of testing agency.",
+  ">Dates and locations of samples and tests or inspections.",
+  ">Names of individuals making tests and inspections.",
+  ">Description of the Work and test and inspection method, and identification of product and Specification Section.",
+  ">Complete test or inspection data, test and inspection results, and interpretations of test results.",
+  ">Comments or professional opinion on whether tested or inspected Work complies with the Contract Document requirements.",
+  ">Name and signature of laboratory inspector, and recommendations on retesting and reinspecting.",
+  "Permits, Licenses and Certificates: For Owner's records, submit copies of permits, licenses, certifications, inspection reports, releases, jurisdictional settlements, notices, receipts for fee payments, judgments and correspondence.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Manufacturer Qualifications: A firm experienced in manufacturing products or systems similar to those indicated for this Project and with a record of successful in-service performance.",
+  "Fabricator and Installer Qualifications: A firm experienced in producing and installing products similar to those indicated for this Project, whose work has resulted in construction with a record of successful in-service performance.",
+  "Testing Agency Qualifications: An NRTL, an NVLAP-accredited agency, or an independent agency with the experience and capability to conduct testing and inspecting indicated, as documented according to ASTM E329, and with additional qualifications specified in individual Sections.",
+  "Mockups: Before installing portions of the Work requiring mockups, build mockups for each form of construction and finish required to comply with the following requirements, using materials indicated for the completed Work:",
+  ">Build mockups in location and of size indicated or, if not indicated, as directed by Architect.",
+  ">Notify Architect seven days in advance of dates and times when mockups will be constructed.",
+  ">Obtain Architect's approval of mockups before starting corresponding work, fabrication or construction.",
+  ">Maintain mockups during construction in an undisturbed condition as a standard for judging the completed Work.",
+  ">Demolish and remove mockups when directed unless otherwise indicated.",
+]
+
+[[section.part1]]
+title = "QUALITY CONTROL"
+items = [
+  "Owner Responsibilities: Where quality-control services are indicated as Owner's responsibility, Owner will engage a qualified testing agency to perform these services.",
+  ">Costs for retesting and reinspecting construction that replaces or is necessitated by work that failed to comply with the Contract Documents will be charged to Contractor.",
+  "Contractor Responsibilities: Tests and inspections not explicitly assigned to Owner are Contractor's responsibility. Perform additional quality-control activities required to verify that the Work complies with requirements, whether specified or not.",
+  "Manufacturer's Field Services: Where indicated, engage a manufacturer's representative to observe and inspect the Work. Manufacturer's representative's services include examination of substrates and conditions, verification of materials, observation of the Work in progress, and reporting.",
+  "Retesting and Reinspecting: Regardless of whether original tests or inspections were Contractor's responsibility, provide quality-control services, including retesting and reinspecting, for construction that replaced Work that failed to comply with the Contract Documents.",
+  "Associated Services: Cooperate with agencies performing required tests, inspections and similar quality-control services, and provide reasonable auxiliary services as requested. Notify agency sufficiently in advance of operations to permit assignment of personnel.",
+]
+
+[[section.part1]]
+title = "SPECIAL TESTS AND INSPECTIONS"
+items = [
+  "Special Tests and Inspections: Owner will engage a qualified special inspector to conduct special tests and inspections required by {building_code} Chapter 17 and by authorities having jurisdiction, as indicated in the Statement of Special Inspections.",
+  "Contractor shall notify the special inspector and Architect not less than 48 hours before work requiring special inspection, and shall cooperate with the special inspector.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "TEST AND INSPECTION LOG"
+items = [
+  "Test and Inspection Log: Prepare a record of tests and inspections. Include the date test or inspection was conducted, description of the Work tested or inspected, date test or inspection results were transmitted to Architect, and identification of testing agency or special inspector conducting test or inspection.",
+  ">Maintain log at Project site. Post changes and revisions as they occur. Provide access to test and inspection log for Architect's reference during normal working hours.",
+]
+
+[[section.part3]]
+title = "REPAIR AND PROTECTION"
+items = [
+  "General: On completion of testing, inspecting, sample taking and similar services, repair damaged construction and restore substrates and finishes.",
+  ">Provide materials and comply with installation requirements specified in other Specification Sections or matching existing substrates and finishes.",
+  "Protect construction exposed by or for quality-control service activities.",
+  "Repair and protection are Contractor's responsibility, regardless of the assignment of responsibility for quality-control services.",
+]
+
+[[section]]
+number = "01 42 00"
+title = "REFERENCES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "General: Basic Contract definitions are included in the Conditions of the Contract.",
+  "Approved: When used to convey Architect's action on Contractor's submittals, applications and requests, approved is limited to Architect's duties and responsibilities as stated in the Conditions of the Contract.",
+  "Directed: A command or instruction by Architect. Other terms including requested, authorized, selected, required and permitted have the same meaning as directed.",
+  "Indicated: Requirements expressed by graphic representations or in written form on Drawings, in Specifications and in other Contract Documents. Other terms including shown, noted, scheduled and specified have the same meaning as indicated.",
+  "Regulations: Laws, ordinances, statutes and lawful orders issued by authorities having jurisdiction, and rules, conventions and agreements within the construction industry that control performance of the Work.",
+  "Furnish: Supply and deliver to Project site, ready for unloading, unpacking, assembly, installation and similar operations.",
+  "Install: Operations at Project site including unloading, temporarily storing, unpacking, assembling, erecting, placing, anchoring, applying, working to dimension, finishing, curing, protecting, cleaning and similar operations.",
+  "Provide: Furnish and install, complete and ready for the intended use.",
+  "Project Site: Space available for performing construction activities. The extent of Project site is shown on Drawings and may or may not be identical with the description of the land on which Project is to be built.",
+]
+
+[[section.part1]]
+title = "INDUSTRY STANDARDS"
+items = [
+  "Applicability of Standards: Unless the Contract Documents include more stringent requirements, applicable construction industry standards have the same force and effect as if bound or copied directly into the Contract Documents to the extent referenced. Such standards are made a part of the Contract Documents by reference.",
+  "Publication Dates: Comply with standards in effect as of date of the Contract Documents unless otherwise indicated.",
+  ">For standards referenced by applicable building codes, comply with the dates of the standards as listed in the building codes adopted by {jurisdiction}.",
+  "Copies of Standards: Each entity engaged in construction on Project should be familiar with industry standards applicable to its construction activity. Copies of applicable standards are not bound with the Contract Documents.",
+  ">Where copies of standards are needed to perform a required construction activity, obtain copies directly from publication source.",
+]
+
+[[section.part1]]
+title = "ABBREVIATIONS AND ACRONYMS"
+items = [
+  "Industry Organizations: Where abbreviations and acronyms are used in Specifications or other Contract Documents, they shall mean the recognized name of the entities indicated, including the following:",
+  ">AAMA: American Architectural Manufacturers Association (now part of FGIA, Fenestration and Glazing Industry Alliance).",
+  ">ACI: American Concrete Institute.",
+  ">AISC: American Institute of Steel Construction.",
+  ">ANSI: American National Standards Institute.",
+  ">ASHRAE: American Society of Heating, Refrigerating and Air-Conditioning Engineers.",
+  ">ASTM: ASTM International.",
+  ">AWI: Architectural Woodwork Institute.",
+  ">AWS: American Welding Society.",
+  ">BHMA: Builders Hardware Manufacturers Association.",
+  ">GA: Gypsum Association.",
+  ">ICC: International Code Council.",
+  ">ICC-ES: ICC Evaluation Service.",
+  ">NFPA: National Fire Protection Association.",
+  ">NRCA: National Roofing Contractors Association.",
+  ">SDI: Steel Door Institute.",
+  ">SMACNA: Sheet Metal and Air Conditioning Contractors' National Association.",
+  ">TCNA: Tile Council of North America.",
+  ">UL: UL Solutions.",
+  ">WDMA: Window and Door Manufacturers Association.",
+  "Code Agencies: The building code for the Project is {building_code}, as adopted and amended by {jurisdiction}.",
+  "Federal Government Agencies: Where abbreviations and acronyms are used, they shall mean the recognized name of the agency, including EPA (Environmental Protection Agency), OSHA (Occupational Safety and Health Administration) and DOJ (Department of Justice, for the ADA Standards for Accessible Design).",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 50 00"
+title = "TEMPORARY FACILITIES AND CONTROLS"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes requirements for temporary utilities, support facilities, and security and protection facilities.",
+  "Related Requirements:",
+  ">Section 01 10 00 \"Summary\" for work restrictions and limitations on utility interruptions.",
+  ">Section 01 74 19 \"Construction Waste Management and Disposal\" for handling of waste and recycling.",
+]
+
+[[section.part1]]
+title = "USE CHARGES"
+items = [
+  "Installation, removal and use charges for temporary facilities shall be included in the Contract Sum unless otherwise indicated. Allow other entities to use temporary services and facilities without cost, including Owner, Architect, testing agencies and authorities having jurisdiction.",
+  "Water and Sewer Service: Pay water and sewer service use charges for water used by all entities for construction operations.",
+  "Electric Power Service: Pay electric power service use charges for electricity used by all entities for construction operations.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Site Plan: Show temporary facilities, utility hookups, staging areas and parking areas for construction personnel.",
+  "Erosion- and Sedimentation-Control Plan: Show compliance with requirements of EPA Construction General Permit or authorities having jurisdiction, whichever is more stringent.",
+  "Moisture-Protection Plan: Describe procedures and controls for protecting materials and construction from water absorption and damage, including delivery, storage and handling of materials, and indicate how wet materials will be dried or replaced.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Electric Service: Comply with NECA, NEMA and UL standards and regulations for temporary electric service. Install service to comply with NFPA 70.",
+  "Tests and Inspections: Arrange for authorities having jurisdiction to test and inspect each temporary utility before use. Obtain required certifications and permits.",
+  "Accessible Temporary Egress: Comply with applicable provisions in the ICC A117.1 and the ADA Standards for Accessible Design.",
+]
+
+[[section.part1]]
+title = "PROJECT CONDITIONS"
+items = [
+  "Temporary Use of Permanent Facilities: Engage installer of each permanent service to assume responsibility for operation, maintenance and protection of each permanent service during its use as a construction facility before Owner's acceptance, regardless of previously assigned responsibilities.",
+]
+
+[[section.part2]]
+title = "MATERIALS"
+items = [
+  "Chain-Link Fencing: Minimum 2-inch, 0.148-inch- thick, galvanized-steel, chain-link fabric fencing; minimum 6 feet high with galvanized-steel pipe posts; minimum 2-3/8-inch- OD line posts and 2-7/8-inch- OD corner and pull posts. Provide portable fence panels with concrete or steel bases where fence cannot be anchored in the ground.",
+  "Wood Enclosure Fence: Plywood, 6 feet high, framed with four 2-by-4-inch rails, with preservative-treated wood posts spaced not more than 8 feet apart.",
+  "Dust-Control Barriers: Fire-retardant polyethylene sheet, minimum 6 mils thick, complying with NFPA 701, supported by framing or a proprietary telescoping pole system.",
+]
+
+[[section.part2]]
+title = "TEMPORARY FACILITIES"
+items = [
+  "Field Offices, General: Prefabricated or mobile units with serviceable finishes, temperature controls and foundations adequate for normal loading.",
+  "Common-Use Field Office: Of sufficient size to accommodate needs of Owner, Architect and construction personnel office activities and to accommodate Project meetings specified in other Sections. Keep office clean and orderly. Furnish and equip offices as follows:",
+  ">Furniture required for Project-site documents, including file cabinets, plan tables, plan racks and bookcases.",
+  ">Conference room of sufficient size to accommodate meetings of ten individuals, with a large-format display for review of drawings and the model.",
+  ">Drinking water and private toilet.",
+  ">Heating and cooling equipment necessary to maintain a uniform indoor temperature of 68 to 72 deg F.",
+  ">Internet service with a minimum download speed of 50 Mbps.",
+  "Storage and Fabrication Sheds: Provide sheds sized, furnished and equipped to accommodate materials and equipment for construction operations.",
+]
+
+[[section.part2]]
+title = "EQUIPMENT"
+items = [
+  "Fire Extinguishers: Portable, UL rated; with class and extinguishing agent as required by locations and classes of fire exposures, complying with NFPA 10.",
+  "HVAC Equipment: Unless Owner authorizes use of permanent HVAC system, provide vented, self-contained, liquid-propane-gas or fuel-oil heaters with individual space thermostatic control. Do not use gasoline-burning space heaters, open-flame heaters or salamander-type heating units.",
+  "Permanent HVAC System: If Owner authorizes use of permanent HVAC system for temporary use during construction, provide filter with MERV of 8 at each return-air grille in system and remove at end of construction. Clean HVAC system as required in Section 01 77 00 \"Closeout Procedures.\"",
+]
+
+[[section.part3]]
+title = "TEMPORARY UTILITY INSTALLATION"
+items = [
+  "General: Install temporary service or connect to existing service. Arrange with utility company, Owner and existing users for time when service can be interrupted, if necessary, to make connections for temporary services.",
+  "Sewers and Drainage: Provide temporary connections to remove effluent that can be discharged lawfully. Filter out excessive soil, construction debris, chemicals, oils and similar contaminants that might clog sewers or pollute waterways before discharge.",
+  "Water Service: Install water service and distribution piping in sizes and pressures adequate for construction.",
+  "Sanitary Facilities: Provide temporary toilets, wash facilities and drinking water for use of construction personnel. Comply with requirements of authorities having jurisdiction for type, number, location, operation and maintenance of fixtures and facilities.",
+  "Heating and Cooling: Provide temporary heating and cooling required by construction activities for curing or drying of completed installations or for protecting installed construction from adverse effects of low temperatures or high humidity.",
+  "Ventilation and Humidity Control: Provide temporary ventilation required by construction activities for curing or drying of completed installations or for protecting installed construction from adverse effects of high humidity. Select equipment that will not have a harmful effect on completed installations or elements being installed.",
+  "Electric Power Service: Provide electric power service and distribution system of sufficient size, capacity and power characteristics required for construction operations. Provide ground-fault protection on all temporary circuits.",
+  "Lighting: Provide temporary lighting with local switching that provides adequate illumination for construction operations, observations, inspections and traffic conditions.",
+  "Telephone and Data Service: Provide temporary telephone and internet service in common-use facilities for use by all construction personnel.",
+]
+
+[[section.part3]]
+title = "SUPPORT FACILITIES INSTALLATION"
+items = [
+  "Temporary Roads and Paved Areas: Construct and maintain temporary roads and paved areas adequate for construction operations. Locate temporary roads and paved areas within construction limits indicated on Drawings.",
+  "Traffic Controls: Comply with requirements of authorities having jurisdiction. Protect existing site improvements to remain, and maintain access for fire-fighting equipment and emergency vehicles.",
+  "Parking: Provide temporary parking areas for construction personnel.",
+  "Project Signs: Provide Project signs as indicated. Unauthorized signs are not permitted.",
+  ">Identification Sign: Provide one sign identifying {project_name}, {owner}, {architect} and Contractor, in the location and of the design approved by Architect.",
+  ">Temporary Signs: Provide signs for construction personnel, visitors, deliveries and safety.",
+  "Waste Disposal Facilities: Comply with requirements specified in Section 01 74 19 \"Construction Waste Management and Disposal.\"",
+  "Lifts and Hoists: Provide facilities necessary for hoisting materials and personnel. Truck cranes and similar devices used for hoisting materials are considered tools and equipment and not temporary facilities.",
+  "Temporary Stairs: Until permanent stairs are available, provide temporary stairs where ladders are not adequate.",
+]
+
+[[section.part3]]
+title = "SECURITY AND PROTECTION FACILITIES INSTALLATION"
+items = [
+  "Protection of Existing Facilities: Protect existing vegetation, equipment, structures, utilities and other improvements at Project site and on adjacent properties, except those indicated to be removed or altered. Repair damage to existing facilities.",
+  "Environmental Protection: Provide protection, operate temporary facilities and conduct construction as required to comply with environmental regulations and that minimize possible air, waterway and subsoil contamination or pollution or other undesirable effects.",
+  "Stormwater Control: Comply with requirements of authorities having jurisdiction. Provide barriers in and around excavations and subgrade construction to prevent flooding by runoff of stormwater from heavy rains.",
+  "Tree and Plant Protection: Install temporary fencing located outside the drip line of trees to remain, to protect vegetation from damage from construction operations.",
+  "Site Enclosure Fence: Before construction operations begin, furnish and install site enclosure fence in a manner that will prevent people and animals from easily entering site except by entrance gates. Provide lockable gates and furnish one set of keys to Owner.",
+  "Barricades, Warning Signs and Lights: Comply with requirements of authorities having jurisdiction for erecting structurally adequate barricades, including warning signs and lighting.",
+  "Temporary Enclosures: Provide temporary enclosures for protection of construction, in progress and completed, from exposure, foul weather, other construction operations and similar activities. Provide temporary weathertight enclosure for building exterior.",
+  "Temporary Fire Protection: Install and maintain temporary fire-protection facilities of types needed to protect against reasonably predictable and controllable fire losses. Comply with NFPA 241.",
+  ">Prohibit smoking in construction areas.",
+  ">Supervise welding operations, combustion-type temporary heating units and similar sources of fire ignition according to requirements of authorities having jurisdiction.",
+  ">Develop and supervise an overall fire-prevention and -protection program for personnel at Project site.",
+]
+
+[[section.part3]]
+title = "MOISTURE AND MOLD CONTROL"
+items = [
+  "Contractor's Moisture-Protection Plan: Avoid trapping water in finished work. Document visible signs of mold that may appear during construction.",
+  "Exposed Construction Period: Before installation of weather barriers, protect materials from water damage and keep porous and organic materials from coming into prolonged contact with concrete.",
+  "Partially Enclosed Construction Period: Keep interior spaces reasonably clean and protected from water damage. Discard or replace water-damaged and wet material.",
+  "Controlled Construction Period: After completing and sealing of the building enclosure but before HVAC system is operating, maintain relative humidity below 60 percent in spaces containing materials susceptible to mold. Remove materials that cannot be completely restored to their manufactured moisture level within 48 hours.",
+]
+
+[[section.part3]]
+title = "OPERATION, TERMINATION AND REMOVAL"
+items = [
+  "Supervision: Enforce strict discipline in use of temporary facilities. To minimize waste and abuse, limit availability of temporary facilities to essential and intended uses.",
+  "Maintenance: Maintain facilities in good operating condition until removal.",
+  "Temporary Facility Changeover: Do not change over from using temporary security and protection facilities to permanent facilities until Substantial Completion.",
+  "Termination and Removal: Remove each temporary facility when need for its service has ended, when it has been replaced by authorized use of a permanent facility, or no later than Substantial Completion. Complete or, if necessary, restore permanent construction that may have been delayed because of interference with temporary facility. Repair damaged work, clean exposed surfaces and replace construction that cannot be satisfactorily repaired.",
+  ">Materials and facilities that constitute temporary facilities are property of Contractor. Owner reserves right to take possession of Project identification signs.",
+  ">At Substantial Completion, repair, renovate and clean permanent facilities used during construction period.",
+]
+
+[[section]]
+number = "01 60 00"
+title = "PRODUCT REQUIREMENTS"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for selection of products for use in Project; product delivery, storage and handling; manufacturers' standard warranties on products; special warranties; and comparable products.",
+  "Related Requirements:",
+  ">Section 01 23 00 \"Alternates\" for products selected under an alternate.",
+  ">Section 01 25 00 \"Substitution Procedures\" for requests for substitutions.",
+  ">Section 01 42 00 \"References\" for applicable industry standards for products specified.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Products: Items obtained for incorporating into the Work, whether purchased for Project or taken from previously purchased stock. The term product includes the terms material, equipment, system and terms of similar intent.",
+  ">Named Products: Items identified by manufacturer's product name, including make or model number or other designation shown or listed in manufacturer's published product literature, that is current as of date of the Contract Documents.",
+  ">New Products: Items that have not previously been incorporated into another project or facility. Salvaged items or items reused from other projects are not considered new products.",
+  ">Comparable Product: Product that is demonstrated and approved through submittal process to have the indicated qualities related to type, function, dimension, in-service performance, physical properties, appearance and other characteristics that equal or exceed those of specified product.",
+  "Basis-of-Design Product Specification: A specification in which a specific manufacturer's product is named and accompanied by the words basis-of-design product, including make or model number or other designation, to establish the significant qualities related to type, function, dimension, in-service performance, physical properties, appearance and other characteristics for purposes of evaluating comparable products of additional manufacturers named in the specification.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Comparable Product Requests: Submit request for consideration of each comparable product. Identify product or fabrication or installation method to be replaced. Include Specification Section number and title and Drawing numbers and titles.",
+  ">Include data to indicate compliance with the requirements specified in Comparable Products article.",
+  ">Architect's Action: Architect will notify Contractor of approval or rejection of proposed comparable product request within 15 days of receipt of request, or seven days of receipt of additional information or documentation, whichever is later.",
+  "Basis-of-Design Product Specification Submittal: Comply with requirements in Section 01 33 00 \"Submittal Procedures.\" Show compliance with requirements.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Compatibility of Options: If Contractor is given option of selecting between two or more products for use on Project, select product compatible with products previously selected, even if previously selected products were also options.",
+  "Identification of Products: Except for required labels and operating data, do not attach manufacturer's logos, trademarks or other markings on surfaces exposed to view in occupied spaces or on the exterior.",
+]
+
+[[section.part1]]
+title = "PRODUCT DELIVERY, STORAGE AND HANDLING"
+items = [
+  "Deliver, store and handle products using means and methods that will prevent damage, deterioration and loss, including theft and vandalism. Comply with manufacturer's written instructions.",
+  "Delivery and Handling:",
+  ">Schedule delivery to minimize long-term storage at Project site and to prevent overcrowding of construction spaces.",
+  ">Coordinate delivery with installation time to ensure minimum holding time for items that are flammable, hazardous, easily damaged or sensitive to deterioration, theft and other losses.",
+  ">Deliver products to Project site in an undamaged condition in manufacturer's original sealed container or other packaging system, complete with labels and instructions for handling, storing, unpacking, protecting and installing.",
+  ">Inspect products on delivery to determine compliance with the Contract Documents and to determine that products are undamaged and properly protected.",
+  "Storage:",
+  ">Store products to allow for inspection and measurement of quantity or counting of units.",
+  ">Store materials in a manner that will not endanger Project structure.",
+  ">Store products that are subject to damage by the elements under cover in a weathertight enclosure above ground, with ventilation adequate to prevent condensation.",
+  ">Store foam plastic from exposure to sunlight, except to extent necessary for period of installation and concealment.",
+  ">Comply with product manufacturer's written instructions for temperature, humidity, ventilation and weather-protection requirements for storage.",
+  ">Protect stored products from damage and liquids from freezing.",
+]
+
+[[section.part1]]
+title = "PRODUCT WARRANTIES"
+items = [
+  "Warranties specified in other Sections shall be in addition to, and run concurrent with, other warranties required by the Contract Documents. Manufacturer's disclaimers and limitations on product warranties do not relieve Contractor of obligations under requirements of the Contract Documents.",
+  ">Manufacturer's Warranty: Written warranty furnished by individual manufacturer for a particular product and specifically endorsed by manufacturer to Owner.",
+  ">Special Warranty: Written warranty required by the Contract Documents to provide specific rights for Owner.",
+  "Special Warranties: Prepare a written document that contains appropriate terms and identification, ready for execution.",
+  ">Refer to other Sections for specific content requirements and particular requirements for submitting special warranties.",
+  "Submittal Time: Comply with requirements in Section 01 77 00 \"Closeout Procedures.\"",
+]
+
+[[section.part2]]
+title = "PRODUCT SELECTION PROCEDURES"
+items = [
+  "General Product Requirements: Provide products that comply with the Contract Documents, are undamaged and, unless otherwise indicated, are new at time of installation.",
+  ">Provide products complete with accessories, trim, finish, fasteners and other items needed for a complete installation and indicated use and effect.",
+  ">Standard Products: If available and not otherwise indicated, provide standard products of types that have been produced and used successfully in similar situations on other projects.",
+  ">Owner reserves the right to limit selection to products with warranties meeting requirements of the Contract Documents.",
+  ">Where products are accompanied by the term as selected, Architect will make selection.",
+  ">Descriptive, performance and reference standard requirements in the Specifications establish salient characteristics of products.",
+  "Product Selection Procedures:",
+  ">Sole Product: Where Specifications name a single manufacturer and product, provide the named product that complies with requirements. Comparable products or substitutions for Contractor's convenience will not be considered.",
+  ">Limited List of Products: Where Specifications include a list of names of both manufacturers and products, provide one of the products listed that complies with requirements. Comparable products or substitutions for Contractor's convenience will be considered unless otherwise indicated.",
+  ">Non-Limited List of Manufacturers: Where Specifications include a list of manufacturers' names, provide a product by one of the manufacturers listed, or another manufacturer, that complies with requirements.",
+  ">Basis-of-Design Product: Where Specifications name a product, or refer to a product indicated on Drawings, and include a list of manufacturers, provide the specified or indicated product or a comparable product by one of the other named manufacturers.",
+  "Visual Matching Specification: Where Specifications require matching an established Sample, select a product that complies with requirements and matches Architect's sample. Architect's decision will be final on whether a proposed product matches.",
+  "Visual Selection Specification: Where Specifications include the phrase as selected by Architect from manufacturer's full range, select a product that complies with requirements. Architect will select color, gloss, pattern, density or texture from manufacturer's product line that includes both standard and premium items.",
+]
+
+[[section.part2]]
+title = "COMPARABLE PRODUCTS"
+items = [
+  "Conditions for Consideration of Comparable Products: Architect will consider Contractor's request for comparable product when the following conditions are satisfied. If the following conditions are not satisfied, Architect may return requests without action, except to record noncompliance with these requirements:",
+  ">Evidence that proposed product does not require revisions to the Contract Documents, is consistent with the Contract Documents, will produce the indicated results, and is compatible with other portions of the Work.",
+  ">Detailed comparison of significant qualities of proposed product with those named in the Specifications.",
+  ">Evidence that proposed product provides specified warranty.",
+  ">List of similar installations for completed projects with project names and addresses and names and addresses of architects and owners, if requested.",
+  ">Samples, if requested.",
+]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 73 00"
+title = "EXECUTION"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes general administrative and procedural requirements governing execution of the Work, including the following:",
+  ">Construction layout.",
+  ">Field engineering and surveying.",
+  ">Installation of the Work.",
+  ">Cutting and patching.",
+  ">Coordination of Owner-installed products.",
+  ">Progress cleaning.",
+  ">Starting and adjusting.",
+  ">Protection of installed construction.",
+  "Related Requirements:",
+  ">Section 01 10 00 \"Summary\" for limits on use of Project site.",
+  ">Section 01 77 00 \"Closeout Procedures\" for submitting final property survey with Project record documents, recording of Owner-accepted deviations from indicated lines and levels, and final cleaning.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Cutting: Removal of in-place construction necessary to permit installation or performance of subsequent work.",
+  "Patching: Fitting and repair work required to restore construction to original conditions after installation of other work.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For land surveyor.",
+  "Certificates: Submit certificate signed by land surveyor certifying that location and elevation of improvements comply with requirements.",
+  "Cutting and Patching Plan: Submit plan describing procedures at least ten days prior to the time cutting and patching will be performed. Include a description of affected work, products to be used, methods, and an explanation of why cutting and patching is necessary and its effect on structural elements, weather protection, operational elements and visual qualities.",
+  "Landfill Receipts: Submit copy of receipts issued by a landfill facility, licensed to accept hazardous materials, for hazardous waste disposal.",
+  "Final Property Survey: Submit a PDF of final property survey.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Land Surveyor Qualifications: A professional land surveyor who is legally qualified to practice in {jurisdiction} and who is experienced in providing land-surveying services of the kind indicated.",
+  "Cutting and Patching: Comply with requirements for and limitations on cutting and patching of construction elements.",
+  ">Structural Elements: When cutting and patching structural elements, notify Architect of locations and details of cutting and await directions from Architect before proceeding.",
+  ">Operational Elements: Do not cut and patch operating elements and related components in a manner that results in reducing their capacity to perform as intended or that result in increased maintenance or decreased operational life or safety.",
+  ">Other Construction Elements: Do not cut and patch other construction elements or components in a manner that could change their load-carrying capacity, increase deflection or result in reduced capacity to perform as intended.",
+  ">Visual Elements: Do not cut and patch construction in a manner that results in visual evidence of cutting and patching. Do not cut and patch exposed construction in a manner that would, in Architect's opinion, reduce the building's aesthetic qualities.",
+]
+
+[[section.part2]]
+title = "MATERIALS"
+items = [
+  "General: Comply with requirements specified in other Sections.",
+  ">For projects requiring compliance with sustainable design and construction practices and procedures, use products for patching that comply with sustainable design requirements.",
+  "In-Place Materials: Use materials for patching identical to in-place materials. For exposed surfaces, use materials that visually match in-place adjacent surfaces to the fullest extent possible.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Existing Conditions: The existence and location of underground and other utilities and construction indicated as existing are not guaranteed. Before beginning sitework, investigate and verify the existence and location of underground utilities, mechanical and electrical systems, and other construction affecting the Work. Contact the local utility locator service before excavating.",
+  "Examination and Acceptance of Conditions: Before proceeding with each component of the Work, examine substrates, areas and conditions, with Installer or Applicator present where indicated, for compliance with requirements for installation tolerances and other conditions affecting performance.",
+  ">Examine roughing-in for mechanical and electrical systems to verify actual locations of connections before equipment and fixture installation.",
+  ">Examine walls, floors and roofs for suitable conditions where products and systems are to be installed.",
+  ">Proceed with installation only after unsatisfactory conditions have been corrected. Proceeding with the Work indicates acceptance of surfaces and conditions.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Existing Utility Information: Furnish information to local utility and Owner that is necessary to adjust, move or relocate existing utility structures, utility poles, lines, services or other utility appurtenances located in or affected by construction.",
+  "Field Measurements: Take field measurements as required to fit the Work properly. Recheck measurements before installing each product. Where portions of the Work are indicated to fit to other construction, verify dimensions of other construction by field measurements before fabrication.",
+  "Space Requirements: Verify space requirements and dimensions of items shown diagrammatically on Drawings.",
+  "Review of Contract Documents and Field Conditions: Immediately on discovery of the need for clarification of the Contract Documents caused by differing field conditions outside the control of Contractor, submit an RFI to Architect according to requirements in Section 01 31 00 \"Project Management and Coordination.\"",
+]
+
+[[section.part3]]
+title = "CONSTRUCTION LAYOUT"
+items = [
+  "Verification: Before proceeding to lay out the Work, verify layout information shown on Drawings, in relation to the property survey and existing benchmarks. If discrepancies are discovered, notify Architect promptly.",
+  "General: Engage a land surveyor to lay out the Work using accepted surveying practices.",
+  ">Establish benchmarks and control points to set lines and levels at each story of construction and elsewhere as needed to locate each element of Project.",
+  ">Establish limits on use of Project site.",
+  ">Establish dimensions within tolerances indicated. Do not scale Drawings to obtain required dimensions.",
+  ">Inform installers of lines and levels to which they must comply.",
+  ">Check the location, level and plumb, of every major element as the Work progresses.",
+  ">Notify Architect when deviations from required lines and levels exceed allowable tolerances.",
+  "Building Lines and Levels: Locate and lay out control lines and levels for structures, building foundations, column grids and floor levels, including those required for mechanical and electrical work. Transfer survey markings and elevations for use with control lines and levels. Level foundations and piers from two or more locations.",
+  "Record Log: Maintain a log of layout control work. Record deviations from required lines and levels. Include beginning and ending dates and times of surveys, weather conditions, name and duty of each survey party member, and types of instruments and tapes used.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Locate the Work and components of the Work accurately, in correct alignment and elevation, as indicated.",
+  ">Make vertical work plumb and make horizontal work level.",
+  ">Where space is limited, install components to maximize space available for maintenance and ease of removal for replacement.",
+  ">Conceal pipes, ducts and wiring in finished areas unless otherwise indicated.",
+  ">Maintain minimum headroom clearance of 96 inches in occupied spaces and 90 inches in unoccupied spaces, unless otherwise indicated.",
+  "Comply with manufacturer's written instructions and recommendations for installing products in applications indicated.",
+  "Install products at the time and under conditions that will ensure the best possible results. Maintain conditions required for product performance until Substantial Completion.",
+  "Conduct construction operations so no part of the Work is subjected to damaging operations or loading in excess of that expected during normal conditions of occupancy.",
+  "Sequence the Work and allow adequate clearances to accommodate movement of construction items on site and placement in permanent locations.",
+  "Tools and Equipment: Select tools or equipment that minimize production of excessive noise levels.",
+  "Anchors and Fasteners: Provide anchors and fasteners as required to anchor each component securely in place, accurately located and aligned with other portions of the Work. Where size and type of attachments are not indicated, verify size and type required for load conditions.",
+  ">Allow for building movement, including thermal expansion and contraction.",
+  ">Coordinate installation of anchorages. Furnish setting drawings, templates and directions for installing anchorages, including sleeves, concrete inserts, anchor bolts and items with integral anchors, that are to be embedded in concrete or masonry.",
+  ">Use not less than two anchors or fasteners for each component unless one is specifically indicated.",
+  "Joints: Make joints of uniform width. Where joint locations in exposed work are not indicated, arrange joints for the best visual effect, as judged by Architect. Fit exposed connections together to form hairline joints.",
+  "Hazardous Materials: Use products, cleaners and installation materials that are not considered hazardous.",
+]
+
+[[section.part3]]
+title = "CUTTING AND PATCHING"
+items = [
+  "Cutting and Patching, General: Employ skilled workers to perform cutting and patching. Proceed with cutting and patching at the earliest feasible time, and complete without delay.",
+  ">Cut in-place construction to provide for installation of other components or performance of other construction, and subsequently patch as required to restore surfaces to their original condition.",
+  "Temporary Support: Provide temporary support of work to be cut.",
+  "Protection: Protect in-place construction during cutting and patching to prevent damage. Provide protection from adverse weather conditions for portions of Project that might be exposed during cutting and patching operations.",
+  "Cutting: Cut in-place construction by sawing, drilling, breaking, chipping, grinding and similar operations, including excavation, using methods least likely to damage elements retained or adjoining construction.",
+  ">Cut masonry and concrete using a cutting machine, such as an abrasive saw or a diamond-core drill.",
+  ">Proceed with patching after construction operations requiring cutting are complete.",
+  "Patching: Patch construction by filling, repairing, refinishing, closing up and similar operations following performance of other work. Patch with durable seams that are as invisible as practicable.",
+  ">Inspect and test patched areas after completion to demonstrate physical integrity of installation.",
+  ">Restore exposed finishes of patched areas and extend finish restoration into retained adjacent construction in a manner that will minimize evidence of patching and refinishing.",
+  ">Where patching occurs in a fire-rated assembly, restore the assembly to its original rating using a listed firestop system.",
+  ">Where removing walls or partitions extends one finished area into another, patch and repair floor and wall surfaces in the new space. Provide an even surface of uniform finish, color, texture and appearance.",
+]
+
+[[section.part3]]
+title = "PROGRESS CLEANING"
+items = [
+  "General: Clean Project site and work areas daily, including common areas. Enforce requirements strictly. Dispose of materials lawfully.",
+  ">Comply with requirements in NFPA 241 for removal of combustible waste materials and debris.",
+  ">Do not hold waste materials more than seven days during normal weather or three days if the temperature is expected to rise above 80 deg F.",
+  "Site: Maintain Project site free of waste materials and debris.",
+  "Work Areas: Clean areas where work is in progress to the level of cleanliness necessary for proper execution of the Work.",
+  "Installed Work: Keep installed work clean. Clean installed surfaces according to written instructions of manufacturer or fabricator of product installed, using only cleaning materials specifically recommended.",
+  "Concealed Spaces: Remove debris from concealed spaces before enclosing the space.",
+  "Waste Disposal: Do not bury or burn waste materials on-site. Do not wash waste materials down sewers or into waterways. Comply with waste disposal requirements in Section 01 74 19 \"Construction Waste Management and Disposal.\"",
+]
+
+[[section.part3]]
+title = "STARTING AND ADJUSTING"
+items = [
+  "Coordinate startup and adjusting of equipment and operating components with requirements in Section 01 91 13 \"General Commissioning Requirements,\" where included.",
+  "Start equipment and operating components to confirm proper operation. Remove malfunctioning units, replace with new units and retest.",
+  "Adjust equipment for proper operation. Adjust operating components for proper operation without binding.",
+  "Test each piece of equipment to verify proper operation. Test and adjust controls and safeties. Replace damaged and malfunctioning controls and equipment.",
+  "Manufacturer's Field Service: Comply with qualification requirements in Section 01 40 00 \"Quality Requirements.\"",
+]
+
+[[section.part3]]
+title = "PROTECTION OF INSTALLED CONSTRUCTION"
+items = [
+  "Provide final protection and maintain conditions that ensure installed Work is without damage or deterioration at time of Substantial Completion.",
+  "Comply with manufacturer's written instructions for temperature and relative humidity.",
+  "Protect finished floors from traffic with durable, nonstaining coverings. Protect installed doors, frames, windows and hardware from damage by subsequent operations.",
+]
+
+[[section]]
+number = "01 74 19"
+title = "CONSTRUCTION WASTE MANAGEMENT AND DISPOSAL"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for the following:",
+  ">Salvaging nonhazardous construction waste.",
+  ">Recycling nonhazardous construction waste.",
+  ">Disposing of nonhazardous construction waste.",
+  "Related Requirements:",
+  ">Section 01 50 00 \"Temporary Facilities and Controls\" for environmental-protection measures during construction.",
+  ">Section 01 81 13 \"Sustainable Design Requirements\" for documentation of waste diversion, where included.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Construction Waste: Building, structure and site improvement materials and other solid waste resulting from construction, remodeling, renovation or repair operations. Construction waste includes packaging.",
+  "Disposal: Removal off-site of demolition and construction waste and subsequent sale, recycling, reuse or deposit in landfill or incinerator acceptable to authorities having jurisdiction.",
+  "Recycle: Recovery of construction waste for subsequent processing in preparation for reuse.",
+  "Salvage: Recovery of construction waste and subsequent sale or reuse in another facility.",
+]
+
+[[section.part1]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "General: Achieve end-of-Project rates for salvage and recycling of 75 percent by weight of total non-hazardous solid waste generated by the Work. Facilitate recycling and salvage of materials, including the following:",
+  ">Clean dimensional lumber, engineered wood products and wood sheet materials.",
+  ">Metals, including metal studs, reinforcing steel, piping and wiring.",
+  ">Gypsum board scrap, where accepted by a local recycler.",
+  ">Concrete, masonry and asphalt paving.",
+  ">Cardboard, paper, plastic film and pallets from packaging.",
+  ">Beverage containers.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Waste Management Plan: Submit plan within 30 days of date established for the Notice to Proceed.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Waste Reduction Progress Reports: Concurrent with each Application for Payment, submit report. Include the following information:",
+  ">Material category and generation point of waste.",
+  ">Total quantity of waste in tons.",
+  ">Quantity of waste salvaged, both estimated and actual, in tons.",
+  ">Quantity of waste recycled, both estimated and actual, in tons.",
+  ">Total quantity of waste recovered (salvaged plus recycled) in tons, and as a percentage of total waste.",
+  "Waste Reduction Calculations: Before request for Substantial Completion, submit calculated end-of-Project rates for salvage, recycling and disposal as a percentage of total waste generated by the Work.",
+  "Records of Donations, Sales and Disposal: Indicate receipt and acceptance of salvageable waste donated to individuals and organizations, of recyclable waste by recycling facilities, and of waste by landfill and incinerator facilities licensed to accept them.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Waste Management Coordinator Qualifications: Contractor's employee experienced in the management of construction waste, designated to implement the waste management plan.",
+  "Refrigerant Recovery Technician Qualifications: Certified by EPA-approved certification program.",
+  "Waste Management Conference: Conduct conference at Project site to comply with requirements in Section 01 31 00 \"Project Management and Coordination.\" Review methods and procedures related to waste management, including reporting, recycling facilities, and handling and separation of materials.",
+]
+
+[[section.part1]]
+title = "WASTE MANAGEMENT PLAN"
+items = [
+  "General: Develop a waste management plan according to ASTM E1609 and requirements in this Section. Plan shall consist of waste identification, waste reduction work plan and cost/revenue analysis. Indicate quantities by weight or volume, but use same units of measure throughout waste management plan.",
+  "Waste Identification: Indicate anticipated types and quantities of construction waste generated by the Work. Include estimated quantities and assumptions for estimates.",
+  "Waste Reduction Work Plan: List each type of waste and whether it will be salvaged, recycled or disposed of in landfill or incinerator. Include points of waste generation, total quantity of each type of waste, quantity for each means of recovery, and handling and transportation procedures.",
+  ">Salvaged Materials for Reuse: For materials that will be salvaged and reused in this Project, describe methods for preparing salvaged materials before incorporation into the Work.",
+  ">Recycled Materials: Include list of local receivers and processors and type of recycled materials each will accept. Include names, addresses and telephone numbers.",
+  ">Disposed Materials: Indicate how and where materials will be disposed of. Include name, address and telephone number of each landfill and incinerator facility.",
+  ">Handling and Transportation Procedures: Include method that will be used for separating recyclable waste, including sizes of containers, container labeling, and designated location where materials separation will be performed.",
+  "Cost/Revenue Analysis: Indicate total cost of waste disposal as if there were no salvage or recycling, and the net additional cost or net savings resulting from the waste management plan.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "PLAN IMPLEMENTATION"
+items = [
+  "General: Implement approved waste management plan. Provide handling, containers, storage, signage, transportation and other items as required to implement waste management plan during the entire duration of the Contract.",
+  "Waste Management Coordinator: Engage a waste management coordinator to be responsible for implementing, monitoring and reporting status of the waste management plan.",
+  "Training: Train workers, subcontractors and suppliers on proper waste management procedures, as appropriate for the Work.",
+  "Site Access and Temporary Controls: Conduct waste management operations to ensure minimum interference with roads, streets, walks, walkways and other adjacent occupied and used facilities.",
+  ">Designate and label specific areas on Project site necessary for separating materials that are to be salvaged, recycled, reused, donated and sold.",
+  ">Comply with Section 01 50 00 \"Temporary Facilities and Controls\" for controlling dust and dirt, environmental protection and noise control.",
+]
+
+[[section.part3]]
+title = "RECYCLING CONSTRUCTION WASTE"
+items = [
+  "General: Separate recyclable waste from other waste materials, trash and debris. Separate recyclable waste by type at Project site to the maximum extent practical, according to approved construction waste management plan.",
+  ">Provide appropriately marked containers or bins for controlling recyclable waste until they are removed from Project site. Include list of acceptable and unacceptable materials at each container and bin.",
+  ">Inspect containers and bins for contamination and remove contaminated materials if found.",
+  ">Stockpile processed materials on-site without intermixing with other materials. Place, grade and shape stockpiles to drain surface water. Cover to prevent windblown dust.",
+  ">Stockpile materials away from construction area. Do not store within drip line of remaining trees.",
+  ">Store components off the ground and protect from the weather.",
+  "Packaging: Break down cardboard packaging and place in designated areas for recycling. Return pallets to suppliers where possible.",
+  "Wood Materials: Clean cut-offs of lumber may be ground or chipped for use as mulch or erosion control. Do not recycle preservative-treated or painted wood as mulch.",
+  "Gypsum Board: Stack large clean pieces on wood pallets or in container and store in a dry location. Remove edge trim and sort with other metals.",
+]
+
+[[section.part3]]
+title = "DISPOSAL OF WASTE"
+items = [
+  "General: Except for items or materials to be salvaged, recycled or otherwise reused, remove waste materials from Project site and legally dispose of them in a landfill or incinerator acceptable to authorities having jurisdiction.",
+  ">Except as otherwise specified, do not allow waste materials that are to be disposed of to accumulate on-site.",
+  ">Remove and transport debris in a manner that will prevent spillage on adjacent surfaces and areas.",
+  "Burning: Do not burn waste materials.",
+  "Disposal: Remove waste materials from Owner's property and legally dispose of them.",
+]
+
+[[section]]
+number = "01 77 00"
+title = "CLOSEOUT PROCEDURES"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for Contract closeout, including the following:",
+  ">Substantial Completion procedures.",
+  ">Final completion procedures.",
+  ">Warranties.",
+  ">Final cleaning.",
+  ">Repair of the Work.",
+  "Related Requirements:",
+  ">Section 01 78 23 \"Operation and Maintenance Data\" for operation and maintenance manual requirements.",
+  ">Section 01 78 39 \"Project Record Documents\" for submitting record Drawings, record Specifications and record Product Data.",
+  ">Section 01 79 00 \"Demonstration and Training\" for requirements for instructing Owner's personnel, where included.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For cleaning agents.",
+  "Contractor's List of Incomplete Items: Initial submittal at Substantial Completion.",
+  "Certified List of Incomplete Items: Final submittal at final completion.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Certificates of Release: From authorities having jurisdiction.",
+  "Certificate of Insurance: For continuing coverage.",
+  "Field Report: For termite and pest control treatment, where required by other Sections.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE MATERIAL SUBMITTALS"
+items = [
+  "Schedule of Maintenance Material Items: For maintenance material submittal items specified in other Sections.",
+]
+
+[[section.part1]]
+title = "SUBSTANTIAL COMPLETION PROCEDURES"
+items = [
+  "Contractor's List of Incomplete Items: Prepare and submit a list of items to be completed and corrected (Contractor's punch list), indicating the value of each item on the list and reasons why the Work is incomplete.",
+  "Submittals Prior to Substantial Completion: Complete the following a minimum of ten days prior to requesting inspection for determining date of Substantial Completion. List items below that are incomplete at time of request.",
+  ">Certificates of Release: Obtain and submit releases from authorities having jurisdiction permitting Owner unrestricted use of the Work and access to services and utilities. Include occupancy permits, operating certificates and similar releases.",
+  ">Submit closeout submittals specified in other Sections, including Project record documents, operation and maintenance manuals, final completion construction photographic documentation, damage or settlement surveys, property surveys and similar final record information.",
+  ">Submit closeout submittals specified in individual Sections, including specific warranties, workmanship bonds, maintenance service agreements, final certifications and similar documents.",
+  ">Submit maintenance material submittals specified in individual Sections, including tools, spare parts, extra materials and similar items, and deliver to location designated by Architect. Label with manufacturer's name and model number.",
+  "Procedures Prior to Substantial Completion: Complete the following a minimum of ten days prior to requesting inspection for determining date of Substantial Completion:",
+  ">Advise Owner of pending insurance changeover requirements.",
+  ">Make final changeover of permanent locks and deliver keys to Owner. Advise Owner's personnel of changeover in security provisions.",
+  ">Complete startup and testing of systems and equipment.",
+  ">Perform preventive maintenance on equipment used prior to Substantial Completion.",
+  ">Instruct Owner's personnel in operation, adjustment and maintenance of products, equipment and systems.",
+  ">Terminate and remove temporary facilities from Project site, along with mockups, construction tools and similar elements.",
+  ">Complete final cleaning requirements.",
+  ">Touch up paint and otherwise repair and restore marred exposed finishes to eliminate visual defects.",
+  "Inspection: Submit a written request for inspection to determine Substantial Completion a minimum of ten days prior to date the Work will be completed and ready for final inspection and tests. On receipt of request, Architect will either proceed with inspection or notify Contractor of unfulfilled requirements. Architect will prepare the Certificate of Substantial Completion after inspection or will notify Contractor of items, either on Contractor's list or additional items identified by Architect, that must be completed or corrected before certificate will be issued.",
+  ">Reinspection: Request reinspection when the Work identified in previous inspections as incomplete is completed or corrected.",
+]
+
+[[section.part1]]
+title = "FINAL COMPLETION PROCEDURES"
+items = [
+  "Preliminary Procedures: Before requesting final inspection for determining final completion, complete the following:",
+  ">Submit a final Application for Payment according to Section 01 29 00 \"Payment Procedures.\"",
+  ">Certified List of Incomplete Items: Submit certified copy of Architect's Substantial Completion inspection list of items to be completed or corrected, endorsed and dated by Architect. Certified copy of the list shall state that each item has been completed or otherwise resolved for acceptance.",
+  ">Certificate of Insurance: Submit evidence of final, continuing insurance coverage complying with insurance requirements.",
+  ">Instruct Owner's personnel in operation, adjustment and maintenance of products, equipment and systems.",
+  "Inspection: Submit a written request for final inspection to determine acceptance. On receipt of request, Architect will either proceed with inspection or notify Contractor of unfulfilled requirements. Architect will prepare a final Certificate for Payment after inspection or will notify Contractor of construction that must be completed or corrected before certificate will be issued.",
+]
+
+[[section.part1]]
+title = "LIST OF INCOMPLETE ITEMS (PUNCH LIST)"
+items = [
+  "Organization of List: Include name and identification of each space and area affected by construction operations for incomplete items and items needing correction.",
+  ">Organize list of spaces in sequential order, starting with exterior areas first and proceeding from lowest floor to highest floor, listed by room or space number.",
+  ">Organize items applying to each space by major element, including categories for ceiling, individual walls, floors, equipment and building systems.",
+  ">Submit list of incomplete items in PDF electronic format, or as an issue list on the Project management platform.",
+]
+
+[[section.part1]]
+title = "SUBMITTAL OF PROJECT WARRANTIES"
+items = [
+  "Time of Submittal: Submit written warranties on request of Architect for designated portions of the Work where warranties are indicated to commence on dates other than date of Substantial Completion, or when delay in submittal of warranties might limit Owner's rights under warranty.",
+  "Organize warranty documents into an orderly sequence based on the table of contents of Project Manual.",
+  ">Bind warranties and bonds in heavy-duty, three-ring, vinyl-covered, loose-leaf binders, thickness as necessary to accommodate contents, and sized to receive 8-1/2-by-11-inch paper.",
+  ">Provide heavy paper dividers with plastic-covered tabs for each separate warranty. Mark tab to identify the product or installation. Provide a typed description of the product or installation, including the name of the product and the name, address and telephone number of Installer.",
+  ">Identify each binder on the front and spine with the typed or printed title WARRANTIES, {project_name}, name of Contractor.",
+  "Provide an electronic copy of each warranty in a single indexed PDF file with bookmarks for each Specification Section.",
+  "Provide additional copies of each warranty to include in operation and maintenance manuals.",
+]
+
+[[section.part2]]
+title = "MATERIALS"
+items = [
+  "Cleaning Agents: Use cleaning materials and agents recommended by manufacturer or fabricator of the surface to be cleaned. Do not use cleaning agents that are potentially hazardous to health or property or that might damage finished surfaces.",
+  ">Use cleaning products that comply with Green Seal GS-37 or that comply with EPA Safer Choice criteria.",
+]
+
+[[section.part3]]
+title = "FINAL CLEANING"
+items = [
+  "General: Perform final cleaning. Conduct cleaning and waste-removal operations to comply with local laws and ordinances and federal and local environmental and antipollution regulations.",
+  "Cleaning: Employ experienced workers or professional cleaners for final cleaning. Clean each surface or unit to condition expected in an average commercial building cleaning and maintenance program. Comply with manufacturer's written instructions.",
+  ">Complete the following cleaning operations before requesting inspection for certification of Substantial Completion for entire Project or for a designated portion of Project:",
+  ">>Clean Project site, yard and grounds, in areas disturbed by construction activities, including landscape development areas, of rubbish, waste material, litter and other foreign substances.",
+  ">>Sweep paved areas broom clean. Remove petrochemical spills, stains and other foreign deposits.",
+  ">>Remove tools, construction equipment, machinery and surplus material from Project site.",
+  ">>Clean exposed exterior and interior hard-surfaced finishes to a dirt-free condition, free of stains, films and similar foreign substances. Avoid disturbing natural weathering of exterior surfaces. Restore reflective surfaces to their original condition.",
+  ">>Remove debris and surface dust from limited access spaces, including roofs, plenums, shafts, trenches, equipment vaults, manholes, attics and similar spaces.",
+  ">>Clean flooring, removing debris, dirt and staining; clean according to manufacturer's recommendations.",
+  ">>Vacuum and mop concrete.",
+  ">>Vacuum carpet and similar soft surfaces, removing debris and excess nap; clean according to manufacturer's recommendations if visible soil or stains remain.",
+  ">>Clean transparent materials, including mirrors and glass in doors and windows. Remove glazing compounds and other noticeable, vision-obscuring materials. Polish mirrors and glass, taking care not to scratch surfaces.",
+  ">>Remove labels that are not permanent.",
+  ">>Wipe surfaces of mechanical and electrical equipment, elevator equipment and similar equipment. Remove excess lubrication, paint and mortar droppings, and other foreign substances.",
+  ">>Clean plumbing fixtures to a sanitary condition, free of stains, including stains resulting from water exposure.",
+  ">>Replace disposable air filters and clean permanent air filters. Clean exposed surfaces of diffusers, registers and grills.",
+  ">>Clean light fixtures, lamps, globes and reflectors to function with full efficiency.",
+  ">>Leave Project clean and ready for occupancy.",
+  "Construction Waste Disposal: Comply with waste disposal requirements in Section 01 74 19 \"Construction Waste Management and Disposal.\"",
+]
+
+[[section.part3]]
+title = "REPAIR OF THE WORK"
+items = [
+  "Complete repair and restoration operations before requesting inspection for determination of Substantial Completion.",
+  "Repair or remove and replace defective construction. Repairing includes replacing defective parts, refinishing damaged surfaces, touching up with matching materials, and properly adjusting operating equipment. Where damaged or worn items cannot be repaired or restored, provide replacements.",
+  ">Remove and replace chipped, scratched and broken glass, reflective surfaces and other damaged transparent materials.",
+  ">Touch up and otherwise repair and restore marred or exposed finishes and surfaces. Replace finishes and surfaces that cannot be satisfactorily repaired or restored or that already show evidence of repair or restoration.",
+  ">Replace parts subject to operating conditions during construction that may impede operation or reduce longevity.",
+  ">Replace failed or flickering lamps and LED modules, and defective drivers and ballasts, to comply with requirements for new fixtures.",
+]
+
+[[section]]
+number = "01 78 23"
+title = "OPERATION AND MAINTENANCE DATA"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for preparing operation and maintenance manuals, including the following:",
+  ">Operation and maintenance documentation directory.",
+  ">Emergency manuals.",
+  ">Systems and equipment operation manuals.",
+  ">Systems and equipment maintenance manuals.",
+  ">Product maintenance manuals.",
+  "Related Requirements:",
+  ">Section 01 33 00 \"Submittal Procedures\" for submitting copies of submittals for operation and maintenance manuals.",
+  ">Section 01 77 00 \"Closeout Procedures\" for submitting warranties.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "System: An organized collection of parts, equipment or subsystems united by regular interaction.",
+  "Subsystem: A portion of a system with characteristics similar to a system.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Submit operation and maintenance manuals indicated. Provide content for each manual as specified in individual Specification Sections, and as reviewed and approved at the time of Section submittals. Submit reviewed manual content formatted and organized as required by this Section.",
+  ">Architect will comment on whether content of operation and maintenance submittals is acceptable.",
+  ">Where applicable, clarify and update reviewed manual content to correspond to revisions and field conditions.",
+  "Format: Submit operation and maintenance manuals in the following format:",
+  ">Submit by uploading to the Project management platform or by email to Architect. Enable reviewer comments on draft submittals.",
+  ">Submit two paper copies in addition to the electronic copy, where requested by Owner. Architect will return one copy.",
+  "Manual Submittal: Submit each manual in final form prior to requesting inspection for Substantial Completion and at least 15 days before commencing demonstration and training. Architect will return copy with comments.",
+  ">Correct or revise each manual to comply with Architect's comments. Submit copies of each corrected manual within 15 days of receipt of Architect's comments and prior to commencing demonstration and training.",
+]
+
+[[section.part1]]
+title = "FORMAT OF OPERATION AND MAINTENANCE MANUALS"
+items = [
+  "Manuals, Electronic Files: Submit manuals in the form of a multiple file composite electronic PDF file for each manual type required.",
+  ">Electronic Files: Use electronic files prepared by manufacturer where available. Where scanning of paper documents is required, configure scanned file for minimum readable file size.",
+  ">File Names and Bookmarks: Bookmark individual documents based on file names. Name document files to correspond to system, subsystem and equipment names used in manual directory and table of contents. Group documents for each system and subsystem into individual composite bookmarked files, then create composite manual, so that resulting bookmarks reflect the system, subsystem and equipment names in a readily navigated file tree.",
+  "Manuals, Paper Copy: Submit manuals in the form of hard-copy, bound and labeled volumes.",
+  ">Binders: Heavy-duty, three-ring, vinyl-covered, locking and nonlocking, loose-leaf binders, in thickness necessary to accommodate contents, sized to hold 8-1/2-by-11-inch paper; with clear plastic sleeve on spine to hold label describing contents and with pockets inside covers to hold folded oversize sheets.",
+  ">Dividers: Heavy-paper dividers with plastic-covered tabs for each section of the manual. Mark each tab to indicate contents.",
+  ">Drawings: Attach reinforced, punched binder tabs on drawings and bind with text. If oversize drawings are necessary, fold drawings to same size as text pages and use as foldouts.",
+]
+
+[[section.part1]]
+title = "OPERATION AND MAINTENANCE DOCUMENTATION DIRECTORY"
+items = [
+  "Directory: Prepare a single, comprehensive directory of emergency, operation and maintenance data and materials, listing items and their location to facilitate ready access to desired information.",
+  "Include a section in the directory for each of the following:",
+  ">List of documents.",
+  ">List of systems.",
+  ">List of equipment.",
+  ">Table of contents.",
+]
+
+[[section.part1]]
+title = "EMERGENCY MANUALS"
+items = [
+  "Emergency Manual: Assemble a complete set of emergency information indicating procedures for use by emergency personnel and by Owner's operating personnel for types of emergencies indicated.",
+  "Type of Emergencies: Where applicable for each type of emergency indicated, include instructions and procedures for each system, subsystem, piece of equipment and component:",
+  ">Fire, flood, gas leak, water leak, power failure, water outage, equipment failure and chemical release or spill.",
+  "Emergency Procedures: Include instructions on stopping, shutdown, disconnecting and shutting off utilities, and instructions on contacting service personnel and equipment manufacturers.",
+]
+
+[[section.part1]]
+title = "OPERATION MANUALS"
+items = [
+  "Content: In addition to requirements in this Section, include operation data required in individual Specification Sections and the following information:",
+  ">System, subsystem and equipment descriptions. Use designations for systems and equipment indicated on Contract Documents.",
+  ">Performance and design criteria if Contractor is delegated design responsibility.",
+  ">Operating standards, and operating procedures including startup, routine and normal operating instructions, regulation and control procedures, seasonal and weekend operating instructions, and shutdown instructions.",
+  ">Operating logs, wiring diagrams, control diagrams and piped system diagrams.",
+  ">Precautions against improper use, and license requirements including inspection and renewal dates.",
+]
+
+[[section.part1]]
+title = "PRODUCT MAINTENANCE MANUALS"
+items = [
+  "Content: Organize manual into a separate section for each product, material and finish. Include source information, product information, maintenance procedures, repair materials and sources, and warranties and bonds.",
+  "Source Information: List each product included in manual, identified by product name and arranged to match manual's table of contents. For each product, list name, address and telephone number of Installer or supplier and maintenance service agent, and cross-reference Specification Section number and title in Project Manual.",
+  "Product Information: Include the following, as applicable: product name and model number, manufacturer's name, color, pattern and texture, material and chemical composition, and reordering information for specially manufactured products.",
+  "Maintenance Procedures: Include manufacturer's written recommendations for inspection procedures, types of cleaning agents to be used and methods of cleaning, list of cleaning agents and methods of cleaning detrimental to product, schedule for routine cleaning and maintenance, and repair instructions.",
+  "Repair Materials and Sources: Include lists of materials and local sources of materials and related services.",
+  "Warranties and Bonds: Include copies of warranties and bonds and lists of circumstances and conditions that would affect validity of warranties or bonds.",
+]
+
+[[section.part1]]
+title = "SYSTEMS AND EQUIPMENT MAINTENANCE MANUALS"
+items = [
+  "Content: For each system, subsystem and piece of equipment not part of a system, include source information, manufacturers' maintenance documentation, maintenance procedures, maintenance and service schedules, spare parts list and source information, maintenance service contracts, and warranty and bond information.",
+  "Manufacturers' Maintenance Documentation: Include manufacturers' maintenance documentation including standard printed maintenance instructions and bulletins, drawings, diagrams and instructions required for maintenance, including disassembly and component removal, replacement and assembly, and identification and nomenclature of parts and components.",
+  "Maintenance and Service Schedules: Include service and lubrication requirements, list of required lubricants for equipment, and separate schedules for preventive and routine maintenance and service with standard time allotment.",
+  "Spare Parts List and Source Information: Include lists of replacement and repair parts, with parts identified and cross-referenced to manufacturers' maintenance documentation and local sources of maintenance materials and related services.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "MANUAL PREPARATION"
+items = [
+  "Operation and Maintenance Documentation Directory: Prepare a separate manual that provides an organized reference to emergency, operation and maintenance manuals.",
+  "Emergency Manual: Assemble a complete set of emergency information indicating procedures for use by emergency personnel and by Owner's operating personnel for types of emergencies indicated.",
+  "Product Maintenance Manual: Assemble a complete set of maintenance data indicating care and maintenance of each product, material and finish incorporated into the Work.",
+  "Operation and Maintenance Manuals: Assemble a complete set of operation and maintenance data indicating operation and maintenance of each system, subsystem and piece of equipment not part of a system.",
+  "Manufacturers' Data: Where manuals contain manufacturers' standard printed data, include only sheets pertinent to product or component installed. Mark each sheet to identify each product or component incorporated into the Work. If data include more than one item in a tabular format, identify each item using appropriate references from the Contract Documents. Identify data applicable to the Work and delete references to information not applicable.",
+  "Drawings: Prepare drawings supplementing manufacturers' printed data to illustrate the relationship of component parts of equipment and systems and to illustrate control sequence and flow diagrams. Coordinate these drawings with information contained in record Drawings to ensure correct illustration of completed installation.",
+  "Comply with Section 01 77 00 \"Closeout Procedures\" for schedule for submitting operation and maintenance documentation.",
+]
+
+[[section]]
+number = "01 78 39"
+title = "PROJECT RECORD DOCUMENTS"
+when = ["always"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for Project record documents, including the following:",
+  ">Record Drawings.",
+  ">Record Specifications.",
+  ">Record Product Data.",
+  ">Record digital model, where furnished.",
+  "Related Requirements:",
+  ">Section 01 73 00 \"Execution\" for final property survey.",
+  ">Section 01 77 00 \"Closeout Procedures\" for general closeout procedures.",
+  ">Section 01 78 23 \"Operation and Maintenance Data\" for operation and maintenance manual requirements.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Record Drawings: Comply with the following:",
+  ">Number of Copies: Submit one set of marked-up record prints and one PDF file of each drawing sheet, with markups incorporated.",
+  "Record Specifications: Submit one paper copy and one annotated PDF electronic file of Project's Specifications, including addenda and contract modifications.",
+  "Record Product Data: Submit one paper copy and one annotated PDF electronic file and directories of each submittal.",
+  ">Where record Product Data are required as part of operation and maintenance manuals, submit duplicate marked-up Product Data as a component of manual.",
+  "Record Model: Where Architect's building information model is furnished to Contractor, submit an updated model reflecting as-built conditions, in the native format of the model received, together with an IFC4 export.",
+]
+
+[[section.part1]]
+title = "RECORD DRAWINGS"
+items = [
+  "Record Prints: Maintain one set of marked-up paper copies of the Contract Drawings and Shop Drawings, incorporating new and revised drawings as modifications are issued.",
+  ">Preparation: Mark record prints to show the actual installation where installation varies from that shown originally. Require individual or entity who obtained record data, whether individual or entity is Installer, subcontractor or similar entity, to provide information for preparation of corresponding marked-up record prints.",
+  ">>Give particular attention to information on concealed elements that would be difficult to identify or measure and record later.",
+  ">>Accurately record information in an acceptable drawing technique.",
+  ">>Record data as soon as possible after obtaining it.",
+  ">>Record and check the markup before enclosing concealed installations.",
+  ">Content: Types of items requiring marking include, but are not limited to, the following:",
+  ">>Dimensional changes to Drawings.",
+  ">>Revisions to details shown on Drawings.",
+  ">>Depths of foundations and elevations below first floor.",
+  ">>Locations and depths of underground utilities.",
+  ">>Revisions to routing of piping and conduits.",
+  ">>Revisions to electrical circuitry.",
+  ">>Actual equipment locations.",
+  ">>Locations of concealed internal utilities.",
+  ">>Changes made by Change Order or Construction Change Directive.",
+  ">>Changes made following Architect's written orders.",
+  ">>Details not on the original Contract Drawings.",
+  ">>Field records for variable and concealed conditions.",
+  ">>Record information on the Work that is shown only schematically.",
+  ">Mark the Contract Drawings and Shop Drawings completely and accurately. Use personnel proficient at recording graphic information in production of marked-up record prints.",
+  ">Mark record sets with erasable, red-colored pencil. Use other colors to distinguish between changes for different categories of the Work at same location.",
+  ">Note Construction Change Directive numbers, alternate numbers, Change Order numbers and similar identification, where applicable.",
+  "Format: Identify and date each record Drawing; include the designation PROJECT RECORD DRAWING in a prominent location.",
+]
+
+[[section.part1]]
+title = "RECORD SPECIFICATIONS"
+items = [
+  "Preparation: Mark Specifications to indicate the actual product installation where installation varies from that indicated in Specifications, addenda and contract modifications.",
+  ">Give particular attention to information on concealed products and installations that cannot be readily identified and recorded later.",
+  ">Mark copy with the proprietary name and model number of products, materials and equipment furnished, including substitutions and product options selected.",
+  ">Record the name of manufacturer, supplier, Installer and other information necessary to provide a record of selections made.",
+  ">For each principal product, indicate whether record Product Data has been submitted in operation and maintenance manuals instead of submitted as record Product Data.",
+  ">Note related Change Orders, record Product Data and record Drawings where applicable.",
+]
+
+[[section.part1]]
+title = "RECORD PRODUCT DATA"
+items = [
+  "Recording: Maintain one copy of each submittal during the construction period for Project record document purposes. Post changes and revisions to Project record documents as they occur; do not wait until end of Project.",
+  "Preparation: Mark Product Data to indicate the actual product installation where installation varies substantially from that indicated in Product Data submittal.",
+  ">Give particular attention to information on concealed products and installations that cannot be readily identified and recorded later.",
+  ">Include significant changes in the product delivered to Project site and changes in manufacturer's written instructions for installation.",
+  ">Note related Change Orders, record Specifications and record Drawings where applicable.",
+]
+
+[[section.part1]]
+title = "MAINTENANCE OF RECORD DOCUMENTS"
+items = [
+  "Maintenance of Record Documents: Store record documents in the field office apart from the Contract Documents used for construction. Do not use Project record documents for construction purposes. Maintain record documents in good order and in a clean, dry, legible condition, protected from deterioration and loss. Provide access to Project record documents for Architect's reference during normal working hours.",
+  "Architect will review record documents monthly as a condition of approval of each Application for Payment.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "EXECUTION"
+items = ["Not Used."]
+
+[[section]]
+number = "01 79 00"
+title = "DEMONSTRATION AND TRAINING"
+when = ["commercial"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes administrative and procedural requirements for instructing Owner's personnel, including the following:",
+  ">Demonstration of operation of systems, subsystems and equipment.",
+  ">Training in operation and maintenance of systems, subsystems and equipment.",
+  ">Demonstration and training video recordings.",
+  "Related Requirements:",
+  ">Section 01 78 23 \"Operation and Maintenance Data\" for operation and maintenance manuals used in training.",
+  ">Divisions 02 through 49 Sections for specific requirements for demonstration and training for products in those Sections.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Instruction Program: Submit outline of instructional program for demonstration and training, including a list of training modules and a schedule of proposed dates, times, length of instruction time and instructors' names for each training module. Include learning objective and outline for each training module.",
+  ">Indicate proposed training modules using manufacturer-produced demonstration and training video recordings for systems, equipment and products in lieu of video recording of live instructional module.",
+  "Qualification Data: For instructor.",
+  "Attendance Record: For each training module, submit list of participants and length of instruction time.",
+  "Evaluations: For each participant and for each training module, submit results and documentation of performance-based test.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Demonstration and Training Video Recordings: Submit video recordings within seven days of end of each training module.",
+  ">Identification: On each file, label with Project title, Project number, name of Contractor, date of video recording and training module title.",
+  ">Transcript: Prepared in PDF electronic format. Include a cover sheet with same label information as the corresponding video recording and a table of contents with a list of time-coded segments.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Facilitator Qualifications: A firm or individual experienced in training or educating maintenance personnel in a training program similar in content and extent to that indicated for this Project, and whose work has resulted in training or education with a record of successful learning performance.",
+  "Instructor Qualifications: A factory-authorized service representative, complying with requirements in Section 01 40 00 \"Quality Requirements,\" experienced in operation and maintenance procedures and training.",
+  "Preinstruction Conference: Conduct conference at Project site to review methods and procedures related to demonstration and training, including schedule, facilities, and equipment and materials to be used.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Coordinate instruction schedule with Owner's operations. Adjust schedule as required to minimize disrupting Owner's operations and to ensure availability of Owner's personnel.",
+  "Coordinate content of training modules with content of approved emergency, operation and maintenance manuals. Do not submit instruction program until operation and maintenance data has been reviewed and approved by Architect.",
+]
+
+[[section.part1]]
+title = "INSTRUCTION PROGRAM"
+items = [
+  "Program Structure: Develop an instruction program that includes individual training modules for each system and for equipment not part of a system, as required by individual Specification Sections, including the following as applicable:",
+  ">Motorized doors, including overhead coiling doors and automatic entrance doors.",
+  ">Heat generation, refrigeration, HVAC air distribution and HVAC controls.",
+  ">Plumbing equipment, including water heaters and pumps.",
+  ">Electrical service and distribution, lighting controls and emergency generators.",
+  ">Fire-alarm, fire-suppression, intrusion detection and access-control systems.",
+  ">Conveying systems, including elevators.",
+  "Training Modules: Develop a learning objective and teaching outline for each module. Include a description of specific skills and knowledge that participant is expected to master. For each module, include instruction for the following as applicable to the system, equipment or component:",
+  ">Basis of System Design, Operational Requirements and Criteria: Include system, subsystem and equipment descriptions, performance and design criteria, operating standards, sequences of operation, and warranties.",
+  ">Documentation: Review the following items in detail: emergency manuals, operations manuals, maintenance manuals, Project record documents, identification systems and warranties.",
+  ">Emergencies: Include alarms, troubleshooting, instructions on meaning of warnings and trouble indications, emergency shutdown and bypass instructions.",
+  ">Operations: Include startup, equipment or system break-in, routine and normal operating procedures, regulation and control, seasonal and weekend operations, and shutdown procedures.",
+  ">Adjustments: Include alignments, checking adjustments, noise and vibration adjustments, and economy and efficiency adjustments.",
+  ">Maintenance: Include inspection procedures, types of cleaning agents to be used and methods of cleaning, procedures for routine cleaning, procedures for preventive maintenance, and procedures for routine maintenance.",
+  ">Repairs: Include diagnosis, disassembly, component removal, repair and replacement, and reassembly instructions.",
+]
+
+[[section.part2]]
+title = "PRODUCTS"
+items = ["Not Used."]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Assemble educational materials necessary for instruction, including documentation and training module. Assemble training modules into a training manual organized in coordination with requirements in Section 01 78 23 \"Operation and Maintenance Data.\"",
+  "Set up instructional equipment at instruction location.",
+]
+
+[[section.part3]]
+title = "INSTRUCTION"
+items = [
+  "Engage qualified instructors to instruct Owner's personnel to adjust, operate and maintain systems, subsystems and equipment not part of a system.",
+  "Scheduling: Provide instruction at mutually agreed-on times. For equipment that requires seasonal operation, provide similar instruction at start of each season.",
+  ">Schedule training with Owner with at least seven days' advance notice.",
+  "Training Location and Reference Material: Conduct training on-site in the completed and fully operational facility using the actual equipment in-place. Conduct training using final operation and maintenance data submittals.",
+  "Evaluation: At conclusion of each training module, assess and document each participant's mastery of module by use of a demonstration performance-based test.",
+  "Cleanup: Collect used and leftover educational materials and remove from Project site. Remove instructional equipment. Restore systems and equipment to condition existing before initial training use.",
+]
+
+[[section.part3]]
+title = "DEMONSTRATION AND TRAINING VIDEO RECORDINGS"
+items = [
+  "General: Engage a qualified commercial videographer to record demonstration and training video recordings. Record each training module separately. Include classroom instructions and demonstrations, board diagrams and other visual aids, but not student practice.",
+  "Digital Video Recordings: Provide high-definition video in MP4 format, minimum 1920 by 1080 pixels.",
+  "Narration: Describe scenes on video recording by audio narration by microphone while video recording is recorded. Include description of items being viewed.",
+]
+
+[[section]]
+number = "01 81 13"
+title = "SUSTAINABLE DESIGN REQUIREMENTS"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section includes general requirements and procedures for compliance with sustainable design requirements needed for Project to obtain the certification or rating targeted by Owner, and for compliance with the energy and green building provisions adopted by {jurisdiction}.",
+  ">Owner's target: [LEED v4.1 BD+C, Certified level] [LEED v4.1 Residential] [ENERGY STAR Certified Homes] [compliance with the adopted energy code only].",
+  ">Some sustainable design requirements depend on product selections and may not be specifically identified as sustainable design requirements. Compliance with requirements needed to obtain sustainable design credits may impose additional requirements than may otherwise be required by the Contract Documents.",
+  "Related Requirements:",
+  ">Section 01 33 00 \"Submittal Procedures\" for submittal procedures.",
+  ">Section 01 74 19 \"Construction Waste Management and Disposal\" for construction waste diversion.",
+  ">Divisions 02 through 49 Sections for sustainable design requirements specific to the work of each of those Sections.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Recycled Content: The recycled content value of a material assembly shall be determined by weight, calculated according to ISO 14021 as postconsumer content plus one-half of preconsumer content.",
+  "Regional Materials: Materials that are extracted, harvested or recovered, as well as manufactured, within 100 miles of Project site.",
+  "Environmental Product Declaration (EPD): A product-specific or industry-wide Type III declaration conforming to ISO 14025 and ISO 21930, verified by an independent third party.",
+  "Low-Emitting Material: A product tested and determined compliant with CDPH Standard Method v1.2 for volatile organic compound (VOC) emissions.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "General: Submit additional sustainable design submittals required by other Specification Sections.",
+  "Sustainable Design Submittals:",
+  ">Product Data for products having recycled content, indicating percentages by weight of postconsumer and preconsumer recycled content. Include statement indicating cost for each product having recycled content.",
+  ">Product data for regional materials indicating location and distance from Project of material manufacturer and point of extraction, harvest or recovery for each raw material.",
+  ">Chain-of-custody certificates for certified wood products, certifying that products comply with Forest Stewardship Council (FSC) requirements. Include evidence that manufacturer is certified for chain of custody by an FSC-accredited certification body.",
+  ">Environmental Product Declarations for products where available.",
+  ">Product data for adhesives, sealants, paints and coatings used inside the weatherproofing system, indicating VOC content and emissions test results.",
+  ">Laboratory test reports for composite wood products used inside the weatherproofing system, indicating compliance with the CARB ATCM for formaldehyde, or showing no added urea-formaldehyde resins.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Construction Indoor-Air-Quality (IAQ) Management Plan: Within 30 days after the Notice to Proceed, submit a plan that follows the recommended control measures of the SMACNA IAQ Guidelines for Occupied Buildings under Construction.",
+  ">Include monthly photographic documentation of IAQ measures in place.",
+  "Construction Waste Management: Comply with Section 01 74 19 \"Construction Waste Management and Disposal.\"",
+  "Commissioning and Performance Testing: Where required by the adopted energy code, submit documentation of commissioning of HVAC, lighting controls and service water heating systems, and results of building envelope air-leakage testing.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Sustainable Design Coordinator: Engage an experienced sustainable design coordinator to coordinate sustainable design requirements. Coordinator shall be a LEED Accredited Professional or have equivalent experience with the targeted rating system.",
+  "Sustainable Design Meetings: Review sustainable design requirements at the preconstruction conference and at progress meetings.",
+]
+
+[[section.part2]]
+title = "MATERIALS, GENERAL"
+items = [
+  "Provide products and procedures necessary to obtain sustainable design credits targeted by Owner. Although other Sections may specify some requirements that contribute to sustainable design credits, the Contractor shall determine additional materials and procedures necessary to obtain the credits indicated.",
+  "Recycled Content of Materials: Provide building materials with recycled content such that postconsumer recycled content plus one-half of preconsumer recycled content constitutes a minimum of 20 percent of cost of materials used for Project.",
+  "Certified Wood: Provide a minimum of 50 percent of wood-based materials, by cost, that are produced from wood obtained from forests certified by an FSC-accredited certification body.",
+]
+
+[[section.part2]]
+title = "LOW-EMITTING MATERIALS"
+items = [
+  "Adhesives and Sealants: For field applications that are inside the weatherproofing system, comply with VOC limits of SCAQMD Rule 1168 and with CDPH Standard Method v1.2 emissions requirements.",
+  "Paints and Coatings: For field applications that are inside the weatherproofing system, comply with VOC limits of CARB Suggested Control Measure for Architectural Coatings or SCAQMD Rule 1113, and with CDPH Standard Method v1.2 emissions requirements.",
+  "Flooring: Provide flooring products that comply with CDPH Standard Method v1.2 emissions requirements. Carpet shall bear the CRI Green Label Plus mark.",
+  "Composite Wood and Agrifiber Products: Products shall contain no added urea formaldehyde or shall comply with the CARB ATCM for formaldehyde emissions, Phase 2.",
+  "Insulation: Provide insulation that complies with CDPH Standard Method v1.2 emissions requirements; do not use insulation containing added formaldehyde.",
+]
+
+[[section.part3]]
+title = "REFRIGERANT REMOVAL"
+items = [
+  "Remove chlorofluorocarbon (CFC) refrigerants from existing HVAC and refrigeration equipment indicated to be removed, according to Section 01 74 19 \"Construction Waste Management and Disposal.\"",
+]
+
+[[section.part3]]
+title = "CONSTRUCTION WASTE MANAGEMENT"
+items = [
+  "Comply with Section 01 74 19 \"Construction Waste Management and Disposal.\"",
+]
+
+[[section.part3]]
+title = "CONSTRUCTION INDOOR-AIR-QUALITY MANAGEMENT"
+items = [
+  "Comply with SMACNA IAQ Guidelines for Occupied Buildings under Construction.",
+  ">If Owner authorizes use of permanent heating, cooling and ventilating systems during construction period as specified in Section 01 50 00 \"Temporary Facilities and Controls,\" install filter media having a MERV 8 rating according to ASHRAE 52.2 at each return-air inlet for the air-handling system used during construction.",
+  ">Replace all air filters immediately prior to occupancy with filters having a minimum MERV 13 rating.",
+  "Protect stored on-site and installed absorptive materials from moisture damage.",
+  "Flush-Out or Air Testing: After construction ends and before occupancy, with all interior finishes installed, perform a building flush-out by supplying outdoor air to maintain an internal temperature of at least 60 deg F and relative humidity no higher than 60 percent, or conduct baseline indoor air quality testing, as required by the targeted rating system.",
+]
+
+[[section.part3]]
+title = "ENVELOPE AIR-LEAKAGE TESTING"
+items = [
+  "Test building envelope air leakage according to ASTM E779 or ASTM E3158, as applicable, and as required by the energy code adopted by {jurisdiction}.",
+  "Correct air-leakage paths identified by testing and retest until results comply with requirements.",
+]

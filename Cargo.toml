@@ -19,6 +19,7 @@ studio-io = { path = "crates/studio-io" }
 studio-sync = { path = "crates/studio-sync" }
 studio-structural = { path = "crates/studio-structural" }
 studio-mep = { path = "crates/studio-mep" }
+studio-specs = { path = "crates/studio-specs" }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

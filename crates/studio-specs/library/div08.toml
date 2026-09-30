@@ -1,0 +1,2291 @@
+# Division 08 - Openings
+
+[[section]]
+number = "08 11 13"
+title = "HOLLOW METAL DOORS AND FRAMES"
+when = ["doors_hollow_metal"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Standard hollow metal doors, interior and exterior.",
+  ">Standard hollow metal frames, knocked-down and welded.",
+  ">Fire-rated hollow metal door and frame assemblies.",
+  ">Borrowed-light and sidelight frames.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 04 20 00 \"Unit Masonry\" for grouting and building in frames set in masonry.",
+  ">Section 08 71 00 \"Door Hardware\" for door hardware for hollow metal doors.",
+  ">Section 08 80 00 \"Glazing\" for glass in hollow metal doors and frames.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for field painting of primed doors and frames.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Minimum Thickness: Minimum thickness of base metal without coatings according to NAAMM-HMMA 803 or SDI A250.8.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of door and frame, including construction details, material descriptions, core descriptions, fire-resistance ratings, and finishes.",
+  "Shop Drawings: Include the following:",
+  ">Elevations of each door type and frame type.",
+  ">Details of doors, including vertical and horizontal edge details and metal thicknesses.",
+  ">Frame details for each frame type, including dimensioned profiles and metal thicknesses.",
+  ">Locations of reinforcement and preparations for hardware.",
+  ">Details of anchorages, joints, field splices, and connections.",
+  ">Details of accessories, moldings, and glazing stops.",
+  "Schedule: Door and frame schedule prepared by or under the supervision of the supplier, using the same reference numbers as the Drawings, coordinated with the door hardware schedule.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For each type of exterior door assembly, showing compliance with thermal performance requirements, by a qualified testing agency.",
+  "Certificates: Labeling agency certification for oversize fire-rated assemblies that cannot bear a label.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Fire-Rated Assemblies: Complying with NFPA 80 and listed and labeled by a qualified testing agency for the fire-protection rating indicated, based on testing at positive pressure according to UL 10C.",
+  "Smoke- and Draft-Control Assemblies: Where indicated, provide assemblies tested according to UL 1784 and installed in compliance with NFPA 105.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver doors and frames palletized, packaged, or crated to provide protection during transit and Project-site storage. Do not use nonvented plastic.",
+  "Deliver welded frames with two removable spreader bars across the bottom of each frame, tack welded or mechanically attached.",
+  "Store doors and frames under cover on platforms or blocking at least 4 inches above grade, in a vertical position with 1/4-inch space between each stacked door to permit air circulation.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace doors that fail in materials or workmanship, including delamination of face sheets and failure of welds, within one year from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Ceco Door; ASSA ABLOY.",
+  ">Curries Company; ASSA ABLOY.",
+  ">Steelcraft; Allegion plc.",
+  ">Republic Doors and Frames.",
+  "Source Limitations: Obtain hollow metal work from single source from single manufacturer.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Fire-Rated Assemblies: Provide door and frame assemblies with fire-protection ratings indicated, with temperature-rise ratings where required by the building code at exit enclosure and exit passageway doors.",
+  "Thermal Performance of Exterior Doors: U-factor not more than 0.37 Btu/sq. ft. x h x deg F when tested according to ASTM C1363.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, provide exterior assemblies tested according to ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "INTERIOR DOORS AND FRAMES"
+items = [
+  "Standard-Duty Doors and Frames: SDI A250.8, Level 1; at closets and low-use spaces where indicated.",
+  ">Physical Performance: Level C according to SDI A250.4.",
+  ">Doors: Full flush, 1-3/4 inches thick, face sheets of uncoated cold-rolled steel sheet, minimum thickness 0.032 inch (20 gauge).",
+  ">Core: Manufacturer's standard kraft-paper honeycomb, polystyrene, or polyurethane.",
+  ">Frames: Minimum thickness 0.053 inch (16 gauge), knocked-down or face-welded as indicated.",
+  "Heavy-Duty Doors and Frames: SDI A250.8, Level 2; unless otherwise indicated.",
+  ">Physical Performance: Level B according to SDI A250.4.",
+  ">Doors: Full flush, 1-3/4 inches thick, face sheets minimum thickness 0.042 inch (18 gauge).",
+  ">Edge Construction: Model 2, seamless.",
+  ">Core: Manufacturer's standard; mineral board or vertical steel stiffener core at fire-rated doors as required by listing.",
+  ">Frames: Minimum thickness 0.053 inch (16 gauge), full profile welded.",
+]
+
+[[section.part2]]
+title = "EXTERIOR DOORS AND FRAMES"
+items = [
+  "Extra-Heavy-Duty Doors and Frames: SDI A250.8, Level 3.",
+  ">Physical Performance: Level A according to SDI A250.4.",
+  ">Doors: Full flush, 1-3/4 inches thick, face sheets of metallic-coated steel sheet, minimum thickness 0.053 inch (16 gauge), with minimum A60 zinc-iron-alloy (galvannealed) coating according to ASTM A653/A653M.",
+  ">Edge Construction: Model 2, seamless, with top and bottom channels closed with flush steel caps.",
+  ">Core: Polyurethane or polyisocyanurate foam insulation, with thermal performance as specified.",
+  ">Frames: Metallic-coated steel sheet, minimum thickness 0.067 inch (14 gauge), full profile welded, with thermal break where indicated.",
+]
+
+[[section.part2]]
+title = "FRAME ANCHORS"
+items = [
+  "Jamb Anchors:",
+  ">Masonry Type: Adjustable strap-and-stirrup or T-shaped anchors, not less than 0.042 inch thick, to suit frame size, with corrugated or perforated straps not less than 2 inches wide by 10 inches long.",
+  ">Stud-Wall Type: Designed to engage stud, welded to back of frames; not less than 0.042 inch thick.",
+  ">Postinstalled Expansion Type for In-Place Concrete or Masonry: Minimum 3/8-inch-diameter bolts with expansion shields or inserts.",
+  "Floor Anchors: Formed from same material as frames, minimum thickness 0.042 inch, and as follows:",
+  ">Monolithic Concrete Slabs: Clip-type anchors, with two holes to receive fasteners.",
+  ">Separate Topping Concrete Slabs: Adjustable-type anchors with extension clips, allowing not less than 2-inch height adjustment.",
+]
+
+[[section.part2]]
+title = "ACCESSORIES AND FABRICATION"
+items = [
+  "Hardware Reinforcement: Fabricate according to SDI A250.6 with reinforcing plates from same material as door face sheets and frames.",
+  "Hardware Preparation: Factory prepare doors and frames to receive templated mortised hardware according to SDI A250.6, BHMA A156.115, and the door hardware schedule. Locate hardware as indicated or, if not indicated, according to SDI A250.8.",
+  "Glazing Stops: Minimum 0.032-inch-thick steel, formed square, with countersunk flat- or oval-head machine screws spaced uniformly not more than 9 inches on center. Provide fixed stops on outside of exterior and secure side of interior openings.",
+  "Door Silencers: Except on weather-stripped frames, drill stops to receive three silencers on strike jambs of single-door frames and two silencers on heads of double-door frames.",
+  "Plaster Guards: Steel sheet, minimum thickness 0.016 inch, welded to frame at back of hardware cutouts to close off interior of openings.",
+  "Grout Guards: Provide at back of hardware mortises in frames to be grouted.",
+  "Fabricate exterior doors with top edge closed flush and sealed watertight.",
+]
+
+[[section.part2]]
+title = "FINISHES"
+items = [
+  "Prime Finish: Clean, pretreat, and apply manufacturer's standard primer complying with SDI A250.10, compatible with finish paint specified in Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\".",
+  "Factory-Applied Paint Finish, where indicated: Manufacturer's standard, complying with SDI A250.3, color as selected by Architect from manufacturer's full range.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates, areas, and conditions, with Installer present, for compliance with requirements for installation tolerances and other conditions affecting performance.",
+  "Examine roughing-in for embedded and built-in anchors to verify actual locations before frame installation.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Remove welded-in shipping spreaders installed at factory. Restore exposed finish by grinding, filling, and dressing.",
+  "Drill and tap doors and frames to receive non-templated mortised and surface-mounted door hardware.",
+  "Prior to installation, adjust and securely brace welded frames for squareness, alignment, twist, and plumbness to the following tolerances:",
+  ">Squareness: Plus or minus 1/16 inch, measured at door rabbet on a line 90 degrees from jamb perpendicular to frame head.",
+  ">Alignment: Plus or minus 1/16 inch, measured at jambs on a horizontal line parallel to plane of wall.",
+  ">Twist: Plus or minus 1/16 inch, measured at opposite face corners of jambs on parallel lines.",
+  ">Plumbness: Plus or minus 1/16 inch, measured at jambs at floor.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Install hollow metal work plumb, rigid, properly aligned, and securely fastened in place according to SDI A250.11 and manufacturer's written instructions.",
+  "Fire-Rated Openings: Install according to NFPA 80.",
+  "Frames: Set frames accurately in position; plumb, align, and brace securely until permanent anchors are set.",
+  ">Floor Anchors: Secure with postinstalled expansion anchors.",
+  ">Masonry Walls: Coordinate installation with masonry construction. Fill frames with grout where indicated; take precautions to prevent bowing of frame jambs.",
+  ">Metal-Stud Partitions: Install at least three wall anchors per jamb up to 7 feet 6 inches high, and one additional anchor for each additional 24 inches.",
+  ">In-Place Concrete or Masonry: Secure frames in place with postinstalled expansion anchors, countersunk and concealed with filler, dressed smooth.",
+  "Doors: Fit hollow metal doors accurately in frames within the following clearances:",
+  ">Jambs and Head: 1/8 inch plus or minus 1/16 inch.",
+  ">Between Edges of Pairs of Doors: 1/8 inch plus or minus 1/16 inch.",
+  ">At Bottom of Door: 3/4 inch plus or minus 1/16 inch, or as required by threshold, and as permitted by NFPA 80 at fire-rated doors.",
+  "Glazing: Comply with Section 08 80 00 \"Glazing\" and manufacturer's written instructions. Secure stops with countersunk screws spaced not more than 9 inches on center and not more than 2 inches from each corner.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Final Adjustments: Check and readjust operating hardware items immediately before final inspection. Leave work in complete and proper operating condition. Remove and replace defective work, including doors or frames that are warped, bowed, or otherwise unacceptable.",
+  "Remove grout and other bonding material from hollow metal work immediately after installation.",
+  "Prime-Coat Touchup: Immediately after erection, sand smooth rusted or damaged areas of prime coat and apply touchup of compatible air-drying, rust-inhibitive primer.",
+  "Metallic-Coated Surfaces: Clean abraded areas and repair with galvanizing repair paint according to manufacturer's written instructions.",
+]
+
+[[section]]
+number = "08 14 16"
+title = "FLUSH WOOD DOORS"
+when = ["doors_wood"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Solid-core flush wood doors with wood-veneer faces.",
+  ">Solid-core flush wood doors with factory-primed faces for field painting.",
+  ">Fire-rated flush wood doors.",
+  ">Factory fitting and machining of flush wood doors for hardware.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 06 20 23 \"Interior Finish Carpentry\" for wood door frames and interior trim.",
+  ">Section 08 11 13 \"Hollow Metal Doors and Frames\" for hollow metal frames receiving wood doors.",
+  ">Section 08 71 00 \"Door Hardware\" for hardware for wood doors.",
+  ">Section 08 80 00 \"Glazing\" for glass view panels in wood doors.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for field finishing of primed doors.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of door, including details of core and edge construction, louvers, trim for openings, and factory-finishing specifications.",
+  "Shop Drawings: Indicate location, size, and hand of each door; elevation of each kind of door; construction details not covered in Product Data; and location and extent of hardware blocking.",
+  ">Indicate dimensions and locations of mortises and holes for hardware.",
+  ">Indicate dimensions and locations of cutouts.",
+  ">Indicate requirements for veneer matching.",
+  ">Indicate doors to be factory finished and finish requirements.",
+  ">Indicate fire-protection ratings for fire-rated doors.",
+  "Samples: For factory-finished doors, 8 by 10 inches, showing the range of color and grain for each species of veneer and finish selected.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Sample Warranty: For special warranty.",
+  "Quality Standard Compliance Certificates: Certification from manufacturer that doors comply with specified grade of WDMA I.S.1A or AWS.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Manufacturer Qualifications: A qualified manufacturer that is a certified participant in AWI's Quality Certification Program or WDMA's Hallmark Certification Program.",
+  "Fire-Rated Wood Doors: Listed and labeled by a qualified testing agency, tested according to UL 10C (positive pressure), and installed according to NFPA 80.",
+  "Quality Standard: Unless otherwise indicated, comply with WDMA I.S.1A \"Interior Architectural Wood Flush Doors\" or AWS \"Architectural Woodwork Standards\", Section 9 - Doors, grade as indicated.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Comply with requirements of referenced standard and manufacturer's written instructions.",
+  "Package doors individually in plastic bags or cardboard cartons.",
+  "Mark each door on top and bottom rail with opening number used on Shop Drawings.",
+  "Store doors flat on a level surface in a dry, well-ventilated space. Do not store in areas of wet work until wet work is dry.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Environmental Limitations: Do not deliver or install doors until spaces are enclosed and weathertight, wet work in spaces is complete and dry, and HVAC system is operating and maintaining ambient temperature between 60 and 90 deg F and relative humidity between 25 and 55 percent during remainder of construction period.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace doors that fail in materials or workmanship within specified warranty period.",
+  ">Failures include warping (bow, cup, or twist) more than 1/4 inch in a 42-by-84-inch section, telegraphing of core construction in face veneers exceeding 0.01 inch in a 3-inch span, and delamination.",
+  ">Warranty Period for Solid-Core Interior Doors: Life of installation.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Eggers Industries.",
+  ">Graham Wood Doors; ASSA ABLOY.",
+  ">Marshfield-Algoma; Masonite Architectural.",
+  ">VT Industries Inc.",
+  "Source Limitations: Obtain flush wood doors from single manufacturer.",
+]
+
+[[section.part2]]
+title = "FLUSH WOOD DOORS, GENERAL"
+items = [
+  "Quality Standard: WDMA I.S.1A, Extra Heavy Duty performance, or AWS Premium grade.",
+  "Fire-Rated Doors: Provide construction and core as needed to provide fire-protection rating indicated.",
+  ">Edge Blanks: Provide restrictive-particleboard edge blanks or fire-retardant-treated structural composite lumber at hinge stiles as required to meet screw-holding requirements without additional hinge reinforcement.",
+  ">Pairs: Provide fire-retardant stiles that are listed and labeled for applications indicated without formed-steel edges and astragals.",
+  "Particleboard-Core Doors: Particleboard complying with ANSI A208.1, Grade LD-2, with blocking at locations of surface-applied hardware.",
+  "Structural-Composite-Lumber-Core Doors: Structural composite lumber with screw withdrawal, face, not less than 700 lbf and edge not less than 550 lbf, according to WDMA T.M.10; at doors indicated to receive exit devices or closers.",
+  "Mineral-Core Doors: Noncombustible mineral product complying with requirements of referenced quality standard and testing and inspecting agency for fire-protection rating indicated.",
+]
+
+[[section.part2]]
+title = "VENEER-FACED DOORS FOR TRANSPARENT FINISH"
+items = [
+  "Interior Solid-Core Doors:",
+  ">Grade: Premium, with Grade A faces.",
+  ">Species: [Select white maple] [Red oak] [White oak] [Cherry].",
+  ">Cut: [Plain sliced (flat cut)] [Quarter sliced].",
+  ">Match between Veneer Leaves: Book match.",
+  ">Assembly of Veneer Leaves on Door Faces: Balance match.",
+  ">Pair and Set Match: Provide for doors hung in same opening or separated only by mullions.",
+  ">Exposed Vertical and Top Edges: Same species as faces, edge Type A.",
+  ">Construction: Five plies, stiles and rails bonded to core, then entire unit abrasive planed before veneering.",
+  ">Thickness: 1-3/4 inches unless otherwise indicated.",
+]
+
+[[section.part2]]
+title = "DOORS FOR OPAQUE FINISH"
+items = [
+  "Interior Solid-Core Doors:",
+  ">Grade: Custom.",
+  ">Faces: Medium-density overlay (MDO) or medium-density fiberboard (MDF) complying with ANSI A208.2, Grade 130.",
+  ">Exposed Vertical and Top Edges: Any closed-grain hardwood.",
+  ">Core: Particleboard or structural composite lumber as specified.",
+  ">Thickness: 1-3/4 inches unless otherwise indicated; 1-3/8 inches at residential interior doors where indicated.",
+]
+
+[[section.part2]]
+title = "LIGHT FRAMES AND LOUVERS"
+items = [
+  "Wood Beads for Light Openings in Wood Doors: Manufacturer's standard wood beads of same species as faces, unless otherwise indicated.",
+  "Metal Frames for Light Openings in Fire-Rated Doors: Manufacturer's standard frame formed of 0.048-inch-thick, cold-rolled steel sheet; factory primed for paint finish; approved for use in doors of fire-protection rating indicated.",
+  "Louvers: Factory-installed, of type and material indicated; fire-rated louvers with fusible link where required by listing.",
+]
+
+[[section.part2]]
+title = "FABRICATION"
+items = [
+  "Factory fit doors to suit frame-opening sizes indicated. Comply with clearance requirements of referenced quality standard for fitting unless otherwise indicated.",
+  ">Comply with requirements in NFPA 80 for fire-rated doors.",
+  "Factory machine doors for hardware that is not surface applied. Locate hardware to comply with DHI-WDHS-3. Comply with final hardware schedules, door frame Shop Drawings, BHMA A156.115-W, and hardware templates.",
+  ">Coordinate measurements of hardware mortises in metal frames to verify dimensions and alignment before factory machining.",
+  "Openings: Factory cut and trim openings through doors.",
+  ">Light Openings: Trim openings with moldings of material and profile indicated.",
+  ">Glazing: Factory install glazing in doors indicated to be factory finished. Comply with applicable requirements in Section 08 80 00 \"Glazing\".",
+]
+
+[[section.part2]]
+title = "FACTORY FINISHING"
+items = [
+  "General: Comply with referenced quality standard for factory finishing. Complete fabrication, including fitting doors for openings and machining for hardware, before finishing.",
+  "Finish doors indicated to receive transparent finish at factory; finish faces and all four edges.",
+  "Transparent Finish:",
+  ">Grade: Premium.",
+  ">Finish: WDMA TR-6 catalyzed polyurethane or AWS System 5 conversion varnish.",
+  ">Staining: As selected by Architect from manufacturer's full range.",
+  ">Sheen: Satin.",
+  "Doors for Opaque Finish: Factory prime faces and edges for field painting specified in Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\".",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine doors and installed door frames, with Installer present, before hanging doors.",
+  ">Verify that installed frames comply with indicated requirements for type, size, location, and swing characteristics and have been installed with level heads and plumb jambs.",
+  ">Reject doors with defects.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Hardware: For installation, see Section 08 71 00 \"Door Hardware\".",
+  "Installation Instructions: Install doors to comply with manufacturer's written instructions and referenced quality standard, and as indicated.",
+  ">Install fire-rated doors according to NFPA 80.",
+  ">Install smoke- and draft-control doors according to NFPA 105.",
+  "Job-Fitted Doors: Align and fit doors in frames with uniform clearances and bevels as indicated below; do not trim stiles and rails in excess of limits set by manufacturer or permitted for fire-rated doors. Machine doors for hardware. Seal edges of doors, edges of cutouts, and mortises after fitting and machining.",
+  ">Clearances: Provide 1/8 inch at heads, jambs, and between pairs of doors. Provide 1/8 inch from bottom of door to top of decorative floor finish or covering unless otherwise indicated. Where threshold is shown or scheduled, provide 1/4 inch from bottom of door to top of threshold.",
+  ">Bevel non-fire-rated doors 1/8 inch in 2 inches at lock and hinge edges.",
+  ">Bevel fire-rated doors 1/8 inch in 2 inches on lock edge; trim stiles and rails only to extent permitted by labeling agency.",
+  "Factory-Fitted Doors: Align in frames for uniform clearance at each edge.",
+  "Factory-Finished Doors: Restore finish before installation if fitting or machining is required at Project site.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND PROTECTION"
+items = [
+  "Operation: Rehang or replace doors that do not swing or operate freely.",
+  "Finished Doors: Replace doors that are damaged or that do not comply with requirements. Doors may be repaired or refinished if work complies with requirements and shows no evidence of repair or refinishing.",
+  "Protect doors from damage and soiling during remainder of construction period.",
+]
+
+[[section]]
+number = "08 14 33"
+title = "STILE AND RAIL WOOD DOORS"
+when = ["doors_stile_rail"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Interior stile and rail wood doors, panel and glazed.",
+  ">Exterior stile and rail wood doors, panel and glazed.",
+  ">Prehung door units with frames where indicated.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 06 20 23 \"Interior Finish Carpentry\" for door casings and trim.",
+  ">Section 08 71 00 \"Door Hardware\" for door hardware.",
+  ">Section 08 80 00 \"Glazing\" for field-installed glass.",
+  ">Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" for field finishing.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of door, including details of stile, rail, and panel construction, sticking and panel profiles, glazing, and factory finishing.",
+  "Shop Drawings: Indicate location, size, and hand of each door; elevation of each door design; details of stiles, rails, panels, moldings, and glazing; and dimensions and locations of hardware preparation.",
+  "Samples: Corner section of a door, approximately 12 by 12 inches, showing stile, rail, panel, sticking, and finish, for each species and finish selected.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Quality Standard: Comply with WDMA I.S.6A \"Interior Architectural Wood Stile and Rail Doors\" for interior doors and WDMA I.S.6 \"Wood Stile and Rail Doors\" for exterior doors, or AWS \"Architectural Woodwork Standards\", Section 9, grade as indicated.",
+  "Exterior Door Performance: Provide exterior door units with performance class and grade according to AAMA/WDMA/CSA 101/I.S.2/A440, rated for design wind pressure indicated.",
+  "Fire-Rated Doors: Where stile and rail doors are indicated to be fire rated, provide doors listed and labeled for the rating indicated, tested according to UL 10C.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Package doors individually in cardboard cartons and wrap bundles of doors in plastic sheeting.",
+  "Mark each door on top rail with opening number used on Shop Drawings.",
+  "Store doors flat on a level surface in a dry, well-ventilated space, away from wet work.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Do not deliver or install doors until building is enclosed, wet work is complete and dry, and HVAC system is operating and maintaining temperature between 60 and 90 deg F and relative humidity between 25 and 55 percent.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace doors that fail in materials or workmanship, including warping more than 1/4 inch, panel splitting, and glue-joint failure, within the following period from date of Substantial Completion:",
+  ">Interior Doors: Five years.",
+  ">Exterior Doors: Two years, provided doors are finished and protected as required by manufacturer.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Simpson Door Company.",
+  ">TruStile Doors.",
+  ">JELD-WEN, Inc.",
+  ">Rogue Valley Door.",
+]
+
+[[section.part2]]
+title = "INTERIOR STILE AND RAIL WOOD DOORS"
+items = [
+  "Grade: Custom, according to WDMA I.S.6A or AWS.",
+  "Wood Species for Transparent Finish: [Clear vertical-grain Douglas fir] [Red oak] [Cherry] [Walnut], same species for stiles, rails, and panels.",
+  "Wood for Opaque Finish: Clear, finger-jointed or edge-glued pine or poplar, or MDF complying with ANSI A208.2 for stiles, rails, and panels.",
+  "Stile and Rail Construction: Engineered, veneered stiles and rails over laminated structural core, with minimum 1/8-inch-thick face veneers.",
+  ">Joints: Doweled or mortise-and-tenon, glued.",
+  ">Stile Width: 4-1/2 inches minimum.",
+  ">Bottom Rail Width: 8 inches minimum.",
+  "Raised Panels: Solid lumber or veneered MDF, 3/4 inch thick minimum, with [ogee] [square] sticking and panel profile as indicated.",
+  "Flat Panels: Veneered MDF, 1/2 inch thick minimum.",
+  "Thickness: 1-3/4 inches unless otherwise indicated; 1-3/8 inches at residential interior passage and closet doors.",
+]
+
+[[section.part2]]
+title = "EXTERIOR STILE AND RAIL WOOD DOORS"
+items = [
+  "Grade: Premium, according to WDMA I.S.6 or AWS.",
+  "Wood Species: [Mahogany] [Clear vertical-grain Douglas fir] [White oak], with exterior-grade Type I waterproof adhesive complying with ASTM D5751 or equivalent WDMA requirement.",
+  "Construction: Engineered stiles and rails with laminated veneer lumber cores and minimum 1/8-inch-thick exterior-grade face veneers; mortise-and-tenon or doweled joints.",
+  ">Stile Width: 5 inches minimum.",
+  ">Bottom Rail Width: 9-1/2 inches minimum.",
+  "Panels: Raised panels of edge-glued solid lumber, 1-1/8 inches thick minimum, set in flexible glazing compound to allow for movement.",
+  "Glazed Lites: Insulating glass units with safety glazing complying with Section 08 80 00 \"Glazing\", with simulated divided lites where indicated.",
+  "Thickness: 1-3/4 inches minimum; 2-1/4 inches where indicated.",
+  "Prehung Units: Where indicated, provide factory-prehung units with solid wood or clad frames, adjustable sill with thermal break, compression weather stripping, and door sweep.",
+]
+
+[[section.part2]]
+title = "FABRICATION AND FINISHING"
+items = [
+  "Factory fit doors to suit frame-opening sizes indicated and machine doors for hardware that is not surface applied, according to BHMA A156.115-W and hardware templates.",
+  "Factory Finishing: Where indicated, finish doors at factory with WDMA TR-6 catalyzed polyurethane or AWS System 5, satin sheen, stain as selected by Architect. Seal all six sides of exterior doors.",
+  "Factory Priming: For doors indicated for field painting, prime all six sides with manufacturer's standard primer.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine door frames and openings, with Installer present, for compliance with requirements for size, plumbness, squareness, and anchorage.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install doors according to manufacturer's written instructions and referenced quality standard.",
+  "Fit doors in frames with 1/8-inch clearance at heads, jambs, and between pairs; bevel lock and hinge edges 1/8 inch in 2 inches.",
+  "Seal cut edges, mortises, and hardware holes immediately after fitting and machining with manufacturer's recommended sealer. Do not trim exterior doors in any manner that voids the warranty.",
+  "Prehung Units: Set units plumb, level, and square; shim at hinges and strike; anchor through frame into framing; install flashing and sill pans as indicated and as specified in Section 07 62 00 \"Sheet Metal Flashing and Trim\".",
+  "Field-Finished Doors: Finish all six sides of each door within the time limit recommended by manufacturer after delivery.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND PROTECTION"
+items = [
+  "Rehang or replace doors that do not swing or operate freely, or that are warped, bowed, or damaged.",
+  "Protect doors from damage and soiling during remainder of construction period.",
+]
+
+[[section]]
+number = "08 16 13"
+title = "FIBERGLASS DOORS"
+when = ["doors_fiberglass"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Exterior fiberglass-reinforced plastic (FRP) swinging door units, including frames, sidelites, and transoms where indicated.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill pans and head flashings.",
+  ">Section 08 71 00 \"Door Hardware\" for door hardware.",
+  ">Section 08 80 00 \"Glazing\" for glass requirements.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of door unit, including construction details, material descriptions, performance ratings, and finishes.",
+  "Shop Drawings: Include elevations, frame profiles, anchorage, sill details, and hardware preparation.",
+  "Samples: For each finish and color selected, manufacturer's standard size.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440 performance class and grade and NFRC-certified thermal performance, based on tests of complete door units.",
+  "Product Approvals: Where required by jurisdiction, product approvals showing compliance with windborne-debris requirements.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Deliver door units in manufacturer's protective packaging. Store upright under cover, off the ground, and protected from weather and construction activity.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace door units that fail in materials or workmanship, including delamination, warping, cracking of skins, and failure of insulating glass seals, within the following periods from date of Substantial Completion:",
+  ">Door Slab: Lifetime limited, for residential applications; 10 years for commercial applications.",
+  ">Insulating Glass Units: 20 years.",
+  ">Factory Finish: 10 years.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Therma-Tru Doors.",
+  ">Masonite International Corporation.",
+  ">Pella Corporation.",
+  ">JELD-WEN, Inc.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Structural Performance: Performance class and grade according to AAMA/WDMA/CSA 101/I.S.2/A440, minimum Class LC-PG40 for residential and CW-PG50 for commercial, and not less than the design wind pressure indicated.",
+  "Air Infiltration: Not more than 0.30 cfm/sq. ft. at a static-air-pressure difference of 1.57 lbf/sq. ft. when tested according to ASTM E283.",
+  "Water Penetration: No water penetration when tested according to ASTM E547 at pressure required by performance grade.",
+  "Thermal Transmittance: NFRC 100 U-factor of not more than 0.30 Btu/sq. ft. x h x deg F for opaque doors and as required by the energy code for glazed doors.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, comply with ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "FIBERGLASS DOOR UNITS"
+items = [
+  "Door Slabs: 1-3/4 inches thick, compression-molded fiberglass-reinforced skins, minimum 0.070 inch thick, with [smooth for paint] [wood-grain texture for stain] finish.",
+  ">Core: CFC-free polyurethane foam, injected and bonded to skins.",
+  ">Stiles and Rails: Engineered composite or laminated veneer lumber, with composite bottom rail resistant to moisture and decay.",
+  ">Lock Block: Solid wood or composite, minimum 20 inches long, both stiles.",
+  ">Panel Design: As indicated on Drawings.",
+  "Frames: Rot-resistant composite or finger-jointed pine with composite cladding, 4-9/16-inch jamb depth or as required for wall thickness, with rabbeted profile.",
+  "Sills: Adjustable, thermally broken aluminum and composite sill, ADA compliant with maximum 1/2-inch threshold height where indicated.",
+  "Weather Stripping: Compression-type foam-filled weather stripping at head and jambs, and door bottom sweep with dual fins.",
+  "Glazing: Factory-glazed insulating glass units, tempered, with low-emissivity coating, set in composite lite frames, complying with Section 08 80 00 \"Glazing\".",
+  "Hardware Preparation: Bored for cylindrical locksets and deadbolts at 2-3/8-inch or 2-3/4-inch backset, or prepared for multipoint locks as scheduled.",
+  "Finish: Factory-applied paint or stain finish system, color as selected by Architect; or factory primed for field finishing where indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine rough openings for size, squareness, plumbness, and presence and integrity of water-resistive barrier and flashing.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install door units according to manufacturer's written instructions and ASTM E2112.",
+  "Install sill pan flashing sloped to exterior before setting units. Set sill in continuous bed of sealant.",
+  "Set units plumb, level, and true to line, without warp or rack. Shim at hinge and strike locations and anchor through frame into structure with fasteners of size and spacing recommended by manufacturer.",
+  "Integrate flashing with water-resistive barrier in shingle fashion. Seal perimeter with low-expansion foam and backer rod and sealant.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Adjust doors and hardware for smooth operation and full contact of weather stripping.",
+  "Clean exposed surfaces according to manufacturer's written instructions. Touch up damaged factory finishes; replace units that cannot be repaired.",
+]
+
+[[section]]
+number = "08 31 13"
+title = "ACCESS DOORS AND FRAMES"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Access doors and frames for walls and ceilings.",
+  ">Fire-rated access doors and frames.",
+  "Related Requirements:",
+  ">Section 09 29 00 \"Gypsum Board\" for coordination of openings in gypsum board.",
+  ">Division 22, Division 23, and Division 26 Sections for locations of concealed valves, dampers, and equipment requiring access.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of access door and frame, including construction details, materials, dimensions, finishes, and fire ratings.",
+  "Access Door Schedule: Indicate type, size, location, fire rating, and substrate of each access door, coordinated with mechanical, plumbing, and electrical trades.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Fire-Rated Access Doors and Frames: Units complying with NFPA 80 that are identical to access door and frame assemblies tested for fire-test-response characteristics according to UL 10B or ASTM E119 for vertical assemblies and ASTM E119 for horizontal assemblies, and labeled by a qualified testing agency.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Acudor Products, Inc.",
+  ">Babcock-Davis.",
+  ">JL Industries; a division of Activar Construction Products Group.",
+  ">Nystrom, Inc.",
+]
+
+[[section.part2]]
+title = "ACCESS DOORS AND FRAMES"
+items = [
+  "Flush Access Doors with Exposed Flanges:",
+  ">Door: Steel sheet, minimum 0.060 inch (16 gauge) thick.",
+  ">Frame: Steel sheet, minimum 0.060 inch (16 gauge) thick, with 1-inch-wide exposed flange.",
+  ">Hinges: Concealed spring hinge or continuous piano hinge, opening to 175 degrees.",
+  ">Latch: Screwdriver-operated cam latch; key-operated cylinder lock where indicated.",
+  ">Finish: Factory prime for field painting.",
+  "Flush Access Doors with Concealed Flanges for Gypsum Board:",
+  ">Door: Steel sheet, minimum 0.060 inch thick, recessed to receive 5/8-inch gypsum board infill.",
+  ">Frame: Steel sheet with drywall bead flange for taping and finishing.",
+  ">Latch: Concealed cam latch operated by spanner or screwdriver.",
+  "Fire-Rated, Insulated Access Doors:",
+  ">Fire-Resistance Rating: Not less than that of adjacent construction; 1 hour or 2 hours as indicated.",
+  ">Door: Flush, steel sheet, minimum 0.036 inch thick, sandwich construction with 2-inch mineral-fiber insulation core.",
+  ">Hardware: Self-closing, with self-latching bolt operated by knurled knob and interior release.",
+  "Stainless-Steel Access Doors: ASTM A240/A240M, Type 304, No. 4 finish, at wet areas and where indicated.",
+  "Sizes: As indicated; where not indicated, 24 by 24 inches for valves and dampers and 12 by 12 inches minimum for controls.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates for compliance with requirements for installation tolerances and other conditions affecting performance. Verify locations of concealed items requiring access with applicable trades.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions for installing access doors and frames.",
+  "Set frames accurately in position and attach securely to supports with plane of face panels aligned with adjacent finish surfaces.",
+  "Install fire-rated units according to NFPA 80.",
+  "Install doors flush with adjacent finish surfaces or recessed to receive finish material.",
+]
+
+[[section.part3]]
+title = "ADJUSTING"
+items = [
+  "Adjust doors and hardware, after installation, for proper operation.",
+  "Remove and replace doors and frames that are warped, bowed, or otherwise damaged.",
+]
+
+[[section]]
+number = "08 32 13"
+title = "SLIDING ALUMINUM-FRAMED GLASS DOORS"
+when = ["doors_sliding_glass"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Sliding aluminum-framed glass doors, two-panel and multi-panel, with fixed and operable panels.",
+  ">Pocketing and multi-slide door units where indicated.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill pans and head flashing.",
+  ">Section 07 92 00 \"Joint Sealants\" for perimeter joint sealants.",
+  ">Section 08 80 00 \"Glazing\" for glass requirements.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of sliding door, including construction details, material descriptions, dimensions of individual components and profiles, hardware, finishes, and operating instructions.",
+  "Shop Drawings: Include plans, elevations, sections, details of installation, panel configuration and operation, anchorage, sill and threshold details, and attachment to other work.",
+  "Samples: For each exposed finish, on 2-by-4-inch samples of aluminum.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For each type of sliding door, by a qualified testing agency, showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440.",
+  "NFRC Certification: Label or certificate showing NFRC-certified U-factor, SHGC, and VT.",
+  "Product Approvals: Where required by jurisdiction, showing compliance with windborne-debris requirements.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For sliding doors, including rollers, tracks, and locks.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An installer acceptable to manufacturer, with not less than three years of experience installing units of similar size and complexity.",
+  "Mockups: Install one sliding door unit, including flashing and sealant, and water test according to AAMA 502 before proceeding with remaining installation.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace components that fail in materials or workmanship within specified warranty period.",
+  ">Failures include structural failures, excessive air leakage or water penetration, faulty operation of panels and hardware, and deterioration of metals, finishes, and other materials beyond normal weathering.",
+  ">Warranty Period: 10 years from date of Substantial Completion.",
+  ">Insulating Glass Units: 10 years against seal failure and obstruction of vision by dust or moisture.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Andersen Corporation.",
+  ">Fleetwood Windows and Doors.",
+  ">Milgard Windows and Doors.",
+  ">Western Window Systems.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Product Standard: Comply with AAMA/WDMA/CSA 101/I.S.2/A440 for definitions and minimum standards of performance, materials, components, accessories, and fabrication.",
+  ">Performance Class and Grade: [LC-PG50] [CW-PG50] [AW-PG50], and not less than design wind pressure indicated.",
+  "Thermal Transmittance: NFRC 100 whole-unit U-factor of not more than 0.30 Btu/sq. ft. x h x deg F, or as required by the energy code for climate zone of Project, whichever is lower.",
+  "Solar Heat-Gain Coefficient: NFRC 200 whole-unit SHGC of not more than 0.25, or as required by the energy code.",
+  "Air Infiltration: Not more than 0.30 cfm/sq. ft. of area at a static-air-pressure difference of 1.57 lbf/sq. ft. when tested according to ASTM E283.",
+  "Water Resistance: No water penetration when tested according to ASTM E547 at test pressure required by performance grade.",
+  "Forced-Entry Resistance: Comply with ASTM F842, Grade 10 minimum.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, comply with ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "SLIDING DOOR UNITS"
+items = [
+  "Frames and Panels: Extruded aluminum, ASTM B221, alloy 6063-T5 or T6, with thermal barriers of polyamide or poured-and-debridged polyurethane complying with AAMA 505.",
+  ">Frame Depth: 4-1/2 inches minimum.",
+  ">Panel Configuration: As indicated on Drawings, identified by operating direction viewed from exterior.",
+  "Sill: Extruded aluminum with stainless-steel track cap, integral weep system, and thermal break. Provide low-profile accessible sill with maximum 1/2-inch threshold height where indicated.",
+  "Rollers: Adjustable tandem stainless-steel ball-bearing rollers, two per panel minimum, rated for panel weight.",
+  "Weather Stripping: Replaceable woven-pile weather stripping with polypropylene fin complying with AAMA 701/702, and compression-type gaskets at fixed panels.",
+  "Hardware: Manufacturer's standard recessed pulls and multipoint locking hardware with keyed exterior cylinder on primary panel; auxiliary foot lock at secondary panels.",
+  "Insect Screens: Sliding screen panels with extruded aluminum frames and 18-by-16 mesh charcoal fiberglass screen cloth, with adjustable rollers.",
+  "Glazing: Factory-glazed tempered insulating glass units with low-emissivity coating and argon fill, complying with Section 08 80 00 \"Glazing\".",
+]
+
+[[section.part2]]
+title = "ALUMINUM FINISHES"
+items = [
+  "High-Performance Organic Finish: Two-coat fluoropolymer finish complying with AAMA 2605, containing not less than 70 percent PVDF resin by weight, color as selected by Architect.",
+  "Class I Anodized Finish, where indicated: AAMA 611, AA-M12C22A41, clear coating 0.018 mm or thicker.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine openings, substrates, structural support, anchorage, and conditions, with Installer present, for compliance with requirements for installation tolerances, rough opening dimensions, levelness of sill plate, and operational clearances.",
+  "Verify that sill pan flashing and water-resistive barrier are in place and properly lapped.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions and ASTM E2112 for installing sliding doors, hardware, accessories, and other components.",
+  "Install sliding doors level, plumb, square, true to line, without distortion or impeding thermal movement, anchored securely in place to structural support, and in proper relation to wall flashing and other adjacent construction.",
+  "Set sill in continuous beads of sealant over sill pan flashing. Do not puncture sill pan.",
+  "Separate aluminum and other corrodible surfaces from sources of corrosion or electrolytic action at points of contact with other materials.",
+  "Integrate head flashing and jamb flashing with water-resistive barrier in shingle fashion, and seal perimeter joints as specified in Section 07 92 00 \"Joint Sealants\".",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Testing Agency: Owner will engage a qualified testing agency to perform tests and inspections.",
+  "Water-Penetration Testing: Test installed units according to AAMA 502, test method F, at test pressure equal to two-thirds of specified water-penetration test pressure. Test not fewer than two units or 10 percent of units, whichever is greater.",
+  "Sliding doors will be considered defective if they do not pass tests and inspections.",
+]
+
+[[section.part3]]
+title = "ADJUSTING, CLEANING, AND PROTECTION"
+items = [
+  "Adjust operating panels, rollers, and hardware to provide smooth operation and weathertight closure. Lubricate hardware and moving parts.",
+  "Clean exposed surfaces immediately after installing. Avoid damaging protective coatings and finishes. Remove excess sealants, glazing materials, dirt, and other substances.",
+  "Remove and replace glass that has been broken, chipped, cracked, abraded, or damaged during construction period.",
+  "Protect door surfaces from contact with contaminating substances resulting from construction operations.",
+]
+
+[[section]]
+number = "08 36 13"
+title = "SECTIONAL DOORS"
+when = ["doors_overhead"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Insulated steel sectional overhead doors, residential garage and commercial service types.",
+  ">Electric door operators and controls.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 05 50 00 \"Metal Fabrications\" for miscellaneous steel supports.",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood jambs and head blocking.",
+  ">Division 26 Sections for electrical service and connections for operators.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type and size of sectional door and accessory, including construction details, materials, dimensions, finishes, installation instructions, and operator data.",
+  "Shop Drawings: Include plans, elevations, sections, and mounting details. Show headroom, backroom, and sideroom requirements, track configuration, anchorage, and locations of controls.",
+  ">Include wiring diagrams for power, signal, and control wiring.",
+  "Samples: For each exposed product and finish.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with ANSI/DASMA 108 for wind load and, where required, ANSI/DASMA 115 for windborne-debris impact.",
+  "Sample Warranties: For special warranties.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Operation and Maintenance Data: For sectional doors and operators, including spring adjustment and safety sensor testing.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Manufacturer's authorized representative, trained for installation and maintenance of units required for this Project.",
+  "Regulatory Requirements: Comply with UL 325 for door operators and entrapment protection, and with 16 CFR 1211 for residential garage door operators.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace components of sectional doors that fail in materials or workmanship within the following periods from date of Substantial Completion:",
+  ">Door Sections: 10 years for commercial doors; limited lifetime for residential doors, against delamination and rust-through.",
+  ">Operators: Two years for commercial operators; five years for residential operator motors.",
+  ">Finishes: Five years against peeling, cracking, and chalking beyond ASTM D4214 rating of 8.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Clopay Building Products.",
+  ">Overhead Door Corporation.",
+  ">Wayne Dalton; a division of Overhead Door Corporation.",
+  ">Raynor Garage Doors.",
+  "Operators: LiftMaster; The Chamberlain Group, or product by door manufacturer.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Structural Performance, Exterior Doors: Capable of withstanding the design wind loads indicated, tested according to ANSI/DASMA 108, with deflection of horizontal members not exceeding 1/120 of the door width.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, comply with ANSI/DASMA 115.",
+  "Operation Cycles: Door components and operators capable of operating for not less than 10,000 cycles for residential doors and 25,000 cycles for commercial doors.",
+  "Thermal Performance: Door sections with R-value of not less than R-12, calculated according to DASMA TDS-163; installed U-factor according to ANSI/DASMA 105 where required by the energy code.",
+  "Air Infiltration: Maximum rate of 0.40 cfm/sq. ft. when tested according to ANSI/DASMA 105.",
+]
+
+[[section.part2]]
+title = "STEEL DOOR SECTIONS"
+items = [
+  "Construction: Three-layer sandwich sections, exterior and interior skins of zinc-coated steel sheet complying with ASTM A653/A653M, G60 coating, with continuous polyurethane foam core bonded to both skins.",
+  ">Exterior Skin Thickness: Minimum 0.019 inch (25 gauge) for residential; 0.024 inch (24 gauge) for commercial.",
+  ">Section Thickness: 2 inches minimum.",
+  ">Joints: Tongue-and-groove meeting rails with thermal break and weather seal.",
+  ">Exterior Face: [Flush] [Ribbed] [Raised-panel carriage-house style], embossed [wood grain] [stucco] texture.",
+  "Reinforcing: Galvanized steel end stiles and intermediate stiles at hinges; horizontal struts as required for wind load.",
+  "Windows: Where indicated, insulating glass lites of tempered glass set in vinyl or aluminum frames, pattern as indicated.",
+  "Weather Seals: Replaceable flexible bulb-type bottom seal in aluminum retainer, jamb seals, and header seal.",
+]
+
+[[section.part2]]
+title = "TRACKS, HARDWARE, AND COUNTERBALANCE"
+items = [
+  "Tracks: Galvanized steel, minimum 2-inch track for residential and 3-inch track for commercial doors, with continuous reinforcing angle mounted to wall. Track configuration: [Standard lift] [High lift] [Vertical lift] as required by headroom.",
+  "Hardware: Galvanized steel hinges, brackets, and fixtures; tempered steel rollers with ball bearings, nylon-tired at residential doors.",
+  "Counterbalance: Oil-tempered torsion springs on continuous steel shaft, sized for specified cycle life, with galvanized cable drums and aircraft-type lift cables with safety factor of at least 5 to 1.",
+  "Locking: Interior slide bolt engaging track, with provision for padlock; disengaged automatically where operator is used.",
+]
+
+[[section.part2]]
+title = "ELECTRIC DOOR OPERATORS"
+items = [
+  "Residential Operators: Belt-drive or wall-mounted jackshaft type, 1/2 hp minimum, DC motor with battery backup, rolling-code radio receiver, two remote transmitters, and lighted wall control per door.",
+  "Commercial Operators: Trolley, jackshaft, or hoist type, continuous duty, 1/2 hp minimum, with electronic control panel, three-button open-close-stop station, and emergency manual chain hoist.",
+  "Entrapment Protection: Monitored photoelectric sensors complying with UL 325, and reversing edge where required.",
+  "Electrical Characteristics: 120 V, single phase, 60 Hz unless otherwise indicated.",
+]
+
+[[section.part2]]
+title = "FINISHES"
+items = [
+  "Steel Finish: Baked-on polyester paint over primer and pretreatment, color as selected by Architect from manufacturer's full range.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine substrates and openings for suitable conditions, including jamb and head blocking, headroom and sideroom clearances, and location of electrical rough-in.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install sectional doors, operators, and accessories according to manufacturer's written instructions and DASMA installation guidelines.",
+  "Fasten vertical track assembly to framing at not more than 24 inches on center. Hang horizontal track from structural overhead framing with angles or channel hangers, bolted and braced as required.",
+  "Install doors with tracks plumb and level; set counterbalance to hold door in any position without drift.",
+  "Install operators and controls; mount wall controls not less than 5 feet above floor, within sight of door and clear of moving parts.",
+  "Install photoelectric sensors not more than 6 inches above floor.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND DEMONSTRATION"
+items = [
+  "Adjust hardware and moving parts to function smoothly so that doors operate easily, free of warp, twist, or distortion.",
+  "Test door operation and entrapment protection devices; adjust operators for force and travel limits.",
+  "Train Owner's personnel to adjust, operate, and maintain doors and operators.",
+]
+
+[[section]]
+number = "08 41 13"
+title = "ALUMINUM-FRAMED ENTRANCES AND STOREFRONTS"
+when = ["storefront"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Exterior and interior aluminum-framed storefront systems, thermally broken.",
+  ">Aluminum-framed entrance doors with hardware.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill flashing.",
+  ">Section 07 92 00 \"Joint Sealants\" for perimeter joint sealants.",
+  ">Section 08 71 00 \"Door Hardware\" for hardware not specified in this Section.",
+  ">Section 08 80 00 \"Glazing\" for glass.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including construction details, material descriptions, dimensions of profiles, finishes, and thermal performance.",
+  "Shop Drawings: Include plans, elevations, sections, full-size details, and attachments to other work.",
+  ">Include details of provisions for assembly expansion and contraction and for draining moisture occurring within the system to the exterior.",
+  ">Include full-size isometric details of each vertical-to-horizontal intersection.",
+  ">Show connection to and continuity with adjacent thermal, weather, air, and vapor barriers.",
+  "Samples: For each type of exposed finish, 2 by 4 inches.",
+  "Entrance Door Hardware Schedule: Prepared by or under the supervision of supplier, detailing fabrication and assembly of entrance door hardware.",
+  "Delegated-Design Submittal: Structural calculations signed and sealed by the qualified professional engineer responsible for their preparation.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: For storefront systems, for tests performed by a qualified testing agency, showing compliance with specified performance.",
+  "Energy Performance Certificates: NFRC certified, or calculated according to NFRC 100 and NFRC 200 using NFRC-approved software.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For storefront systems and entrance door hardware.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: An entity having not less than five years of successful experience installing storefront of similar scope, and acceptable to manufacturer.",
+  "Mockups: Build mockup of a typical bay including one entrance door, sill, and corner, to verify selections and to demonstrate aesthetic effects and qualities of materials and execution.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace components that fail in materials or workmanship, including structural failures, adhesive or sealant failures, water leakage, and deterioration of metals and finishes, within five years from date of Substantial Completion.",
+  "Special Finish Warranty: Manufacturer agrees to repair or replace components on which finishes fail within 10 years for fluoropolymer finishes, including color fading more than 5 Hunter units and chalking more than ASTM D4214 rating of 8.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Kawneer Company, Inc.",
+  ">YKK AP America Inc.",
+  ">Tubelite Inc.",
+  ">EFCO; a Pella company.",
+  "Source Limitations: Obtain all components of storefront system, including framing and entrances, from single manufacturer.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Delegated Design: Engage a qualified professional engineer to design storefront framing and anchorage.",
+  "Structural Loads: Wind loads as indicated on Drawings, or as required by {building_code}, whichever is greater.",
+  "Deflection of Framing Members Supporting Glass: Normal to plane, limited to L/175 or 3/4 inch, whichever is smaller, for spans up to 13 feet 6 inches; parallel to plane, limited to L/360 or 1/8 inch, whichever is smaller.",
+  "Air Infiltration: Maximum 0.06 cfm/sq. ft. of fixed wall area when tested according to ASTM E283 at 6.24 lbf/sq. ft.",
+  "Water Penetration under Static Pressure: No evidence of water penetration when tested according to ASTM E331 at 10 lbf/sq. ft.",
+  "Thermal Performance: Fixed glazing and framing U-factor not more than 0.38 Btu/sq. ft. x h x deg F and SHGC not more than 0.25, or as required by the energy code; condensation resistance factor not less than 60 when tested according to AAMA 1503.",
+  "Thermal Movements: Allow for thermal movements resulting from an ambient-temperature range of 120 deg F and surface-temperature range of 180 deg F.",
+]
+
+[[section.part2]]
+title = "STOREFRONT SYSTEMS"
+items = [
+  "Framing Members: Manufacturer's extruded aluminum framing, ASTM B221, alloy 6063-T6, thermally broken with polyamide struts or poured-and-debridged polyurethane complying with AAMA 505.",
+  ">Construction: Thermally broken.",
+  ">Glazing System: Retained mechanically with gaskets on four sides.",
+  ">Glazing Plane: [Center] [Front].",
+  ">Nominal Face Dimension: 2 inches.",
+  ">Nominal Depth: 4-1/2 inches.",
+  "Brackets and Reinforcements: Manufacturer's standard high-strength aluminum with nonstaining, nonferrous shims for aligning system components.",
+  "Fasteners and Accessories: Manufacturer's standard corrosion-resistant, nonstaining, nonbleeding fasteners compatible with adjacent materials. Use concealed fasteners where possible.",
+  "Sill Flashing: Extruded aluminum subsill with end dams and weeps, finished to match framing.",
+]
+
+[[section.part2]]
+title = "ENTRANCE DOOR SYSTEMS"
+items = [
+  "Entrance Doors: Manufacturer's standard glazed entrance doors for manual-swing operation.",
+  ">Door Construction: 1-3/4-inch overall thickness, with minimum 0.125-inch-thick extruded-aluminum tubular rail and stile members. Mechanically fasten corners with reinforcing brackets that are deeply penetrated and fillet welded or that incorporate concealed tie rods.",
+  ">Door Design: [Medium stile, 3-1/2-inch nominal width] [Wide stile, 5-inch nominal width], with 10-inch bottom rail.",
+  ">Glazing Stops and Gaskets: Square, snap-on, extruded-aluminum stops and preformed gaskets.",
+  "Entrance Door Hardware: Manufacturer's standard heavy-duty hardware, complying with Section 08 71 00 \"Door Hardware\" and as follows:",
+  ">Pivots: BHMA A156.4, offset type, with intermediate pivot.",
+  ">Continuous Hinges, where indicated: BHMA A156.26, geared aluminum.",
+  ">Locks: Mortise deadlock with hookbolt, BHMA A156.13, Grade 1, cylinder as specified in Section 08 71 00.",
+  ">Exit Devices: BHMA A156.3, Grade 1, concealed vertical rod or rim type as scheduled.",
+  ">Pulls: Offset pull, 1-inch diameter, stainless steel.",
+  ">Closers: BHMA A156.4, Grade 1, surface-mounted or overhead concealed, with accessibility-compliant opening force.",
+  ">Thresholds: BHMA A156.21, raised thresholds beveled with a slope of not more than 1:2, with maximum height of 1/2 inch.",
+  ">Weather Stripping: Replaceable compression and sweep weather stripping at head, jambs, and bottom.",
+]
+
+[[section.part2]]
+title = "ALUMINUM FINISHES"
+items = [
+  "Class I Anodic Finish: AAMA 611, AA-M12C22A41, [clear] [dark bronze] [black], 0.018 mm or thicker.",
+  "High-Performance Organic Finish, where indicated: AAMA 2605, three-coat fluoropolymer, color as selected by Architect.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine areas, with Installer present, for compliance with requirements for installation tolerances and other conditions affecting performance of the Work.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "General: Comply with manufacturer's written instructions. Do not install damaged components. Fit joints to produce hairline joints free of burrs and distortion. Rigidly secure nonmovement joints.",
+  "Install framing members plumb and true, within the following tolerances:",
+  ">Plumb: 1/8 inch in 10 feet; 1/4 inch in 40 feet.",
+  ">Level: 1/8 inch in 20 feet; 1/4 inch in 40 feet.",
+  ">Alignment: Where surfaces abut in line or are separated by reveal or protruding element up to 1/2 inch wide, limit offset from true alignment to 1/16 inch.",
+  "Install components to drain water passing joints and condensation occurring within framing members to exterior.",
+  "Metal Protection: Where aluminum is in contact with dissimilar metals, protect against galvanic action by painting contact surfaces with materials recommended by manufacturer or by installing nonconductive spacers.",
+  "Install glazing as specified in Section 08 80 00 \"Glazing\".",
+  "Entrances: Install to produce smooth operation and tight fit at contact points. Install field-installed hardware as specified in Section 08 71 00 \"Door Hardware\".",
+  "Install perimeter joint sealants as specified in Section 07 92 00 \"Joint Sealants\".",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Testing Agency: Owner will engage a qualified testing agency to perform water-spray tests according to AAMA 501.2 on representative areas of storefront.",
+  "Remove and replace storefront where test results indicate that it does not comply with requirements, and retest.",
+]
+
+[[section.part3]]
+title = "ADJUSTING AND CLEANING"
+items = [
+  "Adjust operating entrance door hardware to function smoothly as recommended by manufacturer.",
+  ">For entrance doors accessible to people with disabilities, adjust closers to provide a sweep period of not less than 5 seconds for doors to move from a 90-degree open position to 12 degrees from the latch.",
+  ">Adjust opening force to not more than 5 lbf for interior doors.",
+  "Clean exposed surfaces promptly after installation; remove excess sealants and glazing materials, and protect from damage until Substantial Completion.",
+]
+
+[[section]]
+number = "08 51 13"
+title = "ALUMINUM WINDOWS"
+when = ["windows_aluminum"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Thermally broken aluminum windows: fixed, casement, awning, single-hung, and horizontal-sliding types.",
+  ">Insect screens and accessories.",
+  "Window types: {window_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood blocking and bucks.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill pans and head flashings.",
+  ">Section 07 92 00 \"Joint Sealants\" for perimeter joint sealants.",
+  ">Section 08 80 00 \"Glazing\" for glass requirements.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of window, including construction details, material descriptions, dimensions of individual components and profiles, hardware, finishes, and operating instructions.",
+  "Shop Drawings: Include plans, elevations, sections, hardware, accessories, insect screens, operational clearances, installation details, and anchorage.",
+  ">Include mullion details, reinforcement, and stiffening.",
+  ">Show flashing, sill pan, and integration with water-resistive barrier.",
+  "Samples: For each exposed product and finish, 2 by 4 inches.",
+  "Window Schedule: For windows, using the same designations indicated on Drawings.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Based on evaluation of comprehensive tests performed by a qualified testing agency for each type, class, grade, and size of window, showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440.",
+  "NFRC Certification: NFRC-certified U-factor, SHGC, VT, and condensation resistance for each window type.",
+  "Sample Warranties: For manufacturer's warranties.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For windows, including operating hardware, weather stripping, and finishes.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Manufacturer Qualifications: A manufacturer capable of fabricating windows that meet or exceed performance requirements indicated and of documenting this performance by test reports and calculations.",
+  "Installer Qualifications: An installer acceptable to window manufacturer.",
+  "Mockups: Install one window of each type, including flashing, sill pan, and sealant, and field test before proceeding with remaining installation.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace windows that fail in materials or workmanship within specified warranty period.",
+  ">Failures include structural failures, failure to meet performance requirements, faulty operation of movable sash and hardware, and deterioration of materials and finishes beyond normal weathering.",
+  ">Warranty Period: 10 years for window units; 10 years for insulating glass units against seal failure; 20 years for fluoropolymer finishes.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Kawneer Company, Inc.",
+  ">Wausau Window and Wall Systems.",
+  ">EFCO; a Pella company.",
+  ">Milgard Windows and Doors.",
+]
+
+[[section.part2]]
+title = "WINDOW PERFORMANCE REQUIREMENTS"
+items = [
+  "Product Standard: Comply with AAMA/WDMA/CSA 101/I.S.2/A440 for definitions and minimum standards of performance, materials, components, accessories, and fabrication.",
+  ">Window Certification: AAMA or WDMA certified with label attached to each window.",
+  "Performance Class and Grade: [LC-PG50 for residential] [AW-PG60 for commercial], and not less than design wind pressure indicated.",
+  "Thermal Transmittance: NFRC 100 whole-window U-factor not more than 0.32 Btu/sq. ft. x h x deg F for fixed windows and 0.36 for operable windows, or as required by the energy code, whichever is lower.",
+  "Solar Heat-Gain Coefficient: NFRC 200 whole-window SHGC not more than 0.25, or as required by the energy code.",
+  "Condensation Resistance: Condensation resistance factor of not less than 55 when tested according to AAMA 1503.",
+  "Air Infiltration: Maximum 0.10 cfm/sq. ft. at test pressure of 6.24 lbf/sq. ft. when tested according to ASTM E283, for AW-class windows.",
+  "Sound Transmission, where indicated: STC and OITC ratings as indicated when tested according to ASTM E90 and classified according to ASTM E413 and ASTM E1332.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, comply with ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "ALUMINUM WINDOWS"
+items = [
+  "Operating Types: As indicated on Drawings.",
+  "Frames and Sashes: Extruded aluminum, ASTM B221, alloy 6063-T5 or T6, with minimum wall thickness of 0.062 inch at main frame and sash members.",
+  ">Thermal Break: Polyamide struts or poured-and-debridged polyurethane complying with AAMA 505.",
+  ">Frame Depth: 3-1/4 inches minimum for residential; 4-1/2 inches for commercial.",
+  "Glass: Clear insulating glass units with low-emissivity coating and argon fill, as specified in Section 08 80 00 \"Glazing\".",
+  "Glazing System: Manufacturer's standard factory-glazing system that produces weathertight seal, with dry-glazed gaskets on interior and exterior.",
+  "Hardware, General: Manufacturer's standard, corrosion-resistant, nonstaining, nonbleeding fasteners and hardware compatible with aluminum.",
+  ">Casement and Awning: Stainless-steel four-bar hinges, roto operators with folding handles, and multipoint locks.",
+  ">Hung and Sliding: Cam-action sweep sash locks, balances of spring or block-and-tackle type, and tilt latches where indicated.",
+  "Weather Stripping: Manufacturer's standard compressible, replaceable weather stripping complying with AAMA 701/702.",
+  "Window Opening Control Devices: Where window sill is less than 24 inches above floor and more than 72 inches above exterior grade, provide devices complying with ASTM F2090.",
+  "Insect Screens: Removable, extruded aluminum frames with 18-by-16 mesh charcoal fiberglass screen cloth, at each operable sash.",
+  "Mullions: Extruded aluminum, matching window finish, with anchors for support to structure and installation of window units.",
+]
+
+[[section.part2]]
+title = "ALUMINUM FINISHES"
+items = [
+  "High-Performance Organic Finish: AAMA 2605, two-coat fluoropolymer, color as selected by Architect from manufacturer's full range.",
+  "Class I Anodic Finish, where indicated: AAMA 611, AA-M12C22A41, clear or color as selected.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine openings, substrates, structural support, anchorage, and conditions, with Installer present, for compliance with requirements for installation tolerances, rough opening dimensions, levelness of sill, and operational clearances.",
+  "Verify that water-resistive barrier and sill pan flashing are installed and lapped correctly.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions and with ASTM E2112 for installing windows, hardware, accessories, and other components.",
+  "Install windows level, plumb, square, true to line, without distortion, anchored securely in place to structural support, and in proper relation to flashing and other adjacent construction.",
+  "Install sill pan flashing with end dams and back dam before setting windows. Set windows with shims at sill without puncturing pan.",
+  "Integrate window flashing with water-resistive barrier in shingle fashion: jamb flashing over sill flashing, and head flashing over jamb flashing, with water-resistive barrier lapped over head flashing.",
+  "Isolate aluminum from dissimilar materials to prevent galvanic action.",
+  "Install perimeter insulating foam sealant and backer rod and sealant as specified in Section 07 92 00 \"Joint Sealants\".",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Testing Agency: Owner will engage a qualified testing agency to perform tests and inspections.",
+  "Testing Services: Test and inspect installed windows according to AAMA 502, test method A for air infiltration and test method B for water penetration, at two-thirds of specified test pressure.",
+  ">Test not fewer than two windows of each type, or 5 percent of windows, whichever is greater.",
+  "Windows will be considered defective if they do not pass tests and inspections. Correct deficiencies and retest.",
+]
+
+[[section.part3]]
+title = "ADJUSTING, CLEANING, AND PROTECTION"
+items = [
+  "Adjust operating sashes and hardware for a tight fit at contact points and weather stripping for smooth operation and weathertight closure.",
+  "Clean exposed surfaces immediately after installing windows. Remove excess sealants, glazing materials, dirt, and other substances.",
+  "Remove and replace sashes if glass has been broken, chipped, cracked, abraded, or damaged during construction period.",
+  "Protect window surfaces from contact with contaminating substances resulting from construction operations.",
+]
+
+[[section]]
+number = "08 52 13"
+title = "METAL-CLAD WOOD WINDOWS"
+when = ["windows_clad_wood"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Aluminum-clad wood windows: casement, awning, double-hung, and fixed types.",
+  ">Insect screens, grilles, and interior trim accessories.",
+  "Window types: {window_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 06 20 23 \"Interior Finish Carpentry\" for interior casings and stools.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill pans and head flashings.",
+  ">Section 07 92 00 \"Joint Sealants\" for perimeter joint sealants.",
+  ">Section 08 80 00 \"Glazing\" for glass requirements.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of window, including construction details, material descriptions, dimensions, hardware, finishes, and operating instructions.",
+  "Shop Drawings: Include plans, elevations, sections, details, hardware, grille patterns, installation details, and mulling configurations.",
+  "Samples: Corner sections of window frame and sash, showing exterior cladding color and interior wood species and finish.",
+  "Window Schedule: For windows, using the same designations indicated on Drawings.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440, by a qualified testing agency.",
+  "NFRC Certification: Label for each window showing NFRC-certified U-factor, SHGC, and VT.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For windows, including operating hardware, weather stripping, and interior wood finish care.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Store windows upright on blocking, under cover, protected from weather and construction activity. Do not store in wet areas or in direct sunlight with protective wrapping that traps heat.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace windows that fail in materials or workmanship within the following periods from date of Substantial Completion:",
+  ">Window Units, Wood Components, and Hardware: 10 years.",
+  ">Insulating Glass Units: 20 years against seal failure.",
+  ">Exterior Cladding Finish: 20 years against checking, cracking, peeling, and fading beyond 5 Hunter units.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Andersen Corporation.",
+  ">Marvin.",
+  ">Pella Corporation.",
+  ">Kolbe Windows and Doors.",
+]
+
+[[section.part2]]
+title = "WINDOW PERFORMANCE REQUIREMENTS"
+items = [
+  "Product Standard: Comply with AAMA/WDMA/CSA 101/I.S.2/A440 for definitions and minimum standards of performance, materials, components, accessories, and fabrication.",
+  "Performance Class and Grade: [LC-PG40] [LC-PG50] [CW-PG50], and not less than design wind pressure indicated.",
+  "Thermal Transmittance: NFRC 100 whole-window U-factor not more than 0.30 Btu/sq. ft. x h x deg F, or as required by the energy code, whichever is lower.",
+  "Solar Heat-Gain Coefficient: NFRC 200 whole-window SHGC not more than 0.25, or as required by the energy code for climate zone of Project.",
+  "Air Infiltration: Not more than 0.30 cfm/sq. ft. at 1.57 lbf/sq. ft. when tested according to ASTM E283.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, comply with ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "METAL-CLAD WOOD WINDOWS"
+items = [
+  "Frames and Sashes: Kiln-dried, clear, fine-grained Ponderosa pine or other suitable species, edge and end glued or finger jointed at concealed locations; water-repellent preservative treated according to WDMA I.S.4.",
+  ">Interior Exposed Wood: [Pine] [Douglas fir] [White oak], factory [primed] [stained and finished] [unfinished].",
+  "Exterior Cladding: Extruded aluminum, ASTM B221, minimum 0.050 inch thick at frames and 0.045 inch thick at sashes, or roll-formed aluminum where standard with manufacturer, with interlocking or sealed corners.",
+  ">Finish: Factory-applied fluoropolymer coating complying with AAMA 2605, color as selected by Architect from manufacturer's full range.",
+  "Glass: Insulating glass units with low-emissivity coating and argon fill, as specified in Section 08 80 00 \"Glazing\"; safety glazing where required.",
+  "Glazing System: Manufacturer's standard factory glazing with silicone or glazing tape bedding and wood or clad stops.",
+  "Hardware: Manufacturer's standard in finish as selected.",
+  ">Casement and Awning: Stainless-steel hinges, folding-handle roto operators, and sequential multipoint locks.",
+  ">Double-Hung: Tilt-in sashes, constant-force coil spring or block-and-tackle balances, and cam-action sash locks.",
+  "Weather Stripping: Manufacturer's standard foam-filled or bulb-type vinyl weather stripping, replaceable.",
+  "Simulated Divided Lites: Where indicated, provide interior wood and exterior clad bars permanently adhered to glass, with shadow bar between panes; pattern as indicated.",
+  "Window Opening Control Devices: Complying with ASTM F2090 where sill is less than 24 inches above floor and more than 72 inches above exterior grade.",
+  "Insect Screens: Aluminum frames with charcoal fiberglass mesh, 18 by 16 mesh; interior-mounted at casement and awning windows.",
+  "Installation Accessories: Factory-applied nailing fins or installation brackets, extension jambs sized for wall thickness, and brick mould or flat casing where indicated.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine rough openings for size, squareness, plumbness, and presence and correct lapping of water-resistive barrier and sill pan flashing.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions and with ASTM E2112 for installing windows, hardware, accessories, and other components.",
+  "Install windows level, plumb, square, true to line, without distortion, and anchored securely in place.",
+  "Install sill pan flashing sloped to exterior with end dams before setting windows.",
+  "Integrate flashing with water-resistive barrier in shingle fashion; do not seal bottom nailing fin so that sill pan can drain.",
+  "Install low-expansion foam sealant at interior perimeter, and backer rod and sealant at exterior perimeter as specified in Section 07 92 00 \"Joint Sealants\".",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Where indicated, test installed windows for water penetration according to AAMA 502, test method B, at two-thirds of specified test pressure; test not fewer than two windows of each type.",
+]
+
+[[section.part3]]
+title = "ADJUSTING, CLEANING, AND PROTECTION"
+items = [
+  "Adjust operating sashes and hardware for a tight fit at contact points and weather stripping for smooth operation and weathertight closure.",
+  "Clean exposed surfaces immediately after installing windows. Remove labels after inspection.",
+  "Protect interior wood from moisture and construction damage; finish unfinished interior wood promptly as specified in Section 09 91 13 \"Exterior Painting\" and Section 09 91 23 \"Interior Painting\" or Section 09 93 00 \"Staining and Transparent Finishing\".",
+]
+
+[[section]]
+number = "08 53 13"
+title = "VINYL WINDOWS"
+when = ["windows_vinyl"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Vinyl (PVC) windows: single-hung, double-hung, horizontal-sliding, casement, awning, and fixed types.",
+  "Window types: {window_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill pans and head flashings.",
+  ">Section 07 92 00 \"Joint Sealants\" for perimeter joint sealants.",
+  ">Section 08 80 00 \"Glazing\" for glass requirements.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of window, including construction details, material descriptions, dimensions, hardware, finishes, and operating instructions.",
+  "Shop Drawings: Include plans, elevations, sections, installation details, mulling configurations, and grille patterns.",
+  "Samples: For each exterior and interior color and finish.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440 and AAMA 303 for vinyl profiles, by a qualified testing agency.",
+  "NFRC Certification: NFRC-certified U-factor, SHGC, and VT for each window type.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace windows that fail in materials or workmanship within the following periods from date of Substantial Completion:",
+  ">Vinyl Components: Limited lifetime for residential applications, including cracking, peeling, blistering, and discoloration; 10 years for commercial applications.",
+  ">Insulating Glass Units: 20 years against seal failure.",
+  ">Hardware and Weather Stripping: 10 years.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Milgard Windows and Doors.",
+  ">Pella Corporation.",
+  ">Cornerstone Building Brands (Ply Gem).",
+  ">JELD-WEN, Inc.",
+]
+
+[[section.part2]]
+title = "WINDOW PERFORMANCE REQUIREMENTS"
+items = [
+  "Product Standard: Comply with AAMA/WDMA/CSA 101/I.S.2/A440 for definitions and minimum standards of performance, materials, components, accessories, and fabrication.",
+  "Performance Class and Grade: [R-PG35] [LC-PG40] [LC-PG50], and not less than design wind pressure indicated.",
+  "Thermal Transmittance: NFRC 100 whole-window U-factor not more than 0.30 Btu/sq. ft. x h x deg F, or as required by the energy code, whichever is lower.",
+  "Solar Heat-Gain Coefficient: NFRC 200 whole-window SHGC not more than 0.25, or as required by the energy code.",
+  "Air Infiltration: Not more than 0.30 cfm/sq. ft. at 1.57 lbf/sq. ft. when tested according to ASTM E283.",
+  "Forced-Entry Resistance: Comply with ASTM F588, Grade 10.",
+]
+
+[[section.part2]]
+title = "VINYL WINDOWS"
+items = [
+  "Frames and Sashes: Extruded, rigid, impact-modified, UV-stabilized PVC complying with ASTM D4726 and AAMA 303, with multichambered profiles and fusion-welded corners.",
+  ">Frame Depth: 3-1/4 inches minimum.",
+  ">Exterior Wall Thickness: 0.070 inch minimum.",
+  ">Reinforcement: Aluminum or steel reinforcing in meeting rails and as required to meet performance grade.",
+  ">Color: [White] [Tan] [Factory-applied exterior laminate or paint finish, color as selected by Architect].",
+  "Glass: Insulating glass units with low-emissivity coating and argon fill, as specified in Section 08 80 00 \"Glazing\".",
+  "Glazing System: Manufacturer's standard with interior snap-in vinyl glazing beads and double-sided glazing tape or silicone bedding.",
+  "Hardware: Manufacturer's standard, corrosion-resistant, color matched.",
+  ">Hung Windows: Tilt-in sashes, block-and-tackle balances, and cam-action locks; two locks on sashes wider than 27 inches.",
+  ">Casement and Awning: Stainless-steel hinges, folding-handle roto operators, and multipoint locks.",
+  "Weather Stripping: Manufacturer's standard fin-seal woven pile and bulb seals.",
+  "Integral Nailing Fin: Extruded as part of frame, with factory-applied J-channel where indicated.",
+  "Window Opening Control Devices: Complying with ASTM F2090 where required by the building code.",
+  "Insect Screens: Roll-formed aluminum frames with charcoal fiberglass mesh, 18 by 16 mesh.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine rough openings for size, squareness, plumbness, and presence and correct lapping of water-resistive barrier and flashing.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions and with ASTM E2112 for installing windows.",
+  "Install sill pan flashing sloped to exterior before setting windows. Set windows plumb, level, square, and true to line; shim at sill and jambs; fasten nailing fins at spacing recommended by manufacturer without distorting frame.",
+  "Integrate flashing with water-resistive barrier in shingle fashion.",
+  "Allow for thermal expansion of vinyl frames. Do not overdrive fasteners.",
+  "Install low-expansion foam sealant at interior perimeter and exterior sealant as specified in Section 07 92 00 \"Joint Sealants\".",
+]
+
+[[section.part3]]
+title = "ADJUSTING, CLEANING, AND PROTECTION"
+items = [
+  "Adjust operating sashes and hardware for smooth operation and weathertight closure.",
+  "Clean exposed surfaces immediately after installing, using cleaning materials recommended by manufacturer; do not use abrasive cleaners or solvents on vinyl.",
+  "Protect windows from damage and contaminating substances during remainder of construction period.",
+]
+
+[[section]]
+number = "08 54 13"
+title = "FIBERGLASS WINDOWS"
+when = ["windows_fiberglass"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Pultruded fiberglass windows: casement, awning, double-hung, sliding, and fixed types.",
+  "Window types: {window_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for sill pans and head flashings.",
+  ">Section 07 92 00 \"Joint Sealants\" for perimeter joint sealants.",
+  ">Section 08 80 00 \"Glazing\" for glass requirements.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of window, including construction details, material descriptions, dimensions, hardware, finishes, and operating instructions.",
+  "Shop Drawings: Include plans, elevations, sections, installation details, mulling configurations, and grille patterns.",
+  "Samples: For each exterior and interior color and finish.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440 and AAMA 305 for fiber-reinforced thermoset profiles, by a qualified testing agency.",
+  "NFRC Certification: NFRC-certified U-factor, SHGC, and VT for each window type.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace windows that fail in materials or workmanship within the following periods from date of Substantial Completion:",
+  ">Fiberglass Frames and Sashes: 20 years.",
+  ">Insulating Glass Units: 20 years against seal failure.",
+  ">Factory Finish: 10 years against cracking, peeling, and fading beyond 5 Hunter units.",
+  ">Hardware: 10 years.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Marvin (Elevate and Essential collections).",
+  ">Pella Corporation.",
+  ">Milgard Windows and Doors.",
+  ">Andersen Corporation.",
+]
+
+[[section.part2]]
+title = "WINDOW PERFORMANCE REQUIREMENTS"
+items = [
+  "Product Standard: Comply with AAMA/WDMA/CSA 101/I.S.2/A440 for definitions and minimum standards of performance, materials, components, accessories, and fabrication.",
+  "Performance Class and Grade: [LC-PG50] [CW-PG50], and not less than design wind pressure indicated.",
+  "Thermal Transmittance: NFRC 100 whole-window U-factor not more than 0.28 Btu/sq. ft. x h x deg F, or as required by the energy code, whichever is lower.",
+  "Solar Heat-Gain Coefficient: NFRC 200 whole-window SHGC not more than 0.25, or as required by the energy code.",
+  "Air Infiltration: Not more than 0.30 cfm/sq. ft. at 1.57 lbf/sq. ft. when tested according to ASTM E283.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, comply with ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "FIBERGLASS WINDOWS"
+items = [
+  "Frames and Sashes: Pultruded fiberglass-reinforced thermoset polyester or urethane profiles complying with AAMA 305, with multichambered profiles; mechanically joined and sealed corners.",
+  ">Insulation: Foam-filled frame cavities where standard with manufacturer.",
+  ">Interior Finish: [Factory-painted fiberglass] [Wood veneer interior, species as selected].",
+  ">Exterior Finish: Factory-applied acrylic or urethane coating complying with AAMA 625, color as selected by Architect.",
+  "Glass: Insulating glass units with low-emissivity coating and argon fill, as specified in Section 08 80 00 \"Glazing\"; triple glazing where indicated.",
+  "Glazing System: Manufacturer's standard factory glazing with silicone bedding and snap-in glazing stops.",
+  "Hardware: Manufacturer's standard, corrosion resistant, finish as selected.",
+  ">Casement and Awning: Stainless-steel hinges, folding-handle roto operators, and multipoint locks.",
+  ">Hung Windows: Tilt-in sashes, concealed balances, and cam-action locks.",
+  "Weather Stripping: Manufacturer's standard foam-filled or bulb-type, replaceable.",
+  "Simulated Divided Lites: Where indicated, exterior and interior bars adhered to glass with spacer bar between panes.",
+  "Window Opening Control Devices: Complying with ASTM F2090 where required by the building code.",
+  "Insect Screens: Aluminum frames with charcoal fiberglass mesh, 18 by 16 mesh.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine rough openings for size, squareness, plumbness, and presence and correct lapping of water-resistive barrier and flashing.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Comply with manufacturer's written instructions and with ASTM E2112 for installing windows.",
+  "Install sill pan flashing sloped to exterior before setting windows. Set windows plumb, level, square, and true to line; shim at sill and at hardware locations; anchor with fins or installation clips as recommended by manufacturer.",
+  "Integrate flashing with water-resistive barrier in shingle fashion.",
+  "Install low-expansion foam sealant at interior perimeter and exterior sealant as specified in Section 07 92 00 \"Joint Sealants\".",
+]
+
+[[section.part3]]
+title = "ADJUSTING, CLEANING, AND PROTECTION"
+items = [
+  "Adjust operating sashes and hardware for smooth operation and weathertight closure.",
+  "Clean exposed surfaces immediately after installing. Touch up minor finish damage with manufacturer's touchup coating; replace components that cannot be satisfactorily repaired.",
+  "Protect windows from damage and contaminating substances during remainder of construction period.",
+]
+
+[[section]]
+number = "08 62 00"
+title = "UNIT SKYLIGHTS"
+when = ["optional"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Fixed and venting unit skylights, curb-mounted and deck-mounted.",
+  ">Tubular daylighting devices where indicated.",
+  "Related Requirements:",
+  ">Section 06 10 00 \"Rough Carpentry\" for wood curbs and blocking.",
+  ">Section 07 62 00 \"Sheet Metal Flashing and Trim\" for flashing not furnished with skylights.",
+  ">Division 07 roofing Sections for integration with roofing.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of unit skylight, including construction details, material descriptions, dimensions, flashing kits, and finishes.",
+  "Shop Drawings: Include plans, elevations, sections, curb details, flashing, and attachment to roof structure.",
+  "Samples: For each exposed finish.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Test Reports: Showing compliance with AAMA/WDMA/CSA 101/I.S.2/A440 for skylights, by a qualified testing agency.",
+  "NFRC Certification: NFRC-certified U-factor, SHGC, and VT for each skylight type.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Warranty: Manufacturer agrees to repair or replace skylights that fail in materials or workmanship, including leaks and insulating glass seal failure, within 10 years from date of Substantial Completion; installation warranty against leaks, 10 years when installed with manufacturer's flashing kit.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">VELUX America LLC.",
+  ">Wasco Skylights.",
+  ">Solatube International, Inc. (tubular daylighting devices).",
+  ">Andersen Corporation.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "Product Standard: Comply with AAMA/WDMA/CSA 101/I.S.2/A440 for skylights, performance grade not less than PG50 positive and negative, and not less than design loads indicated, including snow load.",
+  "Thermal Performance: NFRC 100 U-factor not more than 0.50 Btu/sq. ft. x h x deg F and NFRC 200 SHGC not more than 0.30, or as required by the energy code.",
+  "Fire Performance: Where skylights are in roof assemblies with fire-classification ratings, comply with building code requirements for skylights.",
+  "Fall Protection: Where skylights are within reach of rooftop access, provide screens or glazing tested to comply with OSHA 29 CFR 1910.29 fall-protection requirements.",
+]
+
+[[section.part2]]
+title = "UNIT SKYLIGHTS"
+items = [
+  "Frame: Wood with exterior aluminum cladding, or aluminum or PVC as standard with manufacturer; condensation gutter with weeps.",
+  "Glazing: Insulating glass unit with tempered exterior pane and laminated interior pane, low-emissivity coating, and argon fill, complying with building code requirements for sloped glazing.",
+  "Mounting: [Deck-mounted with integral curb] [Curb-mounted on site-built wood curb, 6 inches minimum above roof surface].",
+  "Flashing: Manufacturer's step or pan flashing kit designed for roofing type indicated, with self-adhered underlayment collar.",
+  "Venting Units: Where indicated, [manual crank] [electric] [solar-powered] operators with rain sensor, and insect screen.",
+  "Accessories: Where indicated, interior blinds or shades by skylight manufacturer.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine roof openings, curbs, and framing for size, squareness, and structural adequacy, and verify that roof underlayment is in place.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Install skylights according to manufacturer's written instructions, level and square, anchored to curb or deck.",
+  "Install flashing kit and integrate with roofing and underlayment in shingle fashion to produce weathertight installation.",
+  "Isolate aluminum from dissimilar materials and from treated wood.",
+  "Install interior finish, drywall returns, and accessories as indicated.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Test venting units for proper operation.",
+  "Clean exposed surfaces, remove labels, and protect skylights from damage during remainder of construction period.",
+]
+
+[[section]]
+number = "08 71 00"
+title = "DOOR HARDWARE"
+when = ["doors"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes:",
+  ">Mechanical door hardware for swinging doors, sliding doors, and folding doors.",
+  ">Cylinders for door hardware specified in other Sections.",
+  ">Electrified door hardware where indicated, including power supplies.",
+  "Door types: {door_types}, as scheduled on Drawings.",
+  "Related Requirements:",
+  ">Section 08 11 13 \"Hollow Metal Doors and Frames\" for hardware preparation and reinforcement.",
+  ">Section 08 14 16 \"Flush Wood Doors\" for factory machining of doors.",
+  ">Section 08 41 13 \"Aluminum-Framed Entrances and Storefronts\" for entrance door hardware furnished with storefront.",
+  ">Division 26 Sections for electrical connections to electrified hardware.",
+  ">Division 28 Sections for access control and security systems.",
+]
+
+[[section.part1]]
+title = "COORDINATION"
+items = [
+  "Floor-Recessed Door Hardware: Coordinate layout and installation with floor construction; cast anchoring inserts into concrete.",
+  "Templates: Distribute door hardware templates for doors, frames, and other work specified to be factory prepared for installation of door hardware.",
+  "Electrified Hardware: Coordinate electrical requirements with Division 26 and access control with Division 28; furnish riser and point-to-point wiring diagrams.",
+  "Keying Conference: Conduct conference at Project site with Owner, Architect, Installer, and supplier to establish keying requirements, key control system, and key quantities.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including installation details, material descriptions, dimensions, operating characteristics, and finishes.",
+  "Door Hardware Schedule: Prepared by or under the supervision of the Architectural Hardware Consultant, detailing fabrication and assembly of door hardware, and procedures and diagrams. Coordinate with the final door schedule.",
+  ">Format: Use the same scheduling sequence and format and the same door numbers as in the Contract Documents, in vertical format according to DHI's \"Sequence and Format for the Hardware Schedule\".",
+  ">Content: Include type, style, function, size, label, hand, manufacturer, model number, and finish of each item, and the location of each item.",
+  "Keying Schedule: Prepared by or under the supervision of the Architectural Hardware Consultant, detailing Owner's final keying instructions.",
+  "Samples: For each exposed product in each finish specified, where requested by Architect.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Qualification Data: For Installer and Architectural Hardware Consultant.",
+  "Product Certificates: For electrified door hardware, certifying compliance with UL 294 and with NFPA 70.",
+  "Evaluation Reports: For fire-rated door hardware, showing listing and labeling for use on fire-rated doors.",
+]
+
+[[section.part1]]
+title = "CLOSEOUT SUBMITTALS"
+items = [
+  "Maintenance Data: For each type of door hardware, including adjustment and parts lists.",
+  "Schedules: Final door hardware and keying schedules, as installed.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Installer Qualifications: Supplier of products and an employer of workers trained and approved by product manufacturers, with an Architectural Hardware Consultant available during the course of the Work.",
+  "Architectural Hardware Consultant Qualifications: A person experienced in providing consulting services for door hardware installations comparable in material, design, and extent to that indicated for this Project, and certified by DHI as an AHC or DHC.",
+  "Fire-Rated Door Assemblies: Provide door hardware for assemblies complying with NFPA 80, listed and labeled by a qualified testing agency for fire-protection ratings indicated, based on testing at positive pressure according to UL 10C.",
+  "Means of Egress Doors: Comply with NFPA 101 and the International Building Code for latches, locks, and exit devices on doors in the means of egress.",
+  "Accessibility Requirements: For door hardware on doors in an accessible route, comply with ICC A117.1 and the ADA Standards for Accessible Design.",
+  ">Provide operating devices that do not require tight grasping, pinching, or twisting of the wrist, and that operate with a force of not more than 5 lbf.",
+  ">Mount operable parts between 34 and 48 inches above finished floor.",
+  ">Adjust door closer sweep periods so that, from an open position of 90 degrees, the door will take at least 5 seconds to move to a position of 12 degrees from the latch.",
+  ">Thresholds: Not more than 1/2 inch high; bevel raised thresholds with a slope of not more than 1:2.",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Inventory door hardware on receipt and provide secure lock-up for door hardware delivered to Project site.",
+  "Tag each item or package separately with identification coordinated with the final door hardware schedule, and include installation instructions, templates, and necessary fasteners with each item or package.",
+  "Deliver keys and permanent cores to Owner by registered mail or overnight package service.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Special Warranty: Manufacturer agrees to repair or replace components of door hardware that fail in materials or workmanship within the following periods from date of Substantial Completion:",
+  ">Manual Closers: 10 years.",
+  ">Exit Devices: Three years.",
+  ">Locksets and Latchsets: Three years for commercial grade; limited lifetime mechanical for residential grade.",
+  ">Electromechanical Door Hardware: Two years.",
+  ">Other Items: One year.",
+]
+
+[[section.part2]]
+title = "SCHEDULED DOOR HARDWARE"
+items = [
+  "Provide door hardware for each door as scheduled in the hardware sets in Part 3 to comply with requirements in this Section.",
+  ">Door Hardware Sets: Provide quantity, item, size, finish or color indicated, and named manufacturer's products.",
+  "Designations: Requirements for design, grade, function, finish, quantity, size, and other distinctive qualities of each type of door hardware are indicated in the Door Hardware Sets article. Products are identified by using door hardware designations as follows:",
+  ">References to BHMA Designations: Provide products complying with these designations and requirements for description, quality, and function.",
+]
+
+[[section.part2]]
+title = "HINGES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Hager Companies.",
+  ">Ives; Allegion plc.",
+  ">McKinney; ASSA ABLOY.",
+  ">Stanley Commercial Hardware; dormakaba.",
+  "Butts and Hinges: BHMA A156.1, full-mortise, five-knuckle, ball-bearing type at commercial doors; plain-bearing at residential interior doors.",
+  ">Size: 4-1/2 by 4-1/2 inches for 1-3/4-inch doors up to 36 inches wide; 5 by 4-1/2 inches heavy weight for doors over 36 inches wide; 3-1/2 by 3-1/2 inches for 1-3/8-inch residential doors.",
+  ">Quantity: Three hinges for doors up to 90 inches high; one additional hinge for each additional 30 inches.",
+  ">Exterior and Out-Swinging Doors: Stainless-steel or brass base metal with nonremovable pins.",
+  "Continuous Hinges: BHMA A156.26, Grade 1, geared aluminum, full height, at storefront and high-frequency doors where scheduled.",
+  "Electric Power Transfer Hinges: BHMA A156.1 with concealed wires, at doors with electrified locking hardware.",
+]
+
+[[section.part2]]
+title = "LOCKS AND LATCHES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Schlage; Allegion plc.",
+  ">Corbin Russwin; ASSA ABLOY.",
+  ">Sargent; ASSA ABLOY.",
+  ">Best Access Systems; dormakaba.",
+  "Mortise Locks: BHMA A156.13, Operational Grade 1, with lever trim, stainless-steel latchbolt with 3/4-inch throw, and 1-inch deadbolt where scheduled.",
+  "Cylindrical Locks: BHMA A156.2, Series 4000, Grade 1 for commercial doors and Grade 2 for residential doors, with 1/2-inch latchbolt throw (3/4 inch at fire-rated pairs).",
+  "Auxiliary Deadbolts: BHMA A156.36, Grade 1 for commercial and Grade 2 for residential exterior doors, 1-inch throw.",
+  "Lever Design: Solid cast or forged levers with return to door, [manufacturer's standard design] [design as selected by Architect].",
+  "Backset: 2-3/4 inches unless otherwise indicated; 2-3/8 inches at residential interior doors.",
+  "Strikes: Manufacturer's standard strike with strike box for each latchbolt or lock bolt, with curved lip extended to protect frame, and dust-proof strikes at floor and head bolts.",
+]
+
+[[section.part2]]
+title = "EXIT DEVICES"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Von Duprin; Allegion plc.",
+  ">Sargent; ASSA ABLOY.",
+  ">Precision Hardware; ASSA ABLOY.",
+  ">Falcon; dormakaba.",
+  "Exit Devices and Auxiliary Items: BHMA A156.3, Grade 1, touchpad (push-pad) type, listed according to UL 305 for panic hardware and UL 10C for fire exit hardware where used on fire-rated doors.",
+  "Dogging: Hex-key dogging at non-fire-rated doors; cylinder dogging where scheduled.",
+  "Trim: Lever trim matching lockset design, function as scheduled.",
+]
+
+[[section.part2]]
+title = "CYLINDERS AND KEYING"
+items = [
+  "Cylinders: BHMA A156.5, Grade 1, manufacturer's standard tumbler type, constructed from brass or bronze, with interchangeable cores where scheduled.",
+  ">Number of Pins: Six.",
+  ">Construction Keying: Provide construction cores or construction master keying; replace or reset at Substantial Completion.",
+  "Keying System: Factory registered, complying with guidelines in BHMA A156.28, incorporating decisions made in keying conference.",
+  ">Master Key System: Change keys and a master key operate cylinders; grand master key where directed.",
+  ">Keys: Nickel silver, stamped with key-control number and DO NOT DUPLICATE notation.",
+  ">Quantities: Three change keys per cylinder; five master keys; two construction keys per set.",
+  "Residential Keying: Keyed alike exterior locksets and deadbolts at each dwelling unit unless otherwise directed.",
+  "Key Control System: Provide key cabinet with hooks for 150 percent of number of locks, and key-control software, where indicated.",
+]
+
+[[section.part2]]
+title = "CLOSERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">LCN; Allegion plc.",
+  ">Norton Rixson; ASSA ABLOY.",
+  ">Sargent; ASSA ABLOY.",
+  ">dormakaba USA Inc.",
+  "Surface Closers: BHMA A156.4, Grade 1, rack-and-pinion hydraulic type with adjustable sweep and latch speeds, adjustable backcheck, and full-rack-and-pinion cast iron or aluminum body; parallel-arm mounting at out-swinging doors.",
+  "Size: Adjustable from size 1 through 6; adjust to provide opening force of not more than 5 lbf at interior doors, and as required by the authority having jurisdiction at exterior and fire doors.",
+  "Accessories: Drop plates, brackets, and adapters as required for arms and details.",
+]
+
+[[section.part2]]
+title = "PROTECTIVE TRIM, STOPS, AND SILENCERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Ives; Allegion plc.",
+  ">Rockwood Manufacturing; ASSA ABLOY.",
+  ">Trimco.",
+  "Protection Plates: BHMA A156.6, 0.050-inch-thick stainless steel, beveled on three sides; kick plates 10 inches high, 2 inches less than door width on push side, 1 inch less on pull side.",
+  "Push Plates and Pulls: BHMA A156.6, stainless steel; push plates 4 by 16 inches; pulls 1-inch diameter, 10 inches on center.",
+  "Door Stops: BHMA A156.16, wall-mounted concave stops where wall is available; floor stops where not; overhead stops where scheduled.",
+  "Silencers: BHMA A156.16, gray rubber, three per single-door frame and two per pair frame, except at weather-stripped or gasketed frames.",
+]
+
+[[section.part2]]
+title = "THRESHOLDS, WEATHER STRIPPING, AND GASKETING"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">National Guard Products, Inc.",
+  ">Pemko; ASSA ABLOY.",
+  ">Zero International; Allegion plc.",
+  "Thresholds: BHMA A156.21, extruded aluminum, mill finish or as scheduled, width to suit frame depth, maximum 1/2 inch high with beveled edges.",
+  "Weather Stripping: BHMA A156.22, replaceable silicone or neoprene gasketing in aluminum retainer at head and jambs of exterior doors; door sweeps and automatic door bottoms as scheduled.",
+  "Smoke Gasketing: BHMA A156.22, UL listed for smoke-control assemblies according to UL 1784, at doors indicated as smoke rated.",
+  "Sound Seals: Adjustable gasketing and automatic door bottoms as required to achieve STC rating indicated.",
+]
+
+[[section.part2]]
+title = "RESIDENTIAL DOOR HARDWARE"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Schlage; Allegion plc.",
+  ">Kwikset; ASSA ABLOY.",
+  ">Emtek Products; ASSA ABLOY.",
+  ">Baldwin Hardware; ASSA ABLOY.",
+  "Residential Locksets and Latchsets: BHMA A156.2, Grade 2 minimum, tubular or cylindrical, lever or knob design as selected by Architect.",
+  "Entry Handlesets: Grade 1 or 2 deadbolt with grip handle and interior lever, keyed alike to dwelling unit.",
+  "Bifold and Bypass Hardware: BHMA A156.14, top-hung track and hardware sized for door weight.",
+  "Door Stops: Wall-mounted or hinge-pin stops.",
+]
+
+[[section.part2]]
+title = "FINISHES"
+items = [
+  "Provide finishes complying with BHMA A156.18 as indicated in door hardware sets.",
+  ">Hinges: BHMA 630 (satin stainless steel) at exterior; BHMA 652 (satin chromium plated) at interior.",
+  ">Locks, Exit Devices, and Trim: BHMA 626 (satin chromium plated over nickel) or 630.",
+  ">Closers: BHMA 689 (aluminum painted).",
+  ">Residential Hardware: As selected by Architect from manufacturer's standard finishes.",
+  "Appearance of Finished Hardware: Match items to the manufacturer's standard finish for the latest and most complete line of hardware products, and match finish of adjacent items as closely as practical.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine doors and frames, with Installer present, for compliance with requirements for installation tolerances, labeled fire-rated door assembly construction, wall and floor construction, and other conditions affecting performance.",
+  "Examine roughing-in for electrical power systems to verify actual locations of wiring connections before electrified door hardware installation.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Steel Doors and Frames: For surface-applied door hardware, drill and tap doors and frames according to SDI A250.6.",
+  "Wood Doors: Comply with DHI-WDHS-3 for mounting heights and locations.",
+]
+
+[[section.part3]]
+title = "INSTALLATION"
+items = [
+  "Mounting Heights: Mount door hardware units at heights indicated as follows unless otherwise indicated or required to comply with governing regulations:",
+  ">Standard Steel Doors and Frames: SDI A250.8 and DHI's \"Recommended Locations for Architectural Hardware for Standard Steel Doors and Frames\".",
+  ">Custom Steel Doors and Frames: HMMA 831.",
+  ">Wood Doors: DHI-WDHS-3.",
+  "Install each door hardware item to comply with manufacturer's written instructions. Where cutting and fitting are required to install door hardware onto or into surfaces that are later to be painted or finished in another way, coordinate removal, storage, and reinstallation of surface protective trim units with finishing work.",
+  ">Set units level, plumb, and true to line and location. Adjust and reinforce attachment substrates as necessary for proper installation and operation.",
+  ">Drill and countersink units that are not factory prepared for anchorage fasteners. Space fasteners and anchors according to industry standards.",
+  "Fire-Rated Doors: Install door hardware on fire-rated doors according to NFPA 80, using fasteners listed for the assembly.",
+  "Hinges: Install types and in quantities indicated in door hardware schedule, but not fewer than the number recommended by manufacturer for application indicated or one hinge for every 30 inches of door height, whichever is more stringent.",
+  "Lock Cylinders: Install construction cores to secure building and areas during construction period. Replace construction cores with permanent cores as directed by Owner.",
+  "Thresholds: Set thresholds for exterior and acoustical doors in full bed of sealant complying with requirements in Section 07 92 00 \"Joint Sealants\".",
+  "Stops: Provide floor stops for doors unless wall or other type stops are indicated. Do not mount floor stops where they will impede traffic.",
+  "Perimeter Gasketing: Apply to head and jamb, forming seal between door and frame.",
+  "Door Bottoms: Apply to bottom of door, forming seal with threshold when door is closed.",
+]
+
+[[section.part3]]
+title = "FIELD QUALITY CONTROL"
+items = [
+  "Independent Architectural Hardware Consultant: Owner may engage a qualified independent Architectural Hardware Consultant to perform inspections and to prepare inspection reports.",
+  "Fire Door Inspection: Inspect fire-rated and egress door assemblies according to NFPA 80 and NFPA 101 after installation, and provide written record of inspection by a qualified person.",
+]
+
+[[section.part3]]
+title = "ADJUSTING"
+items = [
+  "Initial Adjustment: Adjust and check each operating item of door hardware and each door to ensure proper operation or function of every unit. Replace units that cannot be adjusted to operate as intended.",
+  ">Spring Hinges: Adjust to achieve positive latching when door is allowed to close freely from an open position of 30 degrees.",
+  ">Door Closers: Adjust sweep period to comply with accessibility requirements and requirements of authorities having jurisdiction.",
+  ">Electric Strikes: Adjust horizontal and vertical alignment of keeper to properly engage lock bolt.",
+  "Occupancy Adjustment: Approximately three months after date of Substantial Completion, Installer shall examine and readjust, including adjusting operating forces, each item of door hardware as necessary to ensure function of doors, door hardware, and electrified door hardware.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Clean adjacent surfaces soiled by door hardware installation.",
+  "Clean operating items as necessary to restore proper function and finish.",
+  "Provide final protection and maintain conditions that ensure that door hardware is without damage or deterioration at time of Substantial Completion.",
+]
+
+[[section.part3]]
+title = "DOOR HARDWARE SETS"
+items = [
+  "General: The following sets are typical and shall be coordinated with the door schedule on Drawings. Final assignment of hardware sets to door numbers is by the Architectural Hardware Consultant's schedule. Finishes as specified above unless noted.",
+  "Hardware Set 01 - Exterior Entry (Residential):",
+  ">Hinges: Three, 4 by 4 inches, ball bearing, stainless steel, nonremovable pin.",
+  ">Handleset: Grip handle with interior lever, entry function, Grade 2.",
+  ">Deadbolt: Single cylinder, BHMA A156.36, Grade 2, 1-inch throw, keyed alike.",
+  ">Threshold: Aluminum saddle, sealed in sealant, 1/2 inch high maximum.",
+  ">Weather Stripping and Sweep: By door manufacturer or as specified.",
+  ">Door Stop: Wall-mounted.",
+  "Hardware Set 02 - Passage:",
+  ">Hinges: Three, BHMA A156.1.",
+  ">Latchset: BHMA A156.2, passage function (F75), lever trim.",
+  ">Door Stop: Wall-mounted or floor-mounted.",
+  ">Silencers: Three.",
+  "Hardware Set 03 - Privacy (Bedroom and Bath):",
+  ">Hinges: Three, BHMA A156.1.",
+  ">Lockset: BHMA A156.2, privacy function (F76), with emergency release on outside.",
+  ">Door Stop: Wall-mounted or hinge-pin.",
+  ">Silencers: Three.",
+  "Hardware Set 04 - Closet:",
+  ">Hinges: Three, BHMA A156.1, at swinging doors; or bifold or bypass track hardware as scheduled.",
+  ">Latchset: Passage function, or dummy trim with roller or ball catch where indicated.",
+  ">Door Stop: Wall-mounted.",
+  "Hardware Set 05 - Exterior Entry (Commercial):",
+  ">Hinges: Continuous geared aluminum hinge, BHMA A156.26, Grade 1.",
+  ">Exit Device: BHMA A156.3, Grade 1, rim type, with lever trim, night latch function, and removable-core cylinder.",
+  ">Closer: BHMA A156.4, Grade 1, parallel arm with cush stop.",
+  ">Kick Plate: 10 inches high, stainless steel.",
+  ">Threshold, Weather Stripping, and Door Sweep: As specified.",
+  ">Electrified Option: Electric latch retraction and card reader where indicated, coordinated with Division 28.",
+  "Hardware Set 06 - Storeroom:",
+  ">Hinges: Three, 4-1/2 by 4-1/2 inches, ball bearing.",
+  ">Lockset: BHMA A156.13, Grade 1, mortise, storeroom function (F07), outside lever always locked, inside lever always free.",
+  ">Closer: Where required by fire rating or as scheduled.",
+  ">Door Stop: Wall-mounted or floor-mounted.",
+  ">Silencers: Three, or smoke gasketing at rated doors.",
+  "Hardware Set 07 - Office:",
+  ">Hinges: Three, 4-1/2 by 4-1/2 inches, ball bearing.",
+  ">Lockset: BHMA A156.13, Grade 1, mortise, office/entry function (F04), push-button or turn-button locking.",
+  ">Door Stop: Wall-mounted.",
+  ">Silencers: Three.",
+  "Hardware Set 08 - Single-Occupant Restroom:",
+  ">Hinges: Three, 4-1/2 by 4-1/2 inches, ball bearing.",
+  ">Lockset: BHMA A156.13, Grade 1, mortise, privacy function with occupancy indicator (F22 with indicator), emergency release on outside.",
+  ">Closer: BHMA A156.4, Grade 1, regular arm, adjusted for accessible opening force.",
+  ">Kick Plate: 10 inches high, stainless steel, both sides.",
+  ">Wall Stop and Silencers: As specified.",
+  "Hardware Set 09 - Multi-Occupant Restroom:",
+  ">Hinges: Three, 4-1/2 by 4-1/2 inches, ball bearing.",
+  ">Push Plate: Stainless steel, 4 by 16 inches.",
+  ">Pull: Stainless steel, 1-inch diameter, 10 inches on center.",
+  ">Closer: BHMA A156.4, Grade 1, with hold-open disabled.",
+  ">Kick Plate and Mop Plate: Stainless steel.",
+  ">Wall Stop: Wall-mounted.",
+]
+
+[[section]]
+number = "08 80 00"
+title = "GLAZING"
+when = ["windows"]
+kind = "three-part"
+
+[[section.part1]]
+title = "SUMMARY"
+items = [
+  "Section Includes: Glass and glazing for the following products and applications, including those specified in other Sections where glazing requirements are specified by reference to this Section:",
+  ">Windows.",
+  ">Doors, including vision lites and sidelites.",
+  ">Storefront framing and entrances.",
+  ">Interior borrowed lites and glazed partitions.",
+  ">Skylights, where not factory glazed.",
+  "Window types: {window_types}, as indicated on Drawings.",
+  "Related Requirements:",
+  ">Section 07 92 00 \"Joint Sealants\" for sealants not used in glazing.",
+  ">Section 08 41 13 \"Aluminum-Framed Entrances and Storefronts\" for storefront framing.",
+  ">Division 08 window Sections for factory-glazed window units.",
+]
+
+[[section.part1]]
+title = "DEFINITIONS"
+items = [
+  "Glass Manufacturers: Firms that produce primary glass, fabricated glass, or both, as defined in referenced glazing publications.",
+  "Glass Thicknesses: Indicated by thickness designations in millimeters according to ASTM C1036.",
+  "Interspace: Space between lites of an insulating glass unit.",
+  "Surfaces: Numbered from exterior to interior; surface 1 is the exterior face of the outboard lite.",
+]
+
+[[section.part1]]
+title = "ACTION SUBMITTALS"
+items = [
+  "Product Data: For each type of product, including performance data (U-factor, SHGC, VT, and reflectance) for each glass type.",
+  "Glass Samples: For each type of tinted, coated, and patterned glass, 12 inches square.",
+  "Glazing Accessory Samples: For gaskets, sealants, and colored spacers, in 12-inch lengths.",
+  "Glazing Schedule: List glass types and thicknesses for each size opening and location. Use same designations indicated on Drawings.",
+  "Delegated-Design Submittal: For glass indicated to comply with performance requirements, including analysis data signed and sealed by the qualified professional engineer responsible for their preparation.",
+]
+
+[[section.part1]]
+title = "INFORMATIONAL SUBMITTALS"
+items = [
+  "Product Certificates: For glass.",
+  "Product Test Reports: For coated glass and insulating glass, by a qualified testing agency.",
+  "Preconstruction Adhesion and Compatibility Test Report: For glazing sealants, from sealant manufacturer.",
+  "Sample Warranties: For special warranties.",
+]
+
+[[section.part1]]
+title = "QUALITY ASSURANCE"
+items = [
+  "Manufacturer Qualifications for Insulating Glass Units with Sputter-Coated, Low-E Coatings: A qualified insulating glass manufacturer who is approved and certified by coated-glass manufacturer.",
+  "Installer Qualifications: A qualified installer who employs glass installers for this Project who are certified under the North American Contractor Certification Program (NACC) for Architectural Glass and Metal (AGMT) Technicians, or who have equivalent experience.",
+  "Insulating Glass Certification: Certified by IGCC or IGMA as complying with ASTM E2190.",
+  "Safety Glazing Labeling: Where safety glazing is indicated, permanently mark glazing with certification label of the Safety Glazing Certification Council (SGCC) or another certification agency acceptable to authorities having jurisdiction.",
+  "Glazing Publications: Comply with published recommendations of glass product manufacturers and organizations below unless more stringent requirements are indicated:",
+  ">GANA Publications: \"Glazing Manual\" and \"Laminated Glazing Reference Manual\".",
+  ">IGMA Publication for Insulating Glass: IGMA TM-3000, \"North American Glazing Guidelines for Sealed Insulating Glass Units for Commercial and Residential Use\".",
+]
+
+[[section.part1]]
+title = "DELIVERY, STORAGE, AND HANDLING"
+items = [
+  "Protect glazing materials according to manufacturer's written instructions. Prevent damage to glass and glazing materials from condensation, temperature changes, direct exposure to sun, and other causes.",
+  "Comply with insulating glass manufacturer's written instructions for venting and sealing units to avoid hermetic seal ruptures due to altitude change.",
+]
+
+[[section.part1]]
+title = "FIELD CONDITIONS"
+items = [
+  "Environmental Limitations: Do not proceed with glazing when ambient and substrate temperature conditions are outside limits permitted by glazing material manufacturers and when glazing channel substrates are wet from rain, frost, condensation, or other causes.",
+  ">Do not install liquid glazing sealants when ambient and substrate temperatures are outside limits permitted by sealant manufacturer or are below 40 deg F.",
+]
+
+[[section.part1]]
+title = "WARRANTY"
+items = [
+  "Manufacturer's Special Warranty for Coated-Glass Products: Manufacturer agrees to replace coated-glass units that deteriorate within 10 years from date of Substantial Completion.",
+  "Manufacturer's Special Warranty on Laminated Glass: Manufacturer agrees to replace laminated-glass units that deteriorate, including edge separation and delamination materially obstructing vision, within five years from date of Substantial Completion.",
+  "Manufacturer's Special Warranty on Insulating Glass: Manufacturer agrees to replace insulating glass units that deteriorate, including failure of hermetic seal and resulting intrusion of dirt or moisture on interior surfaces, within 10 years from date of Substantial Completion.",
+]
+
+[[section.part2]]
+title = "MANUFACTURERS"
+items = [
+  "Manufacturers: Subject to compliance with requirements, provide products by one of the following:",
+  ">Guardian Glass.",
+  ">Vitro Architectural Glass.",
+  ">AGC Glass North America.",
+  ">Pilkington North America; NSG Group.",
+  "Source Limitations for Glass: Obtain each type of coated, tinted, and laminated glass from single source from single manufacturer for each product and installation method.",
+]
+
+[[section.part2]]
+title = "PERFORMANCE REQUIREMENTS"
+items = [
+  "General: Installed glazing systems shall withstand normal thermal movement and wind and impact loads, where applicable, without failure, including loss or glass breakage attributable to defective manufacture, fabrication, or installation; failure of sealants or gaskets to remain watertight and airtight; deterioration of glazing materials; or other defects in construction.",
+  "Delegated Design: Engage a qualified professional engineer to design glazing.",
+  "Structural Performance: Glazing shall withstand the design wind pressures indicated, based on ASTM E1300, with a probability of breakage not greater than 8 lites per 1000 for vertical glazing and 1 lite per 1000 for sloped glazing.",
+  ">Maximum Lateral Deflection: For glass supported on four sides, limit center deflection at design wind pressure to not more than 1/50 times the short-side length or 1 inch, whichever is less.",
+  "Safety Glazing: Where safety glazing is indicated or required by the building code, including in hazardous locations, provide glazing that complies with CPSC 16 CFR 1201, Category II, or ANSI Z97.1 as permitted by the building code.",
+  "Thermal and Optical Performance Properties: Provide glass with performance properties specified, as indicated in manufacturer's published test data, based on procedures indicated below:",
+  ">U-Factors: Center-of-glazing values, according to NFRC 100 and based on LBL's WINDOW computer program, expressed as Btu/sq. ft. x h x deg F.",
+  ">Solar Heat-Gain Coefficient and Visible Transmittance: Center-of-glazing values, according to NFRC 200 and based on LBL's WINDOW computer program.",
+  "Windborne-Debris Impact Resistance: Where required by the building code, provide laminated glazing tested to comply with ASTM E1886 and ASTM E1996.",
+]
+
+[[section.part2]]
+title = "GLASS PRODUCTS"
+items = [
+  "Annealed Float Glass: ASTM C1036, Type I (transparent flat glass), Quality-Q3; of class indicated.",
+  "Fully Tempered Float Glass: ASTM C1048, Kind FT (fully tempered), Condition A (uncoated) unless otherwise indicated, Type I, Class 1 (clear) or Class 2 (tinted) as indicated, Quality-Q3.",
+  ">Fabrication Process: By horizontal (roller-hearth) process with roll-wave distortion parallel to bottom edge of glass as installed unless otherwise indicated.",
+  "Heat-Strengthened Float Glass: ASTM C1048, Kind HS (heat strengthened), Type I, Quality-Q3; at locations where required for thermal stress.",
+  "Laminated Glass: ASTM C1172, with two plies of float glass and polyvinyl butyral interlayer, minimum 0.030 inch thick; complying with testing requirements in CPSC 16 CFR 1201 for Category II materials.",
+  "Low-Emissivity Coated Glass: Float glass with pyrolytic or sputtered metallic-oxide coating complying with ASTM C1376, coating on surface indicated.",
+  "Fire-Protection-Rated Glazing: Where required at fire-rated doors and sidelites, provide ceramic or specialty glazing listed for the fire-protection rating indicated, tested according to NFPA 257 or UL 9, and marked according to the building code; meeting impact-safety requirements of CPSC 16 CFR 1201.",
+]
+
+[[section.part2]]
+title = "INSULATING GLASS UNITS"
+items = [
+  "Insulating Glass Units: Factory-assembled units consisting of sealed lites of glass separated by a dehydrated interspace, qualified according to ASTM E2190.",
+  ">Sealing System: Dual seal, with primary seal of polyisobutylene and secondary seal of silicone or polysulfide.",
+  ">Spacer: Warm-edge spacer of stainless steel or thermoplastic, black finish.",
+  ">Desiccant: Molecular sieve or silica gel, or a blend of both.",
+  ">Interspace Content: Argon, minimum 90 percent fill.",
+  ">Overall Unit Thickness: 1 inch for commercial units, 3/4 inch or manufacturer's standard for residential units.",
+  ">Heat-Strengthen or Temper: As required by structural analysis, thermal stress analysis, and safety glazing requirements.",
+]
+
+[[section.part2]]
+title = "GLAZING SEALANTS, TAPES, AND ACCESSORIES"
+items = [
+  "Glazing Sealants: Compatible with one another and with other materials they contact, including glass products, seals of insulating glass units, and glazing channel substrates, under conditions of service and application, as demonstrated by sealant manufacturer based on testing and field experience.",
+  ">Neutral-Curing Silicone Glazing Sealant: ASTM C920, Type S, Grade NS, Class 50, Use NT.",
+  "Glazing Tapes: Back-bedding mastic glazing tape, preformed, butyl-based, 100 percent solids elastomeric tape, complying with ASTM C1281 and AAMA 800.",
+  "Glazing Gaskets: Dense compression gaskets of EPDM or silicone complying with ASTM C864 or ASTM C1115.",
+  "Setting Blocks: Elastomeric material with a Shore, Type A durometer hardness of 85, plus or minus 5, sized according to GANA recommendations.",
+  "Spacers: Elastomeric blocks or continuous extrusions of hardness required by glass manufacturer to maintain glass lites in place for installation indicated.",
+  "Edge Blocks: Elastomeric material of hardness needed to limit glass lateral movement (side walking).",
+]
+
+[[section.part2]]
+title = "FABRICATION OF GLAZING UNITS"
+items = [
+  "Fabricate glazing units in sizes required to fit openings indicated for Project, with edge and face clearances, edge and surface conditions, and bite complying with written instructions of product manufacturer and referenced glazing publications, to comply with system performance requirements.",
+  "Clean-cut or flat-grind vertical edges of butt-glazed monolithic lites to produce square edges with slight chamfers at junctions of edges and faces.",
+  "Grind smooth and polish exposed glass edges and corners.",
+]
+
+[[section.part3]]
+title = "EXAMINATION"
+items = [
+  "Examine framing, glazing channels, and stops, with Installer present, for compliance with the following:",
+  ">Manufacturing and installation tolerances, including those for size, squareness, and offsets at corners.",
+  ">Presence and functioning of weep systems.",
+  ">Minimum required face and edge clearances.",
+  ">Effective sealing between joints of glass-framing members.",
+  "Proceed with installation only after unsatisfactory conditions have been corrected.",
+]
+
+[[section.part3]]
+title = "PREPARATION"
+items = [
+  "Clean glazing channels and other framing members receiving glass immediately before glazing. Remove coatings not firmly bonded to substrates.",
+  "Examine glazing units to locate exterior and interior surfaces. Label or mark units as needed so that exterior and interior surfaces are readily identifiable. Do not use materials that leave visible marks in the completed Work.",
+]
+
+[[section.part3]]
+title = "GLAZING, GENERAL"
+items = [
+  "Comply with combined written instructions of manufacturers of glass, sealants, gaskets, and other glazing materials, unless more stringent requirements are indicated, including those in referenced glazing publications.",
+  "Protect glass edges from damage during handling and installation. Remove damaged glass from Project site and legally dispose of off Project site. Damaged glass includes glass with edge damage or other imperfections that, when installed, could weaken glass, impair performance, or impair appearance.",
+  "Apply primers to joint surfaces where recommended by sealant manufacturer.",
+  "Install setting blocks in sill rabbets, sized and located to comply with referenced glazing publications. Set blocks in thin course of compatible sealant suitable for heel bead.",
+  "Do not exceed edge pressures stipulated by glass manufacturers for installing glass lites.",
+  "Provide spacers for glass lites where length plus width is larger than 50 inches.",
+  "Provide edge blocking where indicated or needed to prevent glass lites from moving sideways in glazing channel.",
+  "Set glass lites with proper orientation so that coatings face exterior or interior as specified.",
+  "Place safety glazing labels so they remain visible after installation, or etch permanently where labels would be removed.",
+]
+
+[[section.part3]]
+title = "TAPE AND GASKET GLAZING"
+items = [
+  "Tape Glazing: Position tapes on fixed stops so that, when compressed by glass, their exposed edges are flush with or protrude slightly above sightline of stops. Do not remove release paper from tape until right before each glazing unit is installed.",
+  "Gasket Glazing (Dry): Cut compression gaskets to lengths recommended by gasket manufacturer to fit openings exactly, with allowance for stretch during installation.",
+  ">Install gaskets so they protrude past face of glazing stops.",
+  ">Seal gasket joints with sealant recommended by gasket manufacturer.",
+]
+
+[[section.part3]]
+title = "SEALANT GLAZING (WET)"
+items = [
+  "Install continuous spacers, or spacers combined with cylindrical sealant backing, between glass lites and glazing stops to maintain glass face clearances and to prevent sealant from extruding into glass channel.",
+  "Install sealant to provide complete bond of sealant to glass and channel surfaces, with full contact, and tool exposed surfaces with slight bevel to shed water.",
+]
+
+[[section.part3]]
+title = "CLEANING AND PROTECTION"
+items = [
+  "Immediately after installation, remove nonpermanent labels and clean surfaces.",
+  "Protect glass from contact with contaminating substances resulting from construction operations. If, despite such protection, contaminating substances do come into contact with glass, remove substances immediately as recommended in writing by glass manufacturer.",
+  "Remove and replace glass that is damaged during construction period.",
+  "Wash glass on both exposed surfaces not more than four days before date scheduled for inspections that establish date of Substantial Completion. Wash glass as recommended in writing by glass manufacturer.",
+]
+
+[[section.part3]]
+title = "GLAZING SCHEDULE"
+items = [
+  "Glass Type GL-1 - Exterior Insulating Glass, Low-E:",
+  ">Overall Unit Thickness: 1 inch (3/4 inch at residential windows where standard).",
+  ">Outdoor Lite: 6 mm clear annealed, heat-strengthened, or fully tempered float glass as required.",
+  ">Interspace: 1/2 inch with argon fill and warm-edge spacer.",
+  ">Indoor Lite: 6 mm clear annealed, heat-strengthened, or fully tempered float glass as required.",
+  ">Low-E Coating: Sputtered on second surface.",
+  ">Winter Nighttime U-Factor: 0.29 maximum, center of glass.",
+  ">Solar Heat-Gain Coefficient: 0.27 maximum.",
+  ">Visible Light Transmittance: 60 percent minimum.",
+  ">Safety glazing required.",
+  "Glass Type GL-2 - Exterior Insulating Glass, Laminated Inboard (Skylights and Sloped Glazing):",
+  ">Outdoor Lite: 6 mm fully tempered float glass with low-E coating on second surface.",
+  ">Interspace: 1/2 inch with argon fill.",
+  ">Indoor Lite: Laminated glass, two plies of 3 mm heat-strengthened float glass with 0.030-inch PVB interlayer.",
+  "Glass Type GL-3 - Interior Tempered Glass:",
+  ">Thickness: 6 mm, clear fully tempered float glass, at interior doors, sidelites, and borrowed lites in hazardous locations.",
+  "Glass Type GL-4 - Fire-Protection-Rated Glazing:",
+  ">Listed ceramic glazing, 5 mm nominal, rated for the fire-protection rating of the door or opening, impact-safety rated to CPSC 16 CFR 1201, Category II.",
+  "Glass Type GL-5 - Obscure Tempered Glass:",
+  ">Thickness: 6 mm, fully tempered patterned or acid-etched glass, at bathroom windows and where indicated; within insulating glass units at exterior locations.",
+]

@@ -84,6 +84,8 @@ pub enum Category {
     Site,
     /// The project's drawing-set standards (ADR-047).
     Standards,
+    /// The project manual (ADR-085).
+    SpecBook,
     /// Annotation symbols (ADR-048).
     SpotElevation,
     NorthArrow,
@@ -167,6 +169,7 @@ impl Category {
             Category::ElevationMarkerType => "ElevationMarkerType",
             Category::Site => "Site",
             Category::Standards => "Standards",
+            Category::SpecBook => "SpecBook",
             Category::SpotElevation => "SpotElevation",
             Category::NorthArrow => "NorthArrow",
             Category::GraphicScale => "GraphicScale",
@@ -1322,6 +1325,8 @@ pub enum ElementData {
     },
     /// The project's drawing-set standards (ADR-047): one, made on the first edit.
     Standards(crate::standards::Standards),
+    /// The project manual (ADR-085): one, made when it's first generated.
+    SpecBook(Box<crate::specs::SpecBook>),
     /// A spot elevation (ADR-048): the height of the model at `at` (view coordinates), its
     /// symbol and text at `leader` (the same point: no leader). Follows the model.
     SpotElevation {
@@ -1581,6 +1586,7 @@ impl ElementData {
             ElementData::ElevationMarkerType { .. } => Category::ElevationMarkerType,
             ElementData::Site { .. } => Category::Site,
             ElementData::Standards(_) => Category::Standards,
+            ElementData::SpecBook(_) => Category::SpecBook,
             ElementData::SpotElevation { .. } => Category::SpotElevation,
             ElementData::NorthArrow { .. } => Category::NorthArrow,
             ElementData::GraphicScale { .. } => Category::GraphicScale,
@@ -1762,6 +1768,7 @@ impl ElementData {
             | ElementData::ElevationMarkerType { name, .. } => name.clone(),
             ElementData::RoomSeparator { .. } => "Room Separator".into(),
             ElementData::Standards(_) => "Drawing Set Standards".into(),
+            ElementData::SpecBook(_) => "Project Manual".into(),
             ElementData::Site { address, .. } => {
                 if address.is_empty() {
                     "Site".into()
