@@ -22,6 +22,7 @@ mod planting_cmds;
 mod project_cmds;
 mod qa_cmds;
 mod render_cmds;
+mod samples;
 mod session;
 mod sheetset_cmds;
 mod shortcut_cmds;

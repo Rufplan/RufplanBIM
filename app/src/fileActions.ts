@@ -58,9 +58,9 @@ export const newProject = async () => {
   return apply(() => ipc.projectNew(), true);
 };
 
-export const sampleProject = async () => {
+export const sampleProject = async (kind: "modern" | "basic" = "modern") => {
   if (!(await confirmDiscard())) return false;
-  return apply(() => ipc.projectSample(), true);
+  return apply(() => ipc.projectSample(kind), true);
 };
 
 export const openProject = async () => {

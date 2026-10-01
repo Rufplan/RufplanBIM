@@ -109,8 +109,19 @@ function Welcome() {
           <button className="btn-outline light" onClick={() => void importIfc()}>
             Open IFC (Revit)
           </button>
-          <button className="btn-ghost light" onClick={() => void sampleProject()}>
-            Sample Project
+          <button
+            className="btn-ghost light"
+            onClick={() => void sampleProject("modern")}
+            title="A furnished two-story modern house with landscape, lighting and a drawing set"
+          >
+            Sample: Modern House
+          </button>
+          <button
+            className="btn-ghost light"
+            onClick={() => void sampleProject("basic")}
+            title="A simple two-story box house with its drawing set"
+          >
+            Sample: Basic House
           </button>
         </div>
       </div>

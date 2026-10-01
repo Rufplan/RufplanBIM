@@ -3418,3 +3418,40 @@ coursing along a line".
   `.rfproj` opened from before saves in place under its own name (nothing is renamed
   behind the user's back); Save As converts it.
 - The top bar shows the file's real name and extension.
+
+## ADR-093 Openings measured from the wall face; the Modern House sample — Accepted (2026-09-30)
+- **The owner's asks:** (1) a door's offset should be measured from the finish face of the
+  wall, not its centerline; (2) a furnished modern sample house with many walls, built from
+  everything the model has.
+- **Offset from Wall Face:** `studio_core::hosting::end_faces(doc, host)` finds where the
+  finish faces of the walls a host meets sit along it, from its start and from its end (0 at
+  a free end). Doors and windows show **Offset from Wall Face**: from the face of the wall at
+  the host's start to the near edge of the opening. Typing it moves the opening the same way.
+  The temporary dimensions in plan run face to opening edge at both ends, and typing them
+  works the same way (`set_opening_gap`). The stored `offset` (center from the location line
+  start) is unchanged, so files and Edit Model plans are unaffected.
+- **Modern House** (`app/src-tauri/src/samples.rs`, `build_modern`):
+  - Level 1: a white stucco base with a 2-car garage wing, mudroom and powder room, an open
+    living, dining and kitchen behind a 12' folding glass wall and a sliding door, a stair
+    hall and foyer (room separators), and a guest bedroom, bath and office wing.
+  - Level 2: a cedar-clad volume that cantilevers 4' over the south terrace on two steel
+    columns, with a primary suite (bedroom, bath, walk-in closet), an open gallery around the
+    stair with guardrails and a 10' glass wall, two bedrooms, a bath and a laundry.
+  - Flat membrane roofs: the upper volume on a Roof level, and the low wings stopping at the
+    upper volume's face. New wall types: Stucco on 2x6, Cedar Rainscreen on 2x6.
+  - Black-framed windows, a walnut 42" x 96" entry door, an overhead garage door, pocket
+    doors.
+  - Furniture and equipment in every room, kitchen casework modelled in place with a sink
+    and an island holding the cooktop.
+  - About 60 lighting fixtures: downlights, pendants, sconces, a fan, soffit lights,
+    bollards and spots.
+  - Site: lawn ground, limestone terrace, a driveway, a front walk and a gravel strip, trees
+    and grasses.
+  - Materials: polished concrete and white oak floors, a TPO roof, matte black columns.
+  - The drawing set: dimensions, two sections, a kitchen interior elevation marker, and
+    four ARCH D sheets (cover, plans, elevations, sections).
+- **Opening it:** the start screen offers **Sample: Modern House** and **Sample: Basic
+  House** (`project_sample(kind)`); `--sample` opens the Modern House, `--sample-basic` the
+  box house (kept for its tests and sample PDF).
+- Dev aid: `SAMPLE_SVG=dir cargo test -p rufplan-studio write_modern_svgs -- --ignored`
+  draws its plans, elevations and sections as SVG.

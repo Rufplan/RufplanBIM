@@ -150,18 +150,29 @@ pub fn project_new(window: WebviewWindow, state: State<'_, SessionState>) -> Sta
     edit(&window, &state, |s| s.new_project(APP_VERSION))
 }
 
+/// A sample project: the furnished Modern House (ADR-093), or `"basic"` for the simple
+/// box house with its drawing set.
 #[tauri::command]
-pub fn project_sample(window: WebviewWindow, state: State<'_, SessionState>) -> StateResult {
-    edit(&window, &state, |s| s.new_sample(APP_VERSION))
+pub fn project_sample(
+    kind: Option<String>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit(&window, &state, |s| match kind.as_deref() {
+        Some("basic") => s.new_sample(APP_VERSION),
+        _ => s.new_modern_sample(APP_VERSION),
+    })
 }
 
-/// Opens a project passed on the command line (file association), or the sample with
-/// `--sample`.
+/// Opens a project passed on the command line (file association), the Modern House with
+/// `--sample`, or the basic sample with `--sample-basic`.
 pub fn open_from_args(session: &mut Session) {
     let Some(arg) = std::env::args().nth(1) else {
         return;
     };
     let result = if arg == "--sample" {
+        session.new_modern_sample(APP_VERSION)
+    } else if arg == "--sample-basic" {
         session.new_sample(APP_VERSION)
     } else {
         session.open(&PathBuf::from(&arg))

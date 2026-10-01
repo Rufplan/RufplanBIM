@@ -101,7 +101,8 @@ Read these before writing code:
   ceiling boundaries, Revit level and elevation symbols, interior elevations (ADR-021);
   elevation mark families, editing in 3D, 3D ground grid (ADR-022); Site tab with Google Maps,
   Regrid parcels and USGS 3DEP topography (ADR-023; keys in the OS credential store only). The "Prototype slice" section of docs/ROADMAP.md lists the shortcuts still open.
-- Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the sample house.
+- Try it: `cd app && npm run tauri dev -- -- -- --sample` opens the furnished Modern House (ADR-093;
+  `--sample-basic` for the box house).
 - M3 met; M4 met pending the owner's scale-ruler print check.
 - M5 built (ADR-016): IFC4 export (validated by IfcOpenShell in CI), Rufplan sign-in,
   project link and Publish into Rufplan's existing deliverables (no schema change).
@@ -169,6 +170,8 @@ Read these before writing code:
   features tags, generate/update/front, 6 styles, layout blocks, pdf with bundled OFL fonts, docx + zip,
   coord cross-refs, edit ops for Claude); app spec_cmds; components/Specs.tsx (tab after Sheets, page
   editor, EDIT SPECS pill). Samples: `cargo test --release -p studio-specs write_sample_books -- --ignored`.
+- Wall-face offsets and the Modern House (ADR-093): studio-core `hosting::end_faces` (Offset from Wall
+  Face, temp dims face to opening); app `samples.rs` `build_modern`, `project_sample(kind)`.
 - Door flips (ADR-091): studio-core `edit::OpeningFlip`/`next_swing`/`flip_openings`; studio-views
   `opening_preview_turned`, `handles::FlipControl` (Handles.flips); app `flip_opening`; store `openingTurns`;
   canvas/render.ts `drawFlipControls`. Spacebar cycles four swings while placing or selected.

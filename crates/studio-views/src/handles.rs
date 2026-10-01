@@ -432,7 +432,10 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                 let Some(w) = model.walls.iter().find(|w| w.id == o.host) else {
                     continue;
                 };
-                let len = w.start.dist(w.end);
+                let len = match doc.data(o.host) {
+                    Ok(ElementData::Wall { start, end, .. }) => start.dist(*end),
+                    _ => w.start.dist(w.end),
+                };
                 // Revit's flip controls on the swing (or exterior) side: up/down arrows
                 // across the wall at the opening's middle, and for doors left/right
                 // arrows along it beside them.
@@ -456,16 +459,15 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                 // On the side the door doesn't swing to, clear of the wall.
                 let side = if o.flip_facing { 1.0 } else { -1.0 };
                 let off = side * (w.thickness / 2.0 + scale * 5.0);
+                // From the finish faces of the walls the host meets (ADR-093), or its own
+                // free ends.
+                let (f0, f1) = studio_core::hosting::end_faces(doc, o.host);
+                let face0 = o.wall_start.add(o.dir.scale(f0));
+                let face1 = o.wall_start.add(o.dir.scale(len - f1));
                 out.dims
-                    .extend(temp_dim(scale, *id, "gap_start", w.start, o.at(o.t0), off));
-                out.dims.extend(temp_dim(
-                    scale,
-                    *id,
-                    "gap_end",
-                    o.at(o.t1),
-                    w.start.add(o.dir.scale(len)),
-                    off,
-                ));
+                    .extend(temp_dim(scale, *id, "gap_start", face0, o.at(o.t0), off));
+                out.dims
+                    .extend(temp_dim(scale, *id, "gap_end", o.at(o.t1), face1, off));
             }
             d @ ElementData::Dimension { offset, .. } => {
                 if let Some((pts, u)) = studio_core::dimension::string_points(doc, d) {

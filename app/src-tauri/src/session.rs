@@ -489,11 +489,25 @@ impl Session {
     /// A new, unsaved sample project: a two-storey 40' × 30' house with grids, interior
     /// walls, floors and ceilings, for trying the tools.
     pub fn new_sample(&mut self, app_version: &str) -> anyhow::Result<()> {
+        self.new_built(app_version, "Sample House", build_sample)
+    }
+
+    /// The furnished Modern House sample (ADR-093).
+    pub fn new_modern_sample(&mut self, app_version: &str) -> anyhow::Result<()> {
+        self.new_built(app_version, "Modern House", crate::samples::build_modern)
+    }
+
+    fn new_built(
+        &mut self,
+        app_version: &str,
+        name: &str,
+        build: fn(&mut Document) -> anyhow::Result<()>,
+    ) -> anyhow::Result<()> {
         self.new_project(app_version)?;
         let p = self.project.as_mut().context("no project is open")?;
-        build_sample(&mut p.doc)?;
+        build(&mut p.doc)?;
         if let Some(info) = ops::project_info(&p.doc) {
-            ops::set_property(&mut p.doc, info, "name", "Sample House", 0)?;
+            ops::set_property(&mut p.doc, info, "name", name, 0)?;
         }
         p.doc.clear_history();
         p.doc.mark_saved();

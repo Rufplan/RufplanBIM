@@ -174,7 +174,7 @@ export const ipc = {
   appState: (): S => invoke("app_state"),
   projectNew: (): S => invoke("project_new"),
   /** A new unsaved project with a sample two-storey house. */
-  projectSample: (): S => invoke("project_sample"),
+  projectSample: (kind: "modern" | "basic" = "modern"): S => invoke("project_sample", { kind }),
   projectOpen: (path: string): S => invoke("project_open", { path }),
   /** Omit `path` to save to the project's current location. */
   projectSave: (path?: string): S => invoke("project_save", { path: path ?? null }),

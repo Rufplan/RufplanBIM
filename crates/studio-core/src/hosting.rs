@@ -139,3 +139,70 @@ pub fn validate_openings<'a>(
     }
     Ok(())
 }
+
+/// How far the finish faces of the walls a wall runs into sit from its start and from its
+/// end, along it (mm): where an opening's distance to the wall it meets is measured from
+/// (Revit's temporary dimensions to the face). 0 at a free end.
+pub fn end_faces(doc: &crate::Document, host: ElementId) -> (f64, f64) {
+    use studio_geom::Pt;
+    let wall_of = |id: ElementId| -> Option<(Pt, Pt, f64, ElementId)> {
+        match doc.data(id).ok()? {
+            ElementData::Wall {
+                type_id,
+                start,
+                end,
+                base_level,
+                ..
+            } => match doc.data(*type_id).ok()? {
+                ElementData::WallType { thickness, .. } => {
+                    Some((*start, *end, *thickness, *base_level))
+                }
+                _ => None,
+            },
+            _ => None,
+        }
+    };
+    let Some((s, e, _, level)) = wall_of(host) else {
+        return (0.0, 0.0);
+    };
+    let len = s.dist(e);
+    if len < 1.0 {
+        return (0.0, 0.0);
+    }
+    // From point `p` heading `d`: the farthest exit from a wall whose band holds `p`.
+    let face = |p: Pt, d: Pt| -> f64 {
+        let mut best: f64 = 0.0;
+        for w in doc.of(crate::Category::Wall) {
+            if w.id == host {
+                continue;
+            }
+            let Some((a, b, t, l)) = wall_of(w.id) else {
+                continue;
+            };
+            let wl = a.dist(b);
+            if l != level || wl < 1.0 {
+                continue;
+            }
+            let u = b.sub(a).scale(1.0 / wl);
+            let n = u.perp();
+            let along = p.sub(a).dot(u);
+            let d0 = p.sub(a).dot(n);
+            let k = d.dot(n);
+            // Inside the other wall's band (its ends wrapped by half its thickness), and
+            // crossing it rather than running along it.
+            if d0.abs() > t / 2.0 + 1.0 || along < -t / 2.0 - 1.0 || along > wl + t / 2.0 + 1.0 {
+                continue;
+            }
+            if k.abs() < 0.2 {
+                continue;
+            }
+            let exit = (k.signum() * t / 2.0 - d0) / k;
+            if exit > 0.0 && exit < len / 2.0 {
+                best = best.max(exit);
+            }
+        }
+        best
+    };
+    let d = e.sub(s).scale(1.0 / len);
+    (face(s, d), face(e, d.scale(-1.0)))
+}

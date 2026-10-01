@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Door and window offsets from the wall finish face; the furnished Modern House sample (ADR-093).
 - Door flips as in Revit: spacebar cycles all four swings (placing and selected), clickable
   hand and facing flip arrows (ADR-091).
 - FFE tab: Furniture (105) and Equipment (69) libraries for residential, multifamily and

@@ -970,10 +970,12 @@ pub fn set_opening_gap(
         _ => return Err(CoreError::NotFound(fit.host)),
     };
     let width = fit.t1 - fit.t0;
+    // From the finish face of the wall the host meets at that end (ADR-093).
+    let (f0, f1) = crate::hosting::end_faces(doc, fit.host);
     let offset = if from_start {
-        gap + width / 2.0
+        f0 + gap + width / 2.0
     } else {
-        s.dist(e) - gap - width / 2.0
+        s.dist(e) - f1 - gap - width / 2.0
     };
     doc.transact("Move opening", |tx| set_offset(tx, id, |_| offset))
 }
@@ -1477,11 +1479,35 @@ mod tests {
 
     #[test]
     fn opening_gaps_and_crop_handles() {
-        let (mut doc, _, door) = building();
+        let (mut doc, walls, door) = building();
+        // The south wall starts at the east wall's centerline; its inner face is half the
+        // east wall's thickness in (ADR-093). The far end meets the west wall the same way.
+        let half = match doc.data(walls[0]).unwrap() {
+            ElementData::Wall { type_id, .. } => match doc.data(*type_id).unwrap() {
+                ElementData::WallType { thickness, .. } => thickness / 2.0,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        };
+        let (f0, f1) = crate::hosting::end_faces(&doc, walls[3]);
+        assert!((f0 - half).abs() < EPS && (f1 - half).abs() < EPS);
         set_opening_gap(&mut doc, door, true, 2.0 * MM_PER_FT).unwrap();
         match doc.data(door).unwrap() {
-            // 2' clear to the edge of a 36" door: center at 3'-6".
-            ElementData::Door { offset, .. } => assert!((offset - 3.5 * MM_PER_FT).abs() < EPS),
+            // 2' clear from the face to the edge of a 36" door: center 3'-6" past the face.
+            ElementData::Door { offset, .. } => {
+                assert!((offset - half - 3.5 * MM_PER_FT).abs() < EPS)
+            }
+            _ => unreachable!(),
+        }
+        // The property reads (and types) the same distance from the face.
+        let sheet = ops::properties(&doc, door).unwrap();
+        let p = sheet.properties.iter().find(|p| p.key == "offset").unwrap();
+        assert_eq!(p.label, "Offset from Wall Face");
+        ops::set_property(&mut doc, door, "offset", "4\"", 0).unwrap();
+        match doc.data(door).unwrap() {
+            ElementData::Door { offset, .. } => {
+                assert!((offset - half - 4.0 * 25.4 - 1.5 * MM_PER_FT).abs() < EPS)
+            }
             _ => unreachable!(),
         }
         let plan = doc

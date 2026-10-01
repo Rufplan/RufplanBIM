@@ -2261,9 +2261,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             props.push(ro("host", "Host", "Constraints", host_label(doc, *host)));
             props.push(len(
                 "offset",
-                "Offset from Wall Start",
+                "Offset from Wall Face",
                 "Constraints",
-                *offset,
+                offset_from_face(doc, &el.data, *host, *offset),
             ));
             props.push(choice(
                 "flip_hand",
@@ -2292,9 +2292,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             props.push(ro("host", "Host", "Constraints", host_label(doc, *host)));
             props.push(len(
                 "offset",
-                "Offset from Wall Start",
+                "Offset from Wall Face",
                 "Constraints",
-                *offset,
+                offset_from_face(doc, &el.data, *host, *offset),
             ));
             props.push(len("sill", "Sill Height", "Constraints", *sill));
             props.push(choice(
@@ -2675,6 +2675,14 @@ pub(crate) fn parse_id(v: &str) -> CoreResult<ElementId> {
 }
 
 /// Sets one property from the text the user typed or the option they picked.
+/// A door or window's Offset from Wall Face (ADR-093): from the finish face of the wall its
+/// host meets at its start to the near edge of the opening (Revit dimensions it this way).
+fn offset_from_face(doc: &Document, data: &ElementData, host: ElementId, offset: f64) -> f64 {
+    let get = |id: ElementId| doc.get(id).map(|e| &e.data);
+    let edge = crate::hosting::opening_fit(&get, data).map_or(offset, |f| f.t0);
+    edge - crate::hosting::end_faces(doc, host).0
+}
+
 pub fn set_property(
     doc: &mut Document,
     id: ElementId,
@@ -2683,6 +2691,10 @@ pub fn set_property(
     now_ms: i64,
 ) -> CoreResult<()> {
     let data = doc.data(id)?.clone();
+    if let (ElementData::Door { .. } | ElementData::Window { .. }, "offset") = (&data, key) {
+        // Typed from the finish face of the wall the host meets at its start (ADR-093).
+        return crate::edit::set_opening_gap(doc, id, true, parse_len(value)?);
+    }
     if let (ElementData::ProjectInfo { .. }, "current_stage") = (&data, key) {
         return set_current_stage(doc, parse_id(value)?, "", now_ms);
     }

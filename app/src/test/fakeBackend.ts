@@ -831,6 +831,8 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "project_new":
           return (fake.state = appState(null));
+        case "project_sample":
+          return (fake.state = appState(null));
         case "project_import_ifc":
           fake.state = appState(null);
           return {
