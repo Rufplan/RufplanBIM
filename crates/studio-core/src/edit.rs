@@ -774,6 +774,61 @@ pub fn split_wall(doc: &mut Document, wall: ElementId, at: Pt) -> CoreResult<Ele
     })
 }
 
+/// How a door or window flips: Revit's two flip controls, or the spacebar's cycle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[ts(export)]
+pub enum OpeningFlip {
+    /// The left/right arrows: the hinge to the other jamb.
+    Hand,
+    /// The up/down arrows: the swing (or exterior face) to the other side of the wall.
+    Facing,
+    /// The spacebar: a door steps through all four swings in turn (hinge left to right,
+    /// then in to out, and back); a window flips its facing.
+    Cycle,
+}
+
+/// The next of a door's four swings for the spacebar, as (flip_hand, flip_facing):
+/// (no, no) → (yes, no) → (yes, yes) → (no, yes) → (no, no). Facing mirrors across the
+/// wall and hand along it, so the swing turns around the opening.
+pub fn next_swing(flip_hand: bool, flip_facing: bool) -> (bool, bool) {
+    if flip_hand == flip_facing {
+        (!flip_hand, flip_facing)
+    } else {
+        (flip_hand, !flip_facing)
+    }
+}
+
+/// Flips doors and windows (one undo step). Windows have no hand: Hand leaves them be.
+pub fn flip_openings(doc: &mut Document, ids: &[ElementId], how: OpeningFlip) -> CoreResult<()> {
+    let name = match how {
+        OpeningFlip::Hand => "Flip hand",
+        OpeningFlip::Facing => "Flip facing",
+        OpeningFlip::Cycle => "Flip",
+    };
+    doc.transact(name, |tx| {
+        for id in ids {
+            tx.modify(*id, |d| match d {
+                ElementData::Door {
+                    flip_hand,
+                    flip_facing,
+                    ..
+                } => match how {
+                    OpeningFlip::Hand => *flip_hand = !*flip_hand,
+                    OpeningFlip::Facing => *flip_facing = !*flip_facing,
+                    OpeningFlip::Cycle => {
+                        (*flip_hand, *flip_facing) = next_swing(*flip_hand, *flip_facing)
+                    }
+                },
+                ElementData::Window { flip_facing, .. } if how != OpeningFlip::Hand => {
+                    *flip_facing = !*flip_facing
+                }
+                _ => {}
+            })?;
+        }
+        Ok(())
+    })
+}
+
 /// Flips walls end for end (their exterior face swaps sides) — the spacebar in Revit.
 /// Doors and windows stay exactly where they are, as do attached dimensions.
 pub fn flip_walls(doc: &mut Document, walls: &[ElementId]) -> CoreResult<()> {

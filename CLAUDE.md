@@ -169,6 +169,9 @@ Read these before writing code:
   features tags, generate/update/front, 6 styles, layout blocks, pdf with bundled OFL fonts, docx + zip,
   coord cross-refs, edit ops for Claude); app spec_cmds; components/Specs.tsx (tab after Sheets, page
   editor, EDIT SPECS pill). Samples: `cargo test --release -p studio-specs write_sample_books -- --ignored`.
+- Door flips (ADR-091): studio-core `edit::OpeningFlip`/`next_swing`/`flip_openings`; studio-views
+  `opening_preview_turned`, `handles::FlipControl` (Handles.flips); app `flip_opening`; store `openingTurns`;
+  canvas/render.ts `drawFlipControls`. Spacebar cycles four swings while placing or selected.
 - FFE tab (ADR-090): studio-core `ffe` (FfeClass/FfeKind/FfeSpec/FfePreset, 105 furniture + 69
   equipment presets by use, ElementData::FfeType/Ffe, create, envelope); studio-views `ffe` (parts,
   plan_symbols, meshes, thumb); IFC furniture/appliances; app ffe_cmds; components/FfePicker.tsx;

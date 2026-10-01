@@ -445,6 +445,9 @@ interface UiState {
   closeView: (id: ElementId) => void;
   select: (ids: ElementId[]) => void;
   setTool: (tool: Tool) => void;
+  /** Spacebar presses while placing a door or window: the swing turns (Revit's). */
+  openingTurns: number;
+  turnOpening: () => void;
   setToolType: (kind: keyof ToolTypes, id: ElementId) => void;
   setPrompt: (prompt: string) => void;
   /** Revit's status bar name for the element under the cursor, or Tab's candidate
@@ -713,9 +716,12 @@ export const useAppStore = create<UiState>((set, get) => ({
   select: (selection) => set({ selection: toGroups(get().app, selection) }),
   // Move, Copy, Rotate, Mirror and Array act on the current selection; other tools start
   // with nothing selected.
+  openingTurns: 0,
+  turnOpening: () => set((s) => ({ openingTurns: (s.openingTurns + 1) % 4 })),
   setTool: (tool) =>
     set({
       tool,
+      openingTurns: tool === get().tool ? get().openingTurns : 0,
       lastTool: tool === "select" || tool === "sketch" ? get().lastTool : tool,
       selection: tool === "select" || SELECTION_TOOLS.includes(tool) ? get().selection : [],
       // A tool (from a shortcut) needs the views, which the Standards tab hides.

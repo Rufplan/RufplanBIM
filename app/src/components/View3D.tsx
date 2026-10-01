@@ -1201,7 +1201,12 @@ export function View3D({ view }: { view: ViewInfo }) {
         const typeId = tool === "door" ? s.toolTypes.door : s.toolTypes.window;
         const pv =
           h?.category === "Wall" && typeId
-            ? await ipc.openingPreview3d(typeId, h.el, { x: h.point.x, y: h.point.y })
+            ? await ipc.openingPreview3d(
+                typeId,
+                h.el,
+                { x: h.point.x, y: h.point.y },
+                s.openingTurns,
+              )
             : null;
         clearGhost();
         if (pv) addGhostMesh(pv.positions, pv.preview.valid);
@@ -1289,13 +1294,24 @@ export function View3D({ view }: { view: ViewInfo }) {
           s.setError(`Click a wall to place the ${tool}.`);
           return;
         }
-        const pv = await ipc.openingPreview3d(typeId, h.el, { x: h.point.x, y: h.point.y });
+        const pv = await ipc.openingPreview3d(
+          typeId,
+          h.el,
+          { x: h.point.x, y: h.point.y },
+          s.openingTurns,
+        );
         if (!pv?.preview.valid) {
           s.setError("That spot overlaps another door or window in this wall.");
           return;
         }
         await apply(() =>
-          ipc.createOpening(typeId, pv.preview.host, pv.preview.offset, pv.preview.flipFacing),
+          ipc.createOpening(
+            typeId,
+            pv.preview.host,
+            pv.preview.offset,
+            pv.preview.flipFacing,
+            pv.preview.flipHand,
+          ),
         );
         clearGhost();
       } else if (tool === "wallOpening") {

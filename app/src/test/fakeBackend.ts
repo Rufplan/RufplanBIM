@@ -880,7 +880,23 @@ export function installFakeBackend(): FakeBackend {
             properties: [],
           };
         case "handles":
-          return { grips: [], dims: [] };
+          return { grips: [], dims: [], areas: [], flips: [] };
+        case "opening_preview": {
+          // The spacebar turns the swing (ADR-091): hinge, then facing.
+          const t = ((a.turns as number) ?? 0) % 4;
+          return {
+            host: "w1",
+            offset: 1000,
+            flipFacing: t >= 2,
+            flipHand: t === 1 || t === 2,
+            valid: true,
+            label: "",
+            items: [],
+          };
+        }
+        case "create_opening":
+        case "flip_opening":
+          return bump();
         case "create_camera":
           if (fake.state) {
             const eye = a.eye as { x: number; y: number };

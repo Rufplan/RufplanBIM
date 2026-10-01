@@ -3389,3 +3389,22 @@ coursing along a line".
   Equipment), then Sun, Artificial Lights and Render. `FfePicker` mirrors the lighting
   picker, with group and project-type filters. The options bar sets the rotation
   (Rotate 90°). Create Similar and Browse Types work for both.
+
+## ADR-091 Door flips like Revit: spacebar cycle and flip controls — Accepted (2026-09-30)
+- **The owner's ask:** doors flip in every direction with the spacebar, as in Revit, and
+  a selected door shows the flip arrows to click instead.
+- **studio-core `edit`:** `OpeningFlip` (Hand, Facing, Cycle), `next_swing` and
+  `flip_openings` (one undo step). The spacebar's Cycle steps a door through its four
+  swings: (hand, facing) no/no → yes/no → yes/yes → no/yes. Facing mirrors across the wall
+  and hand along it, so the swing turns around the opening. Windows flip their facing;
+  Hand leaves them alone.
+- **Placing:** `studio_views::opening_preview_turned` (and `opening_preview_3d` with
+  `turns`) applies the spacebar's turns after the swing the cursor's side gives. The store
+  keeps `openingTurns` until the tool changes. `create_opening` takes `flip_hand`, and the
+  new door is still one undo step.
+- **Selected:** `flip_selection` now cycles doors, flips windows and walls, all in one undo
+  step. `Handles.flips` holds Revit's controls on a single selected door or window in a
+  plan: up/down arrows across the wall on the swing side at the opening's middle, and for
+  doors left/right arrows beside them. `drawFlipControls` draws them at a fixed screen size;
+  clicking one calls `flip_opening`. The status bar names the control on hover. The
+  controls follow the swing when it flips.

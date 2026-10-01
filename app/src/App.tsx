@@ -221,8 +221,14 @@ export function App() {
         // With nothing in progress, Enter repeats the last command, as in Revit.
         if (ui.tool === "select") void runAction("repeat");
         else window.dispatchEvent(new Event("tool-finish"));
+      } else if (e.key === " " && (ui.tool === "door" || ui.tool === "window")) {
+        // Placing a door: the spacebar turns its swing through all four ways (Revit's).
+        e.preventDefault();
+        ui.turnOpening();
+        window.dispatchEvent(new Event("opening-turn"));
       } else if (e.key === " " && ui.tool === "select" && ui.selection.length > 0) {
-        // Spacebar flips the selected walls, doors and windows, as in Revit.
+        // Spacebar flips the selected walls and windows, and turns doors through their
+        // four swings, as in Revit.
         e.preventDefault();
         void apply(() => ipc.flipSelection(ui.selection));
       } else if (!ctrl && !e.altKey && startsTypedValue(e.key) && ui.app) {

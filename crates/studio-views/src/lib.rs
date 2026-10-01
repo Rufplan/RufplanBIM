@@ -2728,6 +2728,8 @@ pub struct OpeningPreview {
     /// Center distance from the host's start, mm.
     pub offset: f64,
     pub flip_facing: bool,
+    /// The spacebar's hand flip while placing a door.
+    pub flip_hand: bool,
     /// False when the opening would overlap another one in the wall.
     pub valid: bool,
     /// Distances from the opening's edges to the wall ends.
@@ -2749,6 +2751,7 @@ pub fn opening_preview_3d(
     type_id: ElementId,
     host: ElementId,
     p: Pt,
+    turns: u32,
 ) -> Option<OpeningPreview3d> {
     let ElementData::Wall { base_level, .. } = doc.data(host).ok()? else {
         return None;
@@ -2756,7 +2759,7 @@ pub fn opening_preview_3d(
     let plan = doc.of(Category::View).find(|e| {
         matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, callout_of: None, .. } if level == base_level)
     })?;
-    let pv = opening_preview(doc, plan.id, type_id, p, 50.0)?;
+    let pv = opening_preview_turned(doc, plan.id, type_id, p, 50.0, turns)?;
     if pv.host != host {
         return None;
     }
@@ -2793,6 +2796,20 @@ pub fn opening_preview(
     type_id: ElementId,
     p: Pt,
     tol: f64,
+) -> Option<OpeningPreview> {
+    opening_preview_turned(doc, view, type_id, p, tol, 0)
+}
+
+/// As [`opening_preview`], turned by the spacebar `turns` times while placing (Revit's):
+/// a door steps through its four swings ([`studio_core::edit::next_swing`]) from the one
+/// the cursor's side gives; a window flips its facing each press.
+pub fn opening_preview_turned(
+    doc: &Document,
+    view: ElementId,
+    type_id: ElementId,
+    p: Pt,
+    tol: f64,
+    turns: u32,
 ) -> Option<OpeningPreview> {
     // Elevations and sections (ADR-059): on the wall face under the cursor.
     if view_frame(doc, view).is_some() {
@@ -2839,7 +2856,17 @@ pub fn opening_preview(
         offset = (left + hw).clamp(hw, len - hw);
     }
     let dir = wall.dir();
-    let flip_facing = p.sub(wall.start).dot(dir.perp()) < 0.0;
+    let cursor_side = p.sub(wall.start).dot(dir.perp()) < 0.0;
+    // The spacebar's turns, from the swing the cursor's side gives.
+    let (mut flip_hand, mut flip_facing) = (false, false);
+    for _ in 0..turns % 4 {
+        if is_door {
+            (flip_hand, flip_facing) = studio_core::edit::next_swing(flip_hand, flip_facing);
+        } else {
+            flip_facing = !flip_facing;
+        }
+    }
+    let flip_facing = flip_facing != cursor_side;
     let valid = !model
         .openings
         .iter()
@@ -2869,7 +2896,7 @@ pub fn opening_preview(
         t1: offset + hw,
         z0: 0.0,
         z1: 0.0,
-        flip_hand: false,
+        flip_hand,
         flip_facing,
     };
     let mut b = Builder::new(f64::from(*scale));
@@ -2892,6 +2919,7 @@ pub fn opening_preview(
         host: wall.id,
         offset,
         flip_facing,
+        flip_hand,
         valid,
         label,
         items: b.items,
@@ -2973,6 +3001,7 @@ fn opening_preview_in_view(
         host: wall.id,
         offset,
         flip_facing,
+        flip_hand: false,
         valid,
         label: format!(
             "{}  ◂▸  {}",
@@ -4821,6 +4850,99 @@ mod tests {
     }
 
     #[test]
+    fn spacebar_turns_a_door_through_all_four_swings_and_flip_controls_show() {
+        use studio_core::edit::{flip_openings, OpeningFlip};
+        let (mut doc, _, d, w) = with_openings();
+        let l1 = doc.levels()[0].0;
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        // The leaf: from its hinge to its open tip.
+        let leaf = |doc: &Document| {
+            display_list(doc, v)
+                .unwrap()
+                .items
+                .iter()
+                .find_map(|i| match (&i.el, &i.prim) {
+                    (Some(id), Prim::Line { pts, .. }) if *id == d && pts.len() == 2 => {
+                        Some((pts[0][0], pts[1][1]))
+                    }
+                    _ => None,
+                })
+                .unwrap()
+        };
+        let (hinge0, tip0) = leaf(&doc);
+        let mut seen = vec![(true, tip0 > 0.0)];
+        for _ in 0..3 {
+            let depth = doc.undo_depth();
+            flip_openings(&mut doc, &[d], OpeningFlip::Cycle).unwrap();
+            assert_eq!(doc.undo_depth(), depth + 1, "each press is one undo step");
+            let (hinge, tip) = leaf(&doc);
+            seen.push(((hinge - hinge0).abs() < 1.0, tip > 0.0));
+        }
+        // Hinge moves, then the swing goes out, then the hinge comes back: all four.
+        assert_eq!(
+            seen,
+            vec![(true, true), (false, true), (false, false), (true, false)]
+        );
+        flip_openings(&mut doc, &[d], OpeningFlip::Cycle).unwrap();
+        assert_eq!(leaf(&doc), (hinge0, tip0));
+        // The controls: up/down across the wall on the swing side, left/right along it.
+        let h = handles::handles(&doc, v, &[d]);
+        assert_eq!(h.flips.len(), 2);
+        let facing = h
+            .flips
+            .iter()
+            .find(|f| f.flip == OpeningFlip::Facing)
+            .unwrap();
+        let hand = h
+            .flips
+            .iter()
+            .find(|f| f.flip == OpeningFlip::Hand)
+            .unwrap();
+        assert!(facing.at.y > 0.0 && facing.dir.y.abs() > 0.99);
+        assert!(hand.dir.x.abs() > 0.99 && (hand.at.y - facing.at.y).abs() < 1e-9);
+        flip_openings(&mut doc, &[d], OpeningFlip::Facing).unwrap();
+        let h = handles::handles(&doc, v, &[d]);
+        assert!(
+            h.flips.iter().all(|f| f.at.y < 0.0),
+            "they follow the swing"
+        );
+        // A window has the facing control only; Hand leaves it alone.
+        assert_eq!(handles::handles(&doc, v, &[w]).flips.len(), 1);
+        let before = doc.data(w).unwrap().clone();
+        flip_openings(&mut doc, &[w], OpeningFlip::Hand).unwrap();
+        assert_eq!(doc.data(w).unwrap(), &before);
+    }
+
+    #[test]
+    fn placing_a_door_the_spacebar_turns_the_preview() {
+        let (doc, _, _, _) = with_openings();
+        let l1 = doc.levels()[0].0;
+        let v = view(
+            &doc,
+            |k| matches!(k, ViewKind::FloorPlan { level } if *level == l1),
+        );
+        let dt = doc
+            .of(Category::DoorType)
+            .find(|e| e.data.name().starts_with("Single Flush 30"))
+            .unwrap()
+            .id;
+        let at = Pt::new(20.0 * MM_PER_FT, 300.0);
+        let turn = |n| {
+            let p = opening_preview_turned(&doc, v, dt, at, 200.0, n).unwrap();
+            (p.flip_hand, p.flip_facing)
+        };
+        // North of the wall: it swings in; then hinge, facing, hinge back, and round.
+        assert_eq!(turn(0), (false, false));
+        assert_eq!(turn(1), (true, false));
+        assert_eq!(turn(2), (true, true));
+        assert_eq!(turn(3), (false, true));
+        assert_eq!(turn(4), turn(0));
+    }
+
+    #[test]
     fn elevation_draws_openings_over_their_wall() {
         let (mut doc, _, d, w) = with_openings();
         let v = view(&doc, |k| {
@@ -6574,7 +6696,8 @@ mod tests {
             .unwrap()
             .id;
         // A hit on the south wall's outer face, 12' along.
-        let pv = opening_preview_3d(&doc, dt, south, Pt::new(12.0 * ft, -4.0 * MM_PER_IN)).unwrap();
+        let pv =
+            opening_preview_3d(&doc, dt, south, Pt::new(12.0 * ft, -4.0 * MM_PER_IN), 0).unwrap();
         assert!(pv.preview.valid && pv.preview.host == south);
         assert!(!pv.positions.is_empty());
         let zmax = pv

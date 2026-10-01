@@ -68,6 +68,7 @@ pub fn opening_preview_3d(
     type_id: ElementId,
     host: ElementId,
     p: Pt,
+    turns: Option<u32>,
     state: State<'_, SessionState>,
 ) -> Result<Option<studio_views::OpeningPreview3d>, CommandError> {
     let session = lock(&state)?;
@@ -76,6 +77,7 @@ pub fn opening_preview_3d(
         type_id,
         host,
         p,
+        turns.unwrap_or(0),
     ))
 }
 

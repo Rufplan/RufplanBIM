@@ -54,6 +54,19 @@ pub struct Handles {
     pub grips: Vec<Grip>,
     pub dims: Vec<TempDim>,
     pub areas: Vec<DragArea>,
+    /// Revit's flip controls on a selected door or window.
+    pub flips: Vec<FlipControl>,
+}
+
+/// A flip control: the double arrow drawn at `at` along `dir`; clicking it flips the
+/// opening's hand (left/right, along the wall) or facing (up/down, across it).
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct FlipControl {
+    pub id: ElementId,
+    pub flip: studio_core::edit::OpeningFlip,
+    pub at: Pt,
+    pub dir: Pt,
 }
 
 /// Where a dragged grid end snaps (ADR-060), as Revit's grid bubbles do: the end stays on
@@ -420,6 +433,26 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     continue;
                 };
                 let len = w.start.dist(w.end);
+                // Revit's flip controls on the swing (or exterior) side: up/down arrows
+                // across the wall at the opening's middle, and for doors left/right
+                // arrows along it beside them.
+                let across = o.dir.perp().scale(if o.flip_facing { -1.0 } else { 1.0 });
+                let mid = o.at((o.t0 + o.t1) / 2.0);
+                let base = mid.add(across.scale(w.thickness / 2.0 + scale * 7.0));
+                out.flips.push(FlipControl {
+                    id: *id,
+                    flip: studio_core::edit::OpeningFlip::Facing,
+                    at: base,
+                    dir: across,
+                });
+                if matches!(doc.data(*id), Ok(ElementData::Door { .. })) {
+                    out.flips.push(FlipControl {
+                        id: *id,
+                        flip: studio_core::edit::OpeningFlip::Hand,
+                        at: base.add(o.dir.scale(scale * 9.0)),
+                        dir: o.dir,
+                    });
+                }
                 // On the side the door doesn't swing to, clear of the wall.
                 let side = if o.flip_facing { 1.0 } else { -1.0 };
                 let off = side * (w.thickness / 2.0 + scale * 5.0);

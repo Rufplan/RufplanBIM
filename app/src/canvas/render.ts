@@ -352,6 +352,67 @@ export function drawGrips(
   ctx.restore();
 }
 
+/** How near (px) a click must be to a flip control's center. */
+export const FLIP_HIT = 11;
+
+/** Revit's flip controls: a blue double-headed arrow along each control's direction
+ * (left/right for a door's hand, up/down for its facing), a fixed size on screen. */
+export function drawFlipControls(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  flips: { at: Pt; dir: Pt }[],
+  hover: number | null,
+) {
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.lineJoin = "round";
+  flips.forEach((f, i) => {
+    const [cx, cy] = toScreen(cam, w, h, f.at.x, f.at.y);
+    const [tx, ty] = toScreen(cam, w, h, f.at.x + f.dir.x, f.at.y + f.dir.y);
+    const len = Math.hypot(tx - cx, ty - cy) || 1;
+    const ux = (tx - cx) / len;
+    const uy = (ty - cy) / len;
+    const [px, py] = [-uy, ux];
+    // Shaft and two heads, as one closed outline: 20 px long, heads 5 px wide.
+    const L = 10;
+    const head = 5;
+    const shaft = 1.6;
+    const pt = (a: number, b: number): [number, number] => [
+      cx + ux * a + px * b,
+      cy + uy * a + py * b,
+    ];
+    const outline = [
+      pt(L, 0),
+      pt(L - head, head),
+      pt(L - head, shaft),
+      pt(-L + head, shaft),
+      pt(-L + head, head),
+      pt(-L, 0),
+      pt(-L + head, -head),
+      pt(-L + head, -shaft),
+      pt(L - head, -shaft),
+      pt(L - head, -head),
+    ];
+    if (i === hover) {
+      ctx.fillStyle = "rgba(0, 120, 215, 0.14)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, FLIP_HIT, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    outline.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fillStyle = i === hover ? "#0a84ff" : "#1f6fd1";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1;
+    ctx.fill();
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
 /** Screen-space box of a temporary dimension's value, for drawing and clicking. */
 export function tempDimBox(
   ctx: CanvasRenderingContext2D,

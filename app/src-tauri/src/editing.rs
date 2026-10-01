@@ -3,7 +3,7 @@
 //! studio-views.
 
 use studio_core::edit::{self, Xform};
-use studio_core::{build, ops, params, Category, ElementData, ElementId, ParamKind, ParamScope};
+use studio_core::{build, params, Category, ElementData, ElementId, ParamKind, ParamScope};
 use studio_geom::Pt;
 use studio_views::{Handles, OffsetPreview, RefLine};
 use tauri::{State, WebviewWindow};
@@ -295,25 +295,46 @@ pub fn flip_selection(
             .copied()
             .filter(|id| doc.data(*id).is_ok_and(|d| d.category() == Category::Wall))
             .collect();
-        let openings: Vec<(ElementId, bool)> =
-            ids.iter()
-                .filter_map(|id| match doc.data(*id).ok()? {
-                    ElementData::Door { flip_facing, .. }
-                    | ElementData::Window { flip_facing, .. } => Some((*id, *flip_facing)),
-                    _ => None,
-                })
-                .collect();
+        let openings: Vec<ElementId> = ids
+            .iter()
+            .copied()
+            .filter(|id| {
+                matches!(
+                    doc.data(*id),
+                    Ok(ElementData::Door { .. } | ElementData::Window { .. })
+                )
+            })
+            .collect();
         if walls.is_empty() && openings.is_empty() {
             anyhow::bail!("select walls, doors or windows to flip");
         }
-        if !walls.is_empty() {
-            s.edit(|d| edit::flip_walls(d, &walls))?;
-        }
-        for (id, facing) in openings {
-            s.edit(|d| {
-                ops::set_property(d, id, "flip_facing", if facing { "no" } else { "yes" }, 0)
-            })?;
-        }
+        s.edit(|d| {
+            let mark = d.undo_depth();
+            if !walls.is_empty() {
+                edit::flip_walls(d, &walls)?;
+            }
+            // Doors turn through their four swings, windows flip their facing (Revit's).
+            if !openings.is_empty() {
+                edit::flip_openings(d, &openings, edit::OpeningFlip::Cycle)?;
+            }
+            d.merge_undo(mark, "Flip");
+            Ok(())
+        })?;
+        Ok(())
+    })
+}
+
+/// Revit's flip controls: the left/right arrows flip a door's hand, the up/down arrows
+/// its facing.
+#[tauri::command]
+pub fn flip_opening(
+    id: ElementId,
+    flip: edit::OpeningFlip,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        s.edit(|d| edit::flip_openings(d, &[id], flip))?;
         Ok(())
     })
 }

@@ -1,3 +1,4 @@
+import type { FlipControl } from "../bindings/FlipControl";
 import { siteImagery, type Imagery } from "../imagery";
 import { openPicker, paintElement, setDetailLevel } from "../actions";
 import { DetailLevelToggle } from "./DetailLevelToggle";
@@ -50,7 +51,9 @@ import type { PickCandidate } from "../bindings/PickCandidate";
 import {
   THEME,
   draw,
+  drawFlipControls,
   drawGrips,
+  FLIP_HIT,
   drawOverlay,
   drawPreview,
   drawRefLine,
@@ -226,6 +229,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   // Grips and temporary dimensions of the selection, and a grip being dragged.
   const handles = useRef<Handles | null>(null);
   const hoverGrip = useRef<number | null>(null);
+  const hoverFlip = useRef<number | null>(null);
+  /** Where the door or window preview was last asked for (the spacebar re-asks). */
+  const lastOpeningAt = useRef<{ p: Pt; tol: number } | null>(null);
   // Dimension tools (ADR-040): the references picked so far, those under the cursor (best
   // first) and which of them Tab has stepped to.
   const dimRefs = useRef<Reference[]>([]);
@@ -380,6 +386,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       if (s.tool === "select" && hd) {
         drawTempDims(ctx, cam.current, w, h, gripDrag.current ? [] : hd.dims);
         drawGrips(ctx, cam.current, w, h, hd.grips, hoverGrip.current);
+        drawFlipControls(ctx, cam.current, w, h, hd.flips ?? [], hoverFlip.current);
         const ad = areaDrag.current;
         const area = ad?.to ? (hd.areas ?? [])[ad.index] : undefined;
         if (ad?.to && area) {
@@ -927,6 +934,16 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     return null;
   };
 
+  /** The flip control under a screen point, if any. */
+  const flipAt = (sx: number, sy: number): FlipControl | null => {
+    if (!cam.current || useAppStore.getState().tool !== "select") return null;
+    for (const f of handles.current?.flips ?? []) {
+      const [fx, fy] = toScreen(cam.current, size.w, size.h, f.at.x, f.at.y);
+      if (Math.hypot(fx - sx, fy - sy) <= FLIP_HIT) return f;
+    }
+    return null;
+  };
+
   /** The temporary dimension whose value box is under a screen point, if any. */
   const tempDimAt = (sx: number, sy: number) => {
     const ctx = canvasRef.current?.getContext("2d");
@@ -1199,7 +1216,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         : null;
     } else {
       const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
-      const o = typeId ? await ipc.openingPreview(view.id, typeId, p, tol) : null;
+      lastOpeningAt.current = { p, tol };
+      const o = typeId ? await ipc.openingPreview(view.id, typeId, p, tol, s.openingTurns) : null;
       preview.current = o
         ? {
             items: o.items,
@@ -1211,6 +1229,17 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     redraw();
   });
+
+  // The spacebar turned the door being placed: preview it again where it is.
+  useEffect(() => {
+    const turn = () => {
+      const at = lastOpeningAt.current;
+      const t = useAppStore.getState().tool;
+      if (at && (t === "door" || t === "window")) void previewAt(at.p, at.tol);
+    };
+    window.addEventListener("opening-turn", turn);
+    return () => window.removeEventListener("opening-turn", turn);
+  }, [previewAt]);
 
   const finishSketch = useCallback(async () => {
     const s = useAppStore.getState();
@@ -1645,6 +1674,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     const raw = modelAt(sx, sy);
     const tol = 12 / cam.current.zoom;
     if (s.tool === "select") {
+      // Revit's flip controls on a selected door or window.
+      const fc = flipAt(sx, sy);
+      if (fc) {
+        await apply(() => ipc.flipOpening(fc.id, fc.flip));
+        return;
+      }
       const td = tempDimAt(sx, sy);
       if (td) {
         setEditor({
@@ -1693,9 +1728,13 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     if (s.tool === "door" || s.tool === "window") {
       const typeId = s.tool === "door" ? s.toolTypes.door : s.toolTypes.window;
-      const pv = typeId ? await ipc.openingPreview(view.id, typeId, raw, tol) : null;
+      const pv = typeId
+        ? await ipc.openingPreview(view.id, typeId, raw, tol, s.openingTurns)
+        : null;
       if (typeId && pv?.valid) {
-        await apply(() => ipc.createOpening(typeId, pv.host, pv.offset, pv.flipFacing));
+        await apply(() =>
+          ipc.createOpening(typeId, pv.host, pv.offset, pv.flipFacing, pv.flipHand),
+        );
       } else if (pv) {
         s.setError("That spot overlaps another door or window in this wall.");
       }
@@ -2379,7 +2418,22 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
               hoverGrip.current = g;
               redraw();
             }
-            hoverPick(p, 6 / cam.current.zoom);
+            const fc = flipAt(sx, sy);
+            const fi = fc ? (handles.current?.flips ?? []).indexOf(fc) : null;
+            if (fi !== hoverFlip.current) {
+              hoverFlip.current = fi;
+              useAppStore
+                .getState()
+                .setHoverLabel(
+                  fc
+                    ? fc.flip === "Hand"
+                      ? "Flip the instance hand (left/right)"
+                      : "Flip the instance facing"
+                    : "",
+                );
+              redraw();
+            }
+            if (!fc) hoverPick(p, 6 / cam.current.zoom);
           } else if (
             s.tool === "door" ||
             s.tool === "window" ||

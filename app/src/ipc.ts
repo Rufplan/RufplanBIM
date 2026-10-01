@@ -96,6 +96,7 @@ import type { DisplayList } from "./bindings/DisplayList";
 import type { ElementId } from "./bindings/ElementId";
 import type { Mesh } from "./bindings/Mesh";
 import type { OpeningPreview } from "./bindings/OpeningPreview";
+import type { OpeningFlip } from "./bindings/OpeningFlip";
 import type { RoomPreview } from "./bindings/RoomPreview";
 import type { Table } from "./bindings/Table";
 import type { DimensionPreview } from "./bindings/DimensionPreview";
@@ -246,10 +247,17 @@ export const ipc = {
   /** Moves elements by `delta` mm; joined walls stretch to follow. */
   moveElements: (ids: ElementId[], delta: Pt): S => invoke("move_elements", { ids, delta }),
   /** Where a door/window of `typeId` would go for the cursor at `point` (plan views). */
-  openingPreview: (view: ElementId, typeId: ElementId, point: Pt, tol: number) =>
-    invoke<OpeningPreview | null>("opening_preview", { view, typeId, point, tol }),
-  createOpening: (typeId: ElementId, host: ElementId, offset: number, flipFacing: boolean): S =>
-    invoke("create_opening", { typeId, host, offset, flipFacing }),
+  openingPreview: (view: ElementId, typeId: ElementId, point: Pt, tol: number, turns = 0) =>
+    invoke<OpeningPreview | null>("opening_preview", { view, typeId, point, tol, turns }),
+  createOpening: (
+    typeId: ElementId,
+    host: ElementId,
+    offset: number,
+    flipFacing: boolean,
+    flipHand = false,
+  ): S => invoke("create_opening", { typeId, host, offset, flipFacing, flipHand }),
+  /** Revit's flip controls: a door's hand (left/right) or facing (up/down). */
+  flipOpening: (id: ElementId, flip: OpeningFlip): S => invoke("flip_opening", { id, flip }),
   deleteElements: (ids: ElementId[]): S => invoke("delete_elements", { ids }),
   properties: (id: ElementId) => invoke<PropertySheet>("properties", { id }),
   setProperty: (id: ElementId, key: string, value: string): S =>
@@ -730,8 +738,8 @@ export const ipc = {
     save({ defaultPath: name, filters: [{ name: "PNG image", extensions: ["png"] }] }),
   /** The satellite image's bytes (JPEG). */
   siteImagery: (frame: ImageryFrame) => invoke<ArrayBuffer>("site_imagery", { frame }),
-  openingPreview3d: (typeId: ElementId, host: ElementId, p: Pt) =>
-    invoke<OpeningPreview3d | null>("opening_preview_3d", { typeId, host, p }),
+  openingPreview3d: (typeId: ElementId, host: ElementId, p: Pt, turns = 0) =>
+    invoke<OpeningPreview3d | null>("opening_preview_3d", { typeId, host, p, turns }),
   /** Location lines and stair shapes as [id, label] pairs. */
   drawingOptions: () => invoke<[[string, string][], [string, string][]]>("drawing_options"),
   addProjectParameter: (

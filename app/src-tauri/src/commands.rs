@@ -421,22 +421,25 @@ pub fn create_floor(
     })
 }
 
-/// Where a door or window of `type_id` would be placed for the cursor at `point`.
+/// Where a door or window of `type_id` would be placed for the cursor at `point`,
+/// turned by the spacebar `turns` times.
 #[tauri::command]
 pub fn opening_preview(
     view: ElementId,
     type_id: ElementId,
     point: Pt,
     tol: f64,
+    turns: Option<u32>,
     state: State<'_, SessionState>,
 ) -> CommandResult<Option<OpeningPreview>> {
     let session = lock(&state)?;
-    Ok(studio_views::opening_preview(
+    Ok(studio_views::opening_preview_turned(
         session.doc()?,
         view,
         type_id,
         point,
         tol,
+        turns.unwrap_or(0),
     ))
 }
 
@@ -447,6 +450,7 @@ pub fn create_opening(
     host: ElementId,
     offset: f64,
     flip_facing: bool,
+    flip_hand: Option<bool>,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
@@ -456,11 +460,17 @@ pub fn create_opening(
             studio_core::ElementData::DoorType { .. }
         );
         s.edit(|d| {
-            if is_door {
-                ops::create_door(d, type_id, host, offset, flip_facing)
-            } else {
-                ops::create_window(d, type_id, host, offset, flip_facing)
+            if !is_door {
+                return ops::create_window(d, type_id, host, offset, flip_facing);
             }
+            let mark = d.undo_depth();
+            let id = ops::create_door(d, type_id, host, offset, flip_facing)?;
+            if flip_hand == Some(true) {
+                // The spacebar's swing while placing: still one undo step.
+                ops::set_property(d, id, "flip_hand", "yes", 0)?;
+                d.merge_undo(mark, "Create door");
+            }
+            Ok(id)
         })
     })
 }

@@ -136,6 +136,7 @@ pub fn run() -> anyhow::Result<()> {
             editing::offset_element,
             editing::split_wall,
             editing::flip_selection,
+            editing::flip_opening,
             editing::ref_line,
             editing::align,
             editing::align_references,

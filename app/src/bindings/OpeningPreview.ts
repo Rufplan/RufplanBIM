@@ -8,6 +8,10 @@ export type OpeningPreview = { host: ElementId,
  */
 offset: number, flipFacing: boolean, 
 /**
+ * The spacebar's hand flip while placing a door.
+ */
+flipHand: boolean, 
+/**
  * False when the opening would overlap another one in the wall.
  */
 valid: boolean, 
