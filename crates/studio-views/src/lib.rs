@@ -16,6 +16,7 @@ pub mod caps;
 pub mod doors;
 pub mod drafting;
 pub mod edges;
+pub mod faces;
 pub mod ffe;
 pub mod foliage;
 pub mod handles;
@@ -1772,7 +1773,13 @@ fn projected(
                 let mut f = face(w.id, &w.footprint.outer, w.z0, w.z1, FillKind::Paper);
                 // The face toward the viewer carries its finish's surface pattern.
                 let toward = w.dir().perp().dot(look) < 0.0;
-                let painted = studio_core::paint::paint_of(doc, w.id);
+                // A painted face (ADR-096), else the whole wall's paint.
+                let painted = studio_core::paint::face_paint(
+                    doc,
+                    w.id,
+                    if toward { "exterior" } else { "interior" },
+                )
+                .or_else(|| studio_core::paint::paint_of(doc, w.id));
                 let surface = match painted.and_then(|p| doc.data(p).ok()) {
                     Some(ElementData::Material { surface, .. }) => *surface,
                     _ if toward => w.surfaces.0,
@@ -4047,6 +4054,46 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             mesh.material = studio_core::library::finish_of(doc, mesh.el);
         }
     }
+    // Painted faces (ADR-096): each splits off in its own material, the rest as before.
+    let mut faces_out: Vec<Mesh> = vec![];
+    for mesh in &mut out {
+        let paints = studio_core::paint::face_paints(doc, mesh.el);
+        if paints.is_empty() {
+            continue;
+        }
+        let Some(shape) = faces::Shape::of(&m, mesh.el) else {
+            continue;
+        };
+        let mut keep: Vec<f32> = Vec::with_capacity(mesh.positions.len());
+        let mut parts: Vec<(ElementId, Vec<f32>)> = vec![];
+        for t in mesh.positions.as_chunks::<9>().0 {
+            let painted = shape
+                .triangle_face(t)
+                .and_then(|f| paints.iter().find(|(p, _)| *p == f).map(|(_, mat)| *mat));
+            match painted {
+                Some(mat) => match parts.iter_mut().find(|(p, _)| *p == mat) {
+                    Some((_, v)) => v.extend_from_slice(t),
+                    None => parts.push((mat, t.to_vec())),
+                },
+                None => keep.extend_from_slice(t),
+            }
+        }
+        mesh.positions = keep;
+        for (mat, positions) in parts {
+            let color = match doc.data(mat) {
+                Ok(ElementData::Material { color, .. }) => Some(*color),
+                _ => mesh.color,
+            };
+            faces_out.push(Mesh {
+                edges: vec![],
+                color,
+                material: Some(mat),
+                positions,
+                ..mesh.clone()
+            });
+        }
+    }
+    out.extend(faces_out);
     // Fascias (ADR-095), in their own finish rather than the roof type's.
     for r in &m.roofs {
         if let Some(f) = &r.fascia {

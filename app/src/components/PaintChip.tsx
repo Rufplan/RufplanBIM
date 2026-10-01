@@ -37,7 +37,9 @@ export function PaintChip() {
       />
       <span className="paint-chip-text">
         <strong>{info?.name ?? "Pick a material"}</strong>
-        <span>Click to paint · Shift-click paints the whole type · Esc to finish</span>
+        <span>
+          Click paints a face · Shift-click paints the whole assembly (its type) · Esc to finish
+        </span>
       </span>
       <button className="btn-ghost" onClick={() => s.setUi({ viewDialog: "materials" })}>
         Change

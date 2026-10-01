@@ -1715,7 +1715,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     }
     if (!toolAllowed(s.tool, view.viewType)) return;
     if (s.tool === "paint") {
-      await paintElement(await ipc.pick(view.id, raw, 6 / cam.current.zoom), shift);
+      await paintElement(await ipc.pick(view.id, raw, 6 / cam.current.zoom), shift, {
+        kind: "view",
+        view: view.id,
+        point: raw,
+      });
       return;
     }
     if (s.tool === "sketch") {

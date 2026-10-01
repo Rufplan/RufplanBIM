@@ -210,6 +210,8 @@ pub fn run() -> anyhow::Result<()> {
             material_cmds::add_library_material,
             material_cmds::apply_material,
             material_cmds::paint_elements,
+            material_cmds::paint_face,
+            material_cmds::paint_in_view,
             material_cmds::render_materials,
             material_cmds::material_texture,
             sheetset_cmds::building_types,

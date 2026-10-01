@@ -44,11 +44,34 @@ describe("Paint (ADR-034)", () => {
     expect(s.tool).toBe("paint");
     expect(s.paintMaterial).toBe("00000000-0000-7000-8000-0000000000a1");
     const chip = await screen.findByRole("status", { name: "Paint" });
-    expect(within(chip).getByText(/Shift-click paints the whole type/)).toBeTruthy();
+    expect(within(chip).getByText(/Shift-click paints the whole assembly/)).toBeTruthy();
     // A click paints that element only; Shift-click its whole type.
     await paintElement("00000000-0000-7000-8000-00000000c0c0", false);
     expect(calls("paint_elements").at(-1)).toEqual({
       ids: ["00000000-0000-7000-8000-00000000c0c0"],
+      material: "00000000-0000-7000-8000-0000000000a1",
+    });
+    // A click in 3D paints the face hit; in a 2D view, the face seen there (ADR-096).
+    await paintElement("00000000-0000-7000-8000-00000000c0c0", false, {
+      kind: "3d",
+      point: [100, 0, 3000],
+      normal: [0, 0, -1],
+    });
+    expect(calls("paint_face").at(-1)).toEqual({
+      el: "00000000-0000-7000-8000-00000000c0c0",
+      point: [100, 0, 3000],
+      normal: [0, 0, -1],
+      material: "00000000-0000-7000-8000-0000000000a1",
+    });
+    await paintElement("00000000-0000-7000-8000-00000000c0c0", false, {
+      kind: "view",
+      view: "v1",
+      point: { x: 5, y: 6 },
+    });
+    expect(calls("paint_in_view").at(-1)).toEqual({
+      view: "v1",
+      el: "00000000-0000-7000-8000-00000000c0c0",
+      point: { x: 5, y: 6 },
       material: "00000000-0000-7000-8000-0000000000a1",
     });
     await paintElement("00000000-0000-7000-8000-00000000c0c0", true);

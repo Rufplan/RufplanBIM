@@ -3551,3 +3551,39 @@ coursing along a line".
   (PNG, or JPEG for .jpg) and quits.
 - **Not done:** OIDN (an ML denoiser via oidn-web) would let renders stop at a fraction of
   the samples, but it is a major new dependency and needs the owner's approval.
+
+## ADR-096 Paint paints a face — Accepted (2026-10-01)
+- **The owner's ask:** a floor's edges should be paintable in the siding's wood colour,
+  and its soffit (the bottom face) a different colour. Paint should change only the
+  outer surface of the assembly, the face clicked. Applying a material to the whole
+  assembly should give the whole assembly that material.
+- **Before:** Paint (ADR-034) put one material on the whole element, every face of the
+  3D mesh.
+- **Now, as Revit's Paint tool:**
+  - **Click:** paints only the face under the cursor. Its layers and type are unchanged,
+    so sections and plans still cut the assembly as built.
+  - **Shift-click:** applies the material to the whole assembly, its type (as before), so
+    every element of that type changes.
+  - **Remove Paint** (Properties) clears the element's paint and every painted face.
+    Painting a whole element (`paint::paint`, used by Edit Model) replaces its painted
+    faces.
+- **Faces** (studio-views `faces`):
+  - Walls: `exterior` / `interior` (the location line's left and right), `start` /
+    `end`, `top` / `bottom`. Jambs, heads and sills inside openings stay with the wall.
+  - Floors, ceilings and roofs: `top`, `bottom` (the soffit) and `edge:N`, the side along
+    boundary segment N (outer loop, then holes). Columns and beams still paint whole.
+  - A face is told from a point on it and its normal, using the solid's geometry (top
+    and soffit heights, the footprint's mid-offset), so mesh winding doesn't matter.
+- **Storage:** the `rufplan.paint.faces` parameter, as `face=material` pairs (studio-core
+  `paint::paint_face`, `face_paints`). No file-format change; editing a boundary can
+  shift which edge an `edge:N` names.
+- **Where you click:**
+  - 3D: the hit point and face normal go to `paint_face`.
+  - Plans: a floor's or roof's top, a ceiling's soffit in a ceiling plan, the wall side
+    clicked.
+  - Elevations and sections: the wall face toward you, a floor's or roof's edge seen
+    there (`paint_in_view`).
+- **Showing it:**
+  - 3D and renderings split each painted face into its own mesh with that material.
+  - Elevations draw a painted wall face's surface pattern.
+  - Properties lists each painted face ("Paint, Edge 3", "Paint, Bottom (Soffit)").

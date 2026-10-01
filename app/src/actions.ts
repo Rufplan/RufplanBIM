@@ -12,9 +12,16 @@ import {
   type ToolTypes,
 } from "./store";
 
-/** Paints the element under the cursor with the Paint tool's material (ADR-034); with
- * Shift, the material goes on its type, so every element of that type changes. */
-export async function paintElement(id: string | null, wholeType: boolean) {
+/** Where a Paint click landed (ADR-096): a 3D hit, or a point in a 2D view. */
+export type PaintAt =
+  | { kind: "3d"; point: number[]; normal: number[] }
+  | { kind: "view"; view: string; point: { x: number; y: number } };
+
+/** Paints the element under the cursor with the Paint tool's material (ADR-034): only the
+ * face clicked, its surface, when `at` says where (ADR-096); the whole element without.
+ * With Shift, the material goes on the whole assembly, its type, so every element of that
+ * type changes. */
+export async function paintElement(id: string | null, wholeType: boolean, at?: PaintAt) {
   const s = useAppStore.getState();
   const m = s.paintMaterial;
   if (!m) {
@@ -22,7 +29,15 @@ export async function paintElement(id: string | null, wholeType: boolean) {
     return;
   }
   if (!id) return;
-  await apply(() => (wholeType ? ipc.applyMaterial([id], m) : ipc.paintElements([id], m)));
+  await apply(() =>
+    wholeType
+      ? ipc.applyMaterial([id], m)
+      : at?.kind === "3d"
+        ? ipc.paintFace(id, at.point, at.normal, m)
+        : at?.kind === "view"
+          ? ipc.paintInView(at.view, id, at.point, m)
+          : ipc.paintElements([id], m),
+  );
 }
 
 /** Sets a drawn view's Detail Level (ADR-067); the active view's by default. */

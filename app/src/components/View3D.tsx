@@ -1683,7 +1683,19 @@ export function View3D({ view }: { view: ViewInfo }) {
           group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
           false,
         )[0];
-        void paintElement((hit?.object.userData.el as string | undefined) ?? null, e.shiftKey);
+        // The face hit (ADR-096): the group is z-up model space, so the hit is in mm.
+        const n = hit?.face?.normal.clone().transformDirection(hit.object.matrixWorld);
+        void paintElement(
+          (hit?.object.userData.el as string | undefined) ?? null,
+          e.shiftKey,
+          hit && n
+            ? {
+                kind: "3d",
+                point: [hit.point.x, hit.point.y, hit.point.z],
+                normal: [n.x, n.y, n.z],
+              }
+            : undefined,
+        );
         return;
       }
       if (useAppStore.getState().tool !== "select") {

@@ -2651,9 +2651,22 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
     if let Some(w) = crate::worksets::property(doc, id) {
         props.push(w);
     }
-    if let Some(m) = crate::paint::paint_of(doc, id) {
+    let faces = crate::paint::face_paints(doc, id);
+    for (face, m) in &faces {
+        let name = doc.data(*m).map(|d| d.name()).unwrap_or_default();
+        props.push(ro(
+            &format!("paint:{face}"),
+            &format!("Paint, {}", crate::paint::face_label(face)),
+            "Materials and Finishes",
+            name,
+        ));
+    }
+    let whole = crate::paint::paint_of(doc, id);
+    if let Some(m) = whole {
         let name = doc.data(m).map(|d| d.name()).unwrap_or_default();
         props.push(ro("paint", "Paint", "Materials and Finishes", name.clone()));
+    }
+    if whole.is_some() || !faces.is_empty() {
         props.push(p(
             "unpaint",
             "",

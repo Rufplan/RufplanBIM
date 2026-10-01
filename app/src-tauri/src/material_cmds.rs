@@ -57,6 +57,54 @@ pub fn paint_elements(
     finish(&window, &s)
 }
 
+/// Paints the face of `el` at a 3D hit `point` with face `normal` (z-up mm), as Revit's Paint
+/// tool (ADR-096): only that face, the assembly unchanged. Columns and beams paint whole.
+#[tauri::command]
+pub fn paint_face(
+    el: ElementId,
+    point: [f64; 3],
+    normal: [f64; 3],
+    material: Option<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut s = lock(&state)?;
+    let face = {
+        let m = studio_regen::regenerate(s.doc()?);
+        studio_views::faces::Shape::of(&m, el).and_then(|sh| sh.face(point, normal))
+    };
+    paint_one(&mut s, el, face, material)?;
+    finish(&window, &s)
+}
+
+/// Paints the face of `el` seen at `point` in a plan, elevation or section (ADR-096).
+#[tauri::command]
+pub fn paint_in_view(
+    view: ElementId,
+    el: ElementId,
+    point: studio_geom::Pt,
+    material: Option<ElementId>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    let mut s = lock(&state)?;
+    let face = studio_views::faces::face_in_view(s.doc()?, view, el, point);
+    paint_one(&mut s, el, face, material)?;
+    finish(&window, &s)
+}
+
+fn paint_one(
+    s: &mut crate::session::Session,
+    el: ElementId,
+    face: Option<String>,
+    material: Option<ElementId>,
+) -> anyhow::Result<()> {
+    match face {
+        Some(f) => s.edit(|d| studio_core::paint::paint_face(d, el, &f, material)),
+        None => s.edit(|d| studio_core::paint::paint(d, &[el], material).map(|_| ())),
+    }
+}
+
 /// A project material as the renderer needs it.
 #[derive(Debug, Clone, Serialize, TS)]
 #[serde(rename_all = "camelCase")]

@@ -781,6 +781,12 @@ export const ipc = {
     invoke("apply_material", { ids, material }),
   renderMaterials: () => invoke<RenderMaterial[]>("render_materials"),
   /** Paints elements (ADR-034); a null material removes their paint. */
+  /** Paints the face of `el` hit in 3D (z-up mm), only that face (ADR-096). */
+  paintFace: (el: ElementId, point: number[], normal: number[], material: ElementId | null): S =>
+    invoke("paint_face", { el, point, normal, material }),
+  /** Paints the face of `el` seen at `point` in a plan, elevation or section (ADR-096). */
+  paintInView: (view: ElementId, el: ElementId, point: Pt, material: ElementId | null): S =>
+    invoke("paint_in_view", { view, el, point, material }),
   paintElements: (ids: ElementId[], material: ElementId | null): S =>
     invoke("paint_elements", { ids, material }),
   /** A library texture map (JPEG), downloaded once and cached by Rust. */

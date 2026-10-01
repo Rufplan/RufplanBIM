@@ -424,6 +424,11 @@ pub fn materials_of(doc: &Document, el: ElementId) -> Vec<ElementId> {
     if let Some(p) = crate::paint::paint_of(doc, el) {
         out.push(p);
     }
+    for (_, m) in crate::paint::face_paints(doc, el) {
+        if !out.contains(&m) {
+            out.push(m);
+        }
+    }
     let Some(t) = doc.data(el).ok().and_then(|d| d.type_id()) else {
         return out;
     };

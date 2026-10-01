@@ -1929,6 +1929,8 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         }
         case "paint_elements":
+        case "paint_face":
+        case "paint_in_view":
           return fake.state;
         case "apply_material":
           fake.applied.push([a.ids as string[], a.material as string]);
