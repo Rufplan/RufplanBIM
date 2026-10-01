@@ -15,6 +15,9 @@ app/src-tauri/gen/schemas/
 !.env.example
 
 # Project files created during manual testing
+*.ruf
+*.ruf.tmp
+*.ruf.autosave
 *.rfproj
 *.rfproj.tmp
 *.rfproj.autosave

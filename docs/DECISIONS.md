@@ -3408,3 +3408,13 @@ coursing along a line".
   doors left/right arrows beside them. `drawFlipControls` draws them at a fixed screen size;
   clicking one calls `flip_opening`. The status bar names the control on hover. The
   controls follow the swing when it flips.
+
+## ADR-092 Project files are `.ruf` — Accepted (2026-09-30)
+- **The owner's ask:** change the project file type from `.rfproj` to `.ruf`.
+- **Only the name changes.** The file is the same SQLite database (schema 2), so no
+  migration is needed. `studio_io::EXTENSION` is `ruf`. `LEGACY_EXTENSIONS` (`rfproj`) and
+  `is_project_path` recognise both.
+- **Save As** writes `.ruf`, adding it when missing. Open takes `.ruf` or `.rfproj`. A
+  `.rfproj` opened from before saves in place under its own name (nothing is renamed
+  behind the user's back); Save As converts it.
+- The top bar shows the file's real name and extension.

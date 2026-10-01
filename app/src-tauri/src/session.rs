@@ -656,8 +656,8 @@ impl Session {
         Ok(())
     }
 
-    /// Saves to `path` (Save As) or to the current path (Save). Adds the `.rfproj`
-    /// extension if missing.
+    /// Saves to `path` (Save As) or to the current path (Save). Adds the `.ruf`
+    /// extension if missing; a `.rfproj` opened from before saves in place (ADR-092).
     pub fn save(&mut self, path: Option<&Path>, app_version: &str) -> anyhow::Result<()> {
         let Some(project) = self.project.as_mut() else {
             bail!("no project is open");
@@ -1035,10 +1035,7 @@ fn build_sample_documents(
 }
 
 fn with_project_extension(path: &Path) -> PathBuf {
-    let has_ext = path
-        .extension()
-        .is_some_and(|e| e.eq_ignore_ascii_case(studio_io::EXTENSION));
-    if has_ext {
+    if studio_io::is_project_path(path) {
         return path.to_owned();
     }
     let mut name = path.as_os_str().to_owned();
@@ -1084,7 +1081,7 @@ mod tests {
         assert!(s.status().unwrap().dirty);
 
         s.save(Some(&dir.path().join("House")), "0.0.1").unwrap();
-        let expected = dir.path().join("House.rfproj");
+        let expected = dir.path().join("House.ruf");
         assert!(expected.is_file());
         assert!(!s.status().unwrap().dirty);
 
@@ -1257,7 +1254,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut s = Session::default();
         s.new_project("0.0.1").unwrap();
-        assert!(s.open(&dir.path().join("missing.rfproj")).is_err());
+        assert!(s.open(&dir.path().join("missing.ruf")).is_err());
         assert_eq!(s.status().unwrap().name, "Untitled");
     }
 
@@ -1265,11 +1262,16 @@ mod tests {
     fn extension_is_added_only_when_missing() {
         assert_eq!(
             with_project_extension(Path::new("a/My.Project")),
-            PathBuf::from("a/My.Project.rfproj")
+            PathBuf::from("a/My.Project.ruf")
         );
         assert_eq!(
-            with_project_extension(Path::new("a/b.RFPROJ")),
-            PathBuf::from("a/b.RFPROJ")
+            with_project_extension(Path::new("a/b.RUF")),
+            PathBuf::from("a/b.RUF")
+        );
+        // Files from before ADR-092 keep their extension.
+        assert_eq!(
+            with_project_extension(Path::new("a/old.rfproj")),
+            PathBuf::from("a/old.rfproj")
         );
     }
 }

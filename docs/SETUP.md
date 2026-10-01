@@ -64,7 +64,7 @@ fails if they are out of date.
 ## Repository location
 The repo can live in a cloud-synced folder, but the sync client should ignore `target/`
 (several GB, rewritten on every build) and `app/node_modules/`. If the client offers
-folder exclusions, add both. Close any `.rfproj` in the app before the sync client
+folder exclusions, add both. Close any `.ruf` in the app before the sync client
 uploads it.
 
 ## Secrets

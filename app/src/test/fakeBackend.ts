@@ -390,7 +390,9 @@ const ids = {
 export const FAKE_IDS = ids;
 
 export function appState(path: string | null, dirty = false): AppState {
-  const name = path ? (path.split(/[\\/]/).pop() ?? "").replace(/\.rfproj$/, "") : "Untitled";
+  const name = path
+    ? (path.split(/[\\/]/).pop() ?? "").replace(/\.(ruf|rfproj)$/i, "")
+    : "Untitled";
   const v = (
     id: string,
     n: string,

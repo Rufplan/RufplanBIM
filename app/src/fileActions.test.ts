@@ -26,10 +26,10 @@ describe("file actions", () => {
   });
 
   it("Open passes the chosen path to Rust and opens the first view", async () => {
-    fake.openPath = "C:\\p\\A.rfproj";
+    fake.openPath = "C:\\p\\A.ruf";
     await openProject();
     expect(fake.calls.find((c) => c.cmd === "project_open")?.args).toEqual({
-      path: "C:\\p\\A.rfproj",
+      path: "C:\\p\\A.ruf",
     });
     const s = useAppStore.getState();
     expect(s.app?.project.name).toBe("A");
@@ -38,21 +38,21 @@ describe("file actions", () => {
 
   it("Save on an untitled project asks where to save", async () => {
     await newProject();
-    fake.savePath = "C:\\p\\B.rfproj";
+    fake.savePath = "C:\\p\\B.ruf";
     await saveProject();
     expect(commandsCalled(fake)).toEqual(["project_new", "plugin:dialog|save", "project_save"]);
-    expect(useAppStore.getState().app?.project.path).toBe("C:\\p\\B.rfproj");
+    expect(useAppStore.getState().app?.project.path).toBe("C:\\p\\B.ruf");
   });
 
   it("Save on a saved project does not show a dialog", async () => {
-    useAppStore.getState().setApp(appState("C:\\p\\C.rfproj"), true);
+    useAppStore.getState().setApp(appState("C:\\p\\C.ruf"), true);
     await saveProject();
     expect(commandsCalled(fake)).toEqual(["project_save"]);
     expect(fake.calls[0]?.args).toEqual({ path: null });
   });
 
   it("cancelling Save As changes nothing", async () => {
-    useAppStore.getState().setApp(appState("C:\\p\\C.rfproj"), true);
+    useAppStore.getState().setApp(appState("C:\\p\\C.ruf"), true);
     fake.savePath = null;
     await saveProjectAs();
     expect(commandsCalled(fake)).toEqual(["plugin:dialog|save"]);
@@ -65,7 +65,7 @@ describe("file actions", () => {
   });
 
   it("New with unsaved changes asks first, and Cancel keeps the project", async () => {
-    useAppStore.getState().setApp(appState("C:\\p\\D.rfproj", true), true);
+    useAppStore.getState().setApp(appState("C:\\p\\D.ruf", true), true);
     const pending = newProject();
     await Promise.resolve();
     const confirm = useAppStore.getState().confirm;
@@ -76,7 +76,7 @@ describe("file actions", () => {
   });
 
   it("Don't Save discards without saving", async () => {
-    useAppStore.getState().setApp(appState("C:\\p\\D.rfproj", true), true);
+    useAppStore.getState().setApp(appState("C:\\p\\D.ruf", true), true);
     const pending = confirmDiscard();
     await Promise.resolve();
     useAppStore.getState().confirm!.resolve("discard");
@@ -85,7 +85,7 @@ describe("file actions", () => {
   });
 
   it("a clean project needs no confirmation", async () => {
-    useAppStore.getState().setApp(appState("C:\\p\\E.rfproj"), true);
+    useAppStore.getState().setApp(appState("C:\\p\\E.ruf"), true);
     expect(await confirmDiscard()).toBe(true);
   });
 });

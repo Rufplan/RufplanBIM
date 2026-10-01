@@ -11,7 +11,7 @@
 │ studio-geom   Math · 2D booleans · GeometryKernel trait (native → OCCT later) │
 │ studio-views  Plan/section/elevation generation · graphics · annotations      │
 │ studio-sheets Sheets · viewports · schedules · PDF export                     │
-│ studio-io     .rfproj (SQLite) persistence · IFC4 export                      │
+│ studio-io     .ruf (SQLite) persistence · IFC4 export                         │
 │ studio-sync   Supabase auth · publish · (later) worksharing                   │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```

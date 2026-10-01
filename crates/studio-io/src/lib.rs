@@ -1,4 +1,4 @@
-//! .rfproj persistence (SQLite) and IFC4 export.
+//! .ruf persistence (SQLite) and IFC4 export.
 //!
 //! A project file is a SQLite database: a `meta` table plus one row per element, with the
 //! element payload stored as MessagePack. Schema 1 (M0) had only `meta`; opening such a
@@ -17,8 +17,20 @@ use std::path::{Path, PathBuf};
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use studio_core::{Document, Element, ElementData, ElementId};
 
-/// File extension for project files, without the dot.
-pub const EXTENSION: &str = "rfproj";
+/// File extension for project files, without the dot (ADR-092).
+pub const EXTENSION: &str = "ruf";
+
+/// Earlier project extensions: the same SQLite file, still opened and saved in place.
+pub const LEGACY_EXTENSIONS: [&str; 1] = ["rfproj"];
+
+/// True when `path` has a project extension, current or earlier (any case).
+pub fn is_project_path(path: &Path) -> bool {
+    path.extension().is_some_and(|e| {
+        std::iter::once(EXTENSION)
+            .chain(LEGACY_EXTENSIONS)
+            .any(|x| e.eq_ignore_ascii_case(x))
+    })
+}
 
 /// Schema version written by this build. Files with a higher version are refused.
 pub const SCHEMA_VERSION: i64 = 2;
@@ -248,7 +260,7 @@ fn read_meta(conn: &Connection, key: &str) -> Result<Option<String>> {
         .optional()?)
 }
 
-/// `project.rfproj` → `project.rfproj.tmp`, in the same directory so the rename is atomic.
+/// `project.ruf` → `project.ruf.tmp`, in the same directory so the rename is atomic.
 fn temp_path(path: &Path) -> PathBuf {
     let mut name = path.as_os_str().to_owned();
     name.push(".tmp");
@@ -452,7 +464,7 @@ mod tests {
             x % n
         };
         for case in 0..8 {
-            let path = dir.path().join(format!("case{case}.rfproj"));
+            let path = dir.path().join(format!("case{case}.{EXTENSION}"));
             let mut doc = Document::new();
             ops::seed_default_project(&mut doc).unwrap();
             let levels = doc.levels();

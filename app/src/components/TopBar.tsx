@@ -34,7 +34,7 @@ export function TopBar() {
               {app.project.dirty && <span className="dirty-dot" title="Unsaved changes" />}
             </span>
             <span className="project-file">
-              {app.project.path ? app.project.name + ".rfproj" : "Unsaved"}
+              {app.project.path ? (app.project.path.split(/[\\/]/).pop() ?? "") : "Unsaved"}
             </span>
           </>
         )}

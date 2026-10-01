@@ -30,7 +30,7 @@ Read these before writing code:
 | App shell | Tauri 2 |
 | UI | React 18 + TypeScript + Vite, Zustand for UI state |
 | Core engine | Rust (Cargo workspace, crates under `crates/`) |
-| Project file | SQLite via `rusqlite` (one file per project, extension `.rfproj`) |
+| Project file | SQLite via `rusqlite` (one file per project, extension `.ruf`; `.rfproj` still opens, ADR-092) |
 | 2D geometry | `glam` (vectors), `i_overlay` or `geo` (polygon booleans) |
 | 3D kernel | Rust-native extrusions for M1–M4 behind a `GeometryKernel` trait; OpenCascade later (ADR-006) |
 | Plan/sheet rendering | Canvas 2D behind a `Renderer` interface in TS; WebGL2 when perf requires |
@@ -69,7 +69,7 @@ Read these before writing code:
 │  ├─ studio-regen/    # dependency graph + incremental regeneration
 │  ├─ studio-views/    # plan/section/elevation generation, annotations, graphics
 │  ├─ studio-sheets/   # sheets, title blocks, viewports, schedules, PDF export
-│  ├─ studio-io/       # .rfproj persistence (SQLite), IFC export
+│  ├─ studio-io/       # .ruf persistence (SQLite), IFC export
 │  ├─ studio-structural/ # Suggest Structure: features, schemes, layout, sizing (ADR-080)
 │  ├─ studio-mep/      # MEPT suggestions: features, mechanical/electrical/plumbing/technology (ADR-082)
 │  ├─ studio-qa/       # QA/QC review: checks by category, report, PDF, Claude review (ADR-088)

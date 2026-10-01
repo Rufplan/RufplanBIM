@@ -1,6 +1,6 @@
 [package]
 name = "studio-io"
-description = ".rfproj persistence (SQLite) and IFC4 export."
+description = ".ruf persistence (SQLite) and IFC4 export."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

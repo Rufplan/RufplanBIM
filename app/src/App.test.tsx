@@ -74,7 +74,7 @@ describe("App", () => {
   });
 
   it("responds to the native File > Open menu", async () => {
-    fake.openPath = "C:\\Projects\\House.rfproj";
+    fake.openPath = "C:\\Projects\\House.ruf";
     render(<App />);
     await waitFor(() => expect(commandsCalled(fake)).toContain("app_state"));
     await emit("menu", "file.open");

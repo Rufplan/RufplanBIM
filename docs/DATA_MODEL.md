@@ -47,7 +47,10 @@ Store them so user-editable families can be added later without a file-format br
 `Family { id, category, name, definition: FamilyDef }` where `FamilyDef` is an enum
 with a `BuiltIn(String)` variant now and a `Parametric(...)` variant reserved.
 
-## Persistence: `.rfproj` (SQLite)
+## Persistence: `.ruf` (SQLite)
+
+Projects save with the `.ruf` extension (ADR-092). Files named `.rfproj` from before are the
+same format and still open; they save in place, and Save As writes `.ruf`.
 ```sql
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);          -- schema_version, app_version
 CREATE TABLE elements (

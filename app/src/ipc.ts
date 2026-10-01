@@ -163,7 +163,9 @@ export type {
   ViewInfo,
 };
 
-const PROJECT_FILTER = [{ name: "Rufplan Studio project", extensions: ["rfproj"] }];
+// Projects save as .ruf (ADR-092); Open also takes the earlier .rfproj.
+const PROJECT_FILTER = [{ name: "Rufplan Studio project", extensions: ["ruf"] }];
+const OPEN_FILTER = [{ name: "Rufplan Studio project", extensions: ["ruf", "rfproj"] }];
 
 type S = Promise<AppState | null>;
 
@@ -767,11 +769,11 @@ export const ipc = {
 export const dialogs = {
   /** Resolves to the chosen path, or null if cancelled. */
   pickProjectToOpen: async (): Promise<string | null> => {
-    const picked = await open({ multiple: false, directory: false, filters: PROJECT_FILTER });
+    const picked = await open({ multiple: false, directory: false, filters: OPEN_FILTER });
     return typeof picked === "string" ? picked : null;
   },
   pickProjectSaveLocation: (defaultName: string): Promise<string | null> =>
-    save({ defaultPath: `${defaultName}.rfproj`, filters: PROJECT_FILTER }),
+    save({ defaultPath: `${defaultName}.ruf`, filters: PROJECT_FILTER }),
   pickPdfLocation: (defaultName: string): Promise<string | null> =>
     save({ defaultPath: `${defaultName}.pdf`, filters: [{ name: "PDF", extensions: ["pdf"] }] }),
   pickWordLocation: (defaultName: string): Promise<string | null> =>
