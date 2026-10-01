@@ -177,6 +177,24 @@ describe("Fix Issues (ADR-089)", () => {
     expect(applies()).toHaveLength(1);
   });
 
+  it("Fix with Claude suggests fixes for what needs you, to approve and apply", async () => {
+    await reviewed();
+    await userEvent.click(screen.getByRole("radio", { name: "Auto" }));
+    await userEvent.click(screen.getByRole("button", { name: "Fix Issues" }));
+    const dialog = await screen.findByRole("dialog", { name: "Fix Issues" });
+    const needs = within(dialog).getByRole("region", { name: "Needs you" });
+    await userEvent.click(within(needs).getByRole("button", { name: /FIX IT WITH CLAUDE/ }));
+    expect(
+      await within(needs).findByText("Write the missing section to match the drawings."),
+    ).toBeInTheDocument();
+    expect(within(needs).getByText(/Skipped: swap_type/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "APPLY CLAUDE'S 1 FIXES" }));
+    await waitFor(() => expect(applies()).toHaveLength(1));
+    const args = applies()[0]!.args as { actions: unknown[]; label: string };
+    expect(args.label).toBe("QA/QC: Claude's fixes (1)");
+    expect(args.actions).toEqual([{ StripSpecRef: { from: ["01 73 00"], to: "09 93 00" } }]);
+  });
+
   it("a finding with a fix has its own Fix button", async () => {
     await reviewed();
     const panel = screen.getByRole("dialog", { name: "QA/QC findings" });

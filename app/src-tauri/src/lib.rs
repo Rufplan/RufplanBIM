@@ -271,6 +271,7 @@ pub fn run() -> anyhow::Result<()> {
             model_edit_cmds::model_edit_apply,
             qa_cmds::qa_review,
             qa_cmds::qa_claude,
+            qa_cmds::qa_fix_claude,
             qa_cmds::qa_export_pdf,
             qa_cmds::qa_fix_plan,
             qa_cmds::qa_fix_apply,

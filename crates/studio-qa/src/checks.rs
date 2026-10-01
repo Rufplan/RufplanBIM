@@ -47,7 +47,18 @@ impl<'a> F<'a> {
             .and_then(|e| self.c.view_for(*e).or_else(|| self.sheet_view(*e)));
         let key = elements.first().map_or(String::new(), |e| e.0.to_string());
         let title = title.into();
-        let id = format!("{rule}:{key}:{}", title.len());
+        // Stable across reviews (resolved marks key on it) and unique: the title's hash,
+        // and a count when two findings read the same.
+        let hash = title.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
+            (h ^ u64::from(b)).wrapping_mul(0x100_0000_01b3)
+        });
+        let base = format!("{rule}:{key}:{hash:x}");
+        let mut id = base.clone();
+        let mut n = 1;
+        while self.out.iter().any(|f| f.id == id) {
+            n += 1;
+            id = format!("{base}:{n}");
+        }
         self.out.push(Finding {
             id,
             rule: rule.into(),

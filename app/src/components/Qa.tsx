@@ -7,6 +7,7 @@ import type { QaFixPlan } from "../bindings/QaFixPlan";
 import type { QaMilestone } from "../bindings/QaMilestone";
 import type { QaReport } from "../bindings/QaReport";
 import type { QaSeverity } from "../bindings/QaSeverity";
+import type { QaSuggestion } from "../bindings/QaSuggestion";
 import { dialogs, errorMessage, ipc } from "../ipc";
 import { useAppStore } from "../store";
 import { Icons } from "./Icons";
@@ -566,12 +567,53 @@ export function QaFixDialog() {
     applied: 0,
     skipped: 0,
   });
+  // Fix with Claude (ADR-094): suggestions for the findings that need you.
+  const [asking, setAsking] = useState(false);
+  const [suggestions, setSuggestions] = useState<QaSuggestion[] | null>(null);
+  const [claudeOff, setClaudeOff] = useState<string[]>([]);
   if (!fixOpen || !plan) return null;
   const close = () => {
     useQa.setState({ fixOpen: false });
     setStep(0);
     setOff([]);
     setDone({ applied: 0, skipped: 0 });
+    setSuggestions(null);
+    setClaudeOff([]);
+  };
+  const ruleOf = (id: string) => report?.findings.find((x) => x.id === id)?.rule ?? "";
+  // Only the architect knows the project's people and addresses: those open Project Info.
+  const askable = plan.manual.filter(([id]) => ruleOf(id) !== "project-info");
+  const askClaude = async () => {
+    if (!report || askable.length === 0) return;
+    setAsking(true);
+    try {
+      const s = await ipc.qaFixClaude(
+        report,
+        askable.map(([id]) => id),
+      );
+      setSuggestions(s);
+      setClaudeOff([]);
+    } catch (e) {
+      useAppStore.getState().setError(errorMessage(e));
+    } finally {
+      setAsking(false);
+    }
+  };
+  const claudeFixes = (suggestions ?? []).flatMap((s, i) =>
+    s.fixes.map((f, j) => ({ key: `${i}:${j}`, f })),
+  );
+  const chosenClaude = claudeFixes.filter((x) => !claudeOff.includes(x.key)).map((x) => x.f);
+  const applyClaude = async () => {
+    const n = await applyFixes(chosenClaude, `QA/QC: Claude's fixes (${chosenClaude.length})`);
+    if (n > 0) {
+      setSuggestions(null);
+      const r = useQa.getState().report;
+      if (r) useQa.setState({ plan: await ipc.qaFixPlan(r) });
+    }
+  };
+  const openProjectInfo = () => {
+    close();
+    useAppStore.getState().setRibbonTab("Project Info");
   };
   const fixes = plan.fixes;
   const titleOf = (id: string) => report?.findings.find((x) => x.id === id)?.title ?? id;
@@ -605,78 +647,148 @@ export function QaFixDialog() {
             ×
           </button>
         </div>
-        <div className="qa-fix-sum">
-          <strong>{fixes.length}</strong> fixable
-          {design > 0 && (
-            <>
-              {" "}
-              · <strong>{design}</strong> change the design
-            </>
-          )}{" "}
-          · <strong>{plan.manual.length}</strong> need you
-        </div>
-        {fixes.length === 0 && !finished && (
-          <div className="qa-empty">Nothing the model can fix on its own.</div>
-        )}
-        {fixMode === "auto" && !finished && fixes.length > 0 && (
-          <div className="qa-fix-list">
-            {fixes.map((f, i) => (
-              <FixRow
-                key={i}
-                f={f}
-                checked={!off.includes(i)}
-                onToggle={() => setOff(off.includes(i) ? off.filter((x) => x !== i) : [...off, i])}
-              />
-            ))}
+        <div className="qa-fix-body">
+          <div className="qa-fix-sum">
+            <strong>{fixes.length}</strong> fixable
+            {design > 0 && (
+              <>
+                {" "}
+                · <strong>{design}</strong> change the design
+              </>
+            )}{" "}
+            · <strong>{plan.manual.length}</strong> need you
           </div>
-        )}
-        {fixMode === "approve" && !finished && current && (
-          <div className="qa-step">
-            <div className="qa-step-count">
-              CHANGE {step + 1} OF {fixes.length}
-              <div className="std-bar">
-                <div style={{ width: `${(step / fixes.length) * 100}%` }} />
-              </div>
+          {fixes.length === 0 && !finished && (
+            <div className="qa-empty">Nothing the model can fix on its own.</div>
+          )}
+          {fixMode === "auto" && !finished && fixes.length > 0 && (
+            <div className="qa-fix-list">
+              {fixes.map((f, i) => (
+                <FixRow
+                  key={i}
+                  f={f}
+                  checked={!off.includes(i)}
+                  onToggle={() =>
+                    setOff(off.includes(i) ? off.filter((x) => x !== i) : [...off, i])
+                  }
+                />
+              ))}
             </div>
-            <div className="qa-step-finding">For: {titleOf(current.finding)}</div>
-            <FixRow f={current} />
-          </div>
-        )}
-        {finished && (
-          <div className="qa-fix-done">
-            <strong>
-              {fixResult ? fixResult.applied : done.applied} fixed
-              {done.skipped ? ` · ${done.skipped} skipped` : ""}
-            </strong>
-            {fixResult && (
-              <span>
-                Score {fixResult.before} → {fixResult.after}. Undo (Ctrl+Z) takes{" "}
-                {fixMode === "auto" ? "it all" : "each"} back.
-              </span>
-            )}
-            {fixResult?.errors.map((e, i) => (
-              <span key={i} className="group-error">
-                {e}
-              </span>
-            ))}
-          </div>
-        )}
-        {plan.manual.length > 0 && (
-          <details className="qa-manual">
-            <summary>Needs you ({plan.manual.length})</summary>
-            {plan.manual.map(([id, why]) => (
-              <div key={id}>
-                <b>{titleOf(id)}</b> — {why}
+          )}
+          {fixMode === "approve" && !finished && current && (
+            <div className="qa-step">
+              <div className="qa-step-count">
+                CHANGE {step + 1} OF {fixes.length}
+                <div className="std-bar">
+                  <div style={{ width: `${(step / fixes.length) * 100}%` }} />
+                </div>
               </div>
-            ))}
-          </details>
-        )}
+              <div className="qa-step-finding">For: {titleOf(current.finding)}</div>
+              <FixRow f={current} />
+            </div>
+          )}
+          {finished && (
+            <div className="qa-fix-done">
+              <strong>
+                {fixResult ? fixResult.applied : done.applied} fixed
+                {done.skipped ? ` · ${done.skipped} skipped` : ""}
+              </strong>
+              {fixResult && (
+                <span>
+                  Score {fixResult.before} → {fixResult.after}. Undo (Ctrl+Z) takes{" "}
+                  {fixMode === "auto" ? "it all" : "each"} back.
+                </span>
+              )}
+              {fixResult?.errors.map((e, i) => (
+                <span key={i} className="group-error">
+                  {e}
+                </span>
+              ))}
+            </div>
+          )}
+          {plan.manual.length > 0 && (
+            <section className="qa-manual" aria-label="Needs you">
+              <div className="qa-manual-head">
+                <h3>Needs you ({plan.manual.length})</h3>
+                {askable.length > 0 && (
+                  <button
+                    className="qa-claude-fix"
+                    disabled={asking || fixing}
+                    onClick={() => void askClaude()}
+                    title="Claude suggests a fix for each one and makes the changes for you to approve"
+                  >
+                    {Icons.sparkle}
+                    {asking
+                      ? "ASKING CLAUDE…"
+                      : suggestions
+                        ? "ASK CLAUDE AGAIN"
+                        : `FIX ${askable.length === 1 ? "IT" : `ALL ${askable.length}`} WITH CLAUDE`}
+                  </button>
+                )}
+              </div>
+              {plan.manual.map(([id, why]) => {
+                const i = (suggestions ?? []).findIndex((s) => s.finding === id);
+                const s = i >= 0 ? suggestions![i] : undefined;
+                return (
+                  <div key={id} className="qa-manual-item">
+                    <div>
+                      <b>{titleOf(id)}</b> — {why}
+                      {ruleOf(id) === "project-info" && (
+                        <button className="link-btn" onClick={openProjectInfo}>
+                          Open Project Info
+                        </button>
+                      )}
+                    </div>
+                    {s && (
+                      <div className="qa-suggestion">
+                        <p className="qa-advice">
+                          <span>CLAUDE</span> {s.advice}
+                        </p>
+                        {s.fixes.map((f, j) => {
+                          const key = `${i}:${j}`;
+                          return (
+                            <FixRow
+                              key={key}
+                              f={f}
+                              checked={!claudeOff.includes(key)}
+                              onToggle={() =>
+                                setClaudeOff(
+                                  claudeOff.includes(key)
+                                    ? claudeOff.filter((x) => x !== key)
+                                    : [...claudeOff, key],
+                                )
+                              }
+                            />
+                          );
+                        })}
+                        {s.dropped.map((d, k) => (
+                          <span key={k} className="qa-dropped">
+                            Skipped: {d}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
+          )}
+        </div>
         <div className="em-foot">
           <span className="em-hint">
             {fixMode === "auto"
               ? "One undo step for everything."
               : "Each approved change is its own undo step."}
           </span>
+          {claudeFixes.length > 0 && (
+            <button
+              className="em-apply qa-apply-claude"
+              disabled={fixing || chosenClaude.length === 0}
+              onClick={() => void applyClaude()}
+            >
+              {fixing ? "FIXING…" : `APPLY CLAUDE'S ${chosenClaude.length} FIXES`}
+            </button>
+          )}
           {finished ? (
             <div className="em-actions">
               <button className="em-cancel" onClick={() => void again()}>

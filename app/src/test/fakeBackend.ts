@@ -1026,6 +1026,21 @@ export function installFakeBackend(): FakeBackend {
             ],
             manual: [["other", "Needs your review."]],
           };
+        case "qa_fix_claude":
+          return (a.ids as string[]).map((finding) => ({
+            finding,
+            advice: "Write the missing section to match the drawings.",
+            fixes: [
+              {
+                finding,
+                title: "Write Section 09 93 00 STAINING AND TRANSPARENT FINISHING",
+                change: "12 paragraphs written by Claude, added to the manual",
+                designChange: false,
+                action: { StripSpecRef: { from: ["01 73 00"], to: "09 93 00" } },
+              },
+            ],
+            dropped: ["swap_type: there's no element x"],
+          }));
         case "qa_fix_apply": {
           const n = (a.actions as unknown[]).length;
           // Fixed: the review comes back clean.

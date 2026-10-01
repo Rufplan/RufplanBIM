@@ -3,7 +3,7 @@
 //! writer runs before issuing.
 
 use serde::Serialize;
-use studio_core::specs::{valid_number, SpecBook};
+use studio_core::specs::{valid_number, SpecBook, SpecSection};
 use ts_rs::TS;
 
 use crate::library::entry;
@@ -60,6 +60,62 @@ pub fn numbers_in(text: &str) -> Vec<String> {
     out
 }
 
+/// Edits references to Section `to` out of `section` (ADR-094): a "Related Sections" item
+/// that names only it goes; in a list ("Section A and Section B") it drops out; elsewhere it
+/// becomes "the Contract Documents". Returns how many references were edited.
+pub fn strip_reference(section: &mut SpecSection, to: &str) -> usize {
+    let pat = format!("Section {to}");
+    let mut edits = 0;
+    for part in &mut section.parts {
+        for article in &mut part.articles {
+            let mut keep = vec![];
+            for mut p in std::mem::take(&mut article.paragraphs) {
+                let mut drop = false;
+                for _ in 0..16 {
+                    let Some(i) = p.text.find(&pat) else { break };
+                    // The span: the number, and the quoted title after it.
+                    let mut end = i + pat.len();
+                    let rest = &p.text[end..];
+                    let mut dotted = false;
+                    if let Some(q) = rest.strip_prefix(" \"").or_else(|| rest.strip_prefix(" “"))
+                    {
+                        if let Some(close) = q.find(['"', '”']) {
+                            dotted = q[..close].ends_with('.');
+                            end += rest.len() - q.len()
+                                + close
+                                + q[close..].chars().next().map_or(1, char::len_utf8);
+                        }
+                    }
+                    let before = &p.text[..i];
+                    let after = p.text[end..].to_string();
+                    let lead = before.trim_start_matches(['>', ' ']);
+                    edits += 1;
+                    if let Some(next) = after.strip_prefix(" and ") {
+                        p.text = format!("{before}{next}");
+                    } else if lead.is_empty() {
+                        drop = true;
+                        break;
+                    } else if let Some(b) = [" and ", ", ", " or "]
+                        .iter()
+                        .find_map(|c| before.strip_suffix(c))
+                        .filter(|b| b.ends_with('"') || b.ends_with('”'))
+                    {
+                        p.text = format!("{b}{after}");
+                    } else {
+                        let stop = if dotted { "." } else { "" };
+                        p.text = format!("{before}the Contract Documents{stop}{after}");
+                    }
+                }
+                if !drop {
+                    keep.push(p);
+                }
+            }
+            article.paragraphs = keep;
+        }
+    }
+    edits
+}
+
 /// The sections missing from, or excluded from, the book that it refers to, each once
 /// with the sections referring to it (excluded targets first).
 pub fn missing_references(book: &SpecBook) -> Vec<SpecReference> {
@@ -99,6 +155,60 @@ pub fn missing_references(book: &SpecBook) -> Vec<SpecReference> {
 mod tests {
     use super::*;
     use studio_core::specs::{Paragraph, SpecSection};
+
+    #[test]
+    fn references_are_edited_out_the_way_a_spec_writer_would() {
+        let mut s = crate::generate::from_library(
+            crate::library::entry("04 72 00").unwrap(),
+            &crate::features::Facts::default(),
+        );
+        let mentions = |s: &SpecSection| {
+            s.parts
+                .iter()
+                .flat_map(|p| &p.articles)
+                .flat_map(|a| &a.paragraphs)
+                .filter(|p| p.text.contains("04 20 00"))
+                .count()
+        };
+        assert!(mentions(&s) >= 3);
+        let n = strip_reference(&mut s, "04 20 00");
+        assert!(n >= 3);
+        assert_eq!(mentions(&s), 0);
+        let text: Vec<&str> = s
+            .parts
+            .iter()
+            .flat_map(|p| &p.articles)
+            .flat_map(|a| &a.paragraphs)
+            .map(|p| p.text.as_str())
+            .collect();
+        assert!(
+            text.iter()
+                .any(|t| t.contains("requirements in the Contract Documents.")),
+            "{text:?}"
+        );
+        // A list keeps the other section.
+        let mut list = SpecSection {
+            parts: vec![studio_core::specs::SpecPart {
+                title: "GENERAL".into(),
+                articles: vec![studio_core::specs::Article {
+                    title: "RELATED SECTIONS".into(),
+                    paragraphs: vec![
+                        Paragraph::new(0, "Section 06 41 13 \"Wood-Veneer-Faced Architectural Cabinets\" and Section 06 41 16 \"Plastic-Laminate-Faced Architectural Cabinets\" for casework."),
+                        Paragraph::new(0, "Section 01 81 13 \"Sustainable Design Requirements\" for documentation."),
+                    ],
+                }],
+            }],
+            ..s.clone()
+        };
+        assert_eq!(strip_reference(&mut list, "06 41 16"), 1);
+        assert_eq!(strip_reference(&mut list, "01 81 13"), 1);
+        let a = &list.parts[0].articles[0].paragraphs;
+        assert_eq!(a.len(), 1);
+        assert_eq!(
+            a[0].text,
+            "Section 06 41 13 \"Wood-Veneer-Faced Architectural Cabinets\" for casework."
+        );
+    }
 
     #[test]
     fn section_numbers_are_found_only_as_references() {

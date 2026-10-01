@@ -14,6 +14,7 @@ use studio_core::{Document, ElementId};
 use studio_regen::Model;
 use ts_rs::TS;
 
+pub mod assist;
 mod checks;
 mod ctx;
 pub mod fix;

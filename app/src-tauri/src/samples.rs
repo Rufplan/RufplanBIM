@@ -110,12 +110,7 @@ impl B<'_> {
         Ok(out)
     }
 
-    fn walls(
-        &mut self,
-        wt: ElementId,
-        level: ElementId,
-        runs: &[Run],
-    ) -> anyhow::Result<()> {
+    fn walls(&mut self, wt: ElementId, level: ElementId, runs: &[Run]) -> anyhow::Result<()> {
         for (a, b) in runs {
             ops::create_wall(self.doc, wt, level, ft(a.0, a.1), ft(b.0, b.1))?;
         }

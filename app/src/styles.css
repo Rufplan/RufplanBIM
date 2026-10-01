@@ -6197,8 +6197,90 @@ button:disabled {
 .qa-mode button.on .qa-dot {
   border: 3.5px solid #29b6ea;
 }
+.edit-model-backdrop:has(.qa-fixer) {
+  padding: 24px;
+  align-items: stretch;
+}
+/* Fix Issues fills the window; its list scrolls between the header and the buttons. */
 .edit-model.qa-fixer {
-  width: 720px;
+  width: 100%;
+  max-width: 1400px;
+  height: 100%;
+  min-height: 0;
+}
+.qa-fix-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.qa-fixer .qa-fix-list {
+  max-height: none;
+}
+.qa-manual-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 6px;
+}
+.qa-manual-head h3 {
+  margin: 0;
+  font-size: 13px;
+  color: #222;
+}
+.qa-claude-fix {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: none;
+  background: #000;
+  color: #fff;
+  font: 800 11px var(--font-display);
+  letter-spacing: 1.2px;
+  cursor: pointer;
+}
+.qa-claude-fix:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.qa-claude-fix svg {
+  width: 14px;
+  height: 14px;
+}
+.qa-manual-item {
+  padding: 6px 0 6px 12px;
+  border-top: 1px solid #f0f0ee;
+  line-height: 1.4;
+}
+.qa-manual-item .link-btn {
+  margin-left: 8px;
+}
+.qa-suggestion {
+  margin: 6px 0 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qa-advice {
+  margin: 0;
+  padding: 8px 10px;
+  background: #eef8fc;
+  color: #1d3a46;
+  font-size: 12px;
+}
+.qa-advice span {
+  margin-right: 6px;
+  font: 800 9px var(--font-display);
+  letter-spacing: 1px;
+  color: #0f6f93;
+}
+.qa-dropped {
+  font-size: 11px;
+  color: #a35b00;
+}
+.qa-apply-claude {
+  margin-right: auto;
 }
 .qa-fix-sum {
   padding: 12px 20px;
@@ -6289,8 +6371,7 @@ button:disabled {
   font-weight: 600;
   padding: 6px 0;
 }
-.qa-manual div {
-  padding: 3px 0 3px 12px;
+.qa-manual-item > div:first-child {
   line-height: 1.4;
 }
 .qa-actions .qa-fix-one {

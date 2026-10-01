@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Fix with Claude (ADR-094): studio-qa `assist` (digest, prompt, schema, suggestions → checked Fixes), fix Actions
+  RatedDoor/WetWall/StripSpecRef/AddSection, studio-specs `coord::strip_reference`; app qa_fix_claude; Qa.tsx full-screen dialog.
 - Fix Issues (ADR-089): studio-qa `fix` (plan: Action per finding with design_change; apply: one undo step); app
   qa_fix_plan/qa_fix_apply; Qa.tsx QaFixDialog (Auto / Approve each) and per-finding Fix.
 - QA/QC (ADR-088): crate studio-qa (ctx, checks by category, report: score/PDF/Claude digest); app qa_cmds;

@@ -3455,3 +3455,40 @@ coursing along a line".
   box house (kept for its tests and sample PDF).
 - Dev aid: `SAMPLE_SVG=dir cargo test -p rufplan-studio write_modern_svgs -- --ignored`
   draws its plans, elevations and sections as SVG.
+
+## ADR-094 Fix Issues full screen; more built-in fixes; Fix with Claude — Accepted (2026-09-30)
+- **The owner's asks:** the Fix Issues pop-up ran off the screen; and the "Needs you" items
+  should have a button that fixes them all, with suggestions from Claude, and then makes
+  the changes.
+- **Full screen:** the dialog fills the window (up to 1400 px wide). Its list scrolls
+  between the header and the buttons, which stay in view.
+- **New built-in fixes** (studio-qa `fix`). On the Modern House these take "needs you" from
+  32 items to 4, and the 90% CD score from 51 to 96.
+  - `roof-drain-slope`: a dead-flat membrane roof slopes 1/4":12 from its longest edge
+    (`RoofSlope` turns on that one edge, like tapered insulation to a gutter).
+  - `wet-backer`: `WetWall` gives every wall of the type along a bath or shower a copy of
+    the type, "<type> - Wet Wall", with its gypsum faces as glass-mat tile backer board.
+  - `garage-door`: `RatedDoor` gives the door a copy of its type, "<type> - 20 Min Solid
+    Core".
+  - `spec-ref` to a section that doesn't apply: `StripSpecRef` edits the reference out,
+    using studio-specs `coord::strip_reference`. A Related Sections item naming only it
+    goes; in a list it drops out; elsewhere it reads "the Contract Documents".
+- **Fix with Claude** (studio-qa `assist`; app `qa_fix_claude`):
+  - The findings still needing you go to Claude with the project digest, each finding's
+    elements, every type with its layers, and the manual's sections.
+  - Claude answers with advice and operations from a small vocabulary: set_property,
+    swap_type, roof_slope, delete, add_library_section, write_spec_section (CSI three-part,
+    the new `Action::AddSection`, origin Claude) and strip_spec_reference.
+  - Each operation is checked against the model (real ids, the right type category, a
+    valid MasterFormat number) and becomes an ordinary fix. Anything that fails a check is
+    listed as skipped.
+  - The dialog shows Claude's advice and fixes under each item, checked by default.
+    **Apply Claude's N fixes** applies them as one undo step and reviews again.
+  - Claude is told never to invent people, addresses or numbers. Project-information
+    findings get an **Open Project Info** link instead.
+  - Live check: `cargo test -p rufplan-studio live_fix_claude -- --ignored --nocapture`
+    (uses API credit). On the Modern House, Claude writes 09 93 00 Staining and Transparent
+    Finishing and 08 83 00 Mirrors, edits the 01 91 13 Commissioning reference out of
+    01 73 00, and leaves only the project information.
+- **Finding ids** hash the whole title (two findings used to share an id when their
+  titles were the same length). Marks "resolved" before this change won't carry over.

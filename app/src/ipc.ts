@@ -65,6 +65,7 @@ import type { ProjectDetails } from "./bindings/ProjectDetails";
 import type { ProjectInfoState } from "./bindings/ProjectInfoState";
 import type { QaFixAction } from "./bindings/QaFixAction";
 import type { QaFixPlan } from "./bindings/QaFixPlan";
+import type { QaSuggestion } from "./bindings/QaSuggestion";
 import type { QaOptions } from "./bindings/QaOptions";
 import type { QaReport } from "./bindings/QaReport";
 import type { SpecEdit } from "./bindings/SpecEdit";
@@ -615,6 +616,9 @@ export const ipc = {
     invoke<string>("qa_export_pdf", { path, report, resolved }),
   // Fix Issues (ADR-089).
   qaFixPlan: (report: QaReport) => invoke<QaFixPlan>("qa_fix_plan", { report }),
+  /** Fix with Claude (ADR-094): advice and checked fixes for findings Fix Issues can't plan. */
+  qaFixClaude: (report: QaReport, ids: string[]) =>
+    invoke<QaSuggestion[]>("qa_fix_claude", { report, ids }),
   qaFixApply: (actions: QaFixAction[], label: string) =>
     invoke<[number, string[], AppState | null]>("qa_fix_apply", { actions, label }),
   // Model and detail groups (ADR-087).

@@ -95,6 +95,25 @@ pub enum Action {
     IncludeSpecs {
         numbers: Vec<String>,
     },
+    /// Gives doors a 20-minute solid-core copy of their type (ADR-094).
+    RatedDoor {
+        ids: Vec<ElementId>,
+    },
+    /// Gives walls a wet-wall copy of their type: its gypsum faces become glass-mat tile
+    /// backer board (ADR-094).
+    WetWall {
+        type_id: ElementId,
+        walls: Vec<ElementId>,
+    },
+    /// Adds a section to the manual (one Claude wrote), or replaces the one of its number.
+    AddSection {
+        section: studio_core::specs::SpecSection,
+    },
+    /// Edits references to Section `to` out of the `from` sections (ADR-094).
+    StripSpecRef {
+        from: Vec<String>,
+        to: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -654,10 +673,66 @@ fn plan_one(p: &mut Planner, f: &Finding, schedules: &mut bool) {
             false,
             Action::GenerateSpecs,
         ),
-        "spec-ref" if f.severity == crate::Severity::Info => p.manual(
-            f,
-            "The section it names doesn't apply: edit the reference out of the text.",
-        ),
+        "spec-ref" if f.severity == crate::Severity::Info => {
+            // "Section A, B refers to X, which doesn't apply here".
+            let (from, to) = f.title.split_once(" refers to ").unwrap_or((&f.title, ""));
+            let from: Vec<String> = from
+                .trim_start_matches("Section ")
+                .split(", ")
+                .filter(|n| studio_core::specs::valid_number(n))
+                .map(str::to_string)
+                .collect();
+            match first_number(to) {
+                Some(to) if !from.is_empty() => p.add(
+                    f,
+                    format!("Edit the reference to {to} out of {}", from.join(", ")),
+                    "the reference edited out of the section text",
+                    false,
+                    Action::StripSpecRef { from, to },
+                ),
+                _ => p.manual(f, "Couldn't tell which sections."),
+            }
+        }
+        "roof-drain-slope" => {
+            for id in &f.elements {
+                p.add(
+                    f,
+                    "Slope the membrane roof 1/4\":12 to drain",
+                    "roof slope → 1/4\":12 (tapered to drain)",
+                    true,
+                    Action::RoofSlope {
+                        id: *id,
+                        slope: 0.25 / 12.0,
+                    },
+                );
+            }
+        }
+        "wet-backer" => {
+            let Some(w) = f.elements.first().and_then(|id| p.c.wall(*id)) else {
+                return;
+            };
+            // Every wall of the type along a bath or shower.
+            let walls: Vec<ElementId> =
+                p.c.walls
+                    .iter()
+                    .filter(|x| {
+                        x.type_id == w.type_id
+                            && p.c.rooms_along(x).iter().any(|r| r.is(&["bath", "shower"]))
+                    })
+                    .map(|x| x.id)
+                    .collect();
+            let (type_id, name, n) = (w.type_id, w.type_name.clone(), walls.len());
+            p.add(
+                f,
+                format!("Give the bath walls of {name} a tile backer"),
+                format!(
+                    "{n} wall{} → {name} - Wet Wall (glass-mat tile backer board)",
+                    if n == 1 { "" } else { "s" },
+                ),
+                false,
+                Action::WetWall { type_id, walls },
+            );
+        }
         "spec-missing" | "spec-ref" | "keynote-spec" | "note-spec" => {
             // spec-ref: the section referred to is the last number in the title.
             let n = if f.rule == "spec-ref" {
@@ -906,6 +981,21 @@ fn plan_door(p: &mut Planner, f: &Finding) {
                 } else {
                     p.manual(f, "The larger door doesn't fit in its wall.");
                 }
+            }
+            None if f.rule == "garage-door" => {
+                let mark = if o.mark.is_empty() {
+                    o.type_name.clone()
+                } else {
+                    o.mark.clone()
+                };
+                let name = o.type_name.clone();
+                p.add(
+                    f,
+                    format!("Make door {mark} 20-minute rated, solid core"),
+                    format!("door type → {name} - 20 Min Solid Core"),
+                    false,
+                    Action::RatedDoor { ids: vec![id] },
+                )
             }
             None => p.manual(
                 f,
@@ -1157,8 +1247,27 @@ fn apply_one(doc: &mut Document, model: &Model, a: &Action) -> CoreResult<()> {
             }
         }),
         Action::RoofSlope { id, slope: s } => modify(doc, *id, &|d| {
-            if let ElementData::Roof { slope, .. } = d {
+            if let ElementData::Roof {
+                slope,
+                sloped,
+                boundary,
+                ..
+            } = d
+            {
                 *slope = *s;
+                // A dead-flat roof drains one way: from its longest edge, like tapered
+                // insulation to a gutter or scuppers (ADR-094).
+                if !sloped.iter().any(|x| *x) && !boundary.is_empty() {
+                    let n = boundary.len();
+                    let longest = (0..n)
+                        .max_by(|a, b| {
+                            let l = |i: usize| boundary[i].dist(boundary[(i + 1) % n]);
+                            l(*a).total_cmp(&l(*b))
+                        })
+                        .unwrap_or(0);
+                    sloped.resize(n, false);
+                    sloped[longest] = true;
+                }
             }
         }),
         Action::Delete { ids } => ops::delete(doc, ids).map(|_| ()),
@@ -1210,7 +1319,130 @@ fn apply_one(doc: &mut Document, model: &Model, a: &Action) -> CoreResult<()> {
             studio_core::specs::add_sections(doc, secs)
         }
         Action::IncludeSpecs { numbers } => studio_core::specs::set_included(doc, numbers, true),
+        Action::RatedDoor { ids } => {
+            for id in ids {
+                let Ok(ElementData::Door { type_id, .. }) = doc.data(*id) else {
+                    continue;
+                };
+                let Ok(ElementData::DoorType {
+                    name,
+                    family,
+                    width,
+                    height,
+                    leaf,
+                    panels,
+                    finish,
+                }) = doc.data(*type_id).cloned()
+                else {
+                    continue;
+                };
+                let rated = format!("{name} - 20 Min Solid Core");
+                let copy = ElementData::DoorType {
+                    name: rated.clone(),
+                    family,
+                    width,
+                    height,
+                    leaf,
+                    panels,
+                    finish,
+                };
+                let t = type_named(doc, Cat::DoorType, &rated, copy)?;
+                doc.transact("QA/QC Fix", |tx| {
+                    tx.modify(*id, |d| {
+                        if let ElementData::Door { type_id, .. } = d {
+                            *type_id = t;
+                        }
+                    })
+                })?;
+            }
+            Ok(())
+        }
+        Action::WetWall { type_id, walls } => {
+            let Ok(ElementData::WallType {
+                name,
+                thickness,
+                function,
+                layers,
+            }) = doc.data(*type_id).cloned()
+            else {
+                return Err(CoreError::Invalid("not a wall type".into()));
+            };
+            let wet = format!("{name} - Wet Wall");
+            let layers = layers
+                .into_iter()
+                .map(|mut l| {
+                    if l.function == LayerFunction::Finish
+                        && has_any(&l.name.to_lowercase(), &["gypsum", "gwb", "drywall"])
+                    {
+                        l.name = "Glass-Mat Tile Backer Board".into();
+                        l.material = None;
+                    }
+                    l
+                })
+                .collect();
+            let data = ElementData::WallType {
+                name: wet.clone(),
+                thickness,
+                function,
+                layers,
+            };
+            let t = type_named(doc, Cat::WallType, &wet, data)?;
+            apply_one(
+                doc,
+                model,
+                &Action::SwapType {
+                    ids: walls.clone(),
+                    type_id: t,
+                },
+            )
+        }
+        Action::AddSection { section } => {
+            let Some(book) = studio_core::specs::book(doc) else {
+                return Err(CoreError::Invalid(
+                    "generate the project manual first".into(),
+                ));
+            };
+            if book.section(&section.number).is_some() {
+                studio_core::specs::set_section(doc, &section.number, section.clone())
+            } else {
+                studio_core::specs::add_sections(doc, vec![section.clone()])
+            }
+        }
+        Action::StripSpecRef { from, to } => {
+            let Some(book) = studio_core::specs::book(doc) else {
+                return Err(CoreError::Invalid("there's no project manual".into()));
+            };
+            let mut n = 0;
+            for number in from {
+                if let Some(s) = book.section(number) {
+                    let mut s = s.clone();
+                    if studio_specs::coord::strip_reference(&mut s, to) > 0 {
+                        studio_core::specs::set_section(doc, number, s)?;
+                        n += 1;
+                    }
+                }
+            }
+            if n == 0 {
+                return Err(CoreError::Invalid(format!(
+                    "no reference to {to} to edit out"
+                )));
+            }
+            Ok(())
+        }
     }
+}
+
+/// The type of `cat` named `name`, made from `data` when there's none yet.
+fn type_named(
+    doc: &mut Document,
+    cat: Cat,
+    name: &str,
+    data: ElementData,
+) -> CoreResult<ElementId> {
+    if let Some(e) = doc.of(cat).find(|e| e.data.name() == name) {
+        return Ok(e.id);
+    }
+    doc.transact("QA/QC Fix", |tx| Ok(tx.insert(data)))
 }
 
 #[cfg(test)]

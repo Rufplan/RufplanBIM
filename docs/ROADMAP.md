@@ -85,6 +85,7 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- Fix Issues full screen, more built-in fixes, Fix with Claude for what needs you (ADR-094).
 - Door and window offsets from the wall finish face; the furnished Modern House sample (ADR-093).
 - Door flips as in Revit: spacebar cycles all four swings (placing and selected), clickable
   hand and facing flip arrows (ADR-091).
