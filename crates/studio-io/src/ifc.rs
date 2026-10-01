@@ -291,6 +291,8 @@ pub struct IfcSummary {
     pub railings: usize,
     /// Lighting fixtures (ADR-057).
     pub lights: usize,
+    /// Furniture and equipment (ADR-090).
+    pub ffe: usize,
     /// Sketched wall openings' holes (ADR-058).
     pub wall_openings: usize,
     /// Model In-Place elements (ADR-068), each as its category's IFC class.
@@ -815,6 +817,50 @@ pub fn export_ifc_with(
             s(&ifc_guid(derived(e.id.0, "pset-rel")))
         ));
         summary.lights += 1;
+    }
+    // Furniture and equipment (ADR-090): IfcFurniture, and appliances as
+    // IfcElectricAppliance with their predefined type (others as proxies).
+    for e in doc
+        .of(Category::Furniture)
+        .chain(doc.of(Category::SpecialtyEquipment))
+    {
+        let ElementData::Ffe { level, type_id, .. } = &e.data else {
+            continue;
+        };
+        let (Some((_, storey, splace, elev)), Some((foot, z0, z1)), Some(spec)) = (
+            storey_of(*level),
+            studio_core::ffe::envelope(doc, e.id),
+            studio_core::ffe::spec_of(doc, *type_id),
+        ) else {
+            continue;
+        };
+        let place = w.placement(Some(splace), 0.0);
+        let shape = w.extrusions(body, &[(Poly::simple(foot), z0 - elev, (z1 - z0).max(1.0))]);
+        let ty = type_name(e.id);
+        use studio_core::ffe::{FfeClass, FfeKind::*};
+        let (class, kind) = match (spec.class, spec.kind) {
+            (FfeClass::Furniture, _) => ("IFCFURNITURE", "NOTDEFINED"),
+            (_, Refrigerator) => ("IFCELECTRICAPPLIANCE", "FRIDGE_FREEZER"),
+            (_, ChestFreezer) => ("IFCELECTRICAPPLIANCE", "FREEZER"),
+            (_, Range | Cooktop | WallOven) => ("IFCELECTRICAPPLIANCE", "ELECTRICCOOKER"),
+            (_, Microwave | OtrMicrowave) => ("IFCELECTRICAPPLIANCE", "MICROWAVE"),
+            (_, Dishwasher) => ("IFCELECTRICAPPLIANCE", "DISHWASHER"),
+            (_, Washer) => ("IFCELECTRICAPPLIANCE", "WASHINGMACHINE"),
+            (_, Dryer | StackedLaundry) => ("IFCELECTRICAPPLIANCE", "TUMBLEDRYER"),
+            (_, Vending) => ("IFCELECTRICAPPLIANCE", "VENDINGMACHINE"),
+            (_, CounterAppliance | WineCooler | IceMachine | Tv) => {
+                ("IFCELECTRICAPPLIANCE", "NOTDEFINED")
+            }
+            _ => ("IFCBUILDINGELEMENTPROXY", "NOTDEFINED"),
+        };
+        let el = w.add(format!(
+            "{class}({},$,{},$,{},#{place},#{shape},$,.{kind}.)",
+            s(&ifc_guid(e.id.0)),
+            s(&ty),
+            s(&ty)
+        ));
+        contained.entry(storey).or_default().push(el);
+        summary.ffe += 1;
     }
     for beam in &model.beams {
         let Some((_, storey, splace, elev)) = storey_of(beam.level) else {
@@ -1369,6 +1415,14 @@ mod tests {
             let t = studio_core::lighting::load(&mut doc, &[name.to_string()]).unwrap()[0];
             studio_core::lighting::create_fixture(&mut doc, t, l1, at, 0.0, None).unwrap();
         }
+        // A sofa and a refrigerator (ADR-090).
+        for (name, at) in [
+            ("Sofa 84\"", Pt::new(2500.0, 2500.0)),
+            ("Refrigerator French Door 36\"", Pt::new(1000.0, 3000.0)),
+        ] {
+            let t = studio_core::ffe::load(&mut doc, &[name.to_string()]).unwrap()[0];
+            studio_core::ffe::create(&mut doc, t, l1, at, 0.0).unwrap();
+        }
 
         let (ifc, sum) = export_ifc(&doc, "0.0.1", "2026-09-24T00:00:00");
         assert_eq!(
@@ -1387,12 +1441,14 @@ mod tests {
                 beams: 1,
                 railings: 2,
                 lights: 2,
+                ffe: 2,
                 wall_openings: 1,
                 in_place: 0,
                 structural: 0,
             }
         );
         assert!(ifc.contains(".DIRECTIONSOURCE.)") && ifc.contains(".SECURITYLIGHTING.)"));
+        assert!(ifc.contains("IFCFURNITURE(") && ifc.contains(".FRIDGE_FREEZER.)"));
         assert!(ifc.starts_with("ISO-10303-21;"));
         assert!(ifc.contains("FILE_SCHEMA(('IFC4'));"));
         assert!(ifc.trim_end().ends_with("END-ISO-10303-21;"));

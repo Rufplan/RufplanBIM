@@ -45,7 +45,7 @@ describe("Site tab (ADR-023)", () => {
       "Site",
       "Architecture",
       "Openings",
-      "Lighting",
+      "FFE",
       "Modify",
       "Details",
       "Structure",

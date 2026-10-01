@@ -57,6 +57,7 @@ pub fn move_elements(doc: &mut Document, ids: &[ElementId], delta: Pt) -> CoreRe
                 ElementData::Group { origin, .. } => *origin = origin.add(delta),
                 ElementData::ElevationMarker { at, .. } => *at = at.add(delta),
                 ElementData::Planting { at, .. } => *at = at.add(delta),
+                ElementData::Ffe { at, .. } => *at = at.add(delta),
                 ElementData::GrassPatch { dabs, .. } => {
                     for d in dabs.iter_mut() {
                         d[0] += delta.x;

@@ -15,7 +15,7 @@ import type { Standards } from "./bindings/Standards";
 import type { DrawTool } from "./bindings/DrawTool";
 import type { LineStyle } from "./bindings/LineStyle";
 
-export type PickerCategory = "Door" | "Window" | "Light" | "Plant";
+export type PickerCategory = "Door" | "Window" | "Light" | "Plant" | "Furniture" | "Equipment";
 
 /** An applied Edit Model change: the prompt, what it did, and its undo step's name. */
 export interface EditLogEntry {
@@ -54,6 +54,8 @@ export type Tool =
   | "stair"
   | "column"
   | "light"
+  | "furniture"
+  | "equipment"
   | "plant"
   | "placeGroup"
   | "grassBrush"
@@ -108,6 +110,8 @@ export const TOOL_LABELS: Record<Tool, string> = {
   stair: "Stair",
   column: "Column",
   light: "Lighting Fixture",
+  furniture: "Furniture",
+  equipment: "Equipment",
   plant: "Plant",
   placeGroup: "Place Group",
   grassBrush: "Grass Brush",
@@ -165,6 +169,9 @@ export interface ToolTypes {
   beam: ElementId | null;
   railing: ElementId | null;
   light: ElementId | null;
+  /** Furniture and equipment (ADR-090). */
+  furniture: ElementId | null;
+  equipment: ElementId | null;
   plant: ElementId | null;
   /** Place Group's group type (ADR-087). */
   group: ElementId | null;
@@ -195,6 +202,8 @@ export interface ToolOptions {
   /** Plant (Enscape's placement, ADR-064): turn each plant randomly, and vary its size by
    * up to this many percent. */
   plantRandomRotation: boolean;
+  /** Furniture and equipment (ADR-090): the placed piece's rotation in degrees. */
+  ffeRotation: number;
   plantSizeVariation: number;
   /** Grass Brush (D5's, ADR-065): the grass to paint, the brush's radius (mm), the density
    * (%), and erasing instead of painting. */
@@ -474,6 +483,8 @@ export const useAppStore = create<UiState>((set, get) => ({
     beam: null,
     railing: null,
     light: null,
+    furniture: null,
+    equipment: null,
     plant: null,
     group: null,
   },
@@ -494,6 +505,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     stairShape: "straight",
     cameraHeight: "5' 6\"",
     plantRandomRotation: true,
+    ffeRotation: 0,
     plantSizeVariation: 15,
     grassKind: "Lawn",
     grassBrush: 1200,
@@ -658,6 +670,8 @@ export const useAppStore = create<UiState>((set, get) => ({
         ),
         roof: firstId(app.roofTypes, s.toolTypes.roof),
         light: firstId(app.lightingFixtureTypes, s.toolTypes.light),
+        furniture: firstId(app.furnitureTypes, s.toolTypes.furniture),
+        equipment: firstId(app.equipmentTypes, s.toolTypes.equipment),
         plant: firstId(app.plantingTypes, s.toolTypes.plant),
         group: app.groupTypes.some((t) => t.id === s.toolTypes.group) ? s.toolTypes.group : null,
         // Structural columns and steel beams are the everyday defaults.

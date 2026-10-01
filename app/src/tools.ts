@@ -56,6 +56,8 @@ export const SHORTCUTS: Record<string, Tool> = Object.fromEntries(
 /** Tools that need a plan view (they place elements on the view's level). */
 export const PLAN_TOOLS: Tool[] = [
   "plant",
+  "furniture",
+  "equipment",
   "roof",
   "stair",
   "column",
@@ -275,6 +277,9 @@ export function promptFor(tool: Tool, n: number, view: ViewType | undefined): st
       return "Click where the group's center goes; keep clicking to place more (Esc to stop).";
     case "plant":
       return "Click to place the plant; keep clicking to place more (Esc to stop). Random rotation and size are on the options bar.";
+    case "furniture":
+    case "equipment":
+      return "Click to place it (Rotation on the options bar); wall pieces go against the nearest wall, counter pieces at counter height. Keep clicking to place more (Esc to stop).";
     case "light":
       if (view === "Elevation" || view === "Section")
         return "Click a wall's face to place the fixture there (wall fixtures at the height clicked); in a section, click anywhere on the cut.";

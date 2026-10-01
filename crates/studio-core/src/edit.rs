@@ -175,7 +175,8 @@ fn transformed(
         ElementData::Room { point, .. } => *point = x.apply(*point),
         ElementData::ElevationMarker { at, .. } => *at = x.apply(*at),
         ElementData::Column { at, rotation, .. }
-        | ElementData::LightingFixture { at, rotation, .. } => {
+        | ElementData::LightingFixture { at, rotation, .. }
+        | ElementData::Ffe { at, rotation, .. } => {
             *at = x.apply(*at);
             let v = x.apply_vec(Pt::new(rotation.cos(), rotation.sin()));
             *rotation = v.y.atan2(v.x);

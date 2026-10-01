@@ -22,6 +22,7 @@ import { RenderDialog } from "./RenderDialog";
 import { SheetSetsDialog } from "./SheetSetsDialog";
 import { TypePicker } from "./TypePicker";
 import { LightPicker } from "./LightPicker";
+import { FfePicker } from "./FfePicker";
 import { AssetLibrary } from "./AssetLibrary";
 import { GroundDialog } from "./GroundDialog";
 import { FilterDialog } from "./FilterDialog";
@@ -39,6 +40,14 @@ export function ViewDialogs() {
     return (
       <AssetLibrary
         key={`plant:${picker.tab}`}
+        onClose={() => useAppStore.getState().setPicker(null)}
+      />
+    );
+  if (picker?.category === "Furniture" || picker?.category === "Equipment")
+    return (
+      <FfePicker
+        key={`${picker.category}:${picker.tab}`}
+        cls={picker.category}
         onClose={() => useAppStore.getState().setPicker(null)}
       />
     );

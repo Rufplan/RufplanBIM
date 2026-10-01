@@ -10,6 +10,7 @@ pub mod document;
 pub mod doors;
 pub mod edit;
 pub mod element;
+pub mod ffe;
 pub mod generate;
 pub mod grass;
 pub mod groups;

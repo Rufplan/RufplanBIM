@@ -16,6 +16,7 @@ pub mod caps;
 pub mod doors;
 pub mod drafting;
 pub mod edges;
+pub mod ffe;
 pub mod foliage;
 pub mod handles;
 mod inplace;
@@ -734,6 +735,7 @@ fn plan(
     inplace::in_plan(doc, b, elev, cut, ceiling);
     lighting::plan_symbols(doc, b, level, ceiling);
     if !ceiling {
+        ffe::plan_symbols(doc, b, level);
         plants::plan_regions(doc, b, level, site_view);
         plants::plan_grass(doc, b, level, site_view);
         plants::plan_symbols(doc, b, level, site_view);
@@ -3928,6 +3930,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         out.push(r);
     }
     lighting::meshes(doc, &mut out);
+    ffe::meshes(doc, &mut out);
     plants::meshes(doc, &mut out);
     inplace::meshes(doc, &mut out);
     plants::region_meshes(doc, &mut out);

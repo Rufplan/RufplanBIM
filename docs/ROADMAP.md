@@ -85,6 +85,8 @@ Built ahead of the milestone order at the owner's request. **Works now:**
   rendered-thumbnail picker for doors and windows on Door/Window, Load Doors/Windows and
   Properties > Browse Types.
 
+- FFE tab: Furniture (105) and Equipment (69) libraries for residential, multifamily and
+  hospitality, beside Lighting Fixtures; plan symbols, 3D, thumbnails, IFC (ADR-090).
 - Fix Issues on QA/QC: automatic or approve-each fixes for the review findings (ADR-089).
 - QA/QC tab: milestone review (coordination, completeness, code/accessibility, waterproofing,
   drawings to specs, constructability, consultants), findings list, PDF report, Claude overall review (ADR-088).

@@ -52,7 +52,13 @@ export async function openPicker(category: PickerCategory, tab: "project" | "lib
   const ids = s.selection.slice(0, 50);
   const sheets = await Promise.all(ids.map((id) => ipc.properties(id).catch(() => null)));
   const cat =
-    category === "Light" ? "LightingFixture" : category === "Plant" ? "Planting" : category;
+    category === "Light"
+      ? "LightingFixture"
+      : category === "Plant"
+        ? "Planting"
+        : category === "Equipment"
+          ? "SpecialtyEquipment"
+          : category;
   const change = ids.filter((_, i) => sheets[i]?.category === cat);
   useAppStore.getState().setPicker({ category, tab, change });
 }
@@ -64,6 +70,18 @@ export async function startTool(tool: Tool) {
     // Enscape: placing starts from the Asset Library.
     const s = useAppStore.getState();
     const picking = openPicker("Plant", s.toolTypes.plant ? "project" : "library");
+    s.setTool(tool);
+    await picking;
+    return;
+  }
+  if (tool === "furniture" || tool === "equipment") {
+    // Like Lighting Fixture: pick (or load) a type first.
+    const s = useAppStore.getState();
+    const has = tool === "furniture" ? s.toolTypes.furniture : s.toolTypes.equipment;
+    const picking = openPicker(
+      tool === "furniture" ? "Furniture" : "Equipment",
+      has ? "project" : "library",
+    );
     s.setTool(tool);
     await picking;
     return;
@@ -88,6 +106,8 @@ const SIMILAR: Record<string, [Tool, keyof ToolTypes | null]> = {
   Roof: ["roof", "roof"],
   Column: ["column", "column"],
   LightingFixture: ["light", "light"],
+  Furniture: ["furniture", "furniture"],
+  SpecialtyEquipment: ["equipment", "equipment"],
   Planting: ["plant", "plant"],
   Beam: ["beam", "beam"],
   Railing: ["railing", "railing"],

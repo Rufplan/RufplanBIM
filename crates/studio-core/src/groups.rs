@@ -50,6 +50,7 @@ pub fn kind_of(data: &ElementData) -> Option<GroupKind> {
         | ElementData::RoomSeparator { .. }
         | ElementData::ModelLine { .. }
         | ElementData::LightingFixture { .. }
+        | ElementData::Ffe { .. }
         | ElementData::Planting { .. }
         | ElementData::InPlace { .. } => Some(GroupKind::Model),
         ElementData::DetailLine { .. }

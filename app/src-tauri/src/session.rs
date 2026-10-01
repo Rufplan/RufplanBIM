@@ -98,6 +98,9 @@ pub struct AppState {
     /// Lighting fixture types and the project's Sun Settings (ADR-057).
     pub lighting_fixture_types: Vec<NamedItem>,
     pub sun: studio_core::lighting::SunSettings,
+    /// Furniture and equipment types (ADR-090).
+    pub furniture_types: Vec<NamedItem>,
+    pub equipment_types: Vec<NamedItem>,
     /// Planting types and the base ground's material (ADR-064).
     pub planting_types: Vec<NamedItem>,
     pub ground: Option<ElementId>,
@@ -228,6 +231,20 @@ impl Session {
         let named = |cat: Category| -> Vec<NamedItem> {
             let mut v: Vec<NamedItem> = doc
                 .of(cat)
+                .map(|e| NamedItem {
+                    id: e.id,
+                    name: e.data.name(),
+                })
+                .collect();
+            v.sort_by(|a, b| ops::natural_cmp(&a.name, &b.name));
+            v
+        };
+        let ffe_types = |class: studio_core::ffe::FfeClass| -> Vec<NamedItem> {
+            let mut v: Vec<NamedItem> = doc
+                .of(Category::FfeType)
+                .filter(|e| {
+                    matches!(&e.data, studio_core::ElementData::FfeType { spec, .. } if spec.class == class)
+                })
                 .map(|e| NamedItem {
                     id: e.id,
                     name: e.data.name(),
@@ -377,6 +394,8 @@ impl Session {
             railing_types: named(Category::RailingType),
             lighting_fixture_types: named(Category::LightingFixtureType),
             sun: studio_core::lighting::sun_settings(doc),
+            furniture_types: ffe_types(studio_core::ffe::FfeClass::Furniture),
+            equipment_types: ffe_types(studio_core::ffe::FfeClass::Equipment),
             planting_types: named(Category::PlantingType),
             ground: studio_core::planting::ground(doc),
             materials: named(Category::Material),

@@ -99,6 +99,7 @@ pub fn seed_default_project(doc: &mut Document) -> CoreResult<()> {
         seed_opening_types(tx);
         crate::structure::seed_structure_types(tx);
         crate::lighting::seed_types(tx);
+        crate::ffe::seed_types(tx);
         crate::material::seed_materials(tx);
         crate::detail::seed_mark_types(tx);
         for (facing, name) in [
@@ -2346,6 +2347,9 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
         ElementData::LightingFixture { .. } | ElementData::LightingFixtureType { .. } => {
             crate::lighting::properties(doc, id, &mut props)
         }
+        ElementData::Ffe { .. } | ElementData::FfeType { .. } => {
+            crate::ffe::properties(doc, id, &mut props)
+        }
         ElementData::WallOpening { .. } => crate::wall_opening::properties(doc, id, &mut props),
         ElementData::PlantingType { .. }
         | ElementData::Planting { .. }
@@ -2816,6 +2820,9 @@ pub fn set_property(
         ElementData::LightingFixture { .. } | ElementData::LightingFixtureType { .. }
     ) {
         return crate::lighting::set_property(doc, id, key, value);
+    }
+    if matches!(data, ElementData::Ffe { .. } | ElementData::FfeType { .. }) {
+        return crate::ffe::set_property(doc, id, key, value);
     }
     if matches!(
         data,
@@ -3304,6 +3311,8 @@ pub fn set_property(
         | ElementData::NorthArrow { .. }
         | ElementData::GraphicScale { .. }
         | ElementData::LightingFixture { .. }
+        | ElementData::Ffe { .. }
+        | ElementData::FfeType { .. }
         | ElementData::LightingFixtureType { .. }
         | ElementData::PlantingType { .. }
         | ElementData::Planting { .. }

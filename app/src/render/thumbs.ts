@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { OpeningThumb } from "../bindings/OpeningThumb";
 import type { FixtureThumb } from "../bindings/FixtureThumb";
+import type { FfeThumb } from "../bindings/FfeThumb";
 import { toYUp } from "./pathtrace";
 
 // Rendered thumbnails of door and window types for the type picker (ADR-033): the type in a
@@ -48,7 +49,8 @@ const srgb = (c: [number, number, number]) =>
   new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace);
 
 /** Draws one thumbnail; its data URL, or null where WebGL isn't available. */
-export function renderThumb(t: OpeningThumb | FixtureThumb): string | null {
+export function renderThumb(t: OpeningThumb | FixtureThumb | FfeThumb): string | null {
+  if ("parts" in t) return renderFfe(t);
   if ("lens" in t) return renderFixture(t);
   let s;
   try {
@@ -182,10 +184,87 @@ function renderFixture(t: FixtureThumb): string | null {
   }
 }
 
+/** Furniture or equipment (ADR-090): its parts in their finishes on a light studio floor,
+ * seen from the front (model -y) at three-quarters and above. */
+function renderFfe(t: FfeThumb): string | null {
+  let s;
+  try {
+    s = setup();
+  } catch {
+    return null;
+  }
+  const scene = new THREE.Scene();
+  scene.environment = s.env;
+  scene.environmentIntensity = 0.6;
+  scene.background = new THREE.Color(0xeceae6);
+  const meshes: THREE.Mesh[] = [];
+  const mats: THREE.Material[] = [];
+  for (const p of t.parts) {
+    const [r, , b] = p.color;
+    const metal = r > 160 && r < 190 && Math.abs(r - b) < 12;
+    const glass = r < 60 && b > r + 15;
+    const mat = new THREE.MeshStandardMaterial({
+      color: srgb(p.color),
+      roughness: glass ? 0.08 : metal ? 0.3 : 0.75,
+      metalness: metal ? 0.85 : glass ? 0.3 : 0,
+    });
+    mats.push(mat);
+    const m = new THREE.Mesh(geometry(p.positions), mat);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    scene.add(m);
+    meshes.push(m);
+  }
+  const box = new THREE.Box3();
+  for (const m of meshes) box.expandByObject(m);
+  if (box.isEmpty()) return null;
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const radius = Math.max(size.length() / 2, 1);
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(radius * 12, radius * 12).rotateX(-Math.PI / 2),
+    new THREE.ShadowMaterial({ opacity: 0.18 }),
+  );
+  floor.position.y = box.min.y;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  // Model -y (the front) is three.js +z.
+  const cam = new THREE.PerspectiveCamera(28, 1, radius / 50, radius * 20);
+  const dir = new THREE.Vector3(-0.55, 0.5, 1).normalize();
+  const dist = radius / Math.sin(THREE.MathUtils.degToRad(14)) / 0.92;
+  cam.position.copy(center).addScaledVector(dir, dist);
+  cam.lookAt(center);
+  const key = new THREE.DirectionalLight(0xfff4e8, 2.2);
+  key.position.copy(center).add(new THREE.Vector3(-radius * 2.5, radius * 4, radius * 2));
+  key.target.position.copy(center);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  const sc = key.shadow.camera as THREE.OrthographicCamera;
+  sc.left = sc.bottom = -radius * 2;
+  sc.right = sc.top = radius * 2;
+  sc.near = radius * 0.1;
+  sc.far = radius * 12;
+  key.shadow.bias = -0.0005;
+  key.shadow.radius = 4;
+  scene.add(key, key.target);
+  try {
+    s.renderer.render(scene, cam);
+    return s.renderer.domElement.toDataURL("image/png");
+  } catch {
+    return null;
+  } finally {
+    for (const m of meshes) m.geometry.dispose();
+    for (const m of mats) m.dispose();
+    floor.geometry.dispose();
+    (floor.material as THREE.Material).dispose();
+    key.shadow.map?.dispose();
+  }
+}
+
 /** A cached, queued thumbnail for `key`, drawn from the triangles `load` fetches. */
 export function thumbnail(
   key: string,
-  load: () => Promise<OpeningThumb | FixtureThumb>,
+  load: () => Promise<OpeningThumb | FixtureThumb | FfeThumb>,
 ): Promise<string | null> {
   let p = cache.get(key);
   if (!p) {

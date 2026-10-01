@@ -6,6 +6,7 @@ mod detail_cmds;
 mod detailing;
 mod door_cmds;
 mod editing;
+mod ffe_cmds;
 mod generate_cmds;
 mod group_cmds;
 mod inplace_cmds;
@@ -218,6 +219,10 @@ pub fn run() -> anyhow::Result<()> {
             shortcut_cmds::set_pinned,
             shortcut_cmds::select_all_instances,
             shortcut_cmds::selection_categories,
+            ffe_cmds::ffe_library,
+            ffe_cmds::load_ffe_types,
+            ffe_cmds::ffe_thumbnail,
+            ffe_cmds::create_ffe,
             lighting_cmds::lighting_library,
             lighting_cmds::load_lighting_types,
             lighting_cmds::fixture_thumbnail,

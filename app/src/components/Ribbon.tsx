@@ -371,7 +371,7 @@ type Tab =
   | "Site"
   | "Architecture"
   | "Openings"
-  | "Lighting"
+  | "FFE"
   | "Modify"
   | "Details"
   | "Structure"
@@ -389,7 +389,7 @@ type Tab =
 /** The ribbon's tabs in numbered workflow groups (the grouped tab bar). */
 const TAB_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: "SETUP", tabs: ["Project Info", "Standards", "Manage"] },
-  { label: "MODEL", tabs: ["Site", "Architecture", "Openings", "Lighting", "Modify"] },
+  { label: "MODEL", tabs: ["Site", "Architecture", "Openings", "FFE", "Modify"] },
   { label: "DETAILS", tabs: ["Details"] },
   { label: "CONSULTANTS", tabs: ["Structure", "MEPT"] },
   { label: "VISUALIZE", tabs: ["Materials", "Landscape", "Rendering"] },
@@ -660,8 +660,26 @@ export function Ribbon() {
             </Group>
           </>
         )}
-        {tab === "Lighting" && (
+        {tab === "FFE" && (
           <>
+            {/* Furniture, fixtures and equipment (ADR-090). */}
+            <Group title="Furniture">
+              <ToolButton
+                tool="furniture"
+                label="Furniture"
+                icon={Icons.sofa}
+                keys="seating, tables, beds, casegoods"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => void openPicker("Furniture", "library")}
+                disabled={!app}
+                title="Furniture Library: the most common living, dining, bedroom, office, hotel, amenity and outdoor furniture for residential, multifamily and hospitality projects"
+              >
+                {Icons.sofa}
+                <span>Load Furniture</span>
+              </button>
+            </Group>
             <Group title="Lighting Fixture">
               <ToolButton
                 tool="light"
@@ -677,6 +695,23 @@ export function Ribbon() {
               >
                 {Icons.light}
                 <span>Load Fixtures</span>
+              </button>
+            </Group>
+            <Group title="Equipment">
+              <ToolButton
+                tool="equipment"
+                label="Equipment"
+                icon={Icons.appliance}
+                keys="appliances, laundry, mechanical, fitness"
+              />
+              <button
+                className="rb-btn"
+                onClick={() => void openPicker("Equipment", "library")}
+                disabled={!app}
+                title="Equipment Library: kitchen and laundry appliances, water heaters and HVAC units, TVs, hotel and amenity equipment, and fitness equipment"
+              >
+                {Icons.appliance}
+                <span>Load Equipment</span>
               </button>
             </Group>
             <Group title="Sun">

@@ -104,6 +104,10 @@ import type { PickCandidate } from "./bindings/PickCandidate";
 import type { LightLibrary } from "./bindings/LightLibrary";
 import type { FixtureSource } from "./bindings/FixtureSource";
 import type { FixtureThumb } from "./bindings/FixtureThumb";
+import type { FfeClass } from "./bindings/FfeClass";
+import type { FfeLibrary } from "./bindings/FfeLibrary";
+import type { FfeSource } from "./bindings/FfeSource";
+import type { FfeThumb } from "./bindings/FfeThumb";
 import type { LightInfo } from "./bindings/LightInfo";
 import type { PlantLibrary } from "./bindings/PlantLibrary";
 import type { PlantSource } from "./bindings/PlantSource";
@@ -521,6 +525,12 @@ export const ipc = {
     invoke<ElementId[]>("pick_in_rect", { view, a, b, crossing }),
   elementCategories: (ids: ElementId[]) =>
     invoke<[ElementId, Category][]>("element_categories", { ids }),
+  // Furniture and equipment (ADR-090).
+  ffeLibrary: (cls: FfeClass) => invoke<FfeLibrary>("ffe_library", { class: cls }),
+  loadFfeTypes: (names: string[]) => invoke<LoadedWindows>("load_ffe_types", { names }),
+  ffeThumbnail: (source: FfeSource) => invoke<FfeThumb>("ffe_thumbnail", { source }),
+  createFfe: (view: ElementId, typeId: ElementId, at: Pt, rotation: number | null = null): S =>
+    invoke("create_ffe", { view, typeId, at, rotation }),
   // Lighting (ADR-057).
   lightingLibrary: () => invoke<LightLibrary>("lighting_library"),
   loadLightingTypes: (names: string[]) => invoke<LoadedWindows>("load_lighting_types", { names }),

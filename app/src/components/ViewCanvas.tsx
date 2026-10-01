@@ -1,5 +1,5 @@
 import { siteImagery, type Imagery } from "../imagery";
-import { paintElement, setDetailLevel } from "../actions";
+import { openPicker, paintElement, setDetailLevel } from "../actions";
 import { DetailLevelToggle } from "./DetailLevelToggle";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -1890,6 +1890,16 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         return;
       }
       await startWallOpening(id);
+      return;
+    }
+    if (s.tool === "furniture" || s.tool === "equipment") {
+      const t = s.tool === "furniture" ? s.toolTypes.furniture : s.toolTypes.equipment;
+      if (!t) {
+        void openPicker(s.tool === "furniture" ? "Furniture" : "Equipment", "library");
+        return;
+      }
+      const rot = (s.options.ffeRotation * Math.PI) / 180;
+      await apply(() => ipc.createFfe(view.id, t, p, rot));
       return;
     }
     if (s.tool === "light") {

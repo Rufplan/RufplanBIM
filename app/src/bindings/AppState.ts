@@ -31,6 +31,10 @@ levelElevations: Array<number>, wallTypes: Array<NamedItem>, floorTypes: Array<N
  */
 lightingFixtureTypes: Array<NamedItem>, sun: SunSettings, 
 /**
+ * Furniture and equipment types (ADR-090).
+ */
+furnitureTypes: Array<NamedItem>, equipmentTypes: Array<NamedItem>, 
+/**
  * Planting types and the base ground's material (ADR-064).
  */
 plantingTypes: Array<NamedItem>, ground: ElementId | null, materials: Array<NamedItem>, elevationMarkerTypes: Array<NamedItem>, stages: Array<StageItem>, currentStage: ElementId | null, projectInfo: ElementId | null, projectName: string, undo: string | null, redo: string | null, 

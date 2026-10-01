@@ -370,6 +370,25 @@ export const Icons = {
       <path d="M9 17v-5a3 3 0 0 1 6 0v5z" fill="#fff" stroke="#fff" />
     </I>
   ),
+  sofa: (
+    <I>
+      <path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3" />
+      <path
+        d="M2 12a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2z"
+        fill="currentColor"
+        fillOpacity="0.85"
+      />
+      <path d="M4 17v2M20 17v2" />
+    </I>
+  ),
+  appliance: (
+    <I>
+      <rect x="5" y="3" width="14" height="18" rx="1.5" />
+      <path d="M5 9h14" />
+      <path d="M8 5.5v1.5M8 11.5v4" strokeWidth="1.6" />
+      <circle cx="15.5" cy="6" r="0.9" fill="currentColor" />
+    </I>
+  ),
   light: (
     <I>
       <path d="M12 2v5" />

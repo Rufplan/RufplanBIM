@@ -457,6 +457,8 @@ export function appState(path: string | null, dirty = false): AppState {
       { id: "00000000-0000-7000-8000-000000000043", name: "Wall Sconce" },
     ],
     sun: { mode: "Still", month: 6, day: 21, hour: 15, azimuth: 225, altitude: 35 },
+    furnitureTypes: [{ id: "00000000-0000-7000-8000-000000000091", name: 'Sofa 84"' }],
+    equipmentTypes: [],
     plantingTypes: [],
     ground: null,
     materials: [
@@ -2047,6 +2049,15 @@ export function installFakeBackend(): FakeBackend {
             max: { x: 2000, y: 1050 },
           };
         // Lighting (ADR-057).
+        // Furniture and equipment (ADR-090).
+        case "ffe_library":
+          return a.class === "Furniture" ? FAKE_FURNITURE_LIBRARY : FAKE_EQUIPMENT_LIBRARY;
+        case "load_ffe_types":
+          return { state: fake.state, ids: ["00000000-0000-7000-8000-000000000092"] };
+        case "ffe_thumbnail":
+          return { parts: [] };
+        case "create_ffe":
+          return fake.state;
         case "lighting_library":
           return FAKE_LIGHT_LIBRARY;
         case "load_lighting_types":
@@ -2143,6 +2154,77 @@ const fixtureSpec = (over: Partial<import("../bindings/FixtureSpec").FixtureSpec
 });
 
 /** A small lighting library: a downlight, a troffer and a bollard. */
+const ffeSpec = (
+  cls: "Furniture" | "Equipment",
+  kind: import("../bindings/FfeKind").FfeKind,
+  w: number,
+  d: number,
+  h: number,
+): import("../bindings/FfeSpec").FfeSpec => ({
+  class: cls,
+  kind,
+  width: w * 25.4,
+  depth: d * 25.4,
+  height: h * 25.4,
+  mount: "Floor",
+  mount_height: 0,
+  count: 3,
+  color: [120, 120, 120],
+  accent: [60, 60, 60],
+});
+const ffeUses: import("../bindings/FfeUseOption").FfeUseOption[] = [
+  { id: "Residential", label: "Residential" },
+  { id: "Multifamily", label: "Multifamily" },
+  { id: "Hospitality", label: "Hospitality" },
+];
+export const FAKE_FURNITURE_LIBRARY: import("../bindings/FfeLibrary").FfeLibrary = {
+  presets: [
+    {
+      name: 'Sofa 84"',
+      description: "Three-seat sofa.",
+      group: "Living",
+      uses: ["Residential", "Multifamily", "Hospitality"],
+      spec: ffeSpec("Furniture", "Sofa", 84, 36, 34),
+    },
+    {
+      name: "King Bed",
+      description: "Eastern king with headboard.",
+      group: "Bedroom",
+      uses: ["Residential", "Hospitality"],
+      spec: ffeSpec("Furniture", "Bed", 80, 86, 48),
+    },
+    {
+      name: "Lobby Lounge Chair",
+      description: "Hotel lobby lounge chair.",
+      group: "Hospitality",
+      uses: ["Hospitality"],
+      spec: ffeSpec("Furniture", "Armchair", 32, 34, 32),
+    },
+  ],
+  groups: ["Living", "Bedroom", "Hospitality"],
+  uses: ffeUses,
+};
+export const FAKE_EQUIPMENT_LIBRARY: import("../bindings/FfeLibrary").FfeLibrary = {
+  presets: [
+    {
+      name: 'Range 30"',
+      description: "Freestanding range.",
+      group: "Kitchen",
+      uses: ["Residential", "Multifamily"],
+      spec: ffeSpec("Equipment", "Range", 30, 28, 47),
+    },
+    {
+      name: "Treadmill",
+      description: "Commercial treadmill.",
+      group: "Fitness",
+      uses: ["Multifamily", "Hospitality"],
+      spec: ffeSpec("Equipment", "Treadmill", 84, 36, 60),
+    },
+  ],
+  groups: ["Kitchen", "Fitness"],
+  uses: ffeUses,
+};
+
 export const FAKE_LIGHT_LIBRARY: import("../bindings/LightLibrary").LightLibrary = {
   groups: ["Recessed & Ceiling", "Site & Exterior"],
   uses: [

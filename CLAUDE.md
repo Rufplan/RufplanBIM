@@ -169,6 +169,10 @@ Read these before writing code:
   features tags, generate/update/front, 6 styles, layout blocks, pdf with bundled OFL fonts, docx + zip,
   coord cross-refs, edit ops for Claude); app spec_cmds; components/Specs.tsx (tab after Sheets, page
   editor, EDIT SPECS pill). Samples: `cargo test --release -p studio-specs write_sample_books -- --ignored`.
+- FFE tab (ADR-090): studio-core `ffe` (FfeClass/FfeKind/FfeSpec/FfePreset, 105 furniture + 69
+  equipment presets by use, ElementData::FfeType/Ffe, create, envelope); studio-views `ffe` (parts,
+  plan_symbols, meshes, thumb); IFC furniture/appliances; app ffe_cmds; components/FfePicker.tsx;
+  the FFE ribbon tab replaces Lighting (Furniture, Lighting Fixture, Equipment, Sun, Render).
 - Project Info tab (ADR-084): studio-core `project` (ProjectDetails on ProjectInfo `details`, get/set,
   Budget::totals), studio-regen `Model::gross_area`; app project_cmds; components/ProjectInfo.tsx (the
   first ribbon tab, laid out like Standards).

@@ -88,6 +88,9 @@ pub enum Category {
     SpecBook,
     /// Model and detail groups (ADR-087).
     GroupType,
+    /// Furniture and equipment types (ADR-090); placed pieces are Furniture or
+    /// SpecialtyEquipment.
+    FfeType,
     Group,
     /// Annotation symbols (ADR-048).
     SpotElevation,
@@ -174,6 +177,7 @@ impl Category {
             Category::Standards => "Standards",
             Category::SpecBook => "SpecBook",
             Category::GroupType => "GroupType",
+            Category::FfeType => "FfeType",
             Category::Group => "Group",
             Category::SpotElevation => "SpotElevation",
             Category::NorthArrow => "NorthArrow",
@@ -1332,6 +1336,21 @@ pub enum ElementData {
     Standards(crate::standards::Standards),
     /// The project manual (ADR-085): one, made when it's first generated.
     SpecBook(Box<crate::specs::SpecBook>),
+    /// A furniture or equipment type (ADR-090).
+    FfeType {
+        name: String,
+        spec: crate::ffe::FfeSpec,
+    },
+    /// A placed piece of furniture or equipment: `at` its center, `rotation` its facing,
+    /// `offset` its base above the level (wall and counter pieces).
+    Ffe {
+        type_id: ElementId,
+        class: crate::ffe::FfeClass,
+        level: ElementId,
+        at: Pt,
+        rotation: f64,
+        offset: f64,
+    },
     /// A group type (ADR-087): Revit's model or detail group definition.
     GroupType {
         name: String,
@@ -1610,6 +1629,8 @@ impl ElementData {
             ElementData::Standards(_) => Category::Standards,
             ElementData::SpecBook(_) => Category::SpecBook,
             ElementData::GroupType { .. } => Category::GroupType,
+            ElementData::FfeType { .. } => Category::FfeType,
+            ElementData::Ffe { class, .. } => class.category(),
             ElementData::Group { .. } => Category::Group,
             ElementData::SpotElevation { .. } => Category::SpotElevation,
             ElementData::NorthArrow { .. } => Category::NorthArrow,
@@ -1794,6 +1815,8 @@ impl ElementData {
             ElementData::Standards(_) => "Drawing Set Standards".into(),
             ElementData::SpecBook(_) => "Project Manual".into(),
             ElementData::GroupType { name, .. } => name.clone(),
+            ElementData::FfeType { name, .. } => name.clone(),
+            ElementData::Ffe { class, .. } => class.label().into(),
             ElementData::Group { .. } => "Group".into(),
             ElementData::Site { address, .. } => {
                 if address.is_empty() {
@@ -1885,6 +1908,7 @@ impl ElementData {
             | ElementData::RoomSeparator { level, .. }
             | ElementData::ElevationMarker { level, .. }
             | ElementData::LightingFixture { level, .. }
+            | ElementData::Ffe { level, .. }
             | ElementData::Planting { level, .. }
             | ElementData::GroundRegion { level, .. }
             | ElementData::GrassPatch { level, .. }
@@ -1913,7 +1937,8 @@ impl ElementData {
             | ElementData::Beam { type_id, .. }
             | ElementData::Railing { type_id, .. }
             | ElementData::LightingFixture { type_id, .. }
-            | ElementData::Planting { type_id, .. } => Some(*type_id),
+            | ElementData::Planting { type_id, .. }
+            | ElementData::Ffe { type_id, .. } => Some(*type_id),
             ElementData::ElevationMarker { type_id, .. } => *type_id,
             _ => None,
         }

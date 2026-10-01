@@ -46,7 +46,7 @@ async function openLighting() {
   render(<App />);
   await userEvent.click(screen.getByRole("button", { name: "New Project" }));
   await screen.findByRole("toolbar", { name: "Tools" });
-  await userEvent.click(screen.getByRole("tab", { name: "Lighting" }));
+  await userEvent.click(screen.getByRole("tab", { name: "FFE" }));
 }
 
 const argsOf = (cmd: string) =>

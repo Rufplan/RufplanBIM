@@ -416,6 +416,30 @@ export function OptionsBar() {
         </label>
       </>
     );
+  else if (tool === "furniture" || tool === "equipment")
+    // Rotation of the next piece placed (ADR-090); wall pieces face out of their wall.
+    body = (
+      <>
+        <label className="ob-field">
+          Rotation
+          <input
+            aria-label="Rotation"
+            type="number"
+            step={15}
+            value={o.ffeRotation}
+            onChange={(e) => set("ffeRotation", Number(e.target.value) || 0)}
+          />
+          °
+        </label>
+        <button
+          className="btn-outline"
+          title="Turn the next piece 90°"
+          onClick={() => set("ffeRotation", (o.ffeRotation + 90) % 360)}
+        >
+          Rotate 90°
+        </button>
+      </>
+    );
   else if (tool === "plant")
     // Enscape's placement options (ADR-064).
     body = (

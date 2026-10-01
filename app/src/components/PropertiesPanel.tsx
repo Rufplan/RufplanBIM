@@ -104,7 +104,9 @@ export function PropertiesPanel() {
         tool === "column" ||
         tool === "beam" ||
         tool === "railing" ||
-        tool === "light"
+        tool === "light" ||
+        tool === "furniture" ||
+        tool === "equipment"
       ? tool
       : tool.startsWith("floor")
         ? "floor"
@@ -122,6 +124,8 @@ export function PropertiesPanel() {
     beam: app.beamTypes,
     railing: app.railingTypes,
     light: app.lightingFixtureTypes,
+    furniture: app.furnitureTypes,
+    equipment: app.equipmentTypes,
     elevationMarker: app.elevationMarkerTypes,
   };
   const toolOptions = toolKind ? typesByKind[toolKind] : [];
@@ -137,6 +141,8 @@ export function PropertiesPanel() {
     Beam: "beam",
     Railing: "railing",
     LightingFixture: "light",
+    Furniture: "furniture",
+    SpecialtyEquipment: "equipment",
     ElevationMarker: "elevationMarker",
   };
   const instanceKind = sheet ? categoryKind[sheet.category] : undefined;
@@ -165,12 +171,24 @@ export function PropertiesPanel() {
                 sketching ? void apply(() => ipc.sketchSetType(id)) : setToolType(toolKind, id)
               }
             />
-            {(toolKind === "door" || toolKind === "window" || toolKind === "light") && (
+            {(toolKind === "door" ||
+              toolKind === "window" ||
+              toolKind === "light" ||
+              toolKind === "furniture" ||
+              toolKind === "equipment") && (
               <button
                 className="link-btn"
                 onClick={() =>
                   void openPicker(
-                    toolKind === "door" ? "Door" : toolKind === "window" ? "Window" : "Light",
+                    (
+                      {
+                        door: "Door",
+                        window: "Window",
+                        light: "Light",
+                        furniture: "Furniture",
+                        equipment: "Equipment",
+                      } as const
+                    )[toolKind],
                   )
                 }
               >
@@ -195,14 +213,18 @@ export function PropertiesPanel() {
                   />
                   {(sheet.category === "Door" ||
                     sheet.category === "Window" ||
-                    sheet.category === "LightingFixture") && (
+                    sheet.category === "LightingFixture" ||
+                    sheet.category === "Furniture" ||
+                    sheet.category === "SpecialtyEquipment") && (
                     <button
                       className="link-btn"
                       onClick={() =>
                         void openPicker(
                           sheet.category === "LightingFixture"
                             ? "Light"
-                            : (sheet.category as "Door" | "Window"),
+                            : sheet.category === "SpecialtyEquipment"
+                              ? "Equipment"
+                              : (sheet.category as "Door" | "Window" | "Furniture"),
                         )
                       }
                     >

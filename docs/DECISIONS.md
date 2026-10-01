@@ -3354,3 +3354,38 @@ coursing along a line".
     plans any further fixes.
 - On the sample house, fixing takes the 90% CD score from 76 to 91, and the plan and 3D
   still draw with the new membrane layers.
+
+## ADR-090 FFE tab: furniture, lighting fixtures and equipment — Accepted (2026-09-30)
+- **The owner's ask:** an FFE tab where the Lighting tab was, holding the lighting tools,
+  with a Furniture library before Lighting Fixtures and an Equipment library after it,
+  covering the most common pieces in residential, multifamily and hospitality projects.
+- **studio-core `ffe`:** `FfeClass` (Furniture, Equipment; placed pieces are Revit's
+  Furniture and Specialty Equipment categories), `FfeKind` (57 parametric archetypes),
+  `FfeSpec` (size, mount, mounting height, count, two colors) and `FfePreset`
+  (name, group, uses, description).
+  - The library: 105 furniture pieces (Living, Dining, Bedroom, Office, Hospitality,
+    Amenity, Outdoor) and 69 equipment pieces (Kitchen, Laundry, Mechanical & Plumbing,
+    Electronics, Hospitality & Amenity, Fitness), each tagged Residential, Multifamily
+    and/or Hospitality. Sizes are typical US nominal sizes in inches.
+  - New element data `FfeType` and `Ffe` (type, class, level, center, rotation, offset).
+    New projects start with a sofa, queen bed, dining table, refrigerator and range.
+  - `create` places floor pieces at the click; wall pieces (TVs, hoods, OTR microwaves,
+    mini-splits, panels) go against the nearest wall face at their mounting height;
+    counter pieces sit at 36". Properties: type (same class only), level, offset,
+    rotation; type width, depth, height, mounting height.
+  - Move, Copy, Rotate, Mirror and groups handle them like columns and fixtures.
+- **studio-views `ffe`:** each archetype is built from boxes and cylinders in its own
+  frame (front toward local -y), in main, accent, dark, metal, glass and linen tones.
+  Floor plans draw the plan parts (cushions, pillows, burners, drum lids) over a paper
+  fill; wall pieces above the 4'-0" cut plane draw dashed as overhead. 3D gets one mesh per tone; the
+  picker gets `FfeThumb`.
+- **IFC:** furniture exports as IfcFurniture; appliances as IfcElectricAppliance with
+  their predefined type (FRIDGE_FREEZER, ELECTRICCOOKER, DISHWASHER, WASHINGMACHINE,
+  TUMBLEDRYER, MICROWAVE, FREEZER, VENDINGMACHINE); other equipment as
+  IfcBuildingElementProxy.
+- **App:** `ffe_library`, `load_ffe_types`, `ffe_thumbnail` and `create_ffe`;
+  AppState `furnitureTypes` / `equipmentTypes`. The FFE tab (MODEL group) has
+  Furniture (tool + Load Furniture), Lighting Fixture, Equipment (tool + Load
+  Equipment), then Sun, Artificial Lights and Render. `FfePicker` mirrors the lighting
+  picker, with group and project-type filters. The options bar sets the rotation
+  (Rotate 90°). Create Similar and Browse Types work for both.
