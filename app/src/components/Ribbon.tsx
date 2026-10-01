@@ -604,6 +604,15 @@ export function Ribbon() {
             </Group>
             <Group title="Roof & Circulation">
               <ToolButton tool="roof" label="Roof" icon={Icons.roof} keys="RF — by footprint" />
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "fascia" })}
+                disabled={!app}
+                title="Fascia: the trim around the roof edge, from 20 typical profiles (the selected roofs, or all)"
+              >
+                {Icons.fascia}
+                <span>Fascia</span>
+              </button>
               <ToolButton tool="stair" label="Stair" icon={Icons.stair} keys="ST" />
               <ToolButton
                 tool="railing"

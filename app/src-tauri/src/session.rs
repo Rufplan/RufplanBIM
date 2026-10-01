@@ -286,13 +286,17 @@ impl Session {
                         ViewKind::Schedule { .. } => (ViewType::Schedule, None),
                         ViewKind::MarkerElevation { .. } => (ViewType::Elevation, None),
                         ViewKind::Drafting => (ViewType::Drafting, None),
+                        ViewKind::Rendering { .. } => (ViewType::Rendering, None),
                     };
                     Some(ViewInfo {
                         id: e.id,
                         name: name.clone(),
                         view_type,
                         scale: *scale,
-                        scale_label: if matches!(kind, ViewKind::Schedule { .. }) {
+                        scale_label: if matches!(
+                            kind,
+                            ViewKind::Schedule { .. } | ViewKind::Rendering { .. }
+                        ) {
                             String::new()
                         } else {
                             ops::scale_label(*scale)

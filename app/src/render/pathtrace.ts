@@ -37,11 +37,15 @@ export interface Surface {
   transmission: number;
   clearcoat: number;
   specularIntensity: number;
+  /** Fabric's soft sheen (0 for none). */
+  sheen?: number;
 }
 
 /** A category's physical surface, tuned like V-Ray's standard materials: glass with
  * Fresnel reflections, metals, satin paint on doors, and matte but not dead masonry. */
-export function surfaceFor(m: Pick<Mesh, "category" | "color" | "exterior">): Surface {
+export function surfaceFor(
+  m: Pick<Mesh, "category" | "color" | "exterior"> & { finish?: Mesh["finish"] },
+): Surface {
   const base = meshColor(m as Mesh);
   const s: Surface = {
     color: base,
@@ -51,6 +55,29 @@ export function surfaceFor(m: Pick<Mesh, "category" | "color" | "exterior">): Su
     clearcoat: 0,
     specularIntensity: 0.5,
   };
+  // Furniture and equipment finishes (ADR-095), like V-Ray's and D5's stock materials.
+  switch (m.finish) {
+    case "Fabric":
+      return { ...s, roughness: 0.92, specularIntensity: 0.25, sheen: 0.8 };
+    case "Wicker":
+      return { ...s, roughness: 0.62, specularIntensity: 0.4, clearcoat: 0.05 };
+    case "Wood":
+      return { ...s, roughness: 0.5, specularIntensity: 0.5, clearcoat: 0.15 };
+    case "Stainless":
+      return { ...s, roughness: 0.28, metalness: 1, specularIntensity: 1 };
+    case "Canvas":
+      return { ...s, roughness: 0.88, specularIntensity: 0.25, sheen: 0.3, transmission: 0.12 };
+    case "PowderCoat":
+      return { ...s, roughness: 0.42, specularIntensity: 0.55, clearcoat: 0.1 };
+    case "Glass":
+      return { ...s, roughness: 0.04, specularIntensity: 1, clearcoat: 1 };
+    case "Lacquer":
+      return { ...s, roughness: 0.3, specularIntensity: 0.6, clearcoat: 0.5 };
+    case "Stone":
+      return { ...s, roughness: 0.6, specularIntensity: 0.4 };
+    default:
+      break;
+  }
   switch (m.category) {
     case "Window":
       // The frame mesh (with a finish colour) is satin vinyl or painted metal; the glass
@@ -333,6 +360,9 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
       transmission: s.transmission,
       clearcoat: s.clearcoat,
       specularIntensity: s.specularIntensity,
+      sheen: s.sheen ?? 0,
+      sheenRoughness: 0.5,
+      sheenColor: s.color,
       ior: s.transmission ? 1.52 : 1.5,
       // Thin glass: panes reflect and transmit without bending light or trapping rays
       // inside the window's box, as V-Ray's architectural glass does.
@@ -506,6 +536,7 @@ export class RenderJob {
   private raf = 0;
   private stopped = false;
   private started = 0;
+  private logged = 0;
 
   constructor(settings: RenderSettings) {
     this.renderer = new THREE.WebGLRenderer({
@@ -513,6 +544,8 @@ export class RenderJob {
       alpha: true,
       premultipliedAlpha: true,
       preserveDrawingBuffer: true,
+      // The discrete GPU where there are two.
+      powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(1);
     this.renderer.setSize(settings.width, settings.height, false);
@@ -522,10 +555,15 @@ export class RenderJob {
     this.renderer.toneMappingExposure = settings.exposure;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.canvas = this.renderer.domElement;
+    this.canvas.addEventListener("webglcontextlost", () =>
+      console.warn("Render: the GPU reset (WebGL context lost)"),
+    );
     this.tracer = new WebGLPathTracer(this.renderer);
     // Global illumination as V-Ray's brute force: many diffuse bounces, deep glass.
-    this.tracer.bounces = 8;
-    this.tracer.transmissiveBounces = 12;
+    // Exteriors: five bounces carry nearly all the light; more only cost time (ADR-095).
+    this.tracer.bounces = 5;
+    // Leaf cards (alpha-cut and thinly transmissive) each spend one.
+    this.tracer.transmissiveBounces = 16;
     this.tracer.filterGlossyFactor = 0.5;
     this.tracer.multipleImportanceSampling = true;
     this.tracer.minSamples = 1;
@@ -558,7 +596,16 @@ export class RenderJob {
     this.started = performance.now();
     const loop = () => {
       if (this.stopped) return;
-      this.tracer.renderSample();
+      // As many tiles as fit in ~30 ms a frame, so the GPU isn't idle between screen
+      // refreshes (ADR-095). Each one is waited for (finish), so the queue never grows
+      // past what the driver allows before it resets the GPU.
+      // Reading a pixel back waits for the GPU (gl.finish doesn't, under ANGLE).
+      const px = new Float32Array(4);
+      const t0 = performance.now();
+      do {
+        this.tracer.renderSample();
+        this.renderer.readRenderTargetPixels(this.tracer.target, 0, 0, 1, 1, px);
+      } while (performance.now() - t0 < 30 && Math.floor(this.tracer.samples) < samples);
       const n = Math.floor(this.tracer.samples);
       const secs = (performance.now() - this.started) / 1000;
       if (n >= samples) {
@@ -567,9 +614,22 @@ export class RenderJob {
         return;
       }
       onProgress(n, secs, "rendering");
+      if (Math.floor(n / 64) !== Math.floor(this.logged / 64)) {
+        console.warn(`Render: ${n} of ${samples} samples, ${secs.toFixed(0)} s`);
+        this.logged = n;
+      }
       this.raf = requestAnimationFrame(loop);
     };
     loop();
+  }
+
+  /** The GPU rendering, as the driver names it. */
+  gpu(): string {
+    const gl = this.renderer.getContext();
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    return String(
+      ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+    );
   }
 
   stop() {
@@ -673,6 +733,22 @@ export function d5Grade(canvas: HTMLCanvasElement, saturation = 1.14, contrast =
   ctx.save();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.filter = `saturate(${saturation}) contrast(${contrast})`;
+  ctx.drawImage(copy, 0, 0);
+  ctx.restore();
+}
+
+/** A warm, airy finishing grade (ADR-095): a touch of warmth, lifted mids, gentle
+ * contrast, as an architectural photographer grades a late-afternoon exterior. */
+export function warmGrade(canvas: HTMLCanvasElement, warmth = 0.08) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const copy = document.createElement("canvas");
+  copy.width = canvas.width;
+  copy.height = canvas.height;
+  copy.getContext("2d")?.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.filter = `sepia(${warmth}) brightness(1.04) contrast(1.04) saturate(0.98)`;
   ctx.drawImage(copy, 0, 0);
   ctx.restore();
 }

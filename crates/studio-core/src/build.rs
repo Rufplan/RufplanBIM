@@ -105,6 +105,7 @@ pub fn create_roof(
             boundary,
             slope,
             sloped,
+            fascia: None,
         }))
     })
 }
@@ -159,6 +160,7 @@ pub fn create_roofs_by_footprint(
                 boundary,
                 slope,
                 sloped,
+                fascia: None,
             }));
         }
         Ok(ids)
@@ -299,9 +301,26 @@ pub(crate) fn properties(doc: &Document, id: ElementId, props: &mut Vec<Property
             boundary,
             slope,
             sloped,
+            fascia,
             ..
         } => {
             props.push(level_choice(doc, "level", "Base Level", *level));
+            // The trim around its edge (ADR-095).
+            props.push(choice(
+                "fascia",
+                "Fascia",
+                "Construction",
+                fascia.as_ref().map_or(String::new(), |f| f.name.clone()),
+                std::iter::once(PropOption {
+                    id: String::new(),
+                    label: "None".into(),
+                })
+                .chain(crate::fascia::catalog().into_iter().map(|f| PropOption {
+                    id: f.name.clone(),
+                    label: f.name,
+                }))
+                .collect(),
+            ));
             props.push(len(
                 "offset",
                 "Base Offset From Level",
@@ -390,6 +409,10 @@ pub(crate) fn set_property(
     key: &str,
     value: &str,
 ) -> CoreResult<()> {
+    if key == "fascia" && matches!(doc.data(id)?, ElementData::Roof { .. }) {
+        let name = Some(value.trim()).filter(|v| !v.is_empty());
+        return crate::fascia::set(doc, &[id], name);
+    }
     let mut d = doc.data(id)?.clone();
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     match &mut d {

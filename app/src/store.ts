@@ -301,6 +301,8 @@ interface UiState {
   app: AppState | null;
   error: string | null;
   openViews: ElementId[];
+  /** An unattended render to run (ADR-095). */
+  autoRender: import("./ipc").AutoRender | null;
   activeView: ElementId | null;
   /** A viewport activated on the active sheet (ADR-039): its view is edited in place, at
    * the sheet's scale, the rest of the sheet shown faded. */
@@ -360,6 +362,7 @@ interface UiState {
     | "keynotes"
     | "mep"
     | "createGroup"
+    | "fascia"
     | null;
   /** The door or window type picker (ADR-033): which category, which tab, and the
    * selected doors or windows it changes. */
@@ -469,6 +472,7 @@ export const useAppStore = create<UiState>((set, get) => ({
   app: null,
   error: null,
   openViews: [],
+  autoRender: null,
   activeView: null,
   activeViewport: null,
   activateViewport: (activeViewport) => set({ activeViewport, selection: [], tool: "select" }),

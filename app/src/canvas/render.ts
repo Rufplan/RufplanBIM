@@ -3,6 +3,7 @@ import type { DisplayList } from "../bindings/DisplayList";
 import type { FillKind } from "../bindings/FillKind";
 import type { Dash } from "../bindings/Dash";
 import type { Pt } from "../bindings/Pt";
+import { renderImage } from "./images";
 
 /** Model point at the canvas center, and pixels per model mm. */
 export interface Camera {
@@ -175,6 +176,23 @@ export function draw(
         ctx.strokeStyle = isSel ? THEME.cyan : isHover ? THEME.hover : THEME.ink;
         ctx.lineWidth = (hl.thin ? 1 : (PEN[p.w] ?? 1)) + (isSel ? 1.2 : 0);
         ctx.stroke();
+        break;
+      }
+      case "Image": {
+        const img = renderImage(p.image);
+        const [ax, ay] = S(p.min[0], p.max[1]);
+        const [bx, by] = S(p.max[0], p.min[1]);
+        if (img) ctx.drawImage(img, ax, ay, bx - ax, by - ay);
+        else {
+          ctx.fillStyle = "#e8e6e1";
+          ctx.fillRect(ax, ay, bx - ax, by - ay);
+        }
+        if (isSel || isHover) {
+          ctx.setLineDash([]);
+          ctx.strokeStyle = isSel ? THEME.cyan : THEME.hover;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(ax, ay, bx - ax, by - ay);
+        }
         break;
       }
       case "Circle": {

@@ -149,6 +149,24 @@ export function App() {
       (s) => setApp(s, true),
       (err) => setError(errorMessage(err)),
     );
+    // Development aid (ADR-095): render a camera view and save it, unattended.
+    void ipc
+      .autoRender()
+      .then(async (auto) => {
+        if (!auto) return;
+        for (let i = 0; i < 100 && !useAppStore.getState().app; i++)
+          await new Promise((r) => setTimeout(r, 100));
+        const s = useAppStore.getState();
+        const v = s.app?.views.find((x) => x.name === auto.view);
+        if (!v) {
+          s.setError(`Auto render: no view named ${auto.view}`);
+          return;
+        }
+        s.openView(v.id);
+        useAppStore.setState({ autoRender: auto });
+        s.setUi({ viewDialog: "render" });
+      })
+      .catch(() => {});
     const unlisten = ipc.onMenu((id) => void handleMenu(id));
     return () => {
       unlisten.then((stop) => stop());

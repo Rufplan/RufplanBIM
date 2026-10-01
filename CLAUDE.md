@@ -156,6 +156,11 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Hero rendering (ADR-095): studio-core `fascia` (20 profiles, Roof.fascia; studio-regen fascia_quads),
+  `renderings` (RenderImage, ViewKind::Rendering; Prim::Image, canvas/images.ts, PDF images); Mesh.finish;
+  texgen cedar-lap-stained / bluestone-pattern / bluestone-slab; planting Rocks & Boulders (Boulder, ledge piles);
+  components/FasciaPicker.tsx; Render dialog Save to Project; GPU-synced render loop. Dev aid:
+  `npm run tauri dev -- -- -- --sample --autorender=<json>` renders a view and quits.
 - Fix with Claude (ADR-094): studio-qa `assist` (digest, prompt, schema, suggestions → checked Fixes), fix Actions
   RatedDoor/WetWall/StripSpecRef/AddSection, studio-specs `coord::strip_reference`; app qa_fix_claude; Qa.tsx full-screen dialog.
 - Fix Issues (ADR-089): studio-qa `fix` (plan: Action per finding with design_change; apply: one undo step); app
@@ -290,4 +295,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-09-30
+- Last updated: 2026-10-01

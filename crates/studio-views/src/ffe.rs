@@ -13,7 +13,9 @@ use crate::{ring, Builder, Dash, FillKind, Mesh};
 const IN: f64 = 25.4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Tone {
+pub enum Tone {
+    /// Seat and back cushions (`FfeSpec::cushion`).
+    Cushion,
     Main,
     Accent,
     Dark,
@@ -123,6 +125,12 @@ fn parts(s: &FfeSpec) -> Vec<Part> {
     let n = s.count;
     let mut p = P { parts: vec![] };
     let seat_h = (h * 0.5).min(18.0 * IN);
+    // Cushions in their own fabric when the piece has one.
+    let cushion = if s.cushion.is_some() {
+        Tone::Cushion
+    } else {
+        Tone::Main
+    };
     match s.kind {
         Sofa | Armchair => {
             let arm = (w * 0.12).clamp(4.0 * IN, 7.0 * IN);
@@ -153,9 +161,22 @@ fn parts(s: &FfeSpec) -> Vec<Part> {
                     x0 + cw - 0.3 * IN,
                     hd - back,
                     seat_h,
-                    Main,
+                    cushion,
                     true,
                 );
+                // A back cushion against the frame, where the seat has its own fabric.
+                if cushion == Cushion {
+                    p.b(
+                        x0 + 0.3 * IN,
+                        hd - back - 4.0 * IN,
+                        seat_h,
+                        x0 + cw - 0.3 * IN,
+                        hd - back,
+                        h - 2.0 * IN,
+                        Cushion,
+                        false,
+                    );
+                }
             }
             p.legs(w, d, 2.0 * IN, 1.5 * IN, 3.0 * IN, Dark);
         }
@@ -1449,6 +1470,7 @@ fn prism(out: &mut Vec<f32>, ring: &[Pt], z0: f64, z1: f64) {
 fn tone_color(spec: &FfeSpec, t: Tone) -> [u8; 3] {
     match t {
         Tone::Main => spec.color,
+        Tone::Cushion => spec.cushion.unwrap_or(spec.color),
         Tone::Accent => spec.accent,
         Tone::Dark => [38, 38, 40],
         Tone::Metal => [170, 174, 178],
@@ -1563,11 +1585,18 @@ pub(crate) fn meshes(doc: &Document, out: &mut Vec<Mesh>) {
         let Some((fr, spec, level)) = frame(doc, &e.data) else {
             continue;
         };
+        let name = e
+            .data
+            .type_id()
+            .and_then(|t| doc.data(t).ok())
+            .map(|t| t.name())
+            .unwrap_or_default();
         for (tone, positions) in triangles(&fr, &spec) {
             if positions.is_empty() {
                 continue;
             }
             out.push(Mesh {
+                finish: finish_of(spec.kind, tone, &name),
                 el: e.id,
                 category: spec.class.category(),
                 exterior: false,
@@ -1580,6 +1609,81 @@ pub(crate) fn meshes(doc: &Document, out: &mut Vec<Mesh>) {
             });
         }
     }
+}
+
+/// How a part renders (ADR-095): cushions as fabric, frames as wicker or wood, appliance
+/// bodies as stainless, by the piece and the part's tone. `name` is its type's, which says
+/// whether it's outdoor furniture.
+pub fn finish_of(kind: FfeKind, tone: Tone, name: &str) -> Option<crate::Finish> {
+    use crate::Finish as F;
+    use FfeKind::*;
+    let n = name.to_lowercase();
+    let outdoor = [
+        "outdoor",
+        "pool",
+        "adirondack",
+        "patio",
+        "fire table",
+        "grill",
+    ]
+    .iter()
+    .any(|w| n.contains(w));
+    let soft = n.contains("upholstered") || n.contains("lounge") || n.contains("club");
+    Some(match tone {
+        Tone::Glass => F::Glass,
+        Tone::Metal => F::Stainless,
+        Tone::Dark => F::PowderCoat,
+        Tone::Light | Tone::Cushion => F::Fabric,
+        Tone::Main | Tone::Accent => {
+            let main = tone == Tone::Main;
+            match kind {
+                Sofa | Armchair if main && outdoor => F::Wicker,
+                Sofa | Sectional | Armchair | Chaise | Ottoman | Booth | Bench if main => {
+                    if kind == Bench && !soft {
+                        F::Wood
+                    } else {
+                        F::Fabric
+                    }
+                }
+                Sofa | Sectional | Armchair | Chaise | Ottoman | Booth | Bench => {
+                    if outdoor {
+                        F::Wicker
+                    } else {
+                        F::Wood
+                    }
+                }
+                Chair | Stool | OfficeChair if main && soft => F::Fabric,
+                Chair | Stool | Table | RoundTable | Desk | Bookcase | LuggageRack | BunkBed
+                | Crib => {
+                    if kind == Table && n.contains("fire") {
+                        F::Stone
+                    } else {
+                        F::Wood
+                    }
+                }
+                Bed if main => F::Fabric,
+                Bed => F::Wood,
+                Rug => F::Fabric,
+                Umbrella if main => F::Canvas,
+                Umbrella => F::Wood,
+                PoolTable if main => F::Wood,
+                PoolTable => F::Fabric,
+                Casegood | Cabinet | Wardrobe if main => F::Lacquer,
+                Casegood | Cabinet | Wardrobe => F::PowderCoat,
+                Grill if main => F::Stainless,
+                Grill => F::Wicker,
+                Refrigerator | Range | Cooktop | WallOven | Microwave | OtrMicrowave | Hood
+                | Dishwasher | WineCooler | IceMachine | ChestFreezer
+                    if main =>
+                {
+                    F::Stainless
+                }
+                Tv => F::PowderCoat,
+                _ if main => F::Lacquer,
+                _ => F::PowderCoat,
+            }
+        }
+    })
 }
 
 /// A piece by itself, for the picker: its triangles by color.

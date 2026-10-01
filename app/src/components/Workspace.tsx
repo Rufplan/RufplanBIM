@@ -14,6 +14,7 @@ const TYPE_LABEL = {
   Schedule: "Schedule",
   Sheet: "Sheet",
   Drafting: "Drafting View",
+  Rendering: "Rendering",
 } as const;
 
 export function Workspace() {

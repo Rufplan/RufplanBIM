@@ -898,6 +898,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                 boundary,
                 slope,
                 sloped,
+                fascia,
             } => {
                 let (thickness, top) = match doc.data(*type_id).ok()? {
                     ElementData::RoofType {
@@ -920,6 +921,7 @@ fn build(doc: &Document, memo: &mut Memo, stats: &mut RegenStats) -> Model {
                     thickness,
                 );
                 r.layers = type_layer_depths(doc, *type_id);
+                r.fascia = fascia.clone();
                 if let Some(m) = top {
                     r.surface = m.surface;
                     r.color = Some(m.color);

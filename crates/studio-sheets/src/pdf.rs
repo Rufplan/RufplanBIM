@@ -66,13 +66,14 @@ pub fn export_pdf(doc: &Document, sheets: &[ElementId], date: &str) -> Result<Ve
             return Err(PdfError::NotASheet(sheet));
         }
         let dl = sheet_display_list(doc, sheet, date).ok_or(PdfError::NotASheet(sheet))?;
-        draw_page(&mut pdf, &dl, &font, &face)?;
+        draw_page(&mut pdf, doc, &dl, &font, &face)?;
     }
     pdf.finish().map_err(|e| PdfError::Write(format!("{e:?}")))
 }
 
 fn draw_page(
     pdf: &mut Pdf,
+    doc: &Document,
     dl: &DisplayList,
     font: &Font,
     face: &ttf_parser::Face<'_>,
@@ -149,6 +150,32 @@ fn draw_page(
                     ..Default::default()
                 }));
                 surface.draw_path(&path);
+            }
+            // A saved rendering (ADR-095), embedded as it was rendered.
+            Prim::Image { image, min, max } => {
+                use base64::Engine;
+                let Ok(ElementData::RenderImage { mime, data, .. }) = doc.data(*image) else {
+                    continue;
+                };
+                let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(data) else {
+                    continue;
+                };
+                let img = if mime == "image/png" {
+                    krilla::image::Image::from_png(bytes.into(), true)
+                } else {
+                    krilla::image::Image::from_jpeg(bytes.into(), true)
+                };
+                let Ok(img) = img else { continue };
+                let (w, h) = (
+                    ((max[0] - min[0]) * PT_PER_MM) as f32,
+                    ((max[1] - min[1]) * PT_PER_MM) as f32,
+                );
+                let Some(size) = krilla::geom::Size::from_wh(w, h) else {
+                    continue;
+                };
+                surface.push_transform(&Transform::from_translate(x(min[0]), y(max[1])));
+                surface.draw_image(img, size);
+                surface.pop();
             }
             Prim::Circle {
                 c,

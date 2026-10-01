@@ -5,6 +5,7 @@ import { errorMessage, ipc } from "../ipc";
 import { BACKGROUNDS, type BackgroundId } from "../render/backgrounds";
 import type { RenderJob } from "../render/pathtrace";
 import { activeViewInfo, useAppStore } from "../store";
+import { apply } from "../fileActions";
 import { D5_CLOUDS, liveCameras } from "./View3D";
 import { plantLoader } from "./AssetLibrary";
 import type { Mesh } from "../bindings/Mesh";
@@ -49,31 +50,37 @@ export type Scheme = (typeof SCHEMES)[number][0];
 
 export function RenderDialog({ onClose }: { onClose: () => void }) {
   const projectSun = useAppStore((s) => s.app?.sun ?? null);
-  const [scheme, setScheme] = useState<Scheme>("Exterior: Sun only");
+  // An unattended render (ADR-095): its settings, then save and (by default) quit.
+  const auto = useAppStore((s) => s.autoRender);
+  const [scheme, setScheme] = useState<Scheme>(
+    (useAppStore.getState().autoRender?.scheme as Scheme | undefined) ?? "Exterior: Sun only",
+  );
   const view = useAppStore((s) => activeViewInfo(s));
   const satellite = useAppStore((s) => s.satellite && !!s.app?.site);
   const [size, setSize] = useState(1);
   const [quality, setQuality] = useState(1);
   // The date and time start from the project's Sun Settings (ADR-057).
-  const [month, setMonth] = useState(projectSun?.month ?? 6);
-  const [day, setDay] = useState(projectSun?.day ?? 21);
-  const [hour, setHour] = useState(projectSun?.hour ?? 15);
+  const [month, setMonth] = useState(auto?.month ?? projectSun?.month ?? 6);
+  const [day, setDay] = useState(auto?.day ?? projectSun?.day ?? 21);
+  const [hour, setHour] = useState(auto?.hour ?? projectSun?.hour ?? 15);
   const lightingMode = projectSun?.mode === "Lighting";
   const sunOn = !scheme.endsWith("Artificial only");
   const artificial = scheme.includes("Artificial");
   const baseExposure = SCHEMES.find(([s]) => s === scheme)![1];
   // D5's default: its physical sky with clouds, lit by the site's sun (ADR-065).
-  const [background, setBackground] = useState<BackgroundId>("physical");
-  const [lighting, setLighting] = useState<Lighting>("sunsky");
-  const [rotation, setRotation] = useState(0);
-  const [exposure, setExposure] = useState(1);
+  const [background, setBackground] = useState<BackgroundId>(
+    (auto?.background as BackgroundId | undefined) ?? "physical",
+  );
+  const [lighting, setLighting] = useState<Lighting>(auto?.lighting ?? "sunsky");
+  const [rotation, setRotation] = useState(auto?.rotation ?? 0);
+  const [exposure, setExposure] = useState(auto?.exposure ?? 1);
   // Corona's and V-Ray's look (ADR-063): filmic highlights, a touch of glare and vignette.
-  const [tone, setTone] = useState<"contrast" | "filmic">("filmic");
-  const [glare, setGlare] = useState(true);
-  const [vignette, setVignette] = useState(true);
+  const [tone, setTone] = useState<"contrast" | "filmic">(auto?.tone ?? "filmic");
+  const [glare, setGlare] = useState(auto?.glare ?? true);
+  const [vignette, setVignette] = useState(auto?.vignette ?? true);
   // D5's colour: a touch more saturation and contrast (ADR-065).
-  const [d5, setD5] = useState(true);
-  const [denoise, setDenoise] = useState(true);
+  const [d5, setD5] = useState(auto?.d5 ?? true);
+  const [denoise, setDenoise] = useState(auto?.denoise ?? true);
   const [withBackground, setWithBackground] = useState(true);
   const [sun, setSun] = useState<SunPosition | null>(null);
   const [status, setStatus] = useState("");
@@ -154,12 +161,17 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
 
   useEffect(() => () => job.current?.dispose(), []);
 
-  const [w, h] = SIZES[size]!;
-  const samples = QUALITY[quality]![1];
+  const [w, h] = auto?.width
+    ? [auto.width, auto.height ?? Math.round((auto.width * 9) / 16)]
+    : SIZES[size]!;
+  const samples = auto?.samples ?? QUALITY[quality]![1];
 
   const render = async () => {
     if (!view) return;
-    const pose = liveCameras.get(view.id) ?? view.camera;
+    const pose =
+      auto?.eye && auto.target
+        ? { eye: auto.eye, target: auto.target, fov: auto.fov ?? 50 }
+        : (liveCameras.get(view.id) ?? view.camera);
     if (!pose) {
       useAppStore.getState().setError("Orbit the 3D view once, or render a camera view.");
       return;
@@ -193,15 +205,27 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const rot = (rotation * Math.PI) / 180;
       setStatus("Preparing the sky…");
       const sunUp = sunOn && sun && sun.altitude > 0 ? sun : null;
-      const lights = artificial
+      let lights = artificial
         ? (await ipc.lights(view.id)).filter((l) => l.on && l.lumens > 0)
         : [];
+      // Every light added thins the samples each gets: keep the ones that matter, nearest
+      // what the camera looks at (ADR-095).
+      const most = auto?.maxLights;
+      if (most && lights.length > most) {
+        const [tx, ty, tz] = pose.target;
+        const d2 = (l: (typeof lights)[number]) =>
+          (l.at[0] - tx!) ** 2 + (l.at[1] - ty!) ** 2 + (l.at[2] - tz!) ** 2;
+        lights = [...lights].sort((a, b) => d2(a) - d2(b)).slice(0, most);
+      }
       const ev = exposure * baseExposure;
       const physical = () =>
         sky.physicalSky({
           sunDir: sunUp ? toYUp(sunUp.dir) : toYUp([0, -1, -0.2]),
           altitude: sunUp ? sunUp.altitude : -6,
-          clouds: sunUp ? D5_CLOUDS : 0,
+          clouds: sunUp ? (auto?.clouds ?? D5_CLOUDS) : 0,
+          turbidity: auto?.turbidity,
+          // Sunlit to skylit (ADR-095): lower lifts the shadows, as a hazier sky does.
+          sunToSky: auto?.sunToSky,
           width: 2048,
           height: 1024,
         });
@@ -333,15 +357,27 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         radius,
         { x: pose.eye[0]!, y: pose.eye[1]! },
         blockers,
+        (() => {
+          const dx = pose.target[0]! - pose.eye[0]!;
+          const dy = pose.target[1]! - pose.eye[1]!;
+          const l = Math.hypot(dx, dy) || 1;
+          return { x: dx / l, y: dy / l };
+        })(),
+        auto?.grass ?? 120_000,
       ))
         scene.add(m);
       backdrop.current = photo
-        ? renderBackdrop(w, h, camera, { texture: photo, rotation: rot, exposure: ev, tone })
+        ? renderBackdrop(w, h, camera, {
+            texture: photo,
+            rotation: rot,
+            exposure: ev * (auto?.skyExposure ?? 1),
+            tone,
+          })
         : bg.id === "physical"
           ? renderBackdrop(w, h, camera, {
               texture: lightingUsed === "sunsky" ? env : physical(),
               rotation: 0,
-              exposure: ev,
+              exposure: ev * (auto?.skyExposure ?? 1),
               tone,
             })
           : renderBackdrop(w, h, camera, null);
@@ -362,6 +398,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         if (glare || vignette)
           pt.lensEffects(shown, { glare: glare ? 0.35 : 0, vignette: vignette ? 0.22 : 0 });
         if (d5) pt.d5Grade(shown);
+        if (auto?.warm) pt.warmGrade(shown, auto.warm);
       };
       await j.start(scene, camera, samples, (n, secs, phase) => {
         setProgress(n / samples);
@@ -369,9 +406,11 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         if (phase === "preparing") setStatus("Building the scene…");
         else if (phase === "done") {
           finish.current();
-          setStatus(`Done: ${n} samples in ${t}${denoise ? ", denoised" : ""}.`);
+          setStatus(`Done: ${n} samples in ${t}${denoise ? ", denoised" : ""} on ${j.gpu()}.`);
+          console.warn(`Render: ${n} samples in ${t} on ${j.gpu()}`);
           setRunning(false);
           setDone(true);
+          if (auto && display.current) void finishAuto(display.current);
         } else {
           const now = performance.now();
           if (now - last > 250) {
@@ -387,6 +426,34 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       useAppStore.getState().setError(`Render failed: ${errorMessage(e)}`);
     }
   };
+
+  const finishAuto = async (canvas: HTMLCanvasElement) => {
+    if (!auto) return;
+    try {
+      // A .jpg out is written as a JPEG (the sample's bundled rendering).
+      const bytes = /.jpe?g$/i.test(auto.out)
+        ? await new Promise<Uint8Array>((ok, fail) =>
+            canvas.toBlob(
+              (b) => (b ? void b.arrayBuffer().then((a) => ok(new Uint8Array(a))) : fail()),
+              "image/jpeg",
+              0.9,
+            ),
+          )
+        : await (await import("../render/pathtrace")).pngOf(canvas);
+      await ipc.saveRender(auto.out, bytes);
+    } finally {
+      useAppStore.setState({ autoRender: null });
+      if (auto.quit !== false) await ipc.quitApp();
+    }
+  };
+  // Starts by itself once the sun is known.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!auto || started.current || (!sun && !lightingMode)) return;
+    started.current = true;
+    void render();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, sun]);
 
   const stop = () => {
     job.current?.stop();
@@ -411,6 +478,17 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     } catch (e) {
       useAppStore.getState().setError(errorMessage(e));
     }
+  };
+
+  // Revit's Save to Project (ADR-095): the image, as shown, kept as a Rendering view.
+  const saveToProject = async () => {
+    const canvas = display.current;
+    if (!canvas || !view) return;
+    const url = canvas.toDataURL("image/jpeg", 0.92);
+    const data = url.slice(url.indexOf(",") + 1);
+    const name = `${view.name} - Rendering`;
+    if (await apply(() => ipc.saveRendering(name, "image/jpeg", data, canvas.width, canvas.height)))
+      setStatus(`Saved to the project as ${name} (Renderings)`);
   };
 
   if (!view) return null;
@@ -675,6 +753,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               )}
               <button className="btn-outline" onClick={() => void saveImage()} disabled={!done}>
                 Save Image…
+              </button>
+              <button className="btn-outline" onClick={() => void saveToProject()} disabled={!done}>
+                Save to Project
               </button>
             </div>
           </div>

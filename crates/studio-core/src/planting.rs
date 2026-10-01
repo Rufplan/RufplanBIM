@@ -37,10 +37,12 @@ pub enum PlantGroup {
     Grass,
     Perennial,
     Succulent,
+    /// Boulders and stones, set among the plants (ADR-095).
+    Rock,
 }
 
 impl PlantGroup {
-    pub const ALL: [PlantGroup; 10] = [
+    pub const ALL: [PlantGroup; 11] = [
         PlantGroup::Deciduous,
         PlantGroup::Flowering,
         PlantGroup::Evergreen,
@@ -51,6 +53,7 @@ impl PlantGroup {
         PlantGroup::Grass,
         PlantGroup::Perennial,
         PlantGroup::Succulent,
+        PlantGroup::Rock,
     ];
     pub fn label(self) -> &'static str {
         match self {
@@ -64,6 +67,7 @@ impl PlantGroup {
             PlantGroup::Grass => "Ornamental Grasses",
             PlantGroup::Perennial => "Flowers & Perennials",
             PlantGroup::Succulent => "Succulents & Cacti",
+            PlantGroup::Rock => "Rocks & Boulders",
         }
     }
     /// Enscape's top-level vegetation categories.
@@ -76,7 +80,7 @@ impl PlantGroup {
             | PlantGroup::Palm => "Trees",
             PlantGroup::Shrub | PlantGroup::Hedge => "Bushes",
             PlantGroup::Grass | PlantGroup::Perennial => "Grass & Flowers",
-            PlantGroup::Succulent => "Plants",
+            PlantGroup::Succulent | PlantGroup::Rock => "Plants",
         }
     }
     pub fn is_tree(self) -> bool {
@@ -109,10 +113,12 @@ pub enum CrownForm {
     Rosette,
     Box,
     Cactus,
+    /// Boulders: weathered stones, one or a cluster (`stems`), half set into the ground.
+    Boulder,
 }
 
 impl CrownForm {
-    pub const ALL: [CrownForm; 17] = [
+    pub const ALL: [CrownForm; 18] = [
         CrownForm::Round,
         CrownForm::Oval,
         CrownForm::Vase,
@@ -130,6 +136,7 @@ impl CrownForm {
         CrownForm::Rosette,
         CrownForm::Box,
         CrownForm::Cactus,
+        CrownForm::Boulder,
     ];
     pub fn label(self) -> &'static str {
         match self {
@@ -150,6 +157,7 @@ impl CrownForm {
             CrownForm::Rosette => "Rosette",
             CrownForm::Box => "Clipped (box)",
             CrownForm::Cactus => "Columnar cactus",
+            CrownForm::Boulder => "Boulder",
         }
     }
 }
@@ -2245,7 +2253,7 @@ fn species() -> Vec<PlantPreset> {
             5.0,
             [74, 110, 50],
         )
-        .flowers([118, 146, 212])
+        .flowers([178, 188, 234])
         .d("Mophead blue flowers on a rounded shrub."),
         plant(
             "Panicle Hydrangea",
@@ -2321,7 +2329,7 @@ fn species() -> Vec<PlantPreset> {
             3.0,
             [128, 146, 120],
         )
-        .flowers([146, 120, 200])
+        .flowers([164, 142, 212])
         .clim(dry)
         .d("Silver mound with purple flower spikes."),
         plant(
@@ -2868,7 +2876,7 @@ fn species() -> Vec<PlantPreset> {
             2.0,
             [70, 102, 56],
         )
-        .flowers([96, 70, 170])
+        .flowers([136, 106, 200])
         .d("Deep violet spikes."),
         plant(
             "Agapanthus",
@@ -2921,6 +2929,55 @@ fn species() -> Vec<PlantPreset> {
         )
         .flowers([226, 40, 50])
         .d("A clump of red tulips."),
+        // Rocks & boulders (ADR-095)
+        plant(
+            "Boulder, Granite",
+            "Granite",
+            Rock,
+            Boulder,
+            Fleshy,
+            2.5,
+            3.5,
+            [148, 144, 138],
+        )
+        .stems(1)
+        .d("A weathered granite boulder, set a third into the ground."),
+        plant(
+            "Boulder Cluster, Fieldstone",
+            "Fieldstone",
+            Rock,
+            Boulder,
+            Fleshy,
+            2.0,
+            5.0,
+            [156, 148, 136],
+        )
+        .stems(5)
+        .d("A pile of rounded fieldstones of mixed sizes, as a landscaper sets them in a bed."),
+        plant(
+            "Stacked Ledge Stones",
+            "Limestone",
+            Rock,
+            Boulder,
+            Fleshy,
+            1.8,
+            5.0,
+            [166, 156, 138],
+        )
+        .stems(5)
+        .d("Flat, split limestone pieces stacked loosely: rock gardens and dry beds."),
+        plant(
+            "Boulder, Large Granite",
+            "Granite",
+            Rock,
+            Boulder,
+            Fleshy,
+            4.0,
+            6.0,
+            [138, 134, 128],
+        )
+        .stems(1)
+        .d("A big accent boulder for the corner of a bed or a lawn edge."),
         // Succulents & cacti
         plant(
             "Blue Agave",

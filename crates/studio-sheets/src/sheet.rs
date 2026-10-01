@@ -70,6 +70,14 @@ fn transform(items: Vec<Item>, f: impl Fn(Pt) -> Pt, k: f64, el: Option<ElementI
                     w,
                     filled,
                 },
+                Prim::Image { image, min, max } => {
+                    let (a, b) = (map(min), map(max));
+                    Prim::Image {
+                        image,
+                        min: [a[0].min(b[0]), a[1].min(b[1])],
+                        max: [a[0].max(b[0]), a[1].max(b[1])],
+                    }
+                }
             };
             Item {
                 el: el.or(it.el),
@@ -133,7 +141,12 @@ pub fn viewport_items(
         (x1 - x0) / s,
         (y1 - y0) / s,
         name.clone(),
-        ops::scale_label(*scale),
+        // A rendering has no scale (ADR-095).
+        if matches!(kind, ViewKind::Rendering { .. }) {
+            String::new()
+        } else {
+            ops::scale_label(*scale)
+        },
     ))
 }
 
@@ -235,6 +248,10 @@ fn extents(items: &[Item]) -> Option<(Pt, Pt)> {
             Prim::Circle { c, r, .. } => {
                 pts.push(Pt::new(c[0] - r, c[1] - r));
                 pts.push(Pt::new(c[0] + r, c[1] + r));
+            }
+            Prim::Image { min, max, .. } => {
+                pts.push(Pt::new(min[0], min[1]));
+                pts.push(Pt::new(max[0], max[1]));
             }
         }
     }

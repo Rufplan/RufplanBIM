@@ -183,6 +183,10 @@ pub struct FfeSpec {
     /// Main and accent colors (sRGB).
     pub color: [u8; 3],
     pub accent: [u8; 3],
+    /// Seat and back cushions in their own fabric (outdoor wicker seating, ADR-095).
+    #[serde(default)]
+    #[ts(optional)]
+    pub cushion: Option<[u8; 3]>,
 }
 
 /// A library piece (a Revit family type).
@@ -2177,6 +2181,7 @@ fn preset(r: &Row) -> FfePreset {
         group: (*group).into(),
         uses: uses.to_vec(),
         spec: FfeSpec {
+            cushion: None,
             class: kind.class(),
             kind: *kind,
             width: inch(d[0]),

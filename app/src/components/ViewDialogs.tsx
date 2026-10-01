@@ -19,6 +19,7 @@ import { GenerateDialog } from "./GenerateDialog";
 import { PlansDialog } from "./PlansDialog";
 import { MaterialBrowser } from "./MaterialBrowser";
 import { RenderDialog } from "./RenderDialog";
+import { FasciaPicker } from "./FasciaPicker";
 import { SheetSetsDialog } from "./SheetSetsDialog";
 import { TypePicker } from "./TypePicker";
 import { LightPicker } from "./LightPicker";
@@ -73,6 +74,7 @@ export function ViewDialogs() {
   if (which === "mep") return <MepDialog onClose={close} />;
   if (which === "createGroup") return <CreateGroupDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
+  if (which === "fascia") return <FasciaPicker onClose={close} />;
   if (which === "materials") return <MaterialBrowser onClose={close} />;
   if (which === "ground") return <GroundDialog onClose={close} />;
   if (which === "filter") return <FilterDialog onClose={close} />;

@@ -72,7 +72,10 @@ pub fn spot_height(doc: &Document, model: &Model, view: ElementId, at: Pt) -> Op
         ViewKind::Elevation { .. }
         | ViewKind::Section { .. }
         | ViewKind::MarkerElevation { .. } => Some(at.y),
-        ViewKind::ThreeD | ViewKind::Schedule { .. } | ViewKind::Drafting => None,
+        ViewKind::Drafting
+        | ViewKind::Schedule { .. }
+        | ViewKind::ThreeD
+        | ViewKind::Rendering { .. } => None,
     }
 }
 
@@ -177,6 +180,10 @@ pub fn grow_bounds(
             }
             crate::Prim::Text { at, size, .. } => take(at[0], at[1], *size),
             crate::Prim::Circle { c, r, .. } => take(c[0], c[1], *r),
+            crate::Prim::Image { min, max, .. } => {
+                take(min[0], min[1], 0.0);
+                take(max[0], max[1], 0.0);
+            }
         }
     }
     out

@@ -174,11 +174,11 @@ export function clumpGeometry(
     const twist = (r() - 0.5) * 1.2;
     // Hue: yellow-green to blue-green, and brightness.
     const hue = r();
-    const bright = 0.8 + r() * 0.35;
+    const bright = 0.88 + r() * 0.22;
     const tint = [
       (1.12 - 0.22 * hue) * bright,
       (1.02 + 0.02 * hue) * bright,
-      (0.72 + 0.4 * hue) * bright,
+      (0.62 + 0.3 * hue) * bright,
     ];
     const dry = r() < L.dry;
     const start = pos.length / 3;
@@ -194,7 +194,7 @@ export function clumpGeometry(
       const sx = -Math.sin(ang) * half;
       const sy = Math.cos(ang) * half;
       // Dark at the root (the thatch), lighter and yellower toward the tip.
-      const shade = 0.3 + 0.75 * Math.pow(t, 0.55);
+      const shade = 0.8 + 0.25 * Math.pow(t, 0.55);
       const tip = [1 + 0.12 * t, 1 + 0.05 * t, 1 - 0.1 * t];
       const c = [0, 1, 2].map((k) => {
         const v = tint[k]! * tip[k]! * shade;
@@ -341,7 +341,10 @@ export function scatter(
       .addVectors(a, b)
       .add(c)
       .multiplyScalar(1 / 3);
-    const d = Math.hypot(mid.x - center.x, mid.y - center.y);
+    // Skip a triangle only when all of it is beyond `far` (a big ground triangle's middle
+    // can be far away while its corner is under the camera).
+    const span = Math.max(mid.distanceTo(a), mid.distanceTo(b), mid.distanceTo(c));
+    const d = Math.max(0, Math.hypot(mid.x - center.x, mid.y - center.y) - span);
     if (d > far) continue;
     // Full density near the model, thinning out to a quarter at `far`.
     const falloff =
@@ -503,6 +506,44 @@ export function patchTint(x: number, y: number): [number, number, number] {
   return [v * (1 + yellow * 0.6), v * (1 + yellow * 0.2), v * (1 - yellow * 0.5)];
 }
 
+/** The parts of the triangles within `far` (plan) of `center`: big triangles are split
+ * until their pieces are small, and the pieces wholly beyond `far` dropped, so a render's
+ * field about its camera isn't spread over the whole site. */
+export function clipNear(
+  positions: ArrayLike<number>,
+  center: THREE.Vector3,
+  far: number,
+): number[] {
+  const out: number[] = [];
+  const small = far / 6;
+  const stack: number[][] = [];
+  for (let i = 0; i + 8 < positions.length; i += 9)
+    stack.push(Array.from({ length: 9 }, (_, k) => positions[i + k]!));
+  while (stack.length) {
+    const t = stack.pop()!;
+    const mx = (t[0]! + t[3]! + t[6]!) / 3;
+    const my = (t[1]! + t[4]! + t[7]!) / 3;
+    let span = 0;
+    for (let k = 0; k < 9; k += 3) span = Math.max(span, Math.hypot(t[k]! - mx, t[k + 1]! - my));
+    if (Math.hypot(mx - center.x, my - center.y) - span > far) continue;
+    if (span <= small || out.length > 400_000) {
+      out.push(...t);
+      continue;
+    }
+    // Split into four at the edge midpoints.
+    const m = (a: number, b: number) => [0, 1, 2].map((k) => (t[a + k]! + t[b + k]!) / 2);
+    const [a, b, c] = [t.slice(0, 3), t.slice(3, 6), t.slice(6, 9)];
+    const [ab, bc, ca] = [m(0, 3), m(3, 6), m(6, 0)];
+    stack.push(
+      [...a, ...ab, ...ca],
+      [...ab, ...b, ...bc],
+      [...ca, ...bc, ...c],
+      [...ab, ...bc, ...ca],
+    );
+  }
+  return out;
+}
+
 /** Candidate clumps over grass surfaces: (x, y, z, height, turn) per clump, bucketed in
  * 4 m cells for finding those near a point. */
 export class GrassField {
@@ -518,9 +559,11 @@ export class GrassField {
     center: THREE.Vector3,
     radius: number,
     blockers: ArrayLike<number>[] = [],
+    /** A render's own reach about its camera (mm): full density out to it. */
+    reach: number | null = null,
   ) {
-    const near = Math.max(radius * 1.2, 15_000);
-    const far = Math.max(radius * 3, 45_000);
+    const near = reach ?? Math.max(radius * 1.2, 15_000);
+    const far = reach ? reach * 1.05 : Math.max(radius * 3, 45_000);
     const out: number[] = [];
     const covered = coverMask(blockers, center, far);
     const grassy = surfaces.filter((s) => s.grass);
@@ -534,7 +577,7 @@ export class GrassField {
         look.perM2 * (s.density ?? 1) * Math.min(1.4, Math.max(0.3, (typical / g.height) ** 0.5));
       per = Math.max(per, density);
       scatter(
-        s.positions,
+        reach ? clipNear(s.positions, center, far) : s.positions,
         density,
         FIELD_MAX / grassy.length,
         center,
@@ -562,7 +605,13 @@ export class GrassField {
     return `${Math.floor(x / GrassField.CELL)},${Math.floor(y / GrassField.CELL)}`;
   }
   /** The clumps within `r` of (x, y), nearest first, at most `max`. */
-  near(x: number, y: number, r: number, max: number): number[] {
+  near(
+    x: number,
+    y: number,
+    r: number,
+    max: number,
+    dir: { x: number; y: number } | null = null,
+  ): number[] {
     const c = GrassField.CELL;
     const [i0, j0] = [Math.floor((x - r) / c), Math.floor((y - r) / c)];
     const [i1, j1] = [Math.floor((x + r) / c), Math.floor((y + r) / c)];
@@ -570,17 +619,28 @@ export class GrassField {
     for (let i = i0; i <= i1; i++)
       for (let j = j0; j <= j1; j++)
         for (const k of this.cells.get(`${i},${j}`) ?? []) {
-          const d = Math.hypot(this.data[k * 5]! - x, this.data[k * 5 + 1]! - y);
-          if (d < r) found.push([d, k]);
+          const dx = this.data[k * 5]! - x;
+          const dy = this.data[k * 5 + 1]! - y;
+          const d = Math.hypot(dx, dy);
+          // A render sees only what's in front of it (within about 65° of the view).
+          if (d < r && (!dir || d < 1500 || dx * dir.x + dy * dir.y > 0.42 * d)) found.push([d, k]);
         }
     found.sort((a, b) => a[0] - b[0]);
     return found.slice(0, max).map((f) => f[1]);
   }
   /** Fills `mesh` with the clumps nearest (x, y): full size close in, shrinking to nothing
    * at the edge of what the budget reaches; each tinted for its patch of lawn. */
-  fill(mesh: THREE.InstancedMesh, x: number, y: number, budget: number) {
-    const reach = Math.sqrt(budget / (Math.max(this.perM2, 1) * Math.PI)) * 1000 * 1.4;
-    const ids = this.near(x, y, Math.max(reach, 5000), budget);
+  fill(
+    mesh: THREE.InstancedMesh,
+    x: number,
+    y: number,
+    budget: number,
+    dir: { x: number; y: number } | null = null,
+  ) {
+    // In a view cone the same budget reaches about twice as far.
+    const reach =
+      Math.sqrt(budget / (Math.max(this.perM2, 1) * Math.PI)) * 1000 * 1.4 * (dir ? 2.1 : 1);
+    const ids = this.near(x, y, Math.max(reach, 5000), budget, dir);
     const edge = ids.length
       ? Math.hypot(
           this.data[ids[ids.length - 1]! * 5]! - x,
@@ -701,6 +761,9 @@ export function grassMeshesYUp(
   radius: number,
   camera: { x: number; y: number },
   blockers: ArrayLike<number>[] = [],
+  /** Where the render camera looks (plan, unit), so the grass goes in front of it. */
+  look: { x: number; y: number } | null = null,
+  total = RENDER_BUDGET,
 ): THREE.Mesh[] {
   const toYUp = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
   const out: THREE.Mesh[] = [];
@@ -728,11 +791,16 @@ export function grassMeshesYUp(
   const grassy = groups.filter((l) => l.some((s) => s.grass)).length || 1;
   for (const list of groups) {
     if (list.some((s) => s.grass)) {
-      const field = new GrassField(list, center, radius, blockers);
-      const budget = Math.floor(RENDER_BUDGET / grassy);
+      const budget = Math.floor(total / grassy);
+      // A render seeds its field about the camera, out to what the budget reaches in
+      // its view cone, so a large site doesn't thin the lawn in front of it.
+      const reach = look ? Math.sqrt(budget / (CLUMPS_PER_M2 * Math.PI * 0.3)) * 1000 : null;
+      const field = look
+        ? new GrassField(list, new THREE.Vector3(camera.x, camera.y, 0), radius, blockers, reach)
+        : new GrassField(list, center, radius, blockers);
       const geo = clumpOf(kindFor(list[0]!), list[0]!.color);
       const tmp = new THREE.InstancedMesh(geo, undefined, budget);
-      field.fill(tmp, camera.x, camera.y, budget);
+      field.fill(tmp, camera.x, camera.y, budget, look);
       const ms: THREE.Matrix4[] = [];
       const tints: THREE.Color[] = [];
       for (let i = 0; i < tmp.count; i++) {

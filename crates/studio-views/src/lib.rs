@@ -114,6 +114,12 @@ pub enum Prim {
         w: u8,
         filled: bool,
     },
+    /// A raster image (a saved rendering, ADR-095) filling the box `min`–`max`.
+    Image {
+        image: ElementId,
+        min: [f64; 2],
+        max: [f64; 2],
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -136,6 +142,8 @@ pub enum ViewType {
     Sheet,
     /// Drafting views (ADR-069).
     Drafting,
+    /// Renderings saved to the project (ADR-095).
+    Rendering,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -278,6 +286,28 @@ pub fn display_list_shared(doc: &Document, view: ElementId) -> Option<Arc<Displa
 }
 
 fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
+    // A saved rendering (ADR-095): the image, its paper width in mm (the view is 1:1).
+    if let Ok(ElementData::View {
+        kind: ViewKind::Rendering { image },
+        ..
+    }) = doc.data(view)
+    {
+        let (_, _, w, h, paper) = studio_core::renderings::image_of(doc, view)?;
+        let hh = paper * f64::from(h) / f64::from(w.max(1));
+        return Some(DisplayList {
+            view_type: ViewType::Rendering,
+            scale: 1,
+            bounds: [0.0, 0.0, paper, hh],
+            items: vec![Item {
+                el: Some(*image),
+                prim: Prim::Image {
+                    image: *image,
+                    min: [0.0, 0.0],
+                    max: [paper, hh],
+                },
+            }],
+        });
+    }
     let ElementData::View {
         kind,
         scale,
@@ -360,7 +390,7 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
         // Drafting views hold only their own lines, regions and text (ADR-069): their
         // extent is found once those are drawn.
         ViewKind::Drafting => (ViewType::Drafting, [0.0; 4]),
-        ViewKind::ThreeD | ViewKind::Schedule { .. } => return None,
+        ViewKind::ThreeD | ViewKind::Schedule { .. } | ViewKind::Rendering { .. } => return None,
     };
     if let ViewKind::FloorPlan { level } | ViewKind::CeilingPlan { level } = kind {
         plan_model_lines(doc, &mut b, *level);
@@ -481,6 +511,11 @@ fn crop_items(items: Vec<Item>, c: &CropBox) -> Vec<Item> {
     };
     for it in items {
         match it.prim {
+            // A saved rendering isn't cropped.
+            Prim::Image { image, min, max } => out.push(Item {
+                el: it.el,
+                prim: Prim::Image { image, min, max },
+            }),
             Prim::Line {
                 pts,
                 closed,
@@ -1235,6 +1270,10 @@ fn apply_level_ends(items: &mut [Item], ends: &[studio_core::LevelEnds]) {
                 Prim::Fill { rings, .. } => rings.iter_mut().flatten().for_each(|p| p[0] += dx),
                 Prim::Text { at, .. } => at[0] += dx,
                 Prim::Circle { c, .. } => c[0] += dx,
+                Prim::Image { min, max, .. } => {
+                    min[0] += dx;
+                    max[0] += dx;
+                }
             }
         }
     }
@@ -2063,6 +2102,11 @@ fn projected(
             }
             faces.push(f);
         };
+        // The fascia (ADR-095) draws like the roof's own edge faces.
+        for q in r.fascia_quads() {
+            let kept = clip3(&q, depth_of);
+            roof_face(&kept, &mut faces);
+        }
         match seen(&r.boundary) {
             Seen::Beyond => {
                 for s in r.surfaces() {
@@ -3444,6 +3488,13 @@ pub fn pick_all(dl: &DisplayList, p: Pt, tol: f64) -> Vec<ElementId> {
                     .fold(f64::INFINITY, f64::min)
             }
             Prim::Circle { c, r, .. } => (p.dist(Pt::new(c[0], c[1])) - r).max(0.0),
+            Prim::Image { min, max, .. } => {
+                if p.x >= min[0] && p.x <= max[0] && p.y >= min[1] && p.y <= max[1] {
+                    0.0
+                } else {
+                    f64::INFINITY
+                }
+            }
             Prim::Text { at, size, .. } => (p.dist(Pt::new(at[0], at[1])) - size).max(0.0),
             Prim::Fill { rings, fill } => {
                 let outer: Vec<Pt> = rings
@@ -3542,6 +3593,9 @@ pub fn pick_in_rect(
                 (outer.iter().all(|p| inside(*p)), touches)
             }
             Prim::Text { at, .. } => (inside(*at), inside(*at)),
+            Prim::Image { min, max, .. } => {
+                (inside(*min) && inside(*max), inside(*min) || inside(*max))
+            }
             Prim::Circle { c, r, .. } => {
                 let all = c[0] - r >= x0 && c[0] + r <= x1 && c[1] - r >= y0 && c[1] + r <= y1;
                 let (nx, ny) = (c[0].clamp(x0, x1), c[1].clamp(y0, y1));
@@ -3657,6 +3711,34 @@ pub struct Mesh {
     /// A lighting fixture's lit lens glows in this color (ADR-057).
     #[ts(optional)]
     pub glow: Option<[u8; 3]>,
+    /// How the surface renders when it has no project material (ADR-095): furniture and
+    /// equipment parts as fabric, wicker, teak, stainless and so on.
+    #[ts(optional)]
+    pub finish: Option<Finish>,
+}
+
+/// A rendering finish for surfaces without a project material (ADR-095).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub enum Finish {
+    /// Upholstery and cushions: soft, with sheen.
+    Fabric,
+    /// Woven resin wicker.
+    Wicker,
+    /// Oiled teak and other furniture wood.
+    Wood,
+    /// Brushed stainless steel.
+    Stainless,
+    /// Umbrella canvas: lets a little sun through.
+    Canvas,
+    /// Powder-coated or painted metal.
+    PowderCoat,
+    /// Glass, as on appliances and screens.
+    Glass,
+    /// Lacquered and laminate case goods.
+    Lacquer,
+    /// Stone, concrete and ceramic tops.
+    Stone,
 }
 
 /// Meshes for a 3D view, without what it hides (ADR-024).
@@ -3707,6 +3789,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 reveals.push((
                     w.id,
                     Mesh {
+                        finish: None,
                         glow: None,
                         edges: vec![],
                         el: id,
@@ -3722,6 +3805,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             h.wall
         };
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: lines,
             el: w.id,
@@ -3740,6 +3824,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 // Frame, casing and leaves in the finish (with a color); glass without.
                 let p = doors::parts(o, style);
                 out.push(Mesh {
+                    finish: None,
                     glow: None,
                     edges: vec![],
                     el: o.id,
@@ -3752,6 +3837,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 });
                 if !p.glass.is_empty() {
                     out.push(Mesh {
+                        finish: None,
                         glow: None,
                         edges: vec![],
                         el: o.id,
@@ -3769,6 +3855,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                 // (with a color), and the glass (without).
                 let p = windows::parts(o, style);
                 out.push(Mesh {
+                    finish: None,
                     glow: None,
                     edges: vec![],
                     el: o.id,
@@ -3780,6 +3867,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
                     positions: p.frame,
                 });
                 out.push(Mesh {
+                    finish: None,
                     glow: None,
                     edges: vec![],
                     el: o.id,
@@ -3795,6 +3883,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for s in m.floors.iter().chain(&m.ceilings) {
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: vec![],
             el: s.id,
@@ -3825,6 +3914,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             ]);
         }
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges,
             el: e.id,
@@ -3838,6 +3928,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for r in &m.roofs {
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: vec![],
             el: r.id,
@@ -3851,6 +3942,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for s in &m.stairs {
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: vec![],
             el: s.id,
@@ -3866,6 +3958,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         let positions = s.mesh();
         if !positions.is_empty() {
             out.push(Mesh {
+                finish: None,
                 glow: None,
                 edges: vec![],
                 el: s.id,
@@ -3881,6 +3974,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for c in &m.columns {
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: vec![],
             el: c.id,
@@ -3894,6 +3988,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
     }
     for bm in &m.beams {
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: vec![],
             el: bm.id,
@@ -3914,6 +4009,7 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
         positions.extend(r.posts.iter().flat_map(|p| p.triangles()));
         let is_stair = m.stairs.iter().any(|s| s.id == r.id);
         out.push(Mesh {
+            finish: None,
             glow: None,
             edges: vec![],
             el: r.id,
@@ -3949,6 +4045,23 @@ pub fn meshes(doc: &Document) -> Vec<Mesh> {
             mesh.material = Some(p);
         } else {
             mesh.material = studio_core::library::finish_of(doc, mesh.el);
+        }
+    }
+    // Fascias (ADR-095), in their own finish rather than the roof type's.
+    for r in &m.roofs {
+        if let Some(f) = &r.fascia {
+            out.push(Mesh {
+                finish: None,
+                glow: None,
+                edges: vec![],
+                el: r.id,
+                category: Category::Roof,
+                exterior: true,
+                color: Some(f.color),
+                material: studio_core::fascia::finish_material(doc, f),
+                level: Some(r.level),
+                positions: r.fascia_triangles(),
+            });
         }
     }
     for (wall, mut r) in reveals {

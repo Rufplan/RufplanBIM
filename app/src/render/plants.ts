@@ -319,6 +319,23 @@ export function plantMeshesYUp(
       const pieces = instances.map((i) => {
         const g = geo.clone();
         g.applyMatrix4(toYUp.clone().multiply(instanceMatrix(i)));
+        // Each plant its own shade of its colour, as D5's and Enscape's assets vary
+        // (ADR-095): ±12% value and a slight warm or cool cast.
+        if (mat === a.materials.leaves) {
+          const k = Math.sin(i.at[0] * 0.0123 + i.at[1] * 0.0371) * 43758.5453;
+          const r = k - Math.floor(k);
+          const v = 0.88 + 0.24 * r;
+          // Sunlit foliage reads warm (yellow-green), as D5's and Enscape's trees do.
+          const warm = 0.05 + (r - 0.5) * 0.08;
+          const col = g.getAttribute("color");
+          for (let n = 0; n < col.count; n++)
+            col.setXYZ(
+              n,
+              col.getX(n) * v * (1 + warm),
+              col.getY(n) * v,
+              col.getZ(n) * v * (1 - warm),
+            );
+        }
         return g;
       });
       const merged = pieces.length === 1 ? pieces[0]! : mergeGeometries(pieces, false);
@@ -330,12 +347,22 @@ export function plantMeshesYUp(
       let m = mat;
       if (mat !== a.materials.solid) {
         const c = merged.getAttribute("color");
+        // Keep the leaves' own colour variation; lift only the darkest baked occlusion.
         for (let i = 0; i < c.count; i++)
-          c.setXYZ(i, 0.8 + 0.2 * c.getX(i), 0.8 + 0.2 * c.getY(i), 0.8 + 0.2 * c.getZ(i));
+          c.setXYZ(i, 0.4 + 0.6 * c.getX(i), 0.4 + 0.6 * c.getY(i), 0.4 + 0.6 * c.getZ(i));
       }
       if (mat === a.materials.leaves) {
+        // Thin leaves let light through (the backlit glow of a sunlit crown): the path
+        // tracer has no translucency, so a little thin transmission stands in for it.
         const leaves = (mat as THREE.MeshPhysicalMaterial).clone();
         leaves.color.setScalar(RENDER_LEAF_GAIN);
+        Object.assign(leaves, {
+          transmission: 0.2,
+          thickness: 0,
+          ior: 1.33,
+          roughness: 0.6,
+          specularIntensity: 0.35,
+        });
         m = leaves;
       }
       const mesh = new THREE.Mesh(merged, m);
@@ -348,7 +375,7 @@ export function plantMeshesYUp(
 
 /** Foliage albedo in renders relative to the live view: path-traced crowns shade
  * themselves darker than raster ones. */
-export const RENDER_LEAF_GAIN = 1.45;
+export const RENDER_LEAF_GAIN = 2.4;
 
 /** Loads every instance's assets (grouped by type and variant) for a view or a render. */
 export async function loadPlantEntries(

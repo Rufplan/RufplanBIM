@@ -259,6 +259,10 @@ pub(crate) fn drafting_bounds(b: &Builder, margin: f64) -> [f64; 4] {
                 let w = text.chars().count() as f64 * size * 0.62;
                 pts.push(Pt::new(at[0] + w, at[1] + size));
             }
+            Prim::Image { min, max, .. } => {
+                pts.push(Pt::new(min[0], min[1]));
+                pts.push(Pt::new(max[0], max[1]));
+            }
             Prim::Circle { c, r, .. } => {
                 pts.push(Pt::new(c[0] - r, c[1] - r));
                 pts.push(Pt::new(c[0] + r, c[1] + r));

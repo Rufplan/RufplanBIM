@@ -370,6 +370,13 @@ export const Icons = {
       <path d="M9 17v-5a3 3 0 0 1 6 0v5z" fill="#fff" stroke="#fff" />
     </I>
   ),
+  fascia: (
+    <I>
+      <path d="M3 9h15l3-3" />
+      <rect x="15" y="9" width="4" height="7" fill="currentColor" fillOpacity="0.85" />
+      <path d="M3 12h12M5 16v4M11 16v4" strokeWidth="1.3" />
+    </I>
+  ),
   sofa: (
     <I>
       <path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3" />

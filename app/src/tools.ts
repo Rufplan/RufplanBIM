@@ -115,6 +115,8 @@ export function referenceForced(view: ViewType | undefined): boolean {
 
 export function toolAllowed(tool: Tool, view: ViewType | undefined): boolean {
   if (tool === "select") return true;
+  // A saved rendering is only an image (ADR-095).
+  if (view === "Rendering") return false;
   if (tool === "paint") return view !== "Sheet" && view !== "Schedule";
   // Model groups go in plans; detail groups in any view that draws (ADR-087).
   if (tool === "placeGroup") return view !== "Sheet" && view !== "Schedule" && view !== "ThreeD";

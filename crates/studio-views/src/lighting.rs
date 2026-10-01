@@ -664,6 +664,7 @@ pub(crate) fn meshes(doc: &Document, out: &mut Vec<Mesh>) {
         };
         let p = parts(&fr);
         let mesh = |positions: Vec<f32>, color: [u8; 3], glow: Option<[u8; 3]>| Mesh {
+            finish: None,
             el: e.id,
             category: Category::LightingFixture,
             exterior: false,

@@ -31,6 +31,9 @@ const NORTH: f64 = 90.0;
 const SOUTH: f64 = 270.0;
 const EAST: f64 = 0.0;
 const WEST: f64 = 180.0;
+/// The Modern House hero rendering (ADR-095), 1600 x 900, rendered with the dev aid
+/// `--autorender` from its Hero View camera.
+const HERO_RENDERING: &[u8] = include_bytes!("../samples/hero-rendering.jpg");
 
 /// The L1 outline (counter-clockwise, feet).
 const L1: &[(f64, f64)] = &[
@@ -565,6 +568,10 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
         studio_core::build::create_roof(b.doc, flat, l2, 0.0, boundary, 0.0)?;
     }
 
+    // The deep white stepped band of a modern flat roof (ADR-095), on every roof.
+    let all_roofs: Vec<ElementId> = b.doc.of(Category::Roof).map(|e| e.id).collect();
+    studio_core::fascia::set(b.doc, &all_roofs, Some("Modern Stepped Band 12\""))?;
+
     // ---------------------------------------------------------------- rooms and ceilings
     for (level, at, name) in [
         (l1, (34.0, 9.0), "Living"),
@@ -875,7 +882,7 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
     studio_core::planting::set_ground(b.doc, Some(lawn))?;
     b.ground(
         l1,
-        "stone-limestone",
+        "site-bluestone-pattern",
         &[(20.0, -17.0), (70.0, -17.0), (70.0, 0.0), (20.0, 0.0)],
     )?;
     b.ground(
@@ -893,15 +900,11 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
         "site-pea-gravel",
         &[(30.0, 40.0), (58.0, 40.0), (58.0, 44.0), (30.0, 44.0)],
     )?;
-    b.plants("Olive Tree", l1, &[(76.0, -12.0)], 0.75)?;
+    b.plants("Honey Locust", l1, &[(78.5, -12.5)], 0.5)?;
     b.plants("Japanese Maple, Red", l1, &[(68.0, 34.0)], 1.0)?;
     b.plants("Birch Clump", l1, &[(-16.0, 46.0), (78.0, 24.0)], 0.7)?;
     b.plants("Coast Live Oak", l1, &[(-34.0, -24.0)], 0.55)?;
     b.plants("Italian Cypress", l1, &[(-4.0, 3.0), (2.0, 3.0)], 1.0)?;
-    let grasses: Vec<(f64, f64)> = (0..17)
-        .map(|i| (21.5 + 3.0 * f64::from(i), -19.0))
-        .collect();
-    b.plants("Mexican Feather Grass", l1, &grasses, 1.0)?;
     let reeds: Vec<(f64, f64)> = (0..9).map(|i| (32.0 + 3.0 * f64::from(i), 42.0)).collect();
     b.plants("Feather Reed Grass", l1, &reeds, 1.0)?;
     b.plants(
@@ -910,13 +913,166 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
         &[(58.5, 47.0), (65.5, 47.0), (58.5, 29.0)],
         1.0,
     )?;
+    // Rolling ground beyond the garden (ADR-095): the lot flat round the house, rising
+    // into gentle lawn berms, as a landscape architect grades a modern site. The site
+    // keeps the default location (the sun is unchanged) and has no address or parcel.
+    {
+        let center = (33.0, 18.0);
+        let mounds: [(f64, f64, f64, f64); 5] = [
+            (-70.0, 45.0, 7.0, 48.0),
+            (-40.0, -70.0, 5.0, 42.0),
+            (130.0, 115.0, 6.0, 52.0),
+            (20.0, 160.0, 8.0, 62.0),
+            (-120.0, -10.0, 9.0, 60.0),
+        ];
+        let height = |x: f64, y: f64| -> f64 {
+            let d = (x - center.0).hypot(y - center.1);
+            let t = ((d - 95.0) / 40.0).clamp(0.0, 1.0);
+            let ease = t * t * (3.0 - 2.0 * t);
+            let hills: f64 = mounds
+                .iter()
+                .map(|(mx, my, h, r)| h * (-((x - mx).powi(2) + (y - my).powi(2)) / (r * r)).exp())
+                .sum();
+            ease * (hills + 0.025 * (d - 135.0).max(0.0))
+        };
+        let (x0, y0, spacing, n) = (center.0 - 600.0, center.1 - 600.0, 15.0, 81u32);
+        let z: Vec<f32> = (0..n)
+            .flat_map(|j| {
+                (0..n).map(move |i| {
+                    let (x, y) = (x0 + f64::from(i) * spacing, y0 + f64::from(j) * spacing);
+                    (height(x, y) * MM_PER_FT) as f32
+                })
+            })
+            .collect();
+        b.doc.transact("Grade the site", |tx| {
+            Ok(tx.insert(ElementData::Site {
+                address: String::new(),
+                lat: 39.8,
+                lon: -98.6,
+                boundary: vec![],
+                parcel: studio_core::site::ParcelInfo::default(),
+                offset: Pt::default(),
+                rotation: 0.0,
+                base_elevation: 0.0,
+                contour: 2.0 * MM_PER_FT,
+                topo: Some(studio_core::site::Topo {
+                    x0: x0 * MM_PER_FT,
+                    y0: y0 * MM_PER_FT,
+                    spacing: spacing * MM_PER_FT,
+                    nx: n,
+                    ny: n,
+                    z,
+                    resolution: 3.0,
+                }),
+            }))
+        })?;
+    }
+    // Planting beds (ADR-095), laid out as a landscape architect would for the hero view:
+    // curved beds of hardwood mulch, massed perennials and shrubs, boulders among them.
+    let blob = |cx: f64, cy: f64, rx: f64, ry: f64, turn: f64| -> Vec<(f64, f64)> {
+        (0..24)
+            .map(|i| {
+                let a = f64::from(i) * std::f64::consts::TAU / 24.0;
+                let k = 1.0 + 0.1 * (3.0 * a + turn).sin() + 0.05 * (5.0 * a + 1.0).cos();
+                let (x, y) = (rx * k * a.cos(), ry * k * a.sin());
+                let (s, co) = turn.sin_cos();
+                (cx + x * co - y * s, cy + x * s + y * co)
+            })
+            .collect()
+    };
+    // Plants scattered through a bed, sunflower-spaced so they mass without a grid.
+    let bed = |cx: f64, cy: f64, n: usize, r: f64| -> Vec<(f64, f64)> {
+        (0..n)
+            .map(|i| {
+                let a = i as f64 * 2.399;
+                let d = r * ((i as f64 + 0.5) / n as f64).sqrt();
+                (cx + d * a.cos(), cy + d * a.sin())
+            })
+            .collect()
+    };
+    // Left foreground: blue hydrangeas massed on mulch, salvia in front.
+    b.ground(l1, "site-bark-mulch", &blob(61.0, -38.0, 7.5, 5.0, 0.4))?;
+    b.plants("Bigleaf Hydrangea", l1, &bed(60.5, -38.5, 7, 4.6), 1.0)?;
+    b.plants("Salvia", l1, &bed(65.0, -35.0, 5, 2.0), 1.0)?;
+    b.plants("Boxwood, Round", l1, &[(55.5, -40.0)], 1.1)?;
+    // Right foreground, close to the lens: salvia, lavender and Russian sage spilling out
+    // of the frame.
+    b.ground(l1, "site-bark-mulch", &blob(84.5, -28.0, 6.0, 4.5, -0.3))?;
+    b.plants("Salvia", l1, &bed(83.5, -28.5, 10, 4.0), 1.1)?;
+    b.plants("English Lavender", l1, &bed(86.5, -25.5, 5, 2.2), 1.1)?;
+    b.plants("Salvia", l1, &bed(81.0, -24.5, 4, 1.6), 1.0)?;
+    // The bed at the terrace's southeast corner, round the olive: a pile of fieldstone
+    // and a boulder, lavender, grasses and agave, liriope along its edge.
+    b.ground(l1, "site-bark-mulch", &blob(71.0, -18.5, 8.5, 4.8, 0.55))?;
     b.plants(
-        "Blue Agave",
+        "Stacked Ledge Stones",
         l1,
-        &[(19.0, -3.0), (18.0, -9.0), (71.0, -2.0)],
+        &[(69.5, -21.0), (72.0, -22.5)],
         1.0,
     )?;
-
+    b.plants("Boulder Cluster, Fieldstone", l1, &[(66.5, -22.5)], 0.6)?;
+    b.plants("English Lavender", l1, &bed(74.0, -18.5, 6, 2.2), 1.0)?;
+    b.plants("Fountain Grass", l1, &bed(66.5, -18.5, 4, 2.0), 0.8)?;
+    b.plants("Blue Agave", l1, &[(72.5, -15.5), (77.5, -14.5)], 0.7)?;
+    b.plants("Liriope", l1, &bed(68.0, -23.5, 6, 2.5), 1.0)?;
+    // The terrace's west end and the east wall: agave, lavender and boxwood.
+    b.ground(l1, "site-bark-mulch", &blob(23.0, -18.5, 4.5, 2.8, 0.0))?;
+    b.plants("English Lavender", l1, &bed(23.5, -18.5, 5, 2.4), 1.0)?;
+    b.plants("Blue Agave", l1, &[(19.5, -17.0), (71.0, -2.0)], 0.8)?;
+    b.plants("Boxwood, Round", l1, &[(26.5, -19.5), (21.0, -20.0)], 0.9)?;
+    b.plants("Fountain Grass", l1, &[(70.0, 1.5), (72.0, 4.0)], 1.0)?;
+    // Bluestone stepping stones through the lawn, square to the path.
+    let (dx, dy) = (-2.4_f64, 3.0_f64);
+    let l = dx.hypot(dy);
+    let (ux, uy) = (dx / l, dy / l);
+    let (vx, vy) = (-uy, ux);
+    for i in 0..8 {
+        let (x, y) = (
+            79.0 + dx * 1.15 * f64::from(i) - 1.0,
+            -40.0 + dy * 1.15 * f64::from(i),
+        );
+        let (a, w) = (0.75, 1.3);
+        b.ground(
+            l1,
+            "site-bluestone-slab",
+            &[
+                (x - ux * a - vx * w, y - uy * a - vy * w),
+                (x + ux * a - vx * w, y + uy * a - vy * w),
+                (x + ux * a + vx * w, y + uy * a + vy * w),
+                (x - ux * a + vx * w, y - uy * a + vy * w),
+            ],
+        )?;
+    }
+    // A wooded edge around the lot, so the horizon is trees, not a bare plain.
+    let ring = |r: f64, from: f64, to: f64, n: usize, jitter: f64| -> Vec<(f64, f64)> {
+        (0..n)
+            .map(|i| {
+                let t = from + (to - from) * i as f64 / (n - 1).max(1) as f64;
+                let a = t.to_radians();
+                let k = 1.0 + jitter * ((i as f64 * 1.37).sin());
+                (33.0 + r * k * a.cos(), 18.0 + r * k * a.sin())
+            })
+            .collect()
+    };
+    b.plants("Red Maple", l1, &ring(150.0, 20.0, 160.0, 9, 0.12), 1.1)?;
+    b.plants("White Oak", l1, &ring(175.0, 35.0, 150.0, 7, 0.1), 1.2)?;
+    b.plants("Tulip Tree", l1, &ring(135.0, 160.0, 230.0, 5, 0.1), 1.1)?;
+    b.plants("Norway Spruce", l1, &ring(165.0, 60.0, 125.0, 6, 0.15), 1.0)?;
+    b.plants("River Birch", l1, &ring(120.0, -10.0, 40.0, 4, 0.1), 1.0)?;
+    b.plants("Sweetgum", l1, &ring(190.0, 0.0, 70.0, 5, 0.12), 1.1)?;
+    b.plants("Pin Oak", l1, &ring(125.0, 185.0, 255.0, 6, 0.15), 1.1)?;
+    b.plants(
+        "Littleleaf Linden",
+        l1,
+        &ring(160.0, 175.0, 265.0, 6, 0.12),
+        1.0,
+    )?;
+    b.plants(
+        "Eastern White Pine",
+        l1,
+        &ring(200.0, 150.0, 250.0, 5, 0.1),
+        1.0,
+    )?;
     // ---------------------------------------------------------------- materials
     let paint = |doc: &mut Document, ids: &[ElementId], preset: &str| -> anyhow::Result<()> {
         let m = studio_core::library::add_preset(doc, preset)?;
@@ -924,7 +1080,47 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
         Ok(())
     };
     paint(b.doc, &base[..1], "plaster-stucco-white")?;
-    paint(b.doc, &upper[..1], "siding-cedar-vertical")?;
+    paint(b.doc, &upper[..1], "siding-cedar-lap-stained")?;
+    // Outdoor furniture in the finishes of a resort terrace (ADR-095): grey resin wicker
+    // under light cushions, teak, a stainless grill on a dark base, a canvas umbrella.
+    for (name, main, accent, cushion) in [
+        (
+            "Outdoor Sofa",
+            [86, 84, 80],
+            [60, 58, 56],
+            Some([214, 212, 206]),
+        ),
+        (
+            "Outdoor Lounge Chair",
+            [86, 84, 80],
+            [60, 58, 56],
+            Some([214, 212, 206]),
+        ),
+        ("Outdoor Dining Table", [152, 106, 70], [140, 98, 64], None),
+        ("Outdoor Dining Chair", [152, 106, 70], [140, 98, 64], None),
+        ("Patio Umbrella 9'", [236, 232, 222], [150, 106, 70], None),
+        ("Built-in Grill", [196, 198, 200], [58, 54, 50], None),
+        ("Fire Table", [148, 146, 140], [70, 68, 64], None),
+    ] {
+        let ids: Vec<ElementId> = b
+            .doc
+            .of(Category::FfeType)
+            .filter(|e| e.data.name() == name)
+            .map(|e| e.id)
+            .collect();
+        b.doc.transact("Finish outdoor furniture", |tx| {
+            for id in &ids {
+                tx.modify(*id, |d| {
+                    if let ElementData::FfeType { spec, .. } = d {
+                        spec.color = main;
+                        spec.accent = accent;
+                        spec.cushion = cushion;
+                    }
+                })?;
+            }
+            Ok(())
+        })?;
+    }
     let floors: Vec<ElementId> = b.doc.of(Category::Floor).map(|e| e.id).collect();
     let (ground_floor, upper_floor): (Vec<ElementId>, Vec<ElementId>) = floors
         .into_iter()
@@ -941,6 +1137,16 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
     for dir in ["North", "East", "South", "West"] {
         studio_regen::derived::set_property(b.doc, marker, &format!("view_{dir}"), "yes")?;
     }
+    // The hero view: across the lawn from the southeast, at eye height, level (two-point
+    // perspective), the cantilever and the folding glass wall in late light.
+    let hero = studio_core::camera::create_camera(
+        b.doc,
+        l1,
+        ft(84.0, -40.0),
+        ft(40.0, 6.0),
+        5.0 * MM_PER_FT,
+    )?;
+    ops::set_property(b.doc, hero, "name", "Hero View - Southeast", 0)?;
     documents(&mut b, l1, l2)
 }
 
@@ -992,23 +1198,37 @@ fn documents(b: &mut B<'_>, l1: ElementId, l2: ElementId) -> anyhow::Result<()> 
     let p = Pt::new;
     let cover = ops::create_sheet(b.doc, "Cover Sheet", SheetSize::ArchD)?;
     ops::set_property(b.doc, cover, "number", "A0.0", 0)?;
+    // The hero rendering (ADR-095), path traced from the Hero View camera, across the top.
+    {
+        use base64::Engine;
+        let data = base64::engine::general_purpose::STANDARD.encode(HERO_RENDERING);
+        let hero = studio_core::renderings::save(
+            b.doc,
+            "Hero View - Southeast - Rendering",
+            "image/jpeg",
+            data,
+            1600,
+            900,
+        )?;
+        ops::place_view(b.doc, cover, hero, p(400.0, 410.0))?;
+    }
     ops::place_view(
         b.doc,
         cover,
         schedule(b, ScheduleKind::Sheets)?,
-        p(230.0, 420.0),
+        p(170.0, 150.0),
     )?;
     ops::place_view(
         b.doc,
         cover,
         schedule(b, ScheduleKind::Rooms)?,
-        p(560.0, 420.0),
+        p(420.0, 150.0),
     )?;
     ops::place_view(
         b.doc,
         cover,
         schedule(b, ScheduleKind::Doors)?,
-        p(400.0, 200.0),
+        p(670.0, 150.0),
     )?;
     let plans = ops::create_sheet(b.doc, "Floor Plans", SheetSize::ArchD)?;
     ops::set_property(b.doc, plans, "number", "A1.0", 0)?;
@@ -1105,6 +1325,37 @@ mod preview {
     use super::*;
     use studio_views::{FillKind, Prim};
 
+    /// The hero rendering is on the Cover Sheet (ADR-095), and the PDF embeds it.
+    #[test]
+    fn the_cover_sheet_carries_the_hero_rendering() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        build_modern(&mut doc).unwrap();
+        let (cover, _, _) = ops::sheets(&doc)
+            .into_iter()
+            .find(|(_, number, _)| number == "A0.0")
+            .unwrap();
+        let on_cover: Vec<ElementId> = doc
+            .of(Category::Viewport)
+            .filter_map(|e| match &e.data {
+                ElementData::Viewport { sheet, view, .. } if *sheet == cover => Some(*view),
+                _ => None,
+            })
+            .collect();
+        let hero = on_cover
+            .iter()
+            .find(|v| studio_core::renderings::image_of(&doc, **v).is_some())
+            .expect("a rendering on the cover");
+        let (mime, _, w, h, _) = studio_core::renderings::image_of(&doc, *hero).unwrap();
+        assert_eq!((mime, w, h), ("image/jpeg", 1600, 900));
+        let pdf = studio_sheets::export_pdf(&doc, &[cover], "2026-10-01").unwrap();
+        // The JPEG goes in whole (a DCT-encoded image XObject).
+        assert!(pdf.len() > HERO_RENDERING.len());
+        if let Ok(out) = std::env::var("COVER_PDF") {
+            std::fs::write(out, pdf).unwrap();
+        }
+    }
+
     /// Dev aid: `SAMPLE_SVG=dir cargo test -p rufplan-studio write_modern_svgs -- --ignored`
     /// draws the Modern House's views as SVG.
     #[test]
@@ -1162,6 +1413,7 @@ mod preview {
             );
             for i in &dl.items {
                 match &i.prim {
+                    Prim::Image { .. } => {}
                     Prim::Fill { rings, fill } => {
                         let color = match fill {
                             FillKind::Paper => "#fff",

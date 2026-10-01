@@ -324,6 +324,33 @@ pub fn flip_selection(
     })
 }
 
+/// The 20 typical fascias (ADR-095).
+#[tauri::command]
+pub fn fascia_catalog() -> Vec<studio_core::fascia::FasciaSpec> {
+    studio_core::fascia::catalog()
+}
+
+/// Gives roofs a fascia by name, or removes it; every roof when `ids` is None.
+#[tauri::command]
+pub fn set_fascia(
+    ids: Option<Vec<ElementId>>,
+    name: Option<String>,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        let roofs = match ids {
+            Some(v) => v,
+            None => s.doc()?.of(Category::Roof).map(|e| e.id).collect(),
+        };
+        if roofs.is_empty() {
+            anyhow::bail!("there are no roofs to give a fascia");
+        }
+        s.edit(|d| studio_core::fascia::set(d, &roofs, name.as_deref()))?;
+        Ok(())
+    })
+}
+
 /// Revit's flip controls: the left/right arrows flip a door's hand, the up/down arrows
 /// its facing.
 #[tauri::command]
@@ -492,4 +519,32 @@ pub fn remove_project_parameter(
     state: State<'_, SessionState>,
 ) -> StateResult {
     edit_state(&window, &state, |s| s.edit(|d| params::remove_def(d, &key)))
+}
+
+/// Revit's Save to Project (ADR-095): keeps a rendered image (base64 JPEG or PNG) as a
+/// Rendering view that can go on a sheet.
+#[tauri::command]
+pub fn save_rendering(
+    name: String,
+    mime: String,
+    data: String,
+    width: u32,
+    height: u32,
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        s.edit(|d| studio_core::renderings::save(d, &name, &mime, data, width, height))?;
+        Ok(())
+    })
+}
+
+/// A saved rendering's image as a data URL, for drawing it in views and on sheets.
+#[tauri::command]
+pub fn render_image(id: ElementId, state: State<'_, SessionState>) -> CommandResult<String> {
+    let session = lock(&state)?;
+    match session.doc()?.data(id) {
+        Ok(ElementData::RenderImage { mime, data, .. }) => Ok(format!("data:{mime};base64,{data}")),
+        _ => Err(anyhow::anyhow!("that isn't a saved rendering").into()),
+    }
 }

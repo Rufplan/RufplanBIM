@@ -228,6 +228,7 @@ pub(crate) fn meshes(doc: &Document, out: &mut Vec<Mesh>) {
     for s in solids(doc) {
         let color = studio_core::material::resolve_type(doc, s.material, "").color;
         out.push(Mesh {
+            finish: None,
             el: s.id,
             category: s.category,
             exterior: false,

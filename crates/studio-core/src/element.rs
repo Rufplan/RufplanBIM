@@ -91,6 +91,8 @@ pub enum Category {
     /// Furniture and equipment types (ADR-090); placed pieces are Furniture or
     /// SpecialtyEquipment.
     FfeType,
+    /// A rendered image saved to the project (ADR-095).
+    RenderImage,
     Group,
     /// Annotation symbols (ADR-048).
     SpotElevation,
@@ -178,6 +180,7 @@ impl Category {
             Category::SpecBook => "SpecBook",
             Category::GroupType => "GroupType",
             Category::FfeType => "FfeType",
+            Category::RenderImage => "RenderImage",
             Category::Group => "Group",
             Category::SpotElevation => "SpotElevation",
             Category::NorthArrow => "NorthArrow",
@@ -887,6 +890,11 @@ pub enum ViewKind {
     /// Revit's drafting view (ADR-069): a 2D sheet of detail lines, filled regions and
     /// text at a scale, with no model in it (typical details).
     Drafting,
+    /// A rendering saved to the project (ADR-095), like Revit's Renderings: the image
+    /// element it shows, placeable on sheets.
+    Rendering {
+        image: ElementId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1226,6 +1234,9 @@ pub enum ElementData {
         slope: f64,
         /// One flag per boundary edge (edge i runs from point i to point i + 1).
         sloped: Vec<bool>,
+        /// The trim swept around its edge (ADR-095), if any.
+        #[serde(default)]
+        fascia: Option<crate::fascia::FasciaSpec>,
     },
     /// A straight stair run from `base_level` up to `top_level`, climbing from `start`
     /// toward `end` (only the direction of `end` matters: the run length follows from the
@@ -1336,6 +1347,16 @@ pub enum ElementData {
     Standards(crate::standards::Standards),
     /// The project manual (ADR-085): one, made when it's first generated.
     SpecBook(Box<crate::specs::SpecBook>),
+    /// A rendered image (ADR-095): JPEG or PNG bytes as base64, its pixel size, and the
+    /// paper width it prints at on a sheet (mm).
+    RenderImage {
+        name: String,
+        mime: String,
+        data: String,
+        width: u32,
+        height: u32,
+        paper_width: f64,
+    },
     /// A furniture or equipment type (ADR-090).
     FfeType {
         name: String,
@@ -1630,6 +1651,7 @@ impl ElementData {
             ElementData::SpecBook(_) => Category::SpecBook,
             ElementData::GroupType { .. } => Category::GroupType,
             ElementData::FfeType { .. } => Category::FfeType,
+            ElementData::RenderImage { .. } => Category::RenderImage,
             ElementData::Ffe { class, .. } => class.category(),
             ElementData::Group { .. } => Category::Group,
             ElementData::SpotElevation { .. } => Category::SpotElevation,
@@ -1816,6 +1838,7 @@ impl ElementData {
             ElementData::SpecBook(_) => "Project Manual".into(),
             ElementData::GroupType { name, .. } => name.clone(),
             ElementData::FfeType { name, .. } => name.clone(),
+            ElementData::RenderImage { name, .. } => name.clone(),
             ElementData::Ffe { class, .. } => class.label().into(),
             ElementData::Group { .. } => "Group".into(),
             ElementData::Site { address, .. } => {

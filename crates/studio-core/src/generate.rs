@@ -1178,6 +1178,7 @@ fn gable(
             boundary,
             slope,
             sloped,
+            fascia: None,
         })])
     })
 }

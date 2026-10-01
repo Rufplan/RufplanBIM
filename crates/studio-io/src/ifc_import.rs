@@ -1203,6 +1203,7 @@ fn build(r: &Reader<'_>, doc: &mut Document, report: &mut ImportReport) -> CoreR
                     boundary: outline.clone(),
                     slope: 0.0,
                     sloped: vec![false; n],
+                    fascia: None,
                 }))
             });
             if made.is_ok() {

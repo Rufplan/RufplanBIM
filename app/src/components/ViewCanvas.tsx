@@ -71,6 +71,7 @@ import {
   zoomAt,
   type Camera,
 } from "../canvas/render";
+import { onRenderImage } from "../canvas/images";
 import {
   closesSketch,
   pointAtLength,
@@ -719,6 +720,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     };
   }, [mepKey, planLike, view.id, revision]);
   useEffect(() => redrawRef.current(), [structuralAlpha]);
+  // Saved renderings arrive after the first draw (ADR-095).
+  useEffect(() => onRenderImage(() => redrawRef.current()), []);
   const stHover = useRef(0);
   const stLast = useRef(0);
   const stPinned = useRef(false);

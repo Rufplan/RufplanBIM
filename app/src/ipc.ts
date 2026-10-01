@@ -98,6 +98,7 @@ import type { ElementId } from "./bindings/ElementId";
 import type { Mesh } from "./bindings/Mesh";
 import type { OpeningPreview } from "./bindings/OpeningPreview";
 import type { OpeningFlip } from "./bindings/OpeningFlip";
+import type { FasciaSpec } from "./bindings/FasciaSpec";
 import type { RoomPreview } from "./bindings/RoomPreview";
 import type { Table } from "./bindings/Table";
 import type { DimensionPreview } from "./bindings/DimensionPreview";
@@ -170,12 +171,63 @@ const OPEN_FILTER = [{ name: "Rufplan Studio project", extensions: ["ruf", "rfpr
 
 type S = Promise<AppState | null>;
 
+/** An unattended render (ADR-095): which camera view, the settings, and where to save. */
+export interface AutoRender {
+  out: string;
+  view: string;
+  width?: number;
+  height?: number;
+  samples?: number;
+  month?: number;
+  day?: number;
+  hour?: number;
+  exposure?: number;
+  background?: string;
+  /** "sunsky" or "dome" (light by the background photo's HDR), and its rotation. */
+  lighting?: "sunsky" | "dome";
+  rotation?: number;
+  /** A camera instead of the view's (model mm, z up), for close-ups. */
+  eye?: [number, number, number];
+  target?: [number, number, number];
+  fov?: number;
+  /** A warm finishing grade (0 none, 0.08 typical). */
+  warm?: number;
+  /** The most artificial lights to render (the nearest the camera's target). */
+  maxLights?: number;
+  /** The physical sky's haze (2 clear … 6 hazy) and cloud cover (0–0.9). */
+  turbidity?: number;
+  clouds?: number;
+  /** The backdrop photo's brightness relative to the scene (default 1). */
+  skyExposure?: number;
+  /** Sunlit to skylit light (default 6): lower lifts the shadows. */
+  sunToSky?: number;
+  /** Smooth the remaining noise at the end (default on). */
+  denoise?: boolean;
+  /** A Lighting Scheme name ("Exterior: Sun and Artificial"…). */
+  scheme?: string;
+  /** Grass clumps in the render (default 120,000). */
+  grass?: number;
+  tone?: "contrast" | "filmic";
+  glare?: boolean;
+  vignette?: boolean;
+  d5?: boolean;
+  quit?: boolean;
+}
+
 export const ipc = {
   coreVersion: () => invoke<CoreVersion>("core_version"),
   appState: (): S => invoke("app_state"),
   projectNew: (): S => invoke("project_new"),
   /** A new unsaved project with a sample two-storey house. */
   projectSample: (kind: "modern" | "basic" = "modern"): S => invoke("project_sample", { kind }),
+  /** Development aid (ADR-095): the --autorender settings the app was started with. */
+  autoRender: () => invoke<AutoRender | null>("auto_render"),
+  quitApp: () => invoke<void>("quit_app"),
+  /** Save to Project (ADR-095): a rendered image kept as a Rendering view. */
+  saveRendering: (name: string, mime: string, data: string, width: number, height: number): S =>
+    invoke("save_rendering", { name, mime, data, width, height }),
+  /** A saved rendering's image as a data URL. */
+  renderImage: (id: ElementId) => invoke<string>("render_image", { id }),
   projectOpen: (path: string): S => invoke("project_open", { path }),
   /** Omit `path` to save to the project's current location. */
   projectSave: (path?: string): S => invoke("project_save", { path: path ?? null }),
@@ -259,6 +311,10 @@ export const ipc = {
     flipFacing: boolean,
     flipHand = false,
   ): S => invoke("create_opening", { typeId, host, offset, flipFacing, flipHand }),
+  /** Fascia (ADR-095): the 20 profiles, and giving roofs one (every roof when ids is null). */
+  fasciaCatalog: () => invoke<FasciaSpec[]>("fascia_catalog"),
+  setFascia: (ids: ElementId[] | null, name: string | null): S =>
+    invoke("set_fascia", { ids, name }),
   /** Revit's flip controls: a door's hand (left/right) or facing (up/down). */
   flipOpening: (id: ElementId, flip: OpeningFlip): S => invoke("flip_opening", { id, flip }),
   deleteElements: (ids: ElementId[]): S => invoke("delete_elements", { ids }),

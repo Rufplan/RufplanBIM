@@ -19,6 +19,11 @@ pub struct GenTexture {
 pub const KINDS: &[(&str, f64, &str)] = &[
     ("cedar-bevel", FT8, "clear cedar bevel lap, 6\" exposure"),
     (
+        "cedar-lap-stained",
+        FT8,
+        "cedar bevel lap under a warm semi-transparent stain, 6\" exposure",
+    ),
+    (
         "cedar-bevel-weathered",
         FT8,
         "weathered cedar bevel lap, 6\" exposure",
@@ -123,6 +128,16 @@ pub const KINDS: &[(&str, f64, &str)] = &[
         "clay brick pavers 4\" x 8\", herringbone",
     ),
     ("flagstone", FT8, "irregular bluestone flagging, mortared"),
+    (
+        "bluestone-pattern",
+        FT10,
+        "thermal-finish bluestone pavers 24\" x 36\" and 24\" x 24\", 3/8\" joints",
+    ),
+    (
+        "bluestone-slab",
+        FT4,
+        "cleft bluestone slab, no joints (stepping stones)",
+    ),
     ("sand", FT4, "sand"),
     ("soil", FT4, "garden soil"),
     ("moss", FT4, "moss"),
@@ -304,6 +319,19 @@ const STAINED: Species = Species {
     spread: 0.12,
     knots: 0.3,
     rough: 0.65,
+    weathered: false,
+    palette: &[],
+};
+
+/// Cedar under a warm semi-transparent stain (ADR-095): the stain evens the boards toward
+/// one honey-brown, the grain still showing through softly.
+const STAINED_CEDAR: Species = Species {
+    early: [178, 112, 58],
+    late: [150, 92, 48],
+    ring: 6.0,
+    spread: 0.16,
+    knots: 0.08,
+    rough: 0.62,
     weathered: false,
     palette: &[],
 };
@@ -520,6 +548,28 @@ fn sample(kind: &str, x: f64, y: f64, tile: f64) -> Px {
     }
     let paint = [0.62, 0.62, 0.62];
     match kind {
+        "cedar-lap-stained" => {
+            let e = 6.0 * IN;
+            let mut p = lap(
+                x,
+                y,
+                tile,
+                e,
+                bevel_profile,
+                |a, c, s| wood(&STAINED_CEDAR, a, c, s, tile),
+                1,
+            );
+            // The butt of the course above: a crisp dark line, then its soft shadow.
+            let (_, dy) = cellw(y, e, tile);
+            let from_top = e - dy;
+            if from_top < 8.0 {
+                p.c = scale3(p.c, 0.3);
+                p.h -= 3.0;
+            } else if from_top < 30.0 {
+                p.c = scale3(p.c, 0.5 + 0.5 * (from_top - 8.0) / 22.0);
+            }
+            p
+        }
         "cedar-bevel" | "cedar-bevel-weathered" => {
             let sp = if kind == "cedar-bevel" {
                 CEDAR
@@ -2366,6 +2416,96 @@ fn pavers_herringbone(x: f64, y: f64, tile: f64) -> Px {
 }
 
 /// Irregular bluestone flagging, full-colour, with mortar joints.
+/// Pattern-cut bluestone (ADR-095): rows 24" deep of 36" and 24" stones, alternating so
+/// the joints break, with 3/8" sand joints; a thermal (flamed) face, fine and even, each
+/// stone its own blue-grey.
+fn bluestone_pattern(x: f64, y: f64, tile: f64) -> Px {
+    let seed = 811;
+    let d = 24.0 * IN;
+    let (row, dy) = cellw(y, d, tile);
+    // A 60" repeat of a 36" and a 24" stone, shifted every other row.
+    let period = 60.0 * IN;
+    let off = if row.rem_euclid(2) == 1 {
+        18.0 * IN
+    } else {
+        0.0
+    };
+    let (rep, px) = cellw(x + off, period, tile);
+    let (k, dx, w) = if px < 36.0 * IN {
+        (0, px, 36.0 * IN)
+    } else {
+        (1, px - 36.0 * IN, 24.0 * IN)
+    };
+    let edge = dx.min(w - dx).min(dy.min(d - dy));
+    let id = row * 131 + rep * 2 + k;
+    let joint = 9.5;
+    if edge < joint {
+        let s = speck(x, y, tile, 0.5, seed ^ 1);
+        return Px {
+            c: scale3(lin([112, 108, 102]), 0.4 + 0.25 * s),
+            h: -8.0 + 0.5 * s,
+            r: 0.95,
+        };
+    }
+    let tones: &[[u8; 3]] = &[
+        [146, 142, 138],
+        [136, 134, 132],
+        [152, 148, 144],
+        [130, 130, 130],
+        [144, 140, 134],
+        [138, 136, 134],
+    ];
+    let mut c = pick(tones, hash(id, 5, seed));
+    let fine = gnoise(x, y, tile, 3.0, 3, seed ^ 2);
+    let mottle = gnoise(x, y, tile, 140.0, 3, seed ^ 3 ^ id as u32);
+    let grit = speck(x, y, tile, 0.7, seed ^ 4);
+    // The odd rust or lilac cast through the bed.
+    let cast = gnoise(x, y, tile, 320.0, 2, seed ^ 5);
+    c = lerp3(c, lin([132, 114, 98]), 0.25 * smoothstep(0.62, 0.86, cast));
+    c = scale3(
+        c,
+        (0.86 + 0.1 * mottle)
+            * (0.9 + 0.16 * fine)
+            * (0.94 + 0.1 * grit)
+            * (0.92 + 0.16 * hash(id, 6, seed)),
+    );
+    // Arrised edges, a touch darker.
+    let e = edge - joint;
+    let arris = smoothstep(0.0, 5.0, e);
+    Px {
+        c: scale3(c, 0.82 + 0.18 * arris),
+        h: 0.5 * fine + 0.6 * mottle - 2.0 * (1.0 - arris) + 1.5 * hash(id, 7, seed),
+        r: 0.72 + 0.12 * fine,
+    }
+}
+
+/// One cleft bluestone slab (ADR-095): the pattern-cut stone's face with no joints, for
+/// stepping stones and treads, a little more relief from the cleft.
+fn bluestone_slab(x: f64, y: f64, tile: f64) -> Px {
+    let seed = 823;
+    let fine = gnoise(x, y, tile, 3.0, 3, seed ^ 2);
+    let mottle = gnoise(x, y, tile, 140.0, 3, seed ^ 3);
+    let cleft = gnoise(x, y, tile, 420.0, 3, seed ^ 6);
+    let grit = speck(x, y, tile, 0.7, seed ^ 4);
+    let cast = gnoise(x, y, tile, 320.0, 2, seed ^ 5);
+    let c = lerp3(
+        lin([146, 142, 136]),
+        lin([132, 114, 98]),
+        0.25 * smoothstep(0.62, 0.86, cast),
+    );
+    Px {
+        c: scale3(
+            c,
+            (0.86 + 0.12 * mottle)
+                * (0.9 + 0.16 * fine)
+                * (0.94 + 0.1 * grit)
+                * (0.9 + 0.14 * cleft),
+        ),
+        h: 0.5 * fine + 0.6 * mottle + 2.5 * cleft,
+        r: 0.74 + 0.12 * fine,
+    }
+}
+
 fn flagstone(x: f64, y: f64, tile: f64) -> Px {
     let seed = 781;
     // Warp the Voronoi so the joints wander like hand-cut edges.
@@ -2627,6 +2767,8 @@ fn ground(kind: &str, x: f64, y: f64, tile: f64) -> Option<Px> {
         "pavers-running" => pavers_running(x, y, tile),
         "pavers-herringbone" => pavers_herringbone(x, y, tile),
         "flagstone" => flagstone(x, y, tile),
+        "bluestone-pattern" => bluestone_pattern(x, y, tile),
+        "bluestone-slab" => bluestone_slab(x, y, tile),
         "sand" => sand(x, y, tile),
         "soil" => soil(x, y, tile),
         "moss" => moss(x, y, tile),
@@ -2929,7 +3071,11 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(1024);
-        let start = KINDS.iter().position(|k| k.0 == "lawn").unwrap();
+        let start = if only.is_some() {
+            0
+        } else {
+            KINDS.iter().position(|k| k.0 == "lawn").unwrap()
+        };
         for (kind, _, _) in &KINDS[start..] {
             if only
                 .as_deref()

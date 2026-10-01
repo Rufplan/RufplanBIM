@@ -3,4 +3,4 @@
 /**
  * The Asset Library's groups.
  */
-export type PlantGroup = "Deciduous" | "Flowering" | "Evergreen" | "Conifer" | "Palm" | "Shrub" | "Hedge" | "Grass" | "Perennial" | "Succulent";
+export type PlantGroup = "Deciduous" | "Flowering" | "Evergreen" | "Conifer" | "Palm" | "Shrub" | "Hedge" | "Grass" | "Perennial" | "Succulent" | "Rock";

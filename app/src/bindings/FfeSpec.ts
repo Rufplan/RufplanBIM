@@ -18,4 +18,8 @@ count: number,
 /**
  * Main and accent colors (sRGB).
  */
-color: [number, number, number], accent: [number, number, number], };
+color: [number, number, number], accent: [number, number, number], 
+/**
+ * Seat and back cushions in their own fabric (outdoor wicker seating, ADR-095).
+ */
+cushion?: [number, number, number], };

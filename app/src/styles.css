@@ -6197,6 +6197,13 @@ button:disabled {
 .qa-mode button.on .qa-dot {
   border: 3.5px solid #29b6ea;
 }
+.fascia-profile {
+  background: #fbfaf7;
+  border: 1px solid #e6e4df;
+}
+.mb-detail .fascia-profile {
+  align-self: center;
+}
 .edit-model-backdrop:has(.qa-fixer) {
   padding: 24px;
   align-items: stretch;

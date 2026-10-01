@@ -3640,6 +3640,7 @@ name = "rufplan-studio"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "base64 0.23.1",
  "keyring",
  "png 0.18.1",
  "serde",
@@ -4418,6 +4419,7 @@ dependencies = [
 name = "studio-sheets"
 version = "0.0.1"
 dependencies = [
+ "base64 0.23.1",
  "krilla",
  "serde",
  "studio-core",

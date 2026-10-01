@@ -327,6 +327,9 @@ const PRESETS: &[P] = &[
     p("siding-cedar-bevel", "Cedar Bevel Siding, Natural", "Siding", HI).sec("R")
         .d("Clear western red cedar bevel lap, 6\" exposure, clear oil finish: modern and craftsman homes.")
         .c([178, 122, 80]).cut(CutPattern::None, "lap6").tex("gen:cedar-bevel", FT8).r(0.75),
+    p("siding-cedar-lap-stained", "Cedar Lap Siding, Warm Stain", "Siding", HI).sec("RH")
+        .d("Western red cedar bevel lap, 6\" exposure, under a warm semi-transparent stain: modern homes.")
+        .c([170, 106, 56]).cut(CutPattern::None, "lap6").tex("gen:cedar-lap-stained", FT8).r(0.8),
     p("siding-cedar-bevel-weathered", "Cedar Bevel Siding, Weathered Silver", "Siding", MID).sec("R")
         .d("Cedar bevel lap left to silver: coastal and shingle-style homes.")
         .c([142, 138, 130]).cut(CutPattern::None, "lap6").tex("gen:cedar-bevel-weathered", FT8).r(0.9),
@@ -630,7 +633,7 @@ const PRESETS: &[P] = &[
         .c([74, 104, 38]).tex("gen:lawn", FT8).r(0.85).sheen(0.3).grass(60.0, 0.35),
     p("site-lawn-lush", "Lawn, Lush Bluegrass", "Site & Landscape", MID).sec("RH")
         .d("Dense, deep green irrigated turf: estate lawns, resort grounds and golf-course fringes.")
-        .c([48, 90, 34]).tex("gen:lawn-lush", FT8).r(0.85).sheen(0.3).grass(70.0, 0.3),
+        .c([98, 126, 38]).tex("gen:lawn-lush", FT8).r(0.85).sheen(0.3).grass(70.0, 0.3),
     p("site-lawn-dry", "Lawn, Summer Dry", "Site & Landscape", TYP).sec("RM")
         .d("Unirrigated turf in late summer, straw patches through the green: realistic suburban yards.")
         .c([128, 124, 70]).tex("gen:lawn-dry", FT8).r(0.9).sheen(0.2).grass(70.0, 0.45),
@@ -682,6 +685,12 @@ const PRESETS: &[P] = &[
     p("site-flagstone", "Bluestone Flagging, Irregular", "Site & Landscape", HI).sec("RH")
         .d("Irregular full-color bluestone with mortared joints: terraces, walks and pool decks.")
         .c([108, 112, 116]).tex("gen:flagstone", FT8).r(0.85),
+    p("site-bluestone-pattern", "Bluestone Pavers, Pattern Cut", "Site & Landscape", HI).sec("RH")
+        .d("Thermal-finish bluestone, 24\" x 36\" and 24\" x 24\" in a running pattern, 3/8\" sand joints: modern terraces and pool decks.")
+        .c([128, 126, 122]).tex("gen:bluestone-pattern", 3048.0).r(0.8),
+    p("site-bluestone-slab", "Bluestone Slab, Cleft", "Site & Landscape", HI).sec("RH")
+        .d("Single cleft bluestone slabs, no joints: stepping stones set in lawn, treads and landings.")
+        .c([134, 130, 124]).tex("gen:bluestone-slab", FT4).r(0.8),
     p("site-sand", "Sand", "Site & Landscape", TYP).sec("RH")
         .d("Clean washed sand: beaches, play areas and volleyball courts.")
         .c([204, 182, 144]).tex("gen:sand", FT4).r(0.9),

@@ -148,7 +148,7 @@ fn profile(form: CrownForm, t: f64) -> f64 {
         Umbrella => t.powf(0.3) * (1.0 - t.powi(3)).max(0.0).sqrt(),
         Mound | Rosette => (1.0 - t * t).max(0.0).sqrt() * (0.7 + 0.3 * (t * 4.0).min(1.0)),
         Fountain => (0.35 + 0.65 * t.powf(0.5)) * (1.0 - t.powi(4)).max(0.0).sqrt(),
-        PalmHead | Box | Cactus => dome,
+        PalmHead | Box | Cactus | Boulder => dome,
     }
 }
 
@@ -778,6 +778,12 @@ fn leaf_cards(
     let size = card_size(spec);
     let flowers = spec.flowers_now().is_some();
     let flowering_tree = flowers && spec.group == PlantGroup::Flowering;
+    // Mophead and mounded shrubs (hydrangea, lavender) cover their shell in flower heads.
+    let shell_bloom = if spec.form == CrownForm::Mound {
+        0.6
+    } else {
+        0.3
+    };
     let conifer = matches!(spec.foliage, Foliage::Needle | Foliage::Scale);
     let spots: Vec<usize> = (0..sk.nodes.len())
         .filter(|&i| {
@@ -862,12 +868,31 @@ fn leaf_cards(
                 } else {
                     (rng.f() * 2.0) as u32
                 }
-            } else if flowers && rng.f() < 0.3 {
+            } else if flowers
+                && !spec.group.is_tree()
+                && rng.f() < shell_bloom * o.min(1.0).powi(2) + 0.05
+            {
+                // A flowering shrub or perennial blooms on its outer shell, where the
+                // flower heads show (ADR-095), not inside the mass.
+                2 + (rng.f() * 2.0) as u32
+            } else if flowers && spec.group.is_tree() && rng.f() < 0.3 {
                 2 + (rng.f() * 2.0) as u32
             } else {
                 (rng.f() * 2.0) as u32
             };
-            let s = size * rng.range(0.8, 1.2);
+            let bloom = cell >= 2 && !spec.group.is_tree();
+            let s = size * rng.range(0.8, 1.2) * if bloom { 1.35 } else { 1.0 };
+            // Flower heads sit proud of the leaves, in the light.
+            let p = if bloom {
+                add(p, mul(out, size * 0.2))
+            } else {
+                p
+            };
+            let c = if bloom {
+                c.map(|x| (x * 1.12 + 0.05).min(1.1))
+            } else {
+                c
+            };
             // A conifer narrows to its spire: its sprays no wider than the crown there.
             let s = if conifer {
                 let rz = env.radius(p[2], p[1].atan2(p[0]));
@@ -1434,6 +1459,204 @@ fn cactus(spec: &PlantSpec, rng: &mut Rng, m: &mut PlantModel) {
     }
 }
 
+/// Boulders (ADR-095): weathered stones as displaced spheres, flattened where they sit and
+/// sunk a third into the ground; a cluster of `stems` stones of mixed sizes, piled. Darker
+/// in the crevices, with a little lichen, like a scanned Megascans rock. Ledge stone (under
+/// 0.4 as tall as wide) is a loose stack of split slabs instead.
+fn boulder(spec: &PlantSpec, rng: &mut Rng, m: &mut PlantModel) {
+    // Solid parts take sRGB colours (like the cacti).
+    let base = spec.leaf.map(|x| f64::from(x) / 255.0);
+    if spec.height < spec.spread * 0.4 {
+        return ledge(spec, base, rng, m);
+    }
+    let n = spec.stems.max(1) as usize;
+    // Stones from largest to smallest.
+    for k in 0..n {
+        let big = if n == 1 {
+            1.0
+        } else {
+            1.0 - 0.55 * k as f64 / (n - 1) as f64
+        };
+        let r = spec.spread / 2.0 / (n as f64).sqrt().max(1.0) * big * rng.range(0.85, 1.15);
+        let (rx, ry) = (r * rng.range(0.9, 1.25), r * rng.range(0.75, 1.05));
+        let rz = spec.height / 2.0 * big * rng.range(0.8, 1.1);
+        let a = rng.range(0.0, std::f64::consts::TAU);
+        let d = if k == 0 {
+            0.0
+        } else {
+            spec.spread * 0.32 * rng.range(0.5, 1.0)
+        };
+        let stone = Stone {
+            c: [d * a.cos(), d * a.sin(), rz * 0.55],
+            r: [rx, ry, rz],
+            turn: rng.range(0.0, std::f64::consts::TAU),
+            tilt: 0.0,
+            seed: rng.f() * 100.0,
+            tone: rng.range(0.85, 1.12),
+            boxy: 1.0,
+            floor: 0.55,
+        };
+        stone.emit(base, m);
+    }
+}
+
+/// Stacked ledge stone: flat split slabs (boxy, rounded at the arrises) laid in rough
+/// courses, each course smaller and set back, the slabs tipped a little, as a landscaper
+/// piles them in a dry bed.
+fn ledge(spec: &PlantSpec, base: V, rng: &mut Rng, m: &mut PlantModel) {
+    let half = spec.spread / 2.0;
+    let courses = 3usize;
+    let thick = spec.height / (courses as f64 + 0.6);
+    let mut z = 0.0;
+    for course in 0..courses {
+        let shrink = 1.0 - 0.3 * course as f64;
+        let count = (spec.stems.max(3) as usize + 3)
+            .saturating_sub(course * 2)
+            .max(2);
+        for i in 0..count {
+            let a = (i as f64 + rng.range(-0.3, 0.3)) / count as f64 * std::f64::consts::TAU;
+            let d = half
+                * shrink
+                * rng.range(0.25, 0.6)
+                * if course == courses - 1 { 0.5 } else { 1.0 };
+            let len = half * shrink * rng.range(0.5, 0.75);
+            let t = thick * rng.range(0.55, 0.85) / 2.0;
+            let stone = Stone {
+                c: [d * a.cos(), d * a.sin() * 0.75, z + t],
+                r: [len / 2.0, len / 2.0 * rng.range(0.55, 0.8), t],
+                // Laid roughly along the pile's ring.
+                turn: a + std::f64::consts::FRAC_PI_2 + rng.range(-0.5, 0.5),
+                tilt: rng.range(-0.12, 0.12),
+                seed: rng.f() * 100.0,
+                tone: rng.range(0.82, 1.12),
+                boxy: 0.3,
+                floor: 1.0,
+            };
+            stone.emit(base, m);
+        }
+        z += thick * 0.8;
+    }
+}
+
+/// One stone: a lat-long sphere, displaced by layered noise and split faces; `boxy` below
+/// 1 squares it toward a slab (a superellipsoid).
+struct Stone {
+    c: V,
+    r: V,
+    turn: f64,
+    tilt: f64,
+    seed: f64,
+    tone: f64,
+    boxy: f64,
+    /// Clamped flat below this fraction of the height (where it sits).
+    floor: f64,
+}
+
+impl Stone {
+    fn emit(&self, base: V, m: &mut PlantModel) {
+        let Stone {
+            c,
+            r: [rx, ry, rz],
+            turn,
+            tilt,
+            seed,
+            tone,
+            boxy,
+            floor,
+        } = *self;
+        let (nu, nv) = (36usize, 18usize);
+        let first = (m.solid.positions.len() / 3) as u32;
+        let disp = |dir: V| -> f64 {
+            let s = |f: f64, o: f64| {
+                ((dir[0] * f + o).sin() * (dir[1] * f * 1.3 + o * 0.7).cos()
+                    + (dir[2] * f * 0.9 + o * 1.3).sin())
+                    / 3.0
+            };
+            // Broad lumps, then ridged breaks (fractured faces), then grain.
+            let ridge = 1.0 - (2.0 * s(4.0, seed + 5.0)).abs();
+            // Split faces: the radius clamped flat in a few directions, as a broken stone.
+            let cut = |nx: f64, ny: f64, nz: f64, at: f64| {
+                let d = (dir[0] * nx + dir[1] * ny + dir[2] * nz)
+                    / (nx * nx + ny * ny + nz * nz).sqrt();
+                if d > at {
+                    at / d
+                } else {
+                    1.0
+                }
+            };
+            let facets = cut((seed * 1.3).sin(), (seed * 2.1).cos(), 0.4, 0.78)
+                .min(cut((seed * 3.7).cos(), (seed * 0.9).sin(), -0.2, 0.82))
+                .min(cut(-(seed * 1.9).sin(), (seed * 4.3).cos(), 0.9, 0.8));
+            let lumps = if boxy < 1.0 { 0.4 } else { 1.0 };
+            (1.0 + lumps * (0.2 * s(1.6, seed) + 0.08 * s(3.7, seed + 3.0) - 0.06 * ridge)
+                + 0.025 * s(12.0, seed + 7.0))
+                * facets
+        };
+        let sq = |t: f64| t.signum() * t.abs().powf(boxy);
+        let pt = |iu: usize, iv: usize| -> (V, V, f64) {
+            let th = iu as f64 / nu as f64 * std::f64::consts::TAU;
+            let ph = iv as f64 / nv as f64 * std::f64::consts::PI;
+            let dir = [ph.sin() * th.cos(), ph.sin() * th.sin(), ph.cos()];
+            let k = disp(dir);
+            let shape = [sq(dir[0]), sq(dir[1]), sq(dir[2])];
+            let (x, y) = (shape[0] * rx * k, shape[1] * ry * k);
+            // Flattened beneath, where it sits.
+            let z = (shape[2] * rz * k).max(-rz * floor);
+            // Tipped about its length, then turned.
+            let (y, z) = (
+                y * tilt.cos() - z * tilt.sin(),
+                y * tilt.sin() + z * tilt.cos(),
+            );
+            let (x, y) = (
+                x * turn.cos() - y * turn.sin(),
+                x * turn.sin() + y * turn.cos(),
+            );
+            let dw = [
+                dir[0] * turn.cos() - dir[1] * turn.sin(),
+                dir[0] * turn.sin() + dir[1] * turn.cos(),
+                dir[2],
+            ];
+            (add(c, [x, y, z]), dw, k)
+        };
+        for iv in 0..=nv {
+            for iu in 0..=nu {
+                let (p, dir, k) = pt(iu, iv);
+                // Normal from the neighbours (finite differences round the sphere).
+                let (pa, _, _) = pt((iu + 1) % nu, iv);
+                let (pb, _, _) = pt(iu, (iv + 1).min(nv));
+                let (pc, _, _) = pt((iu + nu - 1) % nu, iv);
+                let (pd, _, _) = pt(iu, iv.saturating_sub(1));
+                let mut nn = cross(sub(pa, pc), sub(pb, pd));
+                // At the poles the neighbours meet: fall back to the sphere's own normal.
+                if dot(nn, nn) < 1e-9 {
+                    nn = dir;
+                } else if dot(nn, dir) < 0.0 {
+                    nn = mul(nn, -1.0);
+                }
+                // Crevices (low spots) and undersides darker; tops a touch lighter, with lichen.
+                let under = if dir[2] < -0.3 { 0.75 } else { 1.0 };
+                let shade = (0.62 + 0.9 * (k - 0.9)).clamp(0.55, 1.08) * tone * under;
+                let lichen =
+                    ((dir[2] - 0.4).max(0.0) * ((iu * 7 + iv * 13) % 5 == 0) as u8 as f64) * 0.25;
+                let col = [
+                    base[0] * shade * (1.0 - lichen * 0.3),
+                    base[1] * shade * (1.0 + lichen * 0.15),
+                    base[2] * shade * (1.0 - lichen * 0.4),
+                ];
+                m.solid.vert(p, norm(nn), [0.0, 0.0], col);
+            }
+        }
+        let row = (nu + 1) as u32;
+        for iv in 0..nv as u32 {
+            for iu in 0..nu as u32 {
+                let a = first + iv * row + iu;
+                // Wound so the faces point out of the stone.
+                m.solid.quad(a, a + row, a + row + 1, a + 1);
+            }
+        }
+    }
+}
+
 /// Arching canes with leaves along them (forsythia, ocotillo, ferns' crowns).
 fn canes(spec: &PlantSpec, rng: &mut Rng, m: &mut PlantModel) {
     let mut sk = Skeleton::default();
@@ -1492,6 +1715,7 @@ pub fn model(spec: &PlantSpec, variant: u32) -> PlantModel {
             hedge(spec, &mut rng, &mut m);
         }
         (CrownForm::Cactus, _) => cactus(spec, &mut rng, &mut m),
+        (CrownForm::Boulder, _) => boulder(spec, &mut rng, &mut m),
         (CrownForm::Rosette, _) => rosette(spec, &mut rng, &mut m),
         (_, Foliage::Blade) if !spec.group.is_tree() && spec.group != PlantGroup::Shrub => {
             grass(spec, &mut rng, &mut m)
@@ -1639,6 +1863,7 @@ pub(crate) fn meshes(doc: &Document, out: &mut Vec<Mesh>) {
         let (leaf, _) = p.spec.leaf_colors();
         let color = if p.spec.leafy() { leaf } else { p.spec.bark };
         out.push(Mesh {
+            finish: None,
             el: p.id,
             category: Category::Planting,
             exterior: false,
@@ -2121,6 +2346,7 @@ pub(crate) fn grass_meshes(doc: &Document, out: &mut Vec<Mesh>) {
             continue;
         };
         out.push(Mesh {
+            finish: None,
             el: e.id,
             category: Category::GrassPatch,
             exterior: false,
@@ -2171,6 +2397,7 @@ pub(crate) fn region_meshes(doc: &Document, out: &mut Vec<Mesh>) {
             _ => Some([150, 160, 120]),
         };
         out.push(Mesh {
+            finish: None,
             el: e.id,
             category: Category::GroundRegion,
             exterior: false,

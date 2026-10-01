@@ -1828,6 +1828,7 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 ViewKind::Schedule { .. } => "Schedule",
                 ViewKind::MarkerElevation { .. } => "Elevation",
                 ViewKind::Drafting => "Drafting View",
+                ViewKind::Rendering { .. } => "Rendering",
             };
             if let ViewKind::Section { depth, .. } = kind {
                 props.push(len("depth", "Far Clip Offset", "Extents", *depth));
@@ -2351,6 +2352,20 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
             crate::ffe::properties(doc, id, &mut props)
         }
         ElementData::WallOpening { .. } => crate::wall_opening::properties(doc, id, &mut props),
+        ElementData::RenderImage {
+            name,
+            width,
+            height,
+            ..
+        } => {
+            props.push(ro("name", "Name", "Identity Data", name.clone()));
+            props.push(ro(
+                "size",
+                "Size",
+                "Image",
+                format!("{width} x {height} px"),
+            ));
+        }
         ElementData::PlantingType { .. }
         | ElementData::Planting { .. }
         | ElementData::GroundRegion { .. } => crate::planting::properties(doc, id, &mut props),
@@ -3325,6 +3340,7 @@ pub fn set_property(
         | ElementData::LightingFixture { .. }
         | ElementData::Ffe { .. }
         | ElementData::FfeType { .. }
+        | ElementData::RenderImage { .. }
         | ElementData::LightingFixtureType { .. }
         | ElementData::PlantingType { .. }
         | ElementData::Planting { .. }

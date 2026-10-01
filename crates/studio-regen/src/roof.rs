@@ -38,6 +38,8 @@ pub struct RoofSolid {
     /// The top layer's surface pattern (shingle courses) and shaded color.
     pub surface: studio_core::SurfacePattern,
     pub color: Option<[u8; 3]>,
+    /// The trim swept around the edge (ADR-095).
+    pub fascia: Option<studio_core::fascia::FasciaSpec>,
 }
 
 impl RoofSolid {
@@ -108,7 +110,74 @@ impl RoofSolid {
             others: vec![],
             surface: studio_core::SurfacePattern::None,
             color: None,
+            fascia: None,
         }
+    }
+
+    /// The fascia's faces as 3D quads (x, y, z): each profile rectangle swept along every
+    /// edge not buried in another roof, mitred at the corners and following the top
+    /// surface up the rakes (ADR-095).
+    pub fn fascia_quads(&self) -> Vec<[[f64; 3]; 4]> {
+        let Some(f) = &self.fascia else {
+            return vec![];
+        };
+        let n = self.boundary.len();
+        let mut out = vec![];
+        for part in &f.parts {
+            // Mitred corner points at each offset.
+            let ring0 = studio_geom::offset_ring(&self.boundary, part.out0);
+            let ring1 = studio_geom::offset_ring(&self.boundary, part.out1);
+            for i in 0..n {
+                let (a, b) = (self.boundary[i], self.boundary[(i + 1) % n]);
+                let dir = b.sub(a).norm();
+                // Outward is to the right of a counter-clockwise edge.
+                let nrm = Pt::new(dir.y, -dir.x);
+                let pts = self.edge_breaks(i);
+                let last = pts.len() - 1;
+                let at = |k: usize, o: f64, ring: &[Pt]| -> Pt {
+                    if k == 0 {
+                        ring[i]
+                    } else if k == last {
+                        ring[(i + 1) % n]
+                    } else {
+                        pts[k].add(nrm.scale(o))
+                    }
+                };
+                for k in 0..last {
+                    let mid = pts[k].lerp(pts[k + 1], 0.5);
+                    if self
+                        .others
+                        .iter()
+                        .any(|o| studio_geom::point_in_ring(mid, o))
+                    {
+                        continue;
+                    }
+                    let (zp, zq) = (self.top(pts[k]), self.top(pts[k + 1]));
+                    let (p0, q0) = (at(k, part.out0, &ring0), at(k + 1, part.out0, &ring0));
+                    let (p1, q1) = (at(k, part.out1, &ring1), at(k + 1, part.out1, &ring1));
+                    let v = |p: Pt, z: f64| [p.x, p.y, z];
+                    let (lo_p, hi_p) = (zp + part.z0, zp + part.z1);
+                    let (lo_q, hi_q) = (zq + part.z0, zq + part.z1);
+                    // Outer face, inner face, top and bottom (outward-facing winding).
+                    out.push([v(p1, lo_p), v(q1, lo_q), v(q1, hi_q), v(p1, hi_p)]);
+                    out.push([v(q0, lo_q), v(p0, lo_p), v(p0, hi_p), v(q0, hi_q)]);
+                    out.push([v(p0, hi_p), v(p1, hi_p), v(q1, hi_q), v(q0, hi_q)]);
+                    out.push([v(p0, lo_p), v(q0, lo_q), v(q1, lo_q), v(p1, lo_p)]);
+                }
+            }
+        }
+        out
+    }
+
+    /// The fascia as flat-shaded triangles (9 floats each).
+    pub fn fascia_triangles(&self) -> Vec<f32> {
+        let mut out = vec![];
+        for q in self.fascia_quads() {
+            for k in [0, 1, 2, 0, 2, 3] {
+                out.extend(q[k].iter().map(|c| *c as f32));
+            }
+        }
+        out
     }
 
     /// Top planes as (plan polygon, gradient m, constant c) with z = m·p + c.
@@ -475,5 +544,60 @@ mod tests {
         assert!(r.is_flat());
         assert!(signed_area(&r.boundary) > 0.0);
         assert!((r.peak() - 3300.0).abs() < EPS);
+    }
+
+    #[test]
+    fn a_fascia_wraps_the_edge_at_the_roof_top() {
+        let mut r = RoofSolid::build(
+            ElementId::new(),
+            ElementId::new(),
+            &rect(6000.0, 4000.0),
+            3000.0,
+            0.0,
+            &[false; 4],
+            300.0,
+        );
+        assert!(r.fascia_quads().is_empty());
+        r.fascia = studio_core::fascia::by_name("Modern Stepped Band 12\"");
+        let q = r.fascia_quads();
+        // Two parts × four edges × four faces.
+        assert_eq!(q.len(), 32);
+        let (lo, hi) = q
+            .iter()
+            .flatten()
+            .fold((f64::MAX, f64::MIN), |(l, h), v| (l.min(v[2]), h.max(v[2])));
+        let inch = studio_core::units::MM_PER_IN;
+        assert!((lo - (3300.0 - 10.0 * inch)).abs() < 1e-6, "{lo}");
+        assert!((hi - (3300.0 + 2.5 * inch)).abs() < 1e-6, "{hi}");
+        // Out to 2 1/4" past the roof edge, mitred at the corners.
+        let xmax = q.iter().flatten().fold(f64::MIN, |m, v| m.max(v[0]));
+        assert!((xmax - (6000.0 + 2.25 * inch)).abs() < 1e-6, "{xmax}");
+        assert_eq!(r.fascia_triangles().len(), 32 * 2 * 9);
+    }
+
+    #[test]
+    fn a_fascia_climbs_a_gable_rake() {
+        let mut r = RoofSolid::build(
+            ElementId::new(),
+            ElementId::new(),
+            &rect(6000.0, 4000.0),
+            3000.0,
+            0.5,
+            &[true, false, true, false],
+            250.0,
+        );
+        r.fascia = studio_core::fascia::by_name("1x6 Wood Fascia");
+        let top = q_top(&r);
+        assert!(
+            top > r.base + r.plumb_thickness() + 500.0,
+            "follows the rake up to the ridge"
+        );
+    }
+
+    fn q_top(r: &RoofSolid) -> f64 {
+        r.fascia_quads()
+            .iter()
+            .flatten()
+            .fold(f64::MIN, |m, v| m.max(v[2]))
     }
 }

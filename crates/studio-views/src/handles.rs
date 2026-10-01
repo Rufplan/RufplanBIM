@@ -166,6 +166,10 @@ fn drawn_extent(doc: &Document, view: ElementId, id: ElementId) -> Option<(Pt, P
                 .iter()
                 .flatten()
                 .for_each(|p| grow(Pt::new(p[0], p[1]))),
+            Prim::Image { min, max, .. } => {
+                grow(Pt::new(min[0], min[1]));
+                grow(Pt::new(max[0], max[1]));
+            }
             Prim::Circle { c, r, .. } => {
                 grow(Pt::new(c[0] - r, c[1] - r));
                 grow(Pt::new(c[0] + r, c[1] + r));

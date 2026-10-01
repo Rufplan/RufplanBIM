@@ -3492,3 +3492,62 @@ coursing along a line".
     01 73 00, and leaves only the project information.
 - **Finding ids** hash the whole title (two findings used to share an id when their
   titles were the same length). Marks "resolved" before this change won't carry over.
+
+## ADR-095 Photoreal hero rendering: fascia, finishes, landscape, render pipeline, Rendering views — Accepted (2026-10-01)
+- **The owner's asks:** a photorealistic 3D view of the Modern House saved on the Cover Sheet,
+  matched to a reference rendering (cedar lap over white stucco, a deep stepped white
+  fascia, bluestone terrace, wicker and teak furniture, massed hydrangea, salvia and
+  lavender, a ledge-stone pile, rolling lawn). Add a roof fascia tool with 20 typical
+  profiles. Get materials, furniture, lighting and above all landscaping right, in the
+  manner of D5, Lumion and Enscape. Use the GPU.
+- **Fascia** (studio-core `fascia`): 20 profiles (`FasciaSpec` of `FasciaPart` steps, in
+  inches), among them "Modern Stepped Band 12\"". `Roof.fascia` is optional
+  (serde default, so older files open). studio-regen `RoofSolid::fascia_quads` sweeps
+  mitred rings around the roof edge, climbing gable rakes and skipping edges buried in
+  another roof. Fascias show in 3D, elevations and sections. UI: Architecture > Fascia
+  (components/FasciaPicker.tsx) and the roof's "fascia" property.
+- **Finishes:** `Mesh.finish` (Fabric, Wicker, Wood, Stainless, Canvas, PowderCoat, Glass,
+  Lacquer, Stone) tells the path tracer how FFE parts shine (sheen for fabric and wicker,
+  metalness for stainless). `FfeSpec.cushion` gives sofas and lounge chairs cushions of
+  their own colour.
+- **New generated textures:** `cedar-lap-stained`, with a dark butt line and shadow under
+  each course; `bluestone-pattern` (24x36 and 24x24, 3/8" joints); `bluestone-slab`
+  (jointless, for stepping stones). Library presets to match.
+- **Rocks & Boulders** plant group: `CrownForm::Boulder` stones are displaced
+  superellipsoids. Low, wide presets (under 0.4 as tall as wide) become a stacked ledge
+  pile of tipped slabs.
+- **Plants at render time:** leaf cards gain light (`RENDER_LEAF_GAIN`) with thin
+  transmission for translucency, and vary by instance. Shrubs bloom only on their outer
+  shell (mounded ones more heavily); interior flower cards read as dark blue in shade.
+- **Grass:** the field is seeded around the camera and filtered to the view cone, and big
+  ground triangles are subdivided near it (`clipNear`), so about 90k clumps carry a
+  lawn to the horizon.
+- **Render pipeline** (what V-Ray and D5 do, in a path tracer's terms): one
+  progressive pass with no denoise; the built-in bilateral denoiser smears texture.
+  Five diffuse bounces carry an exterior; more only cost time.
+  - Physical sky: sun to sky ratio 1.8, turbidity 1.8, ACES tone at exposure 0.45, and a
+    light warm grade. A stronger sun clips sunlit cedar and stucco while the shade stays
+    dark.
+  - GPU: the renderer asks for the high-performance adapter. Each frame runs tiles for
+    up to 30 ms, each synced with a 1-pixel readback. ANGLE ignores `gl.finish`, and an
+    unsynced queue lost the WebGL context. On an RTX 3050: about 0.5 samples/s at
+    1600x900.
+  - Only the 8 lights nearest the target are used, since each light thins the samples.
+- **Rendering views** (like Revit's Save to Project): `ElementData::RenderImage` (base64
+  JPEG/PNG, pixel size, paper width) and `ViewKind::Rendering { image }`
+  (studio-core `renderings::save`).
+  - Views draw `Prim::Image`: canvas/images.ts caches them by id, and studio-sheets PDF
+    embeds them with krilla.
+  - The Render dialog has **Save to Project**, and the Project Browser lists
+    **Renderings**. A rendering is placeable on a sheet like any view.
+  - `base64` is now also a dependency of studio-sheets and the app (it was already in
+    the workspace).
+- **The sample:** the Modern House has a "Hero View - Southeast" camera, graded berms (a
+  synthetic topo, no address), planting beds and a tree ring. Its rendering is bundled
+  (app/src-tauri/samples/hero-rendering.jpg) and placed on A0.0 Cover Sheet.
+- **Dev aid:** `npm run tauri dev -- -- -- --sample --autorender=<settings.json>` opens
+  the view, renders with the given settings (size, samples, sun, exposure, tone,
+  sunToSky, turbidity, skyExposure, warm, maxLights, scheme and so on), writes `out`
+  (PNG, or JPEG for .jpg) and quits.
+- **Not done:** OIDN (an ML denoiser via oidn-web) would let renders stop at a fraction of
+  the samples, but it is a major new dependency and needs the owner's approval.

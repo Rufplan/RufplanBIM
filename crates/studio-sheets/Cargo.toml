@@ -10,6 +10,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+base64 = "0.23.1"
 krilla = "0.8.2"
 serde = { version = "1.0.229", features = ["derive"] }
 studio-core.workspace = true

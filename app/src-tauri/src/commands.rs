@@ -164,10 +164,42 @@ pub fn project_sample(
     })
 }
 
+/// A render to make on start and save (ADR-095, a development aid):
+/// `--autorender=settings.json` with { out, view, width, height, samples, … }.
+static AUTO_RENDER: std::sync::OnceLock<serde_json::Value> = std::sync::OnceLock::new();
+
+/// The `--autorender` settings, if the app was started with them.
+#[tauri::command]
+pub fn auto_render() -> Option<serde_json::Value> {
+    AUTO_RENDER.get().cloned()
+}
+
+/// Ends the app (after an auto render).
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 /// Opens a project passed on the command line (file association), the Modern House with
 /// `--sample`, or the basic sample with `--sample-basic`.
 pub fn open_from_args(session: &mut Session) {
-    let Some(arg) = std::env::args().nth(1) else {
+    for a in std::env::args().skip(1) {
+        if let Some(path) = a.strip_prefix("--autorender=") {
+            match std::fs::read_to_string(path)
+                .map_err(anyhow::Error::from)
+                .and_then(|t| Ok(serde_json::from_str::<serde_json::Value>(&t)?))
+            {
+                Ok(v) => {
+                    let _ = AUTO_RENDER.set(v);
+                }
+                Err(e) => eprintln!("could not read {path}: {e:#}"),
+            }
+        }
+    }
+    let Some(arg) = std::env::args()
+        .skip(1)
+        .find(|a| !a.starts_with("--autorender"))
+    else {
         return;
     };
     let result = if arg == "--sample" {

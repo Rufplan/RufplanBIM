@@ -3,4 +3,4 @@
 /**
  * The crown's shape (the envelope the branches fill).
  */
-export type CrownForm = "Round" | "Oval" | "Vase" | "Columnar" | "Pyramidal" | "Conical" | "Weeping" | "Spreading" | "Umbrella" | "Irregular" | "PalmHead" | "Mound" | "Upright" | "Fountain" | "Rosette" | "Box" | "Cactus";
+export type CrownForm = "Round" | "Oval" | "Vase" | "Columnar" | "Pyramidal" | "Conical" | "Weeping" | "Spreading" | "Umbrella" | "Irregular" | "PalmHead" | "Mound" | "Upright" | "Fountain" | "Rosette" | "Box" | "Cactus" | "Boulder";
