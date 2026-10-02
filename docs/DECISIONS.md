@@ -3736,3 +3736,56 @@ coursing along a line".
   to shift the drawing on the sheet. The viewport now moves by the change in that center
   (at the view's scale), so the drawing stays put and only the extent grows or shrinks.
   It's one undo step with the crop.
+
+## ADR-101 Sky Library, turf, and plants that render lit — Accepted (2026-10-02)
+- **The owner's ask:** keep pushing the hero render toward the reference. The grass, the
+  plants and the mulch need a lot of work. The sky should swap between many
+  photorealistic presets. Look at D5's, Enscape's and Evermotion's plants, and get a
+  new patio umbrella.
+- **Sky Library** (studio-core `skies`; app `sky_library`/`sky_file`; render/backgrounds.ts):
+  - 31 Poly Haven "pure sky" HDRIs (CC0) in five moods: Clear, Partly Cloudy, Overcast,
+    Sunrise & Sunset and Night.
+  - Each is downloaded on first use (2K HDR to light by, the tonemapped JPEG for the
+    background, a thumbnail) and cached in app data `skies/`. studio-sync
+    `cached_file`, with HDR and PNG checks, generalises the texture cache.
+  - A library sky lights the scene as a dome. Its backdrop is the photo at up to 8K,
+    shown untoned.
+  - "Turn the sky so its sun is the site's sun" (default on) finds the HDR's brightest
+    pixel and turns the dome to put it at the site sun's compass direction. The sign
+    was checked against the sun-and-sky render: shadows fall the same way.
+  - Pure skies are black below the horizon. That ground is filled as grassy ground lit
+    by the sky's own irradiance, so shade (inside the lawn, under eaves) gets the
+    bounce it would have outdoors.
+- **Turf** (render/grass.ts):
+  - Lawns grow wide, arching leaves: rising at 62–86°, drooping toward their tips,
+    with real normals fanned across the leaf's fold. Lush lawns are 85 mm at
+    ~60 clumps/m².
+  - Past 16 m a lighter clump (fewer, wider leaves, fewer segments) lets 160k clumps
+    fit a 4 GB GPU.
+  - Patch tint is gentler, and grass stops at paving and beds on a jittered edge
+    rather than 250 mm stair-steps.
+  - **Bug fixed:** blades were wound against their normals. A path tracer turns
+    normals to the face, so every blade was lit from below, and the lawn read dark
+    and spiky. Tests check both.
+  - The Modern House lawn was the 60 mm "site-lawn", so earlier lush-lawn tuning
+    never showed. A Grass-type material 90 mm or taller now grows LushLawn.
+- **Plants** (studio-views plants.rs, render/plants.ts):
+  - **Bug fixed:** leaf cards facing into the crown had the same winding problem, so
+    crowns rendered dark. They're wound outward now, with a test across species.
+  - Mounded, broad-leaved shrubs in bloom (hydrangea) carry mophead heads: a
+    Fibonacci dome of floret cards over a darker core, 20 per m² of spread.
+  - Other shrubs bloom more sparsely on their shell. Flower cards take a lower
+    render gain (1.5) than leaves (3.0), so they don't wash out white.
+  - Ledge stone is thin split slabs in five courses.
+  - The sample bed round the rock pile gains feather grass, fescue, agave, lavender
+    and juniper at its edges.
+- **Mulch:** deeper, fresher hardwood colours.
+- **Umbrella** (studio-views ffe.rs `canopy`, `Part::Tris`): an eight-rib market
+  umbrella. The canopy domes from a vent to the rib tips, its panels sag between ribs,
+  and it has a 6" valance, finial, hub, pole and weighted base. `Part::Tris` lets FFE
+  pieces carry free-form 3D shapes.
+- **Interiors:** daylit exterior renders give ceilings a soft warm glow (`interiorGlow`,
+  default 1). The rooms read lit through the glass, as in an architectural photograph,
+  without lights thinning the samples.
+- **Dev aid:** the autorender settings take `matchSun`, `rotation` and `interiorGlow`;
+  `background` takes `sky:<poly haven id>`.

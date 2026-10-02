@@ -570,12 +570,17 @@ export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, 
         }
     }
   }
-  return (x: number, y: number, z: number) => {
-    const i = Math.floor((x - x0) / cell);
-    const j = Math.floor((y - y0) / cell);
+  const at = (i: number, j: number, z: number) => {
     if (i < 0 || j < 0 || i >= n || j >= n) return false;
     const b = low[j * n + i]!;
     return b > z - 100 && b < z + 1500;
+  };
+  return (x: number, y: number, z: number) => {
+    // Sampled at a jittered point, so a bed's edge is ragged as turf grows into it, not
+    // the grid's stair-steps (ADR-101).
+    const jx = (patchNoise(x, y, 420, 31) - 0.5) * cell * 1.4;
+    const jy = (patchNoise(x, y, 420, 37) - 0.5) * cell * 1.4;
+    return at(Math.floor((x + jx - x0) / cell), Math.floor((y + jy - y0) / cell), z);
   };
 }
 

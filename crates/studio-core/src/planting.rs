@@ -2962,7 +2962,7 @@ fn species() -> Vec<PlantPreset> {
             Fleshy,
             1.8,
             5.0,
-            [166, 156, 138],
+            [150, 142, 128],
         )
         .stems(5)
         .d("Flat, split limestone pieces stacked loosely: rock gardens and dry beds."),

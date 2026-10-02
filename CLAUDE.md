@@ -156,6 +156,9 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Sky Library and turf (ADR-101): studio-core `skies` (31 Poly Haven pure skies), app sky_library/sky_file, render/backgrounds.ts
+  (hdrSun, matchSunRotation, fillGround); grass.ts arched lawn blades + far LOD; plants.rs mopheads, outward leaf winding;
+  ffe.rs `canopy` umbrella (`Part::Tris`); pathtrace `interiorGlow`.
 - Designed Generate (ADR-099): studio-core `generate/` (mod: outdoor rooms, glazing, story cladding/roofs; design: roofs per
   story, clad types, supports, face_out; site: landscape, furnish; annotate: plan dimensions, crops); app `precedents`
   (31 architects/works), generate_cmds `build_with_set` (CD set), live_generate / build_saved_plan dev aids.

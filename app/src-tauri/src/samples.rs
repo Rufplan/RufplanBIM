@@ -903,8 +903,8 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
     b.plants("Honey Locust", l1, &[(78.5, -12.5)], 0.5)?;
     b.plants("Japanese Maple, Red", l1, &[(68.0, 34.0)], 1.0)?;
     b.plants("Birch Clump", l1, &[(-16.0, 46.0), (78.0, 24.0)], 0.7)?;
-    b.plants("Coast Live Oak", l1, &[(-34.0, -24.0)], 0.55)?;
-    b.plants("Italian Cypress", l1, &[(-4.0, 3.0), (2.0, 3.0)], 1.0)?;
+    b.plants("Red Maple", l1, &[(-34.0, -24.0)], 0.8)?;
+    b.plants("Eastern White Pine", l1, &[(-4.0, 3.0), (6.0, 1.0)], 0.6)?;
     let reeds: Vec<(f64, f64)> = (0..9).map(|i| (32.0 + 3.0 * f64::from(i), 42.0)).collect();
     b.plants("Feather Reed Grass", l1, &reeds, 1.0)?;
     b.plants(
@@ -1015,6 +1015,32 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
     b.plants("Fountain Grass", l1, &bed(66.5, -18.5, 4, 2.0), 0.8)?;
     b.plants("Blue Agave", l1, &[(72.5, -15.5), (77.5, -14.5)], 0.7)?;
     b.plants("Liriope", l1, &bed(68.0, -23.5, 6, 2.5), 1.0)?;
+    // Filled in round the stones (ADR-101), as the reference bed is: feather grass and
+    // fescue tufts, more agave and lavender, low juniper spilling over the edge.
+    // Round the pile, not over it: the stones stay the bed's feature.
+    b.plants(
+        "Mexican Feather Grass",
+        l1,
+        &[
+            (64.0, -17.5),
+            (66.0, -16.5),
+            (75.5, -17.0),
+            (77.0, -18.5),
+            (62.8, -19.0),
+        ],
+        0.9,
+    )?;
+    b.plants(
+        "Blue Fescue",
+        l1,
+        &[(65.0, -23.5), (67.5, -24.5), (74.5, -24.0), (76.0, -22.5)],
+        1.0,
+    )?;
+    b.plants("Blue Agave", l1, &[(73.5, -22.0), (64.5, -19.5)], 0.55)?;
+    b.plants("English Lavender", l1, &bed(76.5, -20.5, 4, 1.6), 1.0)?;
+    b.plants("Creeping Juniper", l1, &[(63.5, -21.5), (78.5, -17.0)], 0.8)?;
+    // The left bed: the hydrangeas spill toward the lawn, salvia at their feet.
+    b.plants("Salvia", l1, &bed(57.0, -35.0, 5, 2.2), 1.0)?;
     // The terrace's west end and the east wall: agave, lavender and boxwood.
     b.ground(l1, "site-bark-mulch", &blob(23.0, -18.5, 4.5, 2.8, 0.0))?;
     b.plants("English Lavender", l1, &bed(23.5, -18.5, 5, 2.4), 1.0)?;

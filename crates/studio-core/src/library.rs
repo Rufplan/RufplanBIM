@@ -648,7 +648,7 @@ const PRESETS: &[P] = &[
         .c([130, 92, 54]).tex("gen:leaf-litter", FT4).r(0.8),
     p("site-bark-mulch", "Shredded Hardwood Mulch", "Site & Landscape", TYP)
         .d("Double-shredded hardwood bark, natural brown: the standard planting-bed mulch.")
-        .c([92, 62, 40]).tex("gen:bark-mulch", FT4).r(0.85),
+        .c([82, 52, 34]).tex("gen:bark-mulch", FT4).r(0.85),
     p("site-black-mulch", "Shredded Mulch, Black", "Site & Landscape", TYP)
         .d("Shredded mulch dyed black: modern planting beds and commercial landscapes.")
         .c([36, 32, 30]).tex("gen:black-mulch", FT4).r(0.85),

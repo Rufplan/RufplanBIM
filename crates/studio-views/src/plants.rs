@@ -1519,13 +1519,14 @@ fn boulder(spec: &PlantSpec, rng: &mut Rng, m: &mut PlantModel) {
 /// piles them in a dry bed.
 fn ledge(spec: &PlantSpec, base: V, rng: &mut Rng, m: &mut PlantModel) {
     let half = spec.spread / 2.0;
-    let courses = 3usize;
-    let thick = spec.height / (courses as f64 + 0.6);
+    // Thin slabs (ADR-101) in more courses, up to the pile's height.
+    let courses = 5usize;
+    let thick = spec.height / (courses as f64 * 0.62 + 0.6);
     let mut z = 0.0;
     for course in 0..courses {
-        let shrink = 1.0 - 0.3 * course as f64;
+        let shrink = 1.0 - 0.16 * course as f64;
         let count = (spec.stems.max(3) as usize + 3)
-            .saturating_sub(course * 2)
+            .saturating_sub(course)
             .max(2);
         for i in 0..count {
             let a = (i as f64 + rng.range(-0.3, 0.3)) / count as f64 * std::f64::consts::TAU;
@@ -1534,7 +1535,8 @@ fn ledge(spec: &PlantSpec, base: V, rng: &mut Rng, m: &mut PlantModel) {
                 * rng.range(0.25, 0.6)
                 * if course == courses - 1 { 0.5 } else { 1.0 };
             let len = half * shrink * rng.range(0.5, 0.75);
-            let t = thick * rng.range(0.55, 0.85) / 2.0;
+            // Split flagstone (ADR-101): thinner slabs, crisp at their arrises.
+            let t = thick * rng.range(0.38, 0.6) / 2.0;
             let stone = Stone {
                 c: [d * a.cos(), d * a.sin() * 0.75, z + t],
                 r: [len / 2.0, len / 2.0 * rng.range(0.55, 0.8), t],
@@ -1543,12 +1545,12 @@ fn ledge(spec: &PlantSpec, base: V, rng: &mut Rng, m: &mut PlantModel) {
                 tilt: rng.range(-0.12, 0.12),
                 seed: rng.f() * 100.0,
                 tone: rng.range(0.82, 1.12),
-                boxy: 0.3,
+                boxy: 0.12,
                 floor: 1.0,
             };
             stone.emit(base, m);
         }
-        z += thick * 0.8;
+        z += thick * 0.62;
     }
 }
 
@@ -2577,9 +2579,9 @@ mod tests {
         let agree = |part: &PlantPart| {
             let (p, n) = (&part.positions, &part.normals);
             let mut ok = 0;
-            let tris = part.indices.chunks_exact(3);
+            let tris = part.indices.as_chunks::<3>().0;
             let total = tris.len().max(1);
-            for t in part.indices.chunks_exact(3) {
+            for t in tris {
                 let v = |k: usize| {
                     let i = t[k] as usize * 3;
                     [f64::from(p[i]), f64::from(p[i + 1]), f64::from(p[i + 2])]

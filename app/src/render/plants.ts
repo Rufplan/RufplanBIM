@@ -350,6 +350,15 @@ export function plantMeshesYUp(
         // Keep the leaves' own colour variation; lift only the darkest baked occlusion.
         for (let i = 0; i < c.count; i++)
           c.setXYZ(i, 0.4 + 0.6 * c.getX(i), 0.4 + 0.6 * c.getY(i), 0.4 + 0.6 * c.getZ(i));
+        // Flower cards (the atlas's upper cells) take less of the leaves' gain below:
+        // petals are already light, and at the full gain they wash out white (ADR-101).
+        const uv = merged.getAttribute("uv");
+        if (mat === a.materials.leaves && uv)
+          for (let i = 0; i < c.count; i++)
+            if (uv.getY(i) >= 0.5) {
+              const k = FLOWER_GAIN / RENDER_LEAF_GAIN;
+              c.setXYZ(i, c.getX(i) * k, c.getY(i) * k, c.getZ(i) * k);
+            }
       }
       if (mat === a.materials.leaves) {
         // Thin leaves let light through (the backlit glow of a sunlit crown): the path
@@ -375,7 +384,9 @@ export function plantMeshesYUp(
 
 /** Foliage albedo in renders relative to the live view: path-traced crowns shade
  * themselves darker than raster ones. */
-export const RENDER_LEAF_GAIN = 2.4;
+export const RENDER_LEAF_GAIN = 3.0;
+/** Flowers' own gain in renders (ADR-101). */
+export const FLOWER_GAIN = 1.5;
 
 /** Loads every instance's assets (grouped by type and variant) for a view or a render. */
 export async function loadPlantEntries(

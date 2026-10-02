@@ -2728,12 +2728,13 @@ fn ground(kind: &str, x: f64, y: f64, tile: f64) -> Option<Px> {
             x,
             y,
             tile,
+            // Freshly laid double-shredded hardwood (ADR-101): a deep, rich brown.
             &[
-                [96, 64, 42],
-                [120, 82, 52],
-                [78, 52, 36],
-                [140, 100, 66],
-                [104, 72, 50],
+                [84, 52, 32],
+                [104, 66, 40],
+                [66, 42, 28],
+                [122, 80, 50],
+                [92, 58, 38],
             ],
             541,
         ),
