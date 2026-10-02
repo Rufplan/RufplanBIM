@@ -385,17 +385,26 @@ pub fn ref_line(
     ))
 }
 
-/// Align (AL) by picked references (ADR-042): moves the wall or grid `target` is on onto
-/// `reference`.
+/// Align (AL) by picked references (ADR-042): moves the element `target` is on (any model
+/// element, ADR-098) onto `reference`. In an elevation or section (`view`), the move is
+/// along the view and up or down.
 #[tauri::command]
 pub fn align_references(
+    view: Option<ElementId>,
     reference: studio_core::dimension::Reference,
     target: studio_core::dimension::Reference,
     window: WebviewWindow,
     state: State<'_, SessionState>,
 ) -> StateResult {
     edit_state(&window, &state, |s| {
-        s.edit(|d| studio_core::dimension::align(d, &reference, &target))
+        let (id, d) = studio_core::dimension::align_target(&reference, &target)?;
+        let frame = view.and_then(|v| studio_views::view_frame(s.doc().ok()?, v));
+        let delta = match frame {
+            Some((_, right, _)) => [right.x * d.x, right.y * d.x, d.y],
+            None => [d.x, d.y, 0.0],
+        };
+        s.edit(|doc| studio_core::modify::align_3d(doc, id, delta))?;
+        Ok(())
     })
 }
 

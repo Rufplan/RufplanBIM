@@ -38,6 +38,11 @@ pub struct Reference {
     /// The line's direction (unit); None for a point.
     pub dir: Option<Pt>,
     pub anchor: Option<Anchor>,
+    /// The element it's on (ADR-098): what Align moves, any model element (a desk,
+    /// casework, a column), not only those a dimension follows.
+    #[serde(default)]
+    #[ts(optional)]
+    pub element: Option<ElementId>,
 }
 
 impl Reference {
@@ -50,6 +55,7 @@ impl Reference {
             to: at,
             dir: None,
             anchor: crate::ops::anchor_at(doc, view, at),
+            element: None,
         }
     }
 }
@@ -172,6 +178,7 @@ pub fn references_at(
                                 t: t / len,
                                 side: s,
                             }),
+                            element: Some(e.id),
                         },
                     ));
                 }
@@ -191,6 +198,7 @@ pub fn references_at(
                             to: *end,
                             dir: Some(end.sub(*start).norm()),
                             anchor: Some(Anchor::Grid { grid: e.id, t }),
+                            element: Some(e.id),
                         },
                     ));
                 }
@@ -588,26 +596,37 @@ pub fn anchor_across(doc: &Document, view: ElementId, p: Pt, u: Pt) -> Option<An
     }
 }
 
-/// Align (AL), as Revit's: moves the element `target` is on (a wall or grid) square to
-/// itself so that line lies on `reference`. The lines must be parallel.
+/// Align (AL), as Revit's: moves the element `target` is on square to itself so that line
+/// lies on `reference`. The lines must be parallel. Any model element can move (ADR-098):
+/// walls and grids (joined walls stretch), furniture, casework and equipment, columns,
+/// lights, plants and the rest.
 pub fn align(doc: &mut Document, reference: &Reference, target: &Reference) -> CoreResult<()> {
+    let (id, delta) = align_target(reference, target)?;
+    crate::modify::align_3d(doc, id, [delta.x, delta.y, 0.0])
+}
+
+/// What Align moves and by how much in the view's own coordinates (plan mm; along the
+/// view and up in an elevation or section): (element, delta).
+pub fn align_target(reference: &Reference, target: &Reference) -> CoreResult<(ElementId, Pt)> {
     let (Some(dr), Some(dt)) = (reference.dir, target.dir) else {
         return Err(CoreError::Invalid(
             "pick lines: wall faces, centerlines or grids".into(),
         ));
     };
-    let id = match target.anchor {
-        Some(Anchor::Wall { wall, .. }) => wall,
-        Some(Anchor::Grid { grid, .. }) => grid,
-        Some(Anchor::DetailLine { line, .. }) => line,
-        Some(Anchor::Component { component, .. }) => component,
-        None => {
+    // The element the line was drawn for, else the one it's anchored to.
+    let id = match (target.element, target.anchor) {
+        (Some(el), _) => el,
+        (None, Some(Anchor::Wall { wall, .. })) => wall,
+        (None, Some(Anchor::Grid { grid, .. })) => grid,
+        (None, Some(Anchor::DetailLine { line, .. })) => line,
+        (None, Some(Anchor::Component { component, .. })) => component,
+        (None, None) => {
             return Err(CoreError::Invalid(
                 "pick a line on the element to align".into(),
             ))
         }
     };
-    if anchored_to(&reference.anchor, id) {
+    if anchored_to(&reference.anchor, id) || reference.element == Some(id) {
         return Err(CoreError::Invalid(
             "pick a line on another element to align to the reference".into(),
         ));
@@ -616,8 +635,7 @@ pub fn align(doc: &mut Document, reference: &Reference, target: &Reference) -> C
         return Err(CoreError::Invalid("those lines aren't parallel".into()));
     }
     let n = dr.perp();
-    let delta = n.scale(reference.at.sub(target.at).dot(n));
-    crate::modify::move_elements(doc, &[id], delta)
+    Ok((id, n.scale(reference.at.sub(target.at).dot(n))))
 }
 
 /// A wall's centerline or a grid's line, for the temporary and permanent dimensions that
@@ -896,6 +914,7 @@ mod tests {
             to: Pt::new(x, y),
             dir: None,
             anchor: None,
+            element: None,
         };
         let pts = [r(0.0, 0.0), r(3000.0, 4000.0)];
         // Above the points: horizontal, 3000 long.

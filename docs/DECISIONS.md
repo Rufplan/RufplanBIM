@@ -3611,3 +3611,26 @@ coursing along a line".
     furniture and plant offsets, a ceiling's height, a light's mounting height and a
     window's sill.
   - Anything that can't move that way is refused and nothing changes.
+
+## ADR-098 Align moves any element — Accepted (2026-10-01)
+- **The owner's ask:** as in Revit, Align should move any object, not only walls and
+  grids. Example: AL, pick a wall face, then the edge of a desk overlapping the wall,
+  tabbing to the right edge if needed. The desk moves until that edge is on the face.
+  The same goes for casework, equipment and most other objects.
+- **References carry their element:** `dimension::Reference.element` (serde default,
+  optional in TS; references aren't saved).
+- **In plans, every model element's drawn edges are references**
+  (studio-views `view_refs::plan_edges`, `plan_references`): furniture, casework,
+  equipment, columns, plants, floors and the rest.
+  - They join the wall and grid lines in one list. Lines within reach come nearest
+    first; a wall's lines picked from inside it (not at one) come after. Tab cycles
+    through them all.
+  - Edges are labelled by type ("Desk: edge").
+  - Dimensions can use them too, as fixed points: only walls, grids, detail lines and
+    components follow the model.
+- **Which element moves:** the one whose edge was picked (`dimension::align_target`),
+  even when the edge lies inside a wall. An edge only keeps an anchor on its own
+  element, so a desk edge buried in a wall isn't taken as the wall.
+- **How it moves:** `modify::align_3d`, which handles walls (joined walls stretch),
+  grids, furniture and casework, columns, beams, lights, plants and so on, as one undo
+  step. In an elevation or section, the move is along the view and up or down.

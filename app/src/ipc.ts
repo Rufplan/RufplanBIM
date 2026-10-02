@@ -371,8 +371,8 @@ export const ipc = {
   refLine: (view: ElementId, point: Pt, tol: number, skip: ElementId | null) =>
     invoke<RefLine | null>("ref_line", { view, point, tol, skip }),
   /** Align by picked references (ADR-042). */
-  alignReferences: (reference: Reference, target: Reference): S =>
-    invoke("align_references", { reference, target }),
+  alignReferences: (view: ElementId, reference: Reference, target: Reference): S =>
+    invoke("align_references", { view, reference, target }),
   /** Align in 3D (ADR-097): moves `target` by `delta` (x, y, z mm). */
   align3d: (target: ElementId, delta: number[]): S => invoke("align_3d", { target, delta }),
   align: (view: ElementId, reference: Pt, target: Pt, tol: number): S =>

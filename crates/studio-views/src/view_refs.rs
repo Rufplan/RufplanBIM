@@ -121,7 +121,19 @@ fn label(doc: &Document, el: ElementId, horizontal: bool) -> String {
                 Category::WallOpening => "Wall Opening",
                 Category::LightingFixture => "Lighting Fixture",
                 Category::DetailLine | Category::ModelLine => "Line",
-                _ => "Edge",
+                // Furniture, casework, equipment, plants… by their name (ADR-098).
+                _ => {
+                    // Its type's name says what it is ("Desk"), else its own.
+                    let name = d
+                        .type_id()
+                        .and_then(|t| doc.data(t).ok())
+                        .map_or_else(|| d.name(), |t| t.name());
+                    return if name.is_empty() {
+                        "Edge".into()
+                    } else {
+                        format!("{name}: edge")
+                    };
+                }
             };
             format!(
                 "{what}: {} edge",
@@ -129,6 +141,48 @@ fn label(doc: &Document, el: ElementId, horizontal: bool) -> String {
             )
         }
     }
+}
+
+/// Every reference under the cursor in a plan (ADR-098), best first for Tab to cycle: the
+/// lines within reach nearest first (wall faces and centerlines, grids, and every other
+/// element's edges: a desk, casework, a column), then a wall's lines picked from inside it
+/// rather than at one.
+pub fn plan_references(
+    doc: &Document,
+    view: ElementId,
+    cursor: Pt,
+    tol: f64,
+    prefer: studio_core::dimension::Prefer,
+) -> Vec<Reference> {
+    let off = |r: &Reference| project_to_segment(cursor, r.from, r.to).1;
+    let (mut near, far): (Vec<Reference>, Vec<Reference>) =
+        studio_core::dimension::references_at(doc, view, cursor, tol, prefer)
+            .into_iter()
+            .partition(|r| off(r) <= tol);
+    near.extend(plan_edges(doc, view, cursor, tol));
+    near.sort_by(|a, b| off(a).total_cmp(&off(b)));
+    near.extend(far);
+    near
+}
+
+/// The references within `tol` of `cursor` in a plan besides walls and grids (ADR-098):
+/// the edges drawn for every other model element there (furniture, casework, equipment,
+/// columns, plants, floors…), nearest first, for Align and dimensions. Walls and grids
+/// come from studio-core `dimension::references_at`, which knows their faces.
+pub fn plan_edges(doc: &Document, view: ElementId, cursor: Pt, tol: f64) -> Vec<Reference> {
+    references(doc, view, cursor, tol)
+        .into_iter()
+        .filter(|r| {
+            !r.element.is_some_and(|el| {
+                doc.data(el).is_ok_and(|d| {
+                    matches!(
+                        d.category(),
+                        Category::Wall | Category::Grid | Category::Room | Category::Level
+                    )
+                })
+            })
+        })
+        .collect()
 }
 
 /// The references within `tol` of `cursor` in an elevation or section, nearest first:
@@ -170,7 +224,10 @@ pub fn references(doc: &Document, view: ElementId, cursor: Pt, tol: f64) -> Vec<
                 to: b,
                 dir: Some(dir),
                 // Detail lines and components (ADR-072): dimensions follow them.
-                anchor: studio_core::ops::anchor_at(doc, view, a.lerp(b, t)),
+                // Only its own: a desk edge inside a wall isn't on the wall.
+                anchor: studio_core::ops::anchor_at(doc, view, a.lerp(b, t))
+                    .filter(|x| studio_core::dimension::anchored_to(&Some(*x), el)),
+                element: Some(el),
             },
         ));
     }
@@ -293,6 +350,59 @@ pub fn room_in_view(doc: &Document, view: ElementId, p: Pt) -> Option<ElementId>
 mod tests {
     use super::*;
     use studio_core::{ops, Compass, ViewKind};
+
+    #[test]
+    fn a_desk_overlapping_a_wall_aligns_its_back_edge_to_the_wall_face() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let l1 = doc.levels()[0].0;
+        let wt = ops::first_of(&doc, Category::WallType).unwrap();
+        let w =
+            ops::create_wall(&mut doc, wt, l1, Pt::new(0.0, 0.0), Pt::new(8000.0, 0.0)).unwrap();
+        let h = match doc.data(wt).unwrap() {
+            ElementData::WallType { thickness, .. } => thickness / 2.0,
+            _ => unreachable!(),
+        };
+        let desk_type = studio_core::ffe::load(&mut doc, &["Desk".into()]).unwrap()[0];
+        let depth = studio_core::ffe::spec_of(&doc, desk_type).unwrap().depth;
+        // On the room side (south, -y), its back pushed 100 into the wall.
+        let y = -h - depth / 2.0 + 100.0;
+        let desk =
+            studio_core::ffe::create(&mut doc, desk_type, l1, Pt::new(3000.0, y), 0.0).unwrap();
+        let plan = doc
+            .of(Category::View)
+            .find(|e| {
+                matches!(&e.data, ElementData::View { kind: ViewKind::FloorPlan { level }, .. } if *level == l1)
+            })
+            .unwrap()
+            .id;
+        let prefer = studio_core::dimension::Prefer::WallFaces;
+        // AL, the wall's interior face (y = -h)...
+        let refs = plan_references(&doc, plan, Pt::new(1000.0, -h), 30.0, prefer);
+        let face = refs[0].clone();
+        assert_eq!(face.label, "Wall: interior face");
+        assert_eq!(face.element, Some(w));
+        // ...then the desk's back edge, inside the wall: Tab finds it among the wall's lines.
+        let back = y + depth / 2.0;
+        let at = Pt::new(3000.0, back);
+        let refs = plan_references(&doc, plan, at, 30.0, prefer);
+        let edge = refs
+            .iter()
+            .find(|r| r.element == Some(desk) && r.dir.is_some_and(|d| d.y.abs() < 1e-6))
+            .expect("the desk's back edge")
+            .clone();
+        assert!(edge.label.starts_with("Desk"), "{}", edge.label);
+        assert!((edge.at.y - back).abs() < 1.0);
+        // The desk moves square to the wall until its back edge is on the face.
+        studio_core::dimension::align(&mut doc, &face, &edge).unwrap();
+        let ElementData::Ffe { at, .. } = doc.data(desk).unwrap() else {
+            panic!()
+        };
+        assert!((at.y + depth / 2.0 - (-h)).abs() < 1e-6, "{}", at.y);
+        assert!((at.x - 3000.0).abs() < 1e-6);
+        // Aligning the wall to itself is refused.
+        assert!(studio_core::dimension::align(&mut doc, &face, &face).is_err());
+    }
 
     /// A south wall with a door, and the South elevation.
     fn house_with_door() -> (Document, ElementId, ElementId) {

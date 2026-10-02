@@ -668,11 +668,21 @@ pub fn dimension_references(
 ) -> CommandResult<Vec<studio_core::dimension::Reference>> {
     let session = lock(&state)?;
     let doc = session.doc()?;
-    let mut refs = studio_core::dimension::references_at(doc, view, cursor, tol, prefer);
-    // Elevations and sections: the model edges drawn there (ADR-059).
-    if refs.is_empty() {
-        refs = studio_views::view_refs::references(doc, view, cursor, tol);
-    }
+    let plan = matches!(
+        doc.data(view),
+        Ok(studio_core::ElementData::View {
+            kind: studio_core::ViewKind::FloorPlan { .. }
+                | studio_core::ViewKind::CeilingPlan { .. },
+            ..
+        })
+    );
+    let mut refs = if plan {
+        // Walls, grids and every other element's edges (ADR-098).
+        studio_views::view_refs::plan_references(doc, view, cursor, tol, prefer)
+    } else {
+        // Elevations and sections: the model edges drawn there (ADR-059).
+        studio_views::view_refs::references(doc, view, cursor, tol)
+    };
     // A snapped point (an endpoint, intersection…) comes first when it's nearer than any line.
     if let Some(p) = snapped {
         let point = studio_core::dimension::Reference::point(doc, view, p);

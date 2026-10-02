@@ -89,6 +89,8 @@ const cameras = new Map<string, Camera>();
 /** The element a reference is on: a wall, grid, detail line or detail component (null for
  * a loose point). */
 function elementOf(r: Reference): string | null {
+  // Any model element's edge (ADR-098).
+  if (r.element) return r.element;
   const a = r.anchor;
   if (!a) return null;
   if ("Wall" in a) return a.Wall.wall;
@@ -1593,7 +1595,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         s.setError(
           first
             ? "Pick a line parallel to the reference on the element to move."
-            : "Pick a wall face, a wall centerline or a grid.",
+            : "Pick a line to align to: a wall face or centerline, a grid, or any element's edge.",
         );
         return;
       }
@@ -1601,7 +1603,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       else {
         dimRefs.current = [];
         dimCands.current = [];
-        await apply(() => ipc.alignReferences(first, cand));
+        await apply(() => ipc.alignReferences(view.id, first, cand));
       }
       s.setPrompt(promptFor(s.tool, dimRefs.current.length, view.viewType));
       redraw();
