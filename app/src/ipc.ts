@@ -57,6 +57,7 @@ import type { OpeningThumb } from "./bindings/OpeningThumb";
 import type { ThumbSource } from "./bindings/ThumbSource";
 import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
+import type { Precedent } from "./bindings/Precedent";
 import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
 import type { Cap } from "./bindings/Cap";
@@ -754,6 +755,8 @@ export const ipc = {
   siteImageryFrame: () => invoke<ImageryFrame>("site_imagery_frame"),
   // Generate with Claude (ADR-030).
   claudeKeySet: () => invoke<boolean>("claude_key_set"),
+  /** Architects and works Generate can design after (ADR-099). */
+  generatePrecedents: () => invoke<Precedent[]>("generate_precedents"),
   claudeSetKey: (key: string) => invoke<boolean>("claude_set_key", { key }),
   generateBuilding: (inputs: GenerateInputs) =>
     invoke<GenerateResult>("generate_building", { inputs }),

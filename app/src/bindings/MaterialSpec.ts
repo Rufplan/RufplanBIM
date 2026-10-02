@@ -3,4 +3,16 @@
 /**
  * Library preset ids (ADR-029) for the building's main surfaces.
  */
-export type MaterialSpec = { exteriorWalls: string | null, interiorWalls: string | null, floors: string | null, roof: string | null, };
+export type MaterialSpec = { exteriorWalls: string | null, interiorWalls: string | null, floors: string | null, roof: string | null, 
+/**
+ * Painted on the underside of upper floors and roofs: soffits (ADR-099).
+ */
+soffit: string | null, 
+/**
+ * Terraces, porches, courtyards and walks.
+ */
+paving: string | null, 
+/**
+ * Decks and balconies.
+ */
+deck: string | null, };

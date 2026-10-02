@@ -58,9 +58,19 @@ describe("Generate with Claude (ADR-030)", () => {
       within(dialog).getByLabelText("Prompt"),
       "primary suite on the main floor",
     );
-    await userEvent.selectOptions(within(dialog).getByLabelText("Model"), "claude-sonnet-5");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Model"), "claude-sonnet-5-5");
+    // Design after a precedent (ADR-099): its moves show under the picker.
+    await userEvent.selectOptions(within(dialog).getByLabelText("Precedent"), "Richard Neutra");
+    expect(within(dialog).getByText("A pinwheel of wings off a core.")).toBeTruthy();
+    // Landscape and the CD set are on by default; turn landscaping off.
+    expect((within(dialog).getByLabelText("Lay out the CD set") as HTMLInputElement).checked).toBe(
+      true,
+    );
+    await userEvent.click(within(dialog).getByLabelText("Landscape and furnish"));
     // No lot set: fitting to one is off.
-    expect((within(dialog).getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
+    expect((within(dialog).getByLabelText("Fit on the lot") as HTMLInputElement).disabled).toBe(
+      true,
+    );
     await userEvent.click(within(dialog).getByRole("button", { name: "Generate" }));
     expect(fake.generated).toMatchObject({
       buildingType: "Single-family house",
@@ -74,7 +84,10 @@ describe("Generate with Claude (ADR-030)", () => {
       references: "deep front porch",
       prompt: "primary suite on the main floor",
       images: [],
-      model: "claude-sonnet-5",
+      model: "claude-sonnet-5-5",
+      precedent: "Richard Neutra",
+      landscape: false,
+      cdSet: true,
     });
     // The result: summary, counts, warnings, and a way to see it.
     const status = await within(dialog).findByText("Oak Hollow");
@@ -82,7 +95,19 @@ describe("Generate with Claude (ADR-030)", () => {
     expect(within(dialog).getByText(/three-bedroom modern farmhouse/)).toBeTruthy();
     expect(within(dialog).getByText(/32 walls · 12 doors · 18 windows/)).toBeTruthy();
     expect(within(dialog).getByText(/Loft has no route in/)).toBeTruthy();
+    expect(within(dialog).getByText(/2 porches, terraces and decks/)).toBeTruthy();
+    expect(within(dialog).getByText(/9 sheets/)).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Open 3D View" })).toBeTruthy();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Revise & Generate Again" }));
+    // Or a precedent that isn't listed, typed in.
+    await userEvent.selectOptions(
+      within(dialog).getByLabelText("Precedent"),
+      "Other architect or building…",
+    );
+    await userEvent.type(within(dialog).getByLabelText("Architect or building"), "Zaha Hadid");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Generate" }));
+    expect(fake.generated).toMatchObject({ precedent: "Zaha Hadid" });
+    await within(dialog).findByText("Oak Hollow");
     await userEvent.click(within(dialog).getByRole("button", { name: "Revise & Generate Again" }));
     expect(within(dialog).getByLabelText("Prompt")).toHaveProperty(
       "value",

@@ -3,6 +3,19 @@
 //! walls where rooms meet and around the outside, doors that connect every room, windows
 //! on outside walls, stairs, floor slabs, a roof, named rooms and library materials — as
 //! one undoable step.
+//!
+//! Designed buildings (ADR-099): stories needn't stack as boxes. Upper stories can step
+//! back or cantilever, and porches, terraces, decks and courtyards are rooms too. Each
+//! story can have its own cladding and a roof over the part of it nothing covers (hip,
+//! gable, flat, shed or butterfly, with overhangs and a fascia). Each room can have its own
+//! glazing (ribbon windows, window walls, sliding or folding glass doors), with doors out
+//! onto the outdoor rooms beside it. Columns go under porches and cantilevers, railings
+//! round decks. The site gets a lawn, trees, foundation beds and walks, the rooms
+//! furniture, and the plans their dimensions (`design`, `site`, `annotate`).
+
+mod annotate;
+mod design;
+mod site;
 
 use std::collections::{BTreeMap, BinaryHeap, HashMap};
 
@@ -39,9 +52,25 @@ pub enum RoomKind {
     Mechanical,
     Storage,
     Other,
+    /// A covered porch or loggia: paved, roofed, columns at its free corners.
+    Porch,
+    /// An open paved terrace or patio at grade.
+    Terrace,
+    /// An upper-story deck or balcony: a slab with railings, on the roof below or
+    /// cantilevered.
+    Deck,
+    /// A courtyard open to the sky, enclosed by the building.
+    Courtyard,
 }
 
 impl RoomKind {
+    /// Outdoor rooms (ADR-099): no walls of their own; the building's walls stop at them.
+    pub fn outdoor(self) -> bool {
+        matches!(
+            self,
+            RoomKind::Porch | RoomKind::Terrace | RoomKind::Deck | RoomKind::Courtyard
+        )
+    }
     /// Circulation: doors route through these.
     fn circulation(self) -> bool {
         matches!(
@@ -72,25 +101,88 @@ impl RoomKind {
             RoomKind::Living | RoomKind::Dining | RoomKind::Kitchen | RoomKind::Entry
         )
     }
-    fn windows(self) -> Option<Glazing> {
+    /// The glazing a room gets unless the plan says otherwise.
+    fn windows(self) -> Option<GlazingKind> {
         match self {
             RoomKind::Bedroom | RoomKind::Kitchen | RoomKind::Office | RoomKind::GuestRoom => {
-                Some(Glazing::Punched)
+                Some(GlazingKind::Punched)
             }
             RoomKind::Living | RoomKind::Dining | RoomKind::Unit | RoomKind::Amenity => {
-                Some(Glazing::Large)
+                Some(GlazingKind::Large)
             }
-            RoomKind::Lobby | RoomKind::Retail => Some(Glazing::Storefront),
+            RoomKind::Lobby | RoomKind::Retail => Some(GlazingKind::WindowWall),
             _ => None,
         }
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum Glazing {
+/// How a room's outside walls are glazed (ADR-099).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
+pub enum GlazingKind {
+    /// No windows (a blank wall: a garage, a service room, a solid street face).
+    None,
+    /// Single windows about 7' apart.
     Punched,
+    /// Paired (mulled) windows about 7' apart.
     Large,
-    Storefront,
+    /// A continuous band of awning windows (Wright's and Le Corbusier's ribbon windows).
+    Ribbon,
+    /// Floor-to-ceiling glass along the whole wall (Mies, Neutra, Koenig).
+    WindowWall,
+    /// Sliding glass doors along the wall, out to a terrace or deck (else a window wall).
+    SlidingDoors,
+    /// Folding glass walls that open the room to a terrace or deck (else a window wall).
+    FoldingDoors,
+}
+
+/// A compass side, for the low edge of a shed roof.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
+pub enum Side {
+    North,
+    South,
+    East,
+    West,
+}
+
+impl Side {
+    /// The outward direction, plan unit vector (x east, y north).
+    pub fn dir(self) -> Pt {
+        match self {
+            Side::North => Pt::new(0.0, 1.0),
+            Side::South => Pt::new(0.0, -1.0),
+            Side::East => Pt::new(1.0, 0.0),
+            Side::West => Pt::new(-1.0, 0.0),
+        }
+    }
+}
+
+/// The roof over the part of a story nothing above covers (ADR-099).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct StoryRoof {
+    pub kind: RoofKind,
+    /// Rise per 12; the building's pitch when absent.
+    #[serde(default)]
+    #[ts(optional)]
+    pub pitch: Option<f64>,
+    /// A shed roof's low side; away from the volume above, else north, when absent.
+    #[serde(default)]
+    #[ts(optional)]
+    pub low_side: Option<Side>,
+}
+
+/// Trees and shrubs for the site (ADR-099), by Asset Library name.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase", default)]
+#[ts(export)]
+pub struct PlantingSpec {
+    pub trees: Vec<String>,
+    pub shrubs: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -104,6 +196,10 @@ pub struct RoomSpec {
     pub y: f64,
     pub width: f64,
     pub depth: f64,
+    /// Its outside walls' glazing; by its kind when absent (ADR-099).
+    #[serde(default)]
+    #[ts(optional)]
+    pub glazing: Option<GlazingKind>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -113,6 +209,15 @@ pub struct StorySpec {
     /// Floor to floor, feet.
     pub height: f64,
     pub rooms: Vec<RoomSpec>,
+    /// The library material on this story's outside walls (ADR-099); the building's
+    /// exterior walls' when absent.
+    #[serde(default)]
+    #[ts(optional)]
+    pub cladding: Option<String>,
+    /// The roof over what nothing above covers; the building's roof when absent.
+    #[serde(default)]
+    #[ts(optional)]
+    pub roof: Option<StoryRoof>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
@@ -123,6 +228,10 @@ pub enum RoofKind {
     Hip,
     Gable,
     Flat,
+    /// One plane sloping to a low side (a skillion).
+    Shed,
+    /// Two planes sloping in to a valley down the middle.
+    Butterfly,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
@@ -145,6 +254,12 @@ pub struct MaterialSpec {
     pub interior_walls: Option<String>,
     pub floors: Option<String>,
     pub roof: Option<String>,
+    /// Painted on the underside of upper floors and roofs: soffits (ADR-099).
+    pub soffit: Option<String>,
+    /// Terraces, porches, courtyards and walks.
+    pub paving: Option<String>,
+    /// Decks and balconies.
+    pub deck: Option<String>,
 }
 
 /// The building's windows (ADR-031): a family for bedrooms, kitchens and offices (living
@@ -182,6 +297,28 @@ pub struct BuildingSpec {
     pub materials: MaterialSpec,
     #[serde(default)]
     pub windows: WindowChoice,
+    /// The architect or work it's designed after, if any (ADR-099).
+    #[serde(default)]
+    pub precedent: String,
+    /// A fascia profile (studio-core `fascia`) on every roof edge.
+    #[serde(default)]
+    #[ts(optional)]
+    pub fascia: Option<String>,
+    /// Roof overhang, feet (1.5 when absent).
+    #[serde(default)]
+    #[ts(optional)]
+    pub overhang: Option<f64>,
+    /// Columns under the outer corners of cantilevered upper floors.
+    #[serde(default)]
+    pub cantilever_columns: bool,
+    /// Lawn, trees, foundation beds and walks round the building.
+    #[serde(default)]
+    pub landscape: bool,
+    /// Furniture in the rooms and on the terraces.
+    #[serde(default)]
+    pub furnish: bool,
+    #[serde(default)]
+    pub planting: PlantingSpec,
 }
 
 fn default_pitch() -> f64 {
@@ -203,6 +340,17 @@ pub struct BuildReport {
     pub stairs: usize,
     pub roofs: usize,
     pub materials: usize,
+    /// Porches, terraces, decks and courtyards (ADR-099).
+    #[serde(default)]
+    pub outdoor: usize,
+    pub columns: usize,
+    pub railings: usize,
+    pub plants: usize,
+    pub furniture: usize,
+    /// Dimensions on the plans.
+    pub dimensions: usize,
+    /// Sheets laid out for its CD set (by the app, ADR-099).
+    pub sheets: usize,
     pub warnings: Vec<String>,
 }
 
@@ -220,6 +368,12 @@ const BUILDING: &[Category] = &[
     Category::Column,
     Category::Beam,
     Category::RoomSeparator,
+    // What a designed building brings (ADR-099).
+    Category::Furniture,
+    Category::SpecialtyEquipment,
+    Category::Planting,
+    Category::GroundRegion,
+    Category::Dimension,
 ];
 
 #[derive(Clone, Copy, Debug)]
@@ -231,6 +385,19 @@ struct Rect {
 }
 
 impl Rect {
+    fn width(&self) -> f64 {
+        self.x1 - self.x0
+    }
+    fn depth(&self) -> f64 {
+        self.y1 - self.y0
+    }
+    fn poly(&self) -> Poly {
+        Poly::simple(self.ring())
+    }
+    /// Whether `p` is inside or within `tol` of it.
+    fn holds(&self, p: Pt, tol: f64) -> bool {
+        p.x >= self.x0 - tol && p.x <= self.x1 + tol && p.y >= self.y0 - tol && p.y <= self.y1 + tol
+    }
     fn center(&self) -> Pt {
         Pt::new((self.x0 + self.x1) / 2.0, (self.y0 + self.y1) / 2.0)
     }
@@ -520,9 +687,10 @@ fn door_types(doc: &mut Document, spec: &BuildingSpec) -> CoreResult<[Option<Ele
 }
 
 /// Loads the building's window types from the library: its family at about 3'-0" x
-/// 5'-0" for punched openings, a twin (or about 6'-0" wide) for living spaces, and 6'-0"
-/// storefront, all in the chosen grille and finish.
-fn window_types(doc: &mut Document, choice: WindowChoice) -> CoreResult<[ElementId; 3]> {
+/// 5'-0" for punched openings, a twin (or about 6'-0" wide) for living spaces, 6'-0"
+/// storefront for window walls and a 4'-0" x 2'-0" awning for ribbon windows (ADR-099),
+/// all in the chosen grille and finish.
+fn window_types(doc: &mut Document, choice: WindowChoice) -> CoreResult<[ElementId; 4]> {
     use crate::element::WindowFamily as F;
     use crate::windows::{info, WindowSpec, CATALOG};
     let family = choice
@@ -546,7 +714,8 @@ fn window_types(doc: &mut Document, choice: WindowChoice) -> CoreResult<[Element
         .flatten()
         .or_else(|| near(family, 1, 72.0, 60.0));
     let store = near(F::Storefront, 1, 72.0, 96.0);
-    let specs: Vec<WindowSpec> = [punched, large, store]
+    let ribbon = near(F::Awning, 1, 48.0, 24.0);
+    let specs: Vec<WindowSpec> = [punched, large, store, ribbon]
         .into_iter()
         .flatten()
         .map(|p| {
@@ -557,7 +726,7 @@ fn window_types(doc: &mut Document, choice: WindowChoice) -> CoreResult<[Element
         })
         .collect();
     match crate::windows::load(doc, &specs)?[..] {
-        [a, b, c] => Ok([a, b, c]),
+        [a, b, c, d] => Ok([a, b, c, d]),
         _ => Err(CoreError::Invalid("no window sizes for that family".into())),
     }
 }
@@ -681,7 +850,8 @@ fn build_steps(
     )
     .or_else(|| type_named(doc, Category::DoorType, &["30"]));
     let door_double = nearest_type(doc, DF::DoubleFlush, None, 72.0 * MM_PER_IN);
-    let [win_punched, win_large, win_store] = window_types(doc, spec.windows)?.map(Some);
+    let [win_punched, win_large, win_store, win_ribbon] =
+        window_types(doc, spec.windows)?.map(Some);
     let slab = type_named(doc, Category::FloorType, &["slab"]);
     let joist = type_named(doc, Category::FloorType, &["joist"]);
     let roof_type = crate::ops::first_of(doc, Category::RoofType);
@@ -693,30 +863,81 @@ fn build_steps(
     let mut exterior_walls = vec![];
     let mut interior_walls = vec![];
     let mut floors = vec![];
-    let mut roofs = vec![];
-    let mut top_outline: Vec<Poly> = vec![];
+    // Upper floors, whose undersides are soffits where they overhang (ADR-099).
+    let mut upper_floors = vec![];
+    let mut plans: Vec<StoryPlan> = vec![];
+    let mut street_doors: Vec<StreetDoor> = vec![];
+    let mut clad_types: HashMap<String, ElementId> = HashMap::new();
+    let [glass_slider, glass_folding] = glass_door_types(doc)?;
+    let deck_type = joist.or(slab);
+    let paving = match spec
+        .materials
+        .paving
+        .as_deref()
+        .filter(|p| crate::library::preset(p).is_some())
+    {
+        Some(p) => crate::library::add_preset(doc, p)?,
+        None => crate::library::add_preset(doc, "site-bluestone-pattern")?,
+    };
+    let deck_finish = match spec
+        .materials
+        .deck
+        .as_deref()
+        .filter(|p| crate::library::preset(p).is_some())
+    {
+        Some(p) => Some(crate::library::add_preset(doc, p)?),
+        // Ipe boards, a deck's usual finish.
+        None => Some(crate::library::add_preset(doc, "wood-ipe-deck")?),
+    };
 
     for (s, story) in spec.stories.iter().enumerate() {
         let level = levels[s];
-        let rooms: Vec<(RoomKind, Rect)> = story
-            .rooms
+        let to_rect = |r: &RoomSpec| {
+            let p = |x: f64, y: f64| {
+                Pt::new(snap(x * MM_PER_FT + shift.x), snap(y * MM_PER_FT + shift.y))
+            };
+            let (a, b) = (p(r.x, r.y), p(r.x + r.width, r.y + r.depth));
+            Rect {
+                x0: a.x,
+                y0: a.y,
+                x1: b.x,
+                y1: b.y,
+            }
+        };
+        // Indoor rooms make the walls; outdoor ones (ADR-099) sit beside them.
+        let (indoor_specs, outdoor_specs): (Vec<&RoomSpec>, Vec<&RoomSpec>) =
+            story.rooms.iter().partition(|r| !r.kind.outdoor());
+        let rooms: Vec<(RoomKind, Rect)> =
+            indoor_specs.iter().map(|r| (r.kind, to_rect(r))).collect();
+        let outdoor: Vec<(RoomKind, Rect)> =
+            outdoor_specs.iter().map(|r| (r.kind, to_rect(r))).collect();
+        let glazing: Vec<Option<GlazingKind>> = indoor_specs
             .iter()
-            .map(|r| {
-                let p = |x: f64, y: f64| {
-                    Pt::new(snap(x * MM_PER_FT + shift.x), snap(y * MM_PER_FT + shift.y))
-                };
-                let (a, b) = (p(r.x, r.y), p(r.x + r.width, r.y + r.depth));
-                (
-                    r.kind,
-                    Rect {
-                        x0: a.x,
-                        y0: a.y,
-                        x1: b.x,
-                        y1: b.y,
-                    },
-                )
-            })
+            .map(|r| r.glazing.or(r.kind.windows()))
             .collect();
+        // This story's cladding: a copy of the exterior type faced in it (ADR-099).
+        let story_ext = match story
+            .cladding
+            .as_deref()
+            .filter(|p| crate::library::preset(p).is_some())
+        {
+            Some(p) => match clad_types.get(p) {
+                Some(t) => *t,
+                None => {
+                    let t = design::clad_type(doc, ext_type, p)?;
+                    clad_types.insert(p.to_string(), t);
+                    report.materials += 1;
+                    t
+                }
+            },
+            None => {
+                if let Some(p) = &story.cladding {
+                    report.warnings.push(format!("No library material {p}"));
+                }
+                ext_type
+            }
+        };
+        let mut story_ext_walls = vec![];
 
         // 3. Walls.
         let mut runs = runs(&rooms);
@@ -739,11 +960,14 @@ fn build_steps(
             if open || run.b - run.a < 300.0 {
                 continue;
             }
-            let t = if run.exterior { ext_type } else { int_type };
+            let t = if run.exterior { story_ext } else { int_type };
             let id = crate::ops::create_wall(doc, t, level, run.point(run.a), run.point(run.b))?;
             run.id = Some(id);
             if run.exterior {
-                exterior_walls.push(id);
+                story_ext_walls.push(id);
+                if story_ext == ext_type {
+                    exterior_walls.push(id);
+                }
             } else {
                 interior_walls.push(id);
             }
@@ -778,6 +1002,19 @@ fn build_steps(
                 crate::ops::create_window(doc, ty, host, offset, false)
             };
             made.is_ok()
+        };
+        // Which way is out from room `r` across run `ri` at `t`.
+        let outward = |runs: &[Run], ri: usize, t: f64, r: usize| -> Pt {
+            let n = if runs[ri].horizontal {
+                Pt::new(0.0, 1.0)
+            } else {
+                Pt::new(1.0, 0.0)
+            };
+            if rooms[r].1.center().sub(runs[ri].point(t)).dot(n) > 0.0 {
+                n.scale(-1.0)
+            } else {
+                n
+            }
         };
         let mut reached = vec![false; rooms.len()];
         let mut heap = BinaryHeap::new();
@@ -830,12 +1067,18 @@ fn build_steps(
                         _ => vec![door_wide],
                     };
                     let t = (p.a + p.b) / 2.0;
-                    if choices
+                    if let Some(ty) = choices
                         .into_iter()
                         .flatten()
-                        .any(|ty| place(doc, &mut runs, ri, t, Some(ty)))
+                        .find(|ty| place(doc, &mut runs, ri, t, Some(*ty)))
                     {
                         report.doors += 1;
+                        street_doors.push(StreetDoor {
+                            at: runs[ri].point(t),
+                            out: outward(&runs, ri, t, r),
+                            width: width_of(doc, Some(ty)),
+                            garage: rooms[r].0 == RoomKind::Garage,
+                        });
                     }
                 }
             }
@@ -946,26 +1189,8 @@ fn build_steps(
                 }
             }
         }
-        for (i, &ok) in reached.iter().enumerate() {
-            if ok && !doored[i] && !roots.contains(&i) {
-                report.warnings.push(format!(
-                    "Story {}: no room for a door into {}",
-                    s + 1,
-                    story.rooms[i].name
-                ));
-            }
-        }
-        for (i, ok) in reached.iter().enumerate() {
-            if !ok {
-                report.warnings.push(format!(
-                    "Story {}: {} has no route in (no shared wall long enough for a door)",
-                    s + 1,
-                    story.rooms[i].name
-                ));
-            }
-        }
-
-        // 5. Windows on the outside walls of rooms that want them.
+        // Out onto the porches, terraces and decks beside the rooms (ADR-099): glass doors
+        // (folding where the room asks for them), more than one along a long side.
         for ri in 0..runs.len() {
             if !runs[ri].exterior || runs[ri].id.is_none() {
                 continue;
@@ -974,23 +1199,103 @@ fn build_steps(
                 let Some(r) = p.left.or(p.right) else {
                     continue;
                 };
-                let Some(glazing) = rooms[r].0.windows() else {
+                let k = rooms[r].0;
+                if k.leaf() || matches!(k, RoomKind::Stair | RoomKind::Corridor) {
+                    continue;
+                }
+                let mid = runs[ri].point((p.a + p.b) / 2.0);
+                let out = outward(&runs, ri, (p.a + p.b) / 2.0, r);
+                let beside = outdoor
+                    .iter()
+                    .any(|(_, o)| o.holds(mid.add(out.scale(300.0)), 0.0));
+                if !beside || p.b - p.a < 5.0 * MM_PER_FT {
+                    continue;
+                }
+                let ty = if glazing[r] == Some(GlazingKind::FoldingDoors) {
+                    glass_folding.or(glass_slider)
+                } else {
+                    glass_slider
+                };
+                let w = width_of(doc, ty);
+                let n = (((p.b - p.a) / (w + 4.0 * MM_PER_FT)).floor() as usize).clamp(1, 3);
+                for i in 0..n {
+                    let t = p.a + (i as f64 + 0.5) * (p.b - p.a) / n as f64;
+                    if place(doc, &mut runs, ri, t, ty) {
+                        report.doors += 1;
+                        doored[r] = true;
+                    }
+                }
+            }
+        }
+        for (i, &ok) in reached.iter().enumerate() {
+            if ok && !doored[i] && !roots.contains(&i) {
+                report.warnings.push(format!(
+                    "Story {}: no room for a door into {}",
+                    s + 1,
+                    indoor_specs[i].name
+                ));
+            }
+        }
+        for (i, ok) in reached.iter().enumerate() {
+            if !ok {
+                report.warnings.push(format!(
+                    "Story {}: {} has no route in (no shared wall long enough for a door)",
+                    s + 1,
+                    indoor_specs[i].name
+                ));
+            }
+        }
+
+        // 5. Windows on the outside walls, as each room is glazed (ADR-099).
+        for ri in 0..runs.len() {
+            if !runs[ri].exterior || runs[ri].id.is_none() {
+                continue;
+            }
+            for p in runs[ri].pieces.clone() {
+                let Some(r) = p.left.or(p.right) else {
                     continue;
                 };
-                let (ty, spacing) = match glazing {
-                    Glazing::Punched => (win_punched, 7.0 * MM_PER_FT),
-                    Glazing::Large => (win_large, 7.0 * MM_PER_FT),
-                    Glazing::Storefront => (win_store, 7.0 * MM_PER_FT),
+                let Some(g) = glazing[r] else {
+                    continue;
                 };
                 let len = p.b - p.a;
                 if len < 4.0 * MM_PER_FT {
                     continue;
                 }
-                let n = ((len / spacing).floor() as usize).max(1);
+                // Glass doors onto the ground, or a window wall up in the air.
+                let doors_here =
+                    matches!(g, GlazingKind::SlidingDoors | GlazingKind::FoldingDoors) && s == 0;
+                let (ty, gap) = match g {
+                    GlazingKind::None => continue,
+                    GlazingKind::Punched => (win_punched, None),
+                    GlazingKind::Large => (win_large, None),
+                    GlazingKind::Ribbon => (win_ribbon, Some(5.0 * MM_PER_IN)),
+                    GlazingKind::WindowWall => (win_store, Some(5.0 * MM_PER_IN)),
+                    GlazingKind::SlidingDoors if doors_here => (glass_slider, Some(MM_PER_FT)),
+                    GlazingKind::FoldingDoors if doors_here => {
+                        (glass_folding.or(glass_slider), Some(MM_PER_FT))
+                    }
+                    GlazingKind::SlidingDoors | GlazingKind::FoldingDoors => {
+                        (win_store, Some(5.0 * MM_PER_IN))
+                    }
+                };
+                let n = match gap {
+                    // Punched and paired windows about 7' apart.
+                    None => ((len / (7.0 * MM_PER_FT)).floor() as usize).max(1),
+                    // Bands and walls of glass: as many as fit, side by side.
+                    Some(g) => {
+                        let w = width_of(doc, ty);
+                        (((len - 8.0 * MM_PER_IN) / (w + g)).floor() as usize).max(1)
+                    }
+                };
                 for k in 0..n {
                     let t = p.a + (k as f64 + 0.5) * len / n as f64;
                     if place(doc, &mut runs, ri, t, ty) {
-                        report.windows += 1;
+                        if doors_here {
+                            report.doors += 1;
+                        } else {
+                            report.windows += 1;
+                        }
                     }
                 }
             }
@@ -1010,7 +1315,12 @@ fn build_steps(
                 let (long, short) = if along_x { (w, d) } else { (d, w) };
                 let inset = 6.0 * MM_PER_IN;
                 let c = r.center();
-                let (shape, width) = if long >= run_len + 2.0 * inset + 900.0 {
+                // Straight with a landing at the top; straight without one when the room
+                // is too narrow to fold the stair into a U.
+                let u_fits = short >= 2.0 * (30.0 * MM_PER_IN + inset);
+                let (shape, width) = if long >= run_len + 2.0 * inset + 900.0
+                    || (!u_fits && long >= run_len + 2.0 * inset)
+                {
                     (
                         StairShape::Straight,
                         (short - 2.0 * inset).min(44.0 * MM_PER_IN),
@@ -1051,12 +1361,8 @@ fn build_steps(
         }
 
         // 7. The floor slab: the outline of the story's rooms.
-        let outline = studio_geom::union_all(
-            &rooms
-                .iter()
-                .map(|(_, r)| Poly::simple(r.ring()))
-                .collect::<Vec<_>>(),
-        );
+        let outline =
+            studio_geom::union_all(&rooms.iter().map(|(_, r)| r.poly()).collect::<Vec<_>>());
         let ftype = if s == 0 || !wood {
             slab.or(joist)
         } else {
@@ -1064,18 +1370,40 @@ fn build_steps(
         };
         if let Some(ft) = ftype {
             for p in &outline {
-                floors.push(crate::ops::create_floor(doc, ft, level, p.outer.clone())?);
+                let id = crate::ops::create_floor(doc, ft, level, p.outer.clone())?;
+                floors.push(id);
+                if s > 0 {
+                    upper_floors.push(id);
+                }
                 report.floors += 1;
             }
         }
-        if s + 1 == spec.stories.len() {
-            top_outline = outline;
+        // Outdoor rooms (ADR-099): paving at grade, deck slabs up in the air.
+        for (k, r) in &outdoor {
+            if s == 0 && *k != RoomKind::Deck {
+                doc.transact("Pave", |tx| {
+                    Ok(tx.insert(ElementData::GroundRegion {
+                        level,
+                        material: paving,
+                        boundary: r.ring(),
+                        sketch: vec![],
+                    }))
+                })?;
+            } else if let Some(ft) = deck_type {
+                let id = crate::ops::create_floor(doc, ft, level, r.ring())?;
+                let finish = deck_finish.unwrap_or(paving);
+                crate::paint::paint(doc, &[id], Some(finish))?;
+                if s > 0 {
+                    upper_floors.push(id);
+                }
+            }
+            report.outdoor += 1;
         }
 
         // 8. Rooms, named as planned.
         for (i, (_, r)) in rooms.iter().enumerate() {
             let id = crate::ops::create_room(doc, level, r.center())?;
-            let name = story.rooms[i].name.clone();
+            let name = indoor_specs[i].name.clone();
             doc.transact("Name room", |tx| {
                 tx.modify(id, |d| {
                     if let ElementData::Room { name: n, .. } = d {
@@ -1085,41 +1413,26 @@ fn build_steps(
             })?;
             report.rooms += 1;
         }
+        plans.push(StoryPlan {
+            level,
+            top: levels[s + 1],
+            indoor: rooms
+                .iter()
+                .zip(&indoor_specs)
+                .map(|((k, r), sp)| (*k, *r, sp.name.clone()))
+                .collect(),
+            outdoor,
+            ext_walls: story_ext_walls,
+        });
     }
 
-    // 9. The roof over the top story.
-    let roof_level = levels[spec.stories.len()];
-    if let Some(rt) = roof_type {
-        let slope = (spec.pitch.clamp(1.0, 18.0) / 12.0).atan();
-        for p in &top_outline {
-            let ring = p.outer.clone();
-            let made = match spec.roof {
-                RoofKind::Flat => crate::build::create_roof(doc, rt, roof_level, 0.0, ring, 0.0)
-                    .map(|id| vec![id]),
-                RoofKind::Gable if ring.len() == 4 => gable(doc, rt, roof_level, &ring, slope),
-                _ => crate::build::create_roofs_by_footprint(
-                    doc,
-                    rt,
-                    roof_level,
-                    0.0,
-                    &ring,
-                    18.0 * MM_PER_IN,
-                    slope,
-                )
-                .or_else(|_| {
-                    crate::build::create_roof(doc, rt, roof_level, 0.0, ring, 0.0)
-                        .map(|id| vec![id])
-                }),
-            };
-            match made {
-                Ok(ids) => {
-                    report.roofs += ids.len();
-                    roofs.extend(ids);
-                }
-                Err(e) => report.warnings.push(format!("Roof: {e}")),
-            }
-        }
-    }
+    // 9. Roofs over what nothing above covers, story by story (ADR-099).
+    let roofs = match roof_type {
+        Some(rt) => design::roofs(doc, spec, &plans, rt, report)?,
+        None => vec![],
+    };
+    // 9b. Columns under porches and cantilevers; railings round decks.
+    design::supports(doc, spec, &plans, report)?;
 
     // 10. Library materials on the main surfaces.
     let m = &spec.materials;
@@ -1144,7 +1457,97 @@ fn build_steps(
             report.materials += 1;
         }
     }
+    // Soffits: the undersides of upper floors and of roofs (ADR-096, ADR-099).
+    if let Some(p) = m
+        .soffit
+        .as_deref()
+        .filter(|p| crate::library::preset(p).is_some())
+    {
+        let mat = crate::library::add_preset(doc, p)?;
+        for id in upper_floors.iter().chain(&roofs) {
+            crate::paint::paint_face(doc, *id, "bottom", Some(mat))?;
+        }
+        report.materials += 1;
+    }
+    // The exterior walls face out, so their cladding is outside.
+    let all_ext: Vec<ElementId> = plans.iter().flat_map(|p| p.ext_walls.clone()).collect();
+    design::face_out(doc, &plans, &all_ext)?;
+    // 11. The fascia round every roof.
+    if let Some(name) = spec.fascia.as_deref().filter(|n| !n.is_empty()) {
+        if crate::fascia::by_name(name).is_some() && !roofs.is_empty() {
+            crate::fascia::set(doc, &roofs, Some(name))?;
+        } else if crate::fascia::by_name(name).is_none() {
+            report.warnings.push(format!("No fascia profile {name}"));
+        }
+    }
+    // 12. The site and the furniture.
+    if spec.landscape {
+        site::landscape(doc, spec, &plans, &street_doors, report)?;
+    }
+    if spec.furnish {
+        site::furnish(doc, &plans, report)?;
+    }
+    // 13. The plans dimensioned to the walls' outer faces.
+    let face = match doc.data(ext_type)? {
+        ElementData::WallType { thickness, .. } => thickness / 2.0,
+        _ => 0.0,
+    };
+    report.dimensions = annotate::dimension_plans(doc, &plans, face)?;
+    annotate::crop_plans(doc, &plans, 16.0 * MM_PER_FT)?;
+    // A project still called "New Project" takes the building's name (the title blocks).
+    let info = doc.of(Category::ProjectInfo).next().map(|e| e.id);
+    if let Some(info) = info {
+        let unnamed = matches!(doc.data(info)?, ElementData::ProjectInfo { name, .. } if name.trim().eq_ignore_ascii_case("new project") || name.trim().is_empty());
+        if unnamed && !spec.name.trim().is_empty() {
+            let n = spec.name.trim().to_string();
+            doc.transact("Name project", |tx| {
+                tx.modify(info, |d| {
+                    if let ElementData::ProjectInfo { name, .. } = d {
+                        *name = n.clone();
+                    }
+                })
+            })?;
+        }
+    }
     Ok(())
+}
+
+/// One story as built, for roofs, supports, the site and dimensions (model mm).
+struct StoryPlan {
+    level: ElementId,
+    /// The level at its top (the next story's, or the roof's).
+    top: ElementId,
+    indoor: Vec<(RoomKind, Rect, String)>,
+    outdoor: Vec<(RoomKind, Rect)>,
+    ext_walls: Vec<ElementId>,
+}
+
+/// A door in from outside on the ground floor: where, which way is out, how wide.
+struct StreetDoor {
+    at: Pt,
+    out: Pt,
+    width: f64,
+    garage: bool,
+}
+
+/// Sliding glass doors and a folding glass wall (ADR-099), for rooms opening onto
+/// terraces and decks.
+fn glass_door_types(doc: &mut Document) -> CoreResult<[Option<ElementId>; 2]> {
+    use crate::doors::{preset, LeafStyle as L};
+    use crate::element::DoorFamily as F;
+    let specs: Vec<crate::doors::DoorSpec> = [
+        preset(F::SlidingGlass, L::FullLite, 2, 72.0, 96.0),
+        preset(F::FoldingWall, L::FullLite, 4, 144.0, 96.0),
+    ]
+    .into_iter()
+    .flatten()
+    .map(Into::into)
+    .collect();
+    if specs.len() < 2 {
+        return Ok([None, None]);
+    }
+    let ids = crate::doors::load(doc, &specs)?;
+    Ok([ids.first().copied(), ids.get(1).copied()])
 }
 
 /// A gable roof over a rectangle: the two long sides slope, the ends are gables.
@@ -1196,6 +1599,7 @@ mod tests {
             y,
             width: w,
             depth: d,
+            glazing: None,
         }
     }
 
@@ -1216,6 +1620,8 @@ mod tests {
                         room("Powder", RoomKind::Bathroom, 20.0, 16.0, 6.0, 10.0),
                         room("Dining", RoomKind::Dining, 26.0, 16.0, 8.0, 10.0),
                     ],
+                    cladding: None,
+                    roof: None,
                 },
                 StorySpec {
                     height: 9.0,
@@ -1229,6 +1635,8 @@ mod tests {
                         room("Bedroom 3", RoomKind::Bedroom, 0.0, 16.5, 10.0, 9.5),
                         room("Study", RoomKind::Office, 20.0, 16.5, 14.0, 9.5),
                     ],
+                    cladding: None,
+                    roof: None,
                 },
             ],
             roof: RoofKind::Hip,
@@ -1239,12 +1647,20 @@ mod tests {
                 roof: Some("roof-asphalt-shingle".into()),
                 floors: Some("wood-white-oak-floor".into()),
                 interior_walls: None,
+                ..MaterialSpec::default()
             },
             windows: WindowChoice {
                 family: Some(crate::element::WindowFamily::DoubleHung),
                 grille: crate::windows::Grille::Colonial,
                 finish: crate::windows::FrameFinish::White,
             },
+            precedent: String::new(),
+            fascia: None,
+            overhang: None,
+            cantilever_columns: false,
+            landscape: false,
+            furnish: false,
+            planting: PlantingSpec::default(),
         }
     }
 
@@ -1391,6 +1807,8 @@ mod tests {
             StorySpec {
                 height: 10.0,
                 rooms,
+                cladding: None,
+                roof: None,
             }
         };
         BuildingSpec {
@@ -1402,6 +1820,13 @@ mod tests {
             structure: Structure::Wood,
             materials: MaterialSpec::default(),
             windows: WindowChoice::default(),
+            precedent: String::new(),
+            fascia: None,
+            overhang: None,
+            cantilever_columns: false,
+            landscape: false,
+            furnish: false,
+            planting: PlantingSpec::default(),
         }
     }
 
@@ -1454,5 +1879,240 @@ mod tests {
             .filter(|r| r.exterior && r.horizontal && (r.b - r.a - 6000.0).abs() < 1e-9)
             .count();
         assert_eq!(long, 2);
+    }
+
+    /// A modern two-volume house (ADR-099): a stucco base with a porch and a terrace, a
+    /// cedar upper floor cantilevering east under a shed roof, a deck off the bedrooms.
+    fn designed() -> BuildingSpec {
+        let g = |mut r: RoomSpec, glazing: GlazingKind| {
+            r.glazing = Some(glazing);
+            r
+        };
+        BuildingSpec {
+            name: "Ridge House".into(),
+            summary: String::new(),
+            stories: vec![
+                StorySpec {
+                    height: 10.0,
+                    rooms: vec![
+                        room("Garage", RoomKind::Garage, 0.0, 0.0, 22.0, 24.0),
+                        room("Entry", RoomKind::Entry, 22.0, 0.0, 12.0, 10.0),
+                        room("Stair", RoomKind::Stair, 22.0, 10.0, 12.0, 14.0),
+                        room("Powder", RoomKind::Bathroom, 22.0, 24.0, 6.0, 10.0),
+                        g(
+                            room("Living", RoomKind::Living, 34.0, 0.0, 24.0, 20.0),
+                            GlazingKind::SlidingDoors,
+                        ),
+                        g(
+                            room("Kitchen", RoomKind::Kitchen, 34.0, 20.0, 14.0, 14.0),
+                            GlazingKind::Ribbon,
+                        ),
+                        g(
+                            room("Dining", RoomKind::Dining, 48.0, 20.0, 10.0, 14.0),
+                            GlazingKind::WindowWall,
+                        ),
+                        room("Porch", RoomKind::Porch, 22.0, -8.0, 12.0, 8.0),
+                        room("Terrace", RoomKind::Terrace, 34.0, 34.0, 24.0, 14.0),
+                    ],
+                    cladding: Some("plaster-stucco-white".into()),
+                    roof: Some(StoryRoof {
+                        kind: RoofKind::Flat,
+                        pitch: None,
+                        low_side: None,
+                    }),
+                },
+                StorySpec {
+                    height: 10.0,
+                    rooms: vec![
+                        room("Stair", RoomKind::Stair, 22.0, 10.0, 12.0, 14.0),
+                        room("Hall", RoomKind::Corridor, 34.0, 16.0, 32.0, 4.0),
+                        room("Primary Bedroom", RoomKind::Bedroom, 34.0, 4.0, 18.0, 12.0),
+                        room("Bedroom 2", RoomKind::Bedroom, 52.0, 4.0, 14.0, 12.0),
+                        room("Bath", RoomKind::Bathroom, 34.0, 20.0, 10.0, 10.0),
+                        room("Closet", RoomKind::Closet, 44.0, 20.0, 8.0, 10.0),
+                        room("Bedroom 3", RoomKind::Bedroom, 52.0, 20.0, 14.0, 10.0),
+                        room("Deck", RoomKind::Deck, 66.0, 4.0, 10.0, 26.0),
+                    ],
+                    cladding: Some("siding-cedar-lap-stained".into()),
+                    roof: Some(StoryRoof {
+                        kind: RoofKind::Shed,
+                        pitch: Some(2.0),
+                        low_side: Some(Side::North),
+                    }),
+                },
+            ],
+            roof: RoofKind::Flat,
+            pitch: 2.0,
+            structure: Structure::Wood,
+            materials: MaterialSpec {
+                soffit: Some("siding-cedar-vertical".into()),
+                paving: Some("site-bluestone-pattern".into()),
+                ..MaterialSpec::default()
+            },
+            windows: WindowChoice {
+                family: Some(crate::element::WindowFamily::Casement),
+                grille: crate::windows::Grille::None,
+                finish: crate::windows::FrameFinish::Black,
+            },
+            precedent: "Richard Neutra".into(),
+            fascia: Some("Modern Stepped Band 12\"".into()),
+            overhang: Some(2.0),
+            cantilever_columns: true,
+            landscape: true,
+            furnish: true,
+            planting: PlantingSpec {
+                trees: vec!["Honey Locust".into(), "Not A Tree".into()],
+                shrubs: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn a_designed_house_steps_cantilevers_and_opens_onto_its_terraces() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let depth = doc.undo_depth();
+        let spec = designed();
+        let r = build(&mut doc, &spec).unwrap();
+        assert!(
+            r.warnings.iter().all(|w| !w.contains("No library")),
+            "{:?}",
+            r.warnings
+        );
+        assert_eq!(r.outdoor, 3, "porch, terrace, deck");
+        // A flat roof over the exposed base (and porch), a shed over the upper floor.
+        assert!(r.roofs >= 2, "{r:?}");
+        let roofs: Vec<(f64, Vec<bool>, bool)> = doc
+            .of(Category::Roof)
+            .filter_map(|e| match &e.data {
+                ElementData::Roof {
+                    slope,
+                    sloped,
+                    fascia,
+                    ..
+                } => Some((*slope, sloped.clone(), fascia.is_some())),
+                _ => None,
+            })
+            .collect();
+        assert!(roofs
+            .iter()
+            .any(|(s, f, _)| *s > 0.0 && f.iter().filter(|x| **x).count() == 1));
+        assert!(
+            roofs.iter().all(|(_, _, fascia)| *fascia),
+            "every roof has the fascia"
+        );
+        // Posts at the porch's free corners and under the cantilevered bedroom.
+        assert!(r.columns >= 3, "{r:?}");
+        assert!(r.railings >= 1, "{r:?}");
+        // Sliding glass doors out of the living room and the bedrooms onto the deck.
+        let sliding = doc
+            .of(Category::Door)
+            .filter(|e| {
+                e.data
+                    .type_id()
+                    .and_then(|t| doc.data(t).ok())
+                    .is_some_and(|t| t.name().contains("Sliding"))
+            })
+            .count();
+        assert!(sliding >= 3, "{sliding}");
+        // Ribbon awnings in the kitchen.
+        assert!(doc.of(Category::Window).any(|e| e
+            .data
+            .type_id()
+            .and_then(|t| doc.data(t).ok())
+            .is_some_and(|t| t.name().contains("Awning"))));
+        // Each story in its own cladding, on a copy of the exterior type.
+        let wall_type_names: Vec<String> = doc
+            .of(Category::Wall)
+            .filter_map(|e| Some(doc.data(e.data.type_id()?).ok()?.name()))
+            .collect();
+        assert!(wall_type_names.iter().any(|n| n.contains("Cedar")));
+        assert!(wall_type_names.iter().any(|n| n.contains("Stucco")));
+        // Exterior walls face out: just outside each one's exterior face is no room.
+        let m = studio_geom::Pt::new;
+        let shift = {
+            // The building is centred on the origin: undo that for the plan.
+            let all: Vec<&RoomSpec> = spec.stories.iter().flat_map(|s| &s.rooms).collect();
+            let (x0, x1) = all.iter().fold((f64::MAX, f64::MIN), |a, r| {
+                (a.0.min(r.x), a.1.max(r.x + r.width))
+            });
+            let (y0, y1) = all.iter().fold((f64::MAX, f64::MIN), |a, r| {
+                (a.0.min(r.y), a.1.max(r.y + r.depth))
+            });
+            m((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+        };
+        let l1 = doc.levels()[0].0;
+        for e in doc.of(Category::Wall) {
+            let ElementData::Wall {
+                start,
+                end,
+                base_level,
+                type_id,
+                ..
+            } = &e.data
+            else {
+                continue;
+            };
+            if *base_level != l1 || !doc.data(*type_id).unwrap().name().contains("Stucco") {
+                continue;
+            }
+            let probe = start
+                .lerp(*end, 0.5)
+                .add(end.sub(*start).norm().perp().scale(300.0));
+            let ft = probe.scale(1.0 / MM_PER_FT).add(shift);
+            let inside = spec.stories[0]
+                .rooms
+                .iter()
+                .filter(|r| !r.kind.outdoor())
+                .any(|r| ft.x > r.x && ft.x < r.x + r.width && ft.y > r.y && ft.y < r.y + r.depth);
+            assert!(!inside, "a wall faces in at {ft:?}");
+        }
+        // The site and the rooms are dressed, the plans dimensioned.
+        assert!(r.plants > 10, "{r:?}");
+        assert!(r.furniture > 10, "{r:?}");
+        assert!(r.dimensions > 8, "{r:?}");
+        assert!(doc.of(Category::GroundRegion).count() >= 3);
+        // The soffits are painted.
+        assert!(doc
+            .of(Category::Floor)
+            .any(|e| crate::paint::face_paint(&doc, e.id, "bottom").is_some()));
+        // All of it is one undo step.
+        doc.undo().unwrap();
+        assert_eq!(doc.undo_depth(), depth);
+        assert_eq!(doc.of(Category::Wall).count(), 0);
+    }
+
+    #[test]
+    fn the_furniture_and_plants_it_uses_are_in_the_libraries() {
+        let ffe: Vec<String> = crate::ffe::catalog(crate::ffe::FfeClass::Furniture)
+            .into_iter()
+            .chain(crate::ffe::catalog(crate::ffe::FfeClass::Equipment))
+            .map(|p| p.name)
+            .collect();
+        for kind in [
+            RoomKind::Living,
+            RoomKind::Dining,
+            RoomKind::Bedroom,
+            RoomKind::Office,
+            RoomKind::GuestRoom,
+            RoomKind::Lobby,
+            RoomKind::Terrace,
+            RoomKind::Deck,
+            RoomKind::Porch,
+        ] {
+            for big in [true, false] {
+                let (w, d) = if big { (30.0, 24.0) } else { (11.0, 9.0) };
+                for p in site::layout_names(kind, "Primary Bedroom", w, d) {
+                    assert!(ffe.contains(&p.to_string()), "{p}");
+                }
+            }
+        }
+        let plants: Vec<String> = crate::planting::catalog()
+            .into_iter()
+            .map(|p| p.name)
+            .collect();
+        for p in site::DEFAULT_TREES.iter().chain(site::DEFAULT_SHRUBS) {
+            assert!(plants.contains(&p.to_string()), "{p}");
+        }
     }
 }

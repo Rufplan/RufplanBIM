@@ -6399,3 +6399,14 @@ button:disabled {
       2 2,
     default !important;
 }
+
+/* Generate's precedent and options (ADR-099). */
+.gen-precedent {
+  margin: -4px 0 6px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.gen-options {
+  flex-wrap: wrap;
+  gap: 18px;
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BuildReport } from "../bindings/BuildReport";
 import type { GenerateInputs } from "../bindings/GenerateInputs";
 import type { GenerateProgress } from "../bindings/GenerateProgress";
+import type { Precedent } from "../bindings/Precedent";
 import type { ReferenceImage } from "../bindings/ReferenceImage";
 import { apply } from "../fileActions";
 import { errorMessage, ipc } from "../ipc";
@@ -40,7 +41,18 @@ const STYLES = [
   "Spanish revival",
   "Mid-century modern",
   "Industrial loft",
+  "Prairie",
+  "International Style",
+  "Desert modern",
+  "Japanese modern",
+  "Scandinavian",
+  "Coastal modern",
+  "Pacific Northwest",
+  "Brutalist",
 ];
+
+/** The precedent picker's "type your own" choice. */
+const OTHER = "__other";
 
 /** A reference image, scaled so its long side is at most 1568 px (what Claude uses), as
  * base64 JPEG. */
@@ -76,6 +88,12 @@ export function GenerateDialog({ onClose }: { onClose: () => void }) {
   const [prompt, setPrompt] = useState("");
   const [images, setImages] = useState<(ReferenceImage & { name: string; url: string })[]>([]);
   const [model, setModel] = useState("claude-opus-5-5");
+  // Design after an architect or work (ADR-099).
+  const [precedents, setPrecedents] = useState<Precedent[]>([]);
+  const [precedent, setPrecedent] = useState("");
+  const [ownPrecedent, setOwnPrecedent] = useState("");
+  const [landscape, setLandscape] = useState(true);
+  const [cdSet, setCdSet] = useState(true);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<GenerateProgress | null>(null);
   const [result, setResult] = useState<{ report: BuildReport; summary: string } | null>(null);
@@ -84,6 +102,10 @@ export function GenerateDialog({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     let live = true;
+    ipc.generatePrecedents().then(
+      (p) => live && setPrecedents(p),
+      () => {},
+    );
     ipc.claudeKeySet().then(
       (k) => live && setKeySet(k),
       () => live && setKeySet(false),
@@ -141,6 +163,9 @@ export function GenerateDialog({ onClose }: { onClose: () => void }) {
       prompt,
       images: images.map(({ mediaType, data }) => ({ mediaType, data })),
       model,
+      precedent: precedent === OTHER ? ownPrecedent.trim() : precedent,
+      landscape,
+      cdSet,
     };
     setRunning(true);
     setResult(null);
@@ -285,13 +310,56 @@ export function GenerateDialog({ onClose }: { onClose: () => void }) {
                     <option value="hip">Hip</option>
                     <option value="gable">Gable</option>
                     <option value="flat">Flat</option>
+                    <option value="shed">Shed</option>
+                    <option value="butterfly">Butterfly</option>
                   </select>
                 </label>
               </div>
+              <div className="row">
+                <label className="field grow">
+                  Precedent
+                  <select
+                    aria-label="Precedent"
+                    value={precedent}
+                    onChange={(e) => setPrecedent(e.target.value)}
+                  >
+                    <option value="">None: Claude designs to the brief</option>
+                    {(["Architect", "Work"] as const).map((g) => (
+                      <optgroup key={g} label={g === "Architect" ? "Architects" : "Famous works"}>
+                        {precedents
+                          .filter((p) => p.group === g)
+                          .map((p) => (
+                            <option key={p.name} value={p.name}>
+                              {p.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    ))}
+                    <option value={OTHER}>Other architect or building…</option>
+                  </select>
+                </label>
+                {precedent === OTHER && (
+                  <label className="field grow">
+                    Architect or building
+                    <input
+                      aria-label="Architect or building"
+                      placeholder="e.g. Tom Kundig's Chicken Point Cabin"
+                      value={ownPrecedent}
+                      onChange={(e) => setOwnPrecedent(e.target.value)}
+                    />
+                  </label>
+                )}
+              </div>
+              {precedent && precedent !== OTHER && (
+                <p className="muted gen-precedent">
+                  {precedents.find((p) => p.name === precedent)?.moves}
+                </p>
+              )}
               <div className="row gen-lot">
                 <label className="ob-check">
                   <input
                     type="checkbox"
+                    aria-label="Fit on the lot"
                     checked={fitLot && hasSite}
                     disabled={!hasSite}
                     onChange={(e) => setFitLot(e.target.checked)}
@@ -369,9 +437,29 @@ export function GenerateDialog({ onClose }: { onClose: () => void }) {
                 Model
                 <select aria-label="Model" value={model} onChange={(e) => setModel(e.target.value)}>
                   <option value="claude-opus-5-5">Claude Opus 5.5 (best plans)</option>
-                  <option value="claude-sonnet-5">Claude Sonnet 5 (faster)</option>
+                  <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (faster)</option>
                 </select>
               </label>
+              <div className="row gen-options">
+                <label className="ob-check">
+                  <input
+                    type="checkbox"
+                    aria-label="Landscape and furnish"
+                    checked={landscape}
+                    onChange={(e) => setLandscape(e.target.checked)}
+                  />
+                  Landscape the site and furnish the rooms
+                </label>
+                <label className="ob-check">
+                  <input
+                    type="checkbox"
+                    aria-label="Lay out the CD set"
+                    checked={cdSet}
+                    onChange={(e) => setCdSet(e.target.checked)}
+                  />
+                  Lay out the CD set (plans, ceiling plans, elevations, sections, schedules)
+                </label>
+              </div>
               <p className="muted">
                 Generating replaces the building in this project (walls, floors, roofs, rooms…).
                 Undo (Ctrl+Z) brings it back in one step.
@@ -416,6 +504,16 @@ export function GenerateDialog({ onClose }: { onClose: () => void }) {
                 {result.report.roofs} roofs
                 {result.report.materials ? ` · ${result.report.materials} materials` : ""}
               </p>
+              {(result.report.outdoor > 0 ||
+                result.report.plants > 0 ||
+                result.report.sheets > 0) && (
+                <p className="gen-counts">
+                  {result.report.outdoor} porches, terraces and decks · {result.report.columns}{" "}
+                  columns · {result.report.railings} railings · {result.report.plants} plants ·{" "}
+                  {result.report.furniture} pieces of furniture · {result.report.dimensions}{" "}
+                  dimensions · {result.report.sheets} sheets
+                </p>
+              )}
               {result.report.warnings.length > 0 && (
                 <ul className="gen-warnings">
                   {result.report.warnings.map((w) => (

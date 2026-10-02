@@ -3634,3 +3634,82 @@ coursing along a line".
 - **How it moves:** `modify::align_3d`, which handles walls (joined walls stretch),
   grids, furniture and casework, columns, beams, lights, plants and so on, as one undo
   step. In an elevation or section, the move is along the view and up or down.
+
+## ADR-099 Generate designs buildings, after precedents, with a CD set — Accepted (2026-10-01)
+- **The owner's asks:** Generate built boring boxes whatever the prompt. It should design
+  buildings as dynamic as the Modern House sample, design after famous architects or
+  works, and produce a set of CD-level plans.
+- **Why it built boxes:**
+  - The brief forbade cantilevers and asked for one tiled footprint per story.
+  - One roof covered only the top story, so wings and set-backs were roofless and Claude
+    avoided them.
+  - One wall type and one material covered everything.
+  - Glazing was fixed by room kind.
+- **The plan's new vocabulary** (studio-core `generate`, all optional, so older plans still
+  parse):
+  - Outdoor rooms: `porch`, `terrace`, `deck`, `courtyard`.
+  - Per room: `glazing` (none, punched, large, ribbon, window_wall, sliding_doors,
+    folding_doors).
+  - Per story: `cladding` (a library material) and `roof` (kind, pitch, lowSide).
+  - Roof kinds `shed` and `butterfly`.
+  - Building: `precedent`, `fascia`, `overhang`, `cantileverColumns`, `landscape`,
+    `furnish`, `planting` (trees and shrubs), and soffit, paving and deck materials.
+- **Building it** (`generate/mod.rs`, `design.rs`):
+  - Upper stories may overhang the story below.
+  - Each story's roof covers what nothing above covers (its rooms and porches, minus the
+    next story's footprint). It overhangs outward and stops at the volume above.
+  - Flat roofs over polygons with holes are split into overlapping rectangles, so a
+    courtyard gets a roof round it.
+  - A hip or gable wing against a taller volume becomes a shed falling away from it.
+    Butterflies split down the long middle.
+  - Walls under gable, shed and butterfly roofs attach to them.
+  - Each story's cladding is a copy of the exterior wall type, faced in that material.
+    Exterior walls are flipped so the exterior face (the cladding) is outside.
+  - Glass doors go wherever an indoor room meets a porch, terrace or deck. Glazing follows
+    each room's choice. Sliding and folding doors become a window wall above grade.
+  - Columns go at porches' free corners and, when asked, under a ground-floor
+    cantilever's outer corners. Railings go along decks' open sides.
+  - Soffits are painted on the undersides of upper floors and roofs (ADR-096). Terraces
+    and porches are paved, and decks are slabs finished in ipe by default.
+- **Site and furniture** (`site.rs`):
+  - A lush lawn, and foundation beds of mulch and shrubs along the street and side faces,
+    clear of doors, the garage and terraces.
+  - A walk to each door and a drive to the garage.
+  - Trees framing the house, with the street and the garden view left open.
+  - Furniture by room kind and size, kept clear of the doors.
+- **Plans** (`annotate.rs`):
+  - Each floor plan has a dimension string on every face of the outline (to the walls'
+    outer faces) and overall dimensions.
+  - Plans and ceiling plans are cropped to the building, so the trees stay off the sheets.
+  - A project still named "New Project" takes the building's name.
+- **Claude's brief** (app `generate_cmds`):
+  - Rewritten to compose two to four volumes, outdoor rooms, roofs and cladding by story,
+    and glazing by room.
+  - A PRECEDENTS section (app `precedents`, 31 architects and works, from Wright, Mies,
+    Le Corbusier and Neutra to Ando, Murcutt, Kundig and Kuma) gives each one's moves in
+    the plan's terms. Claude says which moves it took.
+  - Stair room sizes come from the stair the model builds: 4 x 19.5 ft straight for
+    10 ft, where the brief used to say 18 ft and the stairs failed. A narrow stair room
+    now builds straight without a top landing rather than failing.
+- **CD set:** after the build, studio-sheets `sets::create` lays out the CD phase's set
+  (plans, ceiling plans, elevations, sections, schedules and the standard placeholder
+  sheets). Planting is hidden in elevations and sections first, then the set is laid
+  out again so each drawing is scaled to the building. All of it is one undo step.
+- **Dialog:**
+  - A Precedent picker (architects and famous works, with their moves shown, or one
+    typed in), more styles, and shed and butterfly roofs.
+  - "Landscape the site and furnish the rooms" and "Lay out the CD set", both on by
+    default.
+  - The result lists outdoor rooms, columns, railings, plants, furniture, dimensions and
+    sheets.
+  - The faster model is `claude-sonnet-5-5` (the dialog had sent `claude-sonnet-5`).
+- **Live checks** (use API credit):
+  - `GEN_PRECEDENT="Richard Neutra" GEN_OUT=target/generated/neutra cargo test -p
+    rufplan-studio live_generate -- --ignored --nocapture` writes the plan JSON and a .ruf.
+    Opus designed a pinwheel house round a stair core: a ledgestone base, a white
+    cantilevered upper volume with a deck, flat roofs at two heights with 4 ft overhangs
+    and cedar soffits, window walls and sliding doors onto two terraces.
+  - `build_saved_plan` rebuilds a saved plan without calling Claude, with GEN_SHEETS to
+    print some sheets.
+- **Not done:** curved and angled walls (plans are still rectangles on a grid), sloping
+  sites, wall sections and details, and keynotes on the CD sheets.

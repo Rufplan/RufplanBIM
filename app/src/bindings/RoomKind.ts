@@ -3,4 +3,4 @@
 /**
  * What a room is for: sets its doors, windows and whether it opens into its neighbours.
  */
-export type RoomKind = "living" | "dining" | "kitchen" | "bedroom" | "bathroom" | "closet" | "laundry" | "garage" | "corridor" | "stair" | "entry" | "lobby" | "office" | "unit" | "guest_room" | "retail" | "amenity" | "mechanical" | "storage" | "other";
+export type RoomKind = "living" | "dining" | "kitchen" | "bedroom" | "bathroom" | "closet" | "laundry" | "garage" | "corridor" | "stair" | "entry" | "lobby" | "office" | "unit" | "guest_room" | "retail" | "amenity" | "mechanical" | "storage" | "other" | "porch" | "terrace" | "deck" | "courtyard";

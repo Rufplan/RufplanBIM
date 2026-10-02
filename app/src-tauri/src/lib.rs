@@ -19,6 +19,7 @@ mod mep_cmds;
 mod model_edit_cmds;
 mod plans_cmds;
 mod planting_cmds;
+mod precedents;
 mod project_cmds;
 mod qa_cmds;
 mod render_cmds;
@@ -207,6 +208,7 @@ pub fn run() -> anyhow::Result<()> {
             generate_cmds::claude_key_set,
             generate_cmds::claude_set_key,
             generate_cmds::generate_building,
+            precedents::generate_precedents,
             material_cmds::material_library,
             material_cmds::add_library_material,
             material_cmds::apply_material,

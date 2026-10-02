@@ -26,6 +26,18 @@ roof: string, fitLot: boolean,
  */
 setbacks: [number, number, number], references: string, prompt: string, images: Array<ReferenceImage>, 
 /**
- * "claude-opus-5-5" or "claude-sonnet-5".
+ * "claude-opus-5-5" or "claude-sonnet-5-5".
  */
-model: string, };
+model: string, 
+/**
+ * An architect or work to design after (ADR-099), from the precedents or typed.
+ */
+precedent: string, 
+/**
+ * Landscape the site and furnish the rooms.
+ */
+landscape: boolean, 
+/**
+ * Lay out the CD set: plans, ceiling plans, elevations, sections, schedules.
+ */
+cdSet: boolean, };

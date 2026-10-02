@@ -1791,9 +1791,25 @@ export function installFakeBackend(): FakeBackend {
               stairs: 1,
               roofs: 1,
               materials: 3,
+              outdoor: 2,
+              columns: 2,
+              railings: 1,
+              plants: 24,
+              furniture: 18,
+              dimensions: 12,
+              sheets: 9,
               warnings: ["Story 2: Loft has no route in"],
             },
           };
+        case "generate_precedents":
+          return [
+            {
+              name: "Richard Neutra",
+              group: "Architect",
+              moves: "A pinwheel of wings off a core.",
+            },
+            { name: "Fallingwater (Wright)", group: "Work", moves: "Stacked, offset trays." },
+          ];
         case "material_library":
           return LIBRARY;
         case "building_types":

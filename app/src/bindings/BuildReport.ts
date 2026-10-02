@@ -3,4 +3,16 @@
 /**
  * What was built.
  */
-export type BuildReport = { name: string, levels: number, walls: number, doors: number, windows: number, floors: number, rooms: number, stairs: number, roofs: number, materials: number, warnings: Array<string>, };
+export type BuildReport = { name: string, levels: number, walls: number, doors: number, windows: number, floors: number, rooms: number, stairs: number, roofs: number, materials: number, 
+/**
+ * Porches, terraces, decks and courtyards (ADR-099).
+ */
+outdoor: number, columns: number, railings: number, plants: number, furniture: number, 
+/**
+ * Dimensions on the plans.
+ */
+dimensions: number, 
+/**
+ * Sheets laid out for its CD set (by the app, ADR-099).
+ */
+sheets: number, warnings: Array<string>, };
