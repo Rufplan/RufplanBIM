@@ -47,6 +47,9 @@ enum Part {
         tone: Tone,
         plan: bool,
     },
+    /// Free-form triangles in the piece's own frame (x, y, z per vertex), for shapes boxes
+    /// and cylinders can't make: an umbrella's canopy (ADR-101). 3D only.
+    Tris { tris: Vec<[f64; 3]>, tone: Tone },
     /// A disc on the front face (a washer's door), centered at (cx, cz), from y0 to y1.
     Front {
         cx: f64,
@@ -633,11 +636,30 @@ fn parts(s: &FfeSpec) -> Vec<Part> {
             p.legs(w, d, 1.0 * IN, 1.0 * IN, h - 1.0 * IN, Main);
         }
         Umbrella => {
+            // A market umbrella (ADR-101): an eight-rib canopy domed from its vent to the rib
+            // tips, each panel sagging a little between its ribs, a valance at the edge, a
+            // finial, a hub and a pole on a weighted base.
             let r = hw.min(hd);
-            p.c(0.0, 0.0, 10.0 * IN, 0.0, 3.0 * IN, Accent, false);
-            p.c(0.0, 0.0, 0.75 * IN, 3.0 * IN, h, Accent, false);
-            p.c(0.0, 0.0, r, h - 14.0 * IN, h - 12.0 * IN, Main, true);
-            p.c(0.0, 0.0, r * 0.6, h - 12.0 * IN, h - 6.0 * IN, Main, false);
+            let apex = h - 3.0 * IN;
+            let tip = h - 26.0 * IN;
+            p.c(0.0, 0.0, 11.0 * IN, 0.0, 2.5 * IN, Dark, false);
+            p.c(0.0, 0.0, 0.85 * IN, 2.5 * IN, apex, Accent, false);
+            p.c(
+                0.0,
+                0.0,
+                1.6 * IN,
+                tip - 14.0 * IN,
+                tip - 9.0 * IN,
+                Accent,
+                false,
+            );
+            p.c(0.0, 0.0, 1.3 * IN, apex, apex + 3.5 * IN, Accent, false);
+            p.parts.push(Part::Tris {
+                tris: canopy(r, apex, tip),
+                tone: Main,
+            });
+            // The plan symbol: the canopy's outline.
+            p.c(0.0, 0.0, r, tip, tip, Main, true);
         }
         // ---------- Equipment ----------
         Refrigerator | WineCooler | IceMachine | Vending => {
@@ -1453,6 +1475,84 @@ fn tri(out: &mut Vec<f32>, a: [f64; 3], b: [f64; 3], c: [f64; 3]) {
 }
 
 /// A prism over `ring` (counter-clockwise, world plan) from z0 to z1.
+/// A market umbrella's canopy (ADR-101), radius `r` to its eight rib tips, from its apex
+/// down to the tips (mm, its own frame): the canvas's top and underside, the panels
+/// sagging between ribs, and a 6" valance hanging at the edge. Triangle soup, each face
+/// wound outward.
+fn canopy(r: f64, apex: f64, tip: f64) -> Vec<[f64; 3]> {
+    use std::f64::consts::{PI, TAU};
+    const RIBS: usize = 8;
+    const RINGS: usize = 6;
+    const STEPS: usize = 4;
+    let vent = 7.0 * IN;
+    let thick = 0.35 * IN;
+    // A point on the canvas: `rho` 0 at the vent to 1 at the edge, `phi` around.
+    let at = |rho: f64, phi: f64| -> [f64; 3] {
+        let k = phi / (TAU / RIBS as f64);
+        let f = k - k.floor();
+        // Between ribs the fabric falls short of the rib line and sags.
+        let pull = 1.0 - 0.055 * (PI * f).sin() * rho;
+        let rr = (vent + (r - vent) * rho) * pull;
+        let drop = (apex - tip) * rho.powf(1.35) + 1.6 * IN * (PI * f).sin() * rho;
+        [rr * phi.cos(), rr * phi.sin(), apex - drop]
+    };
+    let mut out: Vec<[f64; 3]> = vec![];
+    let normal = |a: [f64; 3], b: [f64; 3], c: [f64; 3]| -> [f64; 3] {
+        let (u, v) = (
+            [b[0] - a[0], b[1] - a[1], b[2] - a[2]],
+            [c[0] - a[0], c[1] - a[1], c[2] - a[2]],
+        );
+        [
+            u[1] * v[2] - u[2] * v[1],
+            u[2] * v[0] - u[0] * v[2],
+            u[0] * v[1] - u[1] * v[0],
+        ]
+    };
+    // Wound so the face's normal points up (`up`) or down.
+    let tri = |out: &mut Vec<[f64; 3]>, a: [f64; 3], b: [f64; 3], c: [f64; 3], up: bool| {
+        if (normal(a, b, c)[2] >= 0.0) == up {
+            out.extend([a, b, c]);
+        } else {
+            out.extend([a, c, b]);
+        }
+    };
+    let n = RIBS * STEPS;
+    let phi = |j: usize| j as f64 / n as f64 * TAU;
+    let lo = |q: [f64; 3]| [q[0], q[1], q[2] - thick];
+    for i in 0..RINGS {
+        let (r0, r1) = (i as f64 / RINGS as f64, (i + 1) as f64 / RINGS as f64);
+        for j in 0..n {
+            let (p0, p1) = (phi(j), phi(j + 1));
+            let (a, b, c, d) = (at(r0, p0), at(r0, p1), at(r1, p1), at(r1, p0));
+            tri(&mut out, a, b, c, true);
+            tri(&mut out, a, c, d, true);
+            tri(&mut out, lo(a), lo(b), lo(c), false);
+            tri(&mut out, lo(a), lo(c), lo(d), false);
+        }
+    }
+    // The vent's top, closing the canvas at the apex.
+    for j in 0..n {
+        let top = [0.0, 0.0, apex + 0.6 * IN];
+        tri(&mut out, top, at(0.0, phi(j)), at(0.0, phi(j + 1)), true);
+    }
+    // The valance: a flap hanging from the edge, facing out.
+    let flap = 6.0 * IN;
+    for j in 0..n {
+        let (a, b) = (at(1.0, phi(j)), at(1.0, phi(j + 1)));
+        let (c, d) = ([b[0], b[1], b[2] - flap], [a[0], a[1], a[2] - flap]);
+        let mid = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+        for (x, y, z) in [(a, b, c), (a, c, d)] {
+            let nn = normal(x, y, z);
+            if nn[0] * mid[0] + nn[1] * mid[1] >= 0.0 {
+                out.extend([x, y, z]);
+            } else {
+                out.extend([x, z, y]);
+            }
+        }
+    }
+    out
+}
+
 fn prism(out: &mut Vec<f32>, ring: &[Pt], z0: f64, z1: f64) {
     let n = ring.len();
     let p = |q: Pt, z: f64| [q.x, q.y, z];
@@ -1515,6 +1615,15 @@ fn triangles(fr: &Frame, spec: &FfeSpec) -> Vec<(Tone, Vec<f32>)> {
                 ];
                 prism(&mut by[i].1, &ring, fr.z + z0, fr.z + z1);
             }
+            Part::Tris { tris, tone } => {
+                let i = get(&mut by, tone);
+                for v in tris {
+                    let q = fr.world(v[0], v[1]);
+                    by[i]
+                        .1
+                        .extend([q.x as f32, q.y as f32, (fr.z + v[2]) as f32]);
+                }
+            }
             Part::Cyl {
                 cx,
                 cy,
@@ -1524,6 +1633,10 @@ fn triangles(fr: &Frame, spec: &FfeSpec) -> Vec<(Tone, Vec<f32>)> {
                 tone,
                 ..
             } => {
+                // A flat one is only a plan symbol.
+                if z1 - z0 <= 0.0 {
+                    continue;
+                }
                 let i = get(&mut by, tone);
                 let ring: Vec<Pt> = circle((cx, cy), r, 20)
                     .into_iter()

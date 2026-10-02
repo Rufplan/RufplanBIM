@@ -201,6 +201,8 @@ export interface AutoRender {
   clouds?: number;
   /** The backdrop photo's brightness relative to the scene (default 1). */
   skyExposure?: number;
+  /** Ceilings' glow in exteriors, so interiors read lit (default 1, ADR-101). */
+  interiorGlow?: number;
   /** A Sky Library sky's sun turned to the site's sun (default on, ADR-101). */
   matchSun?: boolean;
   /** Sunlit to skylit light (default 6): lower lifts the shadows. */

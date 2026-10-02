@@ -139,6 +139,9 @@ export interface SceneOptions {
   ) => { material: THREE.Material; scale: number; aspect: number; textured: boolean } | null;
   /** Lit lighting fixtures (ADR-057); their lenses glow when there are any. */
   lights?: LightInfo[];
+  /** Exteriors (ADR-101): ceilings glow softly, warm, so the rooms seen through the glass
+   * read lit as in an architectural photograph, without lights that thin the samples. */
+  interiorGlow?: number;
   /** The base ground's material (ADR-064) for the ground without topography. */
   groundMaterial?: {
     material: THREE.Material;
@@ -296,6 +299,16 @@ export function projectedGround(
 }
 
 /** The render scene: the model in y-up, the ground and the environment light. */
+/** A ceiling's material glowing a warm interior white (ADR-101); a copy when shared. */
+function interiorGlow(mat: THREE.Material, k: number): THREE.Material {
+  const m = (mat as THREE.MeshPhysicalMaterial).clone();
+  if ("emissive" in m) {
+    m.emissive = new THREE.Color().setRGB(1, 0.93, 0.82, THREE.LinearSRGBColorSpace);
+    m.emissiveIntensity = k;
+  }
+  return m;
+}
+
 export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
   const scene = new THREE.Scene();
   let bounds = new THREE.Box3();
@@ -342,7 +355,11 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     const custom = m.category === "Site" && o.imagery ? null : (o.materialOf?.(m) ?? null);
     if (custom) {
       if (custom.textured) boxUv(geo, custom.scale, custom.aspect);
-      const mesh = new THREE.Mesh(geo, custom.material);
+      const glowing = m.category === "Ceiling" && (o.interiorGlow ?? 0) > 0;
+      const mesh = new THREE.Mesh(
+        geo,
+        glowing ? interiorGlow(custom.material, o.interiorGlow!) : custom.material,
+      );
       if (m.category === "Site") {
         hasSite = true;
         mesh.userData.ground = true;
@@ -371,6 +388,10 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     });
     // The sun shines straight through glass (no caustic noise), as V-Ray does by default.
     if (s.transmission) Object.assign(mat, { castShadow: false });
+    if (m.category === "Ceiling" && (o.interiorGlow ?? 0) > 0) {
+      mat.emissive.setRGB(1, 0.93, 0.82, THREE.LinearSRGBColorSpace);
+      mat.emissiveIntensity = o.interiorGlow!;
+    }
     if (m.category === "Site") {
       hasSite = true;
       if (o.imagery) {

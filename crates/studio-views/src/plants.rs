@@ -740,11 +740,11 @@ fn card(
     cell: u32,
 ) {
     let face = norm(cross(side, along));
-    let face = if dot(face, soft) < 0.0 {
-        mul(face, -1.0)
-    } else {
-        face
-    };
+    // Facing into the crown: wound the other way (below), so the face points the way its
+    // normals do. A path tracer turns normals to the face, and these leaves were lit
+    // from inside the tree, so crowns rendered dark (ADR-101).
+    let inward = dot(face, soft) < 0.0;
+    let face = if inward { mul(face, -1.0) } else { face };
     let n = norm(add(mul(face, 0.35), mul(soft, 0.65)));
     let hw = mul(side, w / 2.0);
     let top = add(base, mul(along, l));
@@ -752,7 +752,11 @@ fn card(
     let b = part.vert(add(base, hw), n, cell_uv(cell, 1.0, 0.0), c);
     let d = part.vert(add(top, hw), n, cell_uv(cell, 1.0, 1.0), c);
     let e = part.vert(sub(top, hw), n, cell_uv(cell, 0.0, 1.0), c);
-    part.quad(a, b, d, e);
+    if inward {
+        part.quad(a, e, d, b);
+    } else {
+        part.quad(a, b, d, e);
+    }
 }
 
 /// The size of a leaf card for the species: clusters of leaves sized to the tree.
@@ -779,10 +783,14 @@ fn leaf_cards(
     let flowers = spec.flowers_now().is_some();
     let flowering_tree = flowers && spec.group == PlantGroup::Flowering;
     // Mophead and mounded shrubs (hydrangea, lavender) cover their shell in flower heads.
-    let shell_bloom = if spec.form == CrownForm::Mound {
-        0.6
+    // Fewer, bigger heads (ADR-101): the leaves read between them, as in a photograph.
+    // Mophead shrubs carry their own heads instead (`mopheads`).
+    let shell_bloom = if has_mopheads(spec) {
+        0.0
+    } else if spec.form == CrownForm::Mound {
+        0.32
     } else {
-        0.3
+        0.2
     };
     let conifer = matches!(spec.foliage, Foliage::Needle | Foliage::Scale);
     let spots: Vec<usize> = (0..sk.nodes.len())
@@ -870,7 +878,8 @@ fn leaf_cards(
                 }
             } else if flowers
                 && !spec.group.is_tree()
-                && rng.f() < shell_bloom * o.min(1.0).powi(2) + 0.05
+                && rng.f()
+                    < shell_bloom * o.min(1.0).powi(2) + if shell_bloom > 0.0 { 0.05 } else { 0.0 }
             {
                 // A flowering shrub or perennial blooms on its outer shell, where the
                 // flower heads show (ADR-095), not inside the mass.
@@ -881,7 +890,12 @@ fn leaf_cards(
                 (rng.f() * 2.0) as u32
             };
             let bloom = cell >= 2 && !spec.group.is_tree();
-            let s = size * rng.range(0.8, 1.2) * if bloom { 1.35 } else { 1.0 };
+            let head = if spec.form == CrownForm::Mound {
+                1.7
+            } else {
+                1.35
+            };
+            let s = size * rng.range(0.8, 1.2) * if bloom { head } else { 1.0 };
             // Flower heads sit proud of the leaves, in the light.
             let p = if bloom {
                 add(p, mul(out, size * 0.2))
@@ -889,7 +903,7 @@ fn leaf_cards(
                 p
             };
             let c = if bloom {
-                c.map(|x| (x * 1.12 + 0.05).min(1.1))
+                c.map(|x| (x * 1.05).min(1.1))
             } else {
                 c
             };
@@ -1742,10 +1756,122 @@ pub fn model(spec: &PlantSpec, variant: u32) -> PlantModel {
             bark_tubes(&sk, &mut m.bark, &env, [1.0, 1.0, 1.0]);
             if spec.leafy() {
                 leaf_cards(spec, &sk, &env, &mut rng, &mut m.leaves);
+                mopheads(spec, &env, &mut rng, &mut m.solid, &mut m.leaves);
             }
         }
     }
     m
+}
+
+/// Whether a species blooms in mophead heads (ADR-101): mounded, broad-leaved, flowering.
+fn has_mopheads(spec: &PlantSpec) -> bool {
+    spec.flowers_now().is_some()
+        && spec.form == CrownForm::Mound
+        && spec.foliage == Foliage::Ovate
+        && !spec.group.is_tree()
+}
+
+/// Mophead flower heads (ADR-101): a mounded, broad-leaved shrub in bloom (hydrangea,
+/// viburnum) carries round heads of florets standing out on its crown, which flower
+/// cards can't give. Each is a lumpy sphere of florets, lighter on top and in shade
+/// beneath, set into the outside of the crown.
+fn mopheads(
+    spec: &PlantSpec,
+    env: &Envelope,
+    rng: &mut Rng,
+    solid: &mut PlantPart,
+    leaves: &mut PlantPart,
+) {
+    let Some(f) = spec.flowers_now() else { return };
+    if !has_mopheads(spec) {
+        return;
+    }
+    let base = f.map(|x| f64::from(x) / 255.0);
+    let spread = spec.spread / 1000.0;
+    let heads = ((spread * spread * 20.0) as usize).clamp(6, 90);
+    let (nu, nv) = (10usize, 7usize);
+    for _ in 0..heads {
+        let t = rng.range(0.3, 0.97);
+        let a = rng.range(0.0, std::f64::consts::TAU);
+        let z = env.z0 + t * (env.z1 - env.z0);
+        let rr = env.radius(z, a) * rng.range(0.88, 1.0);
+        let c = [rr * a.cos(), rr * a.sin(), z];
+        let rad = rng.range(70.0, 105.0) * spread.sqrt().clamp(0.6, 1.3);
+        // Each head its own shade of the bloom: some bluer, some fading toward pink.
+        let shift = rng.range(-1.0, 1.0);
+        let tone = [
+            base[0] * (1.0 + 0.08 * shift),
+            base[1] * (1.0 - 0.03 * shift.abs()),
+            base[2] * (1.0 - 0.06 * shift),
+        ];
+        let seed = rng.f() * 50.0;
+        // The florets: small flower cards over the head's dome, each facing out of it.
+        let florets = 46;
+        for k in 0..florets {
+            // A Fibonacci sphere, the underside left out (it's in the leaves).
+            let y = 1.0 - (k as f64 + 0.5) / florets as f64 * 1.45;
+            let ring = (1.0 - y * y).max(0.0).sqrt();
+            let th = k as f64 * 2.399_963 + seed;
+            let dir = [ring * th.cos(), ring * th.sin(), y];
+            let along = norm(cross(dir, [th.sin(), -th.cos(), 0.0]));
+            let side = norm(cross(dir, along));
+            let size = rad * rng.range(0.5, 0.7);
+            let at = add(
+                add(
+                    c,
+                    [dir[0] * rad * 0.9, dir[1] * rad * 0.9, dir[2] * rad * 0.72],
+                ),
+                mul(along, -size * 0.5),
+            );
+            let light = (0.8 + 0.25 * (dir[2] * 0.5 + 0.5)) * rng.range(0.9, 1.08);
+            let col = tone.map(|x| (x * light).min(1.0));
+            card(
+                leaves,
+                at,
+                along,
+                side,
+                size,
+                size,
+                dir,
+                col,
+                2 + (k % 2) as u32,
+            );
+        }
+        // A darker core, so no daylight shows between the florets.
+        let rad = rad * 0.8;
+        let tone = tone.map(|x| x * 0.55);
+        let first = (solid.positions.len() / 3) as u32;
+        for iv in 0..=nv {
+            let ph = iv as f64 / nv as f64 * std::f64::consts::PI;
+            for iu in 0..=nu {
+                let th = iu as f64 / nu as f64 * std::f64::consts::TAU;
+                let dir = [ph.sin() * th.cos(), ph.sin() * th.sin(), ph.cos()];
+                // Floret bumps.
+                let bump = 1.0
+                    + 0.12 * ((dir[0] * 9.0 + seed).sin() * (dir[1] * 8.0 + seed * 0.7).cos())
+                    + 0.06 * (dir[2] * 13.0 + seed * 1.3).sin();
+                // Flattened a little: heads are domes, not balls.
+                let p = add(
+                    c,
+                    [
+                        dir[0] * rad * bump,
+                        dir[1] * rad * bump,
+                        dir[2] * rad * bump * 0.8,
+                    ],
+                );
+                let light = (0.72 + 0.28 * (dir[2] * 0.5 + 0.5)) * rng.range(0.92, 1.06);
+                let col = tone.map(|x| (x * light).min(1.0));
+                solid.vert(p, dir, [0.0, 0.0], col);
+            }
+        }
+        let row = (nu + 1) as u32;
+        for iv in 0..nv as u32 {
+            for iu in 0..nu as u32 {
+                let a = first + iv * row + iu;
+                solid.quad(a, a + row, a + row + 1, a + 1);
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------- proxies
@@ -2443,6 +2569,58 @@ pub(crate) fn plan_regions(doc: &Document, b: &mut Builder, level: ElementId, si
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Faces point the way their normals do (ADR-101): the path tracer turns normals to
+    /// the face, so a leaf wound against its normal is lit from the wrong side.
+    #[test]
+    fn leaves_face_the_way_their_normals_do() {
+        let agree = |part: &PlantPart| {
+            let (p, n) = (&part.positions, &part.normals);
+            let mut ok = 0;
+            let tris = part.indices.chunks_exact(3);
+            let total = tris.len().max(1);
+            for t in part.indices.chunks_exact(3) {
+                let v = |k: usize| {
+                    let i = t[k] as usize * 3;
+                    [f64::from(p[i]), f64::from(p[i + 1]), f64::from(p[i + 2])]
+                };
+                let f = cross(sub(v(1), v(0)), sub(v(2), v(0)));
+                // Collapsed (a sphere's pole): no face to point anywhere.
+                if dot(f, f) < 1e-6 {
+                    ok += 1;
+                    continue;
+                }
+                let i = t[0] as usize * 3;
+                let vn = [f64::from(n[i]), f64::from(n[i + 1]), f64::from(n[i + 2])];
+                if dot(f, vn) > 0.0 {
+                    ok += 1;
+                }
+            }
+            ok as f64 / total as f64
+        };
+        for name in [
+            "Red Maple",
+            "Bigleaf Hydrangea",
+            "Salvia",
+            "Honey Locust",
+            "Eastern White Pine",
+        ] {
+            let spec = studio_core::planting::catalog()
+                .into_iter()
+                .find(|p| p.name == name)
+                .unwrap()
+                .spec;
+            let m = model(&spec, 0);
+            let a = agree(&m.leaves);
+            assert!(a > 0.97, "{name}: {a}");
+            if name == "Bigleaf Hydrangea" {
+                // Its mopheads (ADR-101): there, and facing out.
+                assert!(m.solid.triangles() > 400, "{}", m.solid.triangles());
+                let a = agree(&m.solid);
+                assert!(a > 0.97, "mopheads: {a}");
+            }
+        }
+    }
     use studio_core::planting::catalog;
 
     fn preset(name: &str) -> PlantSpec {

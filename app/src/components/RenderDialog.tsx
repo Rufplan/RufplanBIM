@@ -317,6 +317,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         materialOf,
         environment: env,
         environmentIntensity: intensity,
+        // Daylit exteriors: the rooms behind the glass read lit (ADR-101).
+        interiorGlow: sunOn && scheme.startsWith("Exterior") ? (auto?.interiorGlow ?? 1) : 0,
         rotation: lightingUsed === "dome" ? rot : 0,
         ground: bg.ground,
         projection:

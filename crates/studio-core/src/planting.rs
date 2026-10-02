@@ -2253,7 +2253,7 @@ fn species() -> Vec<PlantPreset> {
             5.0,
             [74, 110, 50],
         )
-        .flowers([178, 188, 234])
+        .flowers([150, 160, 222])
         .d("Mophead blue flowers on a rounded shrub."),
         plant(
             "Panicle Hydrangea",
