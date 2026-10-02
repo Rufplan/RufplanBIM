@@ -816,7 +816,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
   // Grips and temporary dimensions follow the selection (and the model).
   useEffect(() => {
     let live = true;
-    if (tool !== "select" || selection.length === 0) {
+    // On a sheet every view drags, selected or not (ADR-100).
+    if (tool !== "select" || (selection.length === 0 && view.viewType !== "Sheet")) {
       handles.current = null;
       redrawRef.current();
       return;
@@ -832,7 +833,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     return () => {
       live = false;
     };
-  }, [view.id, selection, revision, tool]);
+  }, [view.id, view.viewType, selection, revision, tool]);
 
   // Track canvas size.
   useEffect(() => {
@@ -2268,7 +2269,14 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
               const i = (handles.current?.areas ?? []).findIndex(
                 (a) => p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
               );
-              if (i >= 0) areaDrag.current = { index: i, from: p, to: null };
+              if (i >= 0) {
+                areaDrag.current = { index: i, from: p, to: null };
+                // Revit selects a view as you press on it (ADR-100).
+                const area = handles.current!.areas[i]!;
+                const st = useAppStore.getState();
+                if (area.key === "view_move" && !st.selection.includes(area.id))
+                  st.select(e.shiftKey || e.ctrlKey ? [...st.selection, area.id] : [area.id]);
+              }
             }
             const v = sketchGripAt(x, y);
             if (v) vertexDrag.current = { from: v, to: null };
@@ -2409,7 +2417,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             return;
           }
           if (s.tool === "select" && canvasRef.current) {
-            // The title of a selected view drags as a whole.
+            // A view on a sheet, or the title of a selected one, drags as a whole.
             const over = (handles.current?.areas ?? []).some(
               (a) => p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
             );
@@ -2501,6 +2509,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
               return;
             }
             redraw();
+            // A click on a view selects it (done on the press).
+            if (area?.key === "view_move") return;
           }
           const g = gripDrag.current;
           if (g) {

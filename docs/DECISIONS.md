@@ -3713,3 +3713,20 @@ coursing along a line".
     print some sheets.
 - **Not done:** curved and angled walls (plans are still rectangles on a grid), sloping
   sites, wall sections and details, and keynotes on the CD sheets.
+
+## ADR-100 Select and drag views on a sheet — Accepted (2026-10-02)
+- **The owner's ask:** select a view on a sheet and drag it with a move cursor, as in
+  Revit.
+- **How it works:**
+  - studio-sheets `sheet_handles` gives every viewport on the sheet a `view_move` drag
+    area, its drawing's box, whether or not it's selected. Selected titles' `title_move`
+    areas come first, so a selected title still drags on its own. Among overlapping
+    views, a selected one wins.
+  - On a sheet the app fetches handles even with nothing selected. Over a view the
+    cursor is `move`.
+  - Pressing on a view selects it (Shift or Ctrl adds it), and a click is that selection.
+    Dragging shows the view's box moving dashed. On release, `move_viewport` sets its
+    center, one undo step, and the title goes with it.
+- Clicking inside a view no longer starts a box selection there. That matches Revit,
+  where a press on a viewport picks it. Box selection still starts from empty sheet
+  space.

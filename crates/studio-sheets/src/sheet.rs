@@ -496,7 +496,60 @@ pub fn sheet_handles(
             });
         }
     }
+    // Every view on the sheet drags as a whole by its drawing, selected or not (ADR-100),
+    // as Revit's viewports do. Titles (above) come first, so a selected title still drags
+    // on its own.
+    let mut vps: Vec<(ElementId, ElementId, Pt)> = doc
+        .of(Category::Viewport)
+        .filter_map(|e| match &e.data {
+            ElementData::Viewport {
+                sheet: s,
+                view,
+                center,
+                ..
+            } if *s == sheet => Some((e.id, *view, *center)),
+            _ => None,
+        })
+        .collect();
+    // Selected views first, so one on top of another is the one that drags.
+    vps.sort_by_key(|(id, _, _)| !ids.contains(id));
+    for (id, view, center) in vps {
+        // The box of what's drawn (the title sits under it).
+        let Some((lo, hi)) =
+            viewport_items(doc, id, view, center).and_then(|(items, ..)| extents(&items))
+        else {
+            continue;
+        };
+        out.areas.push(studio_views::handles::DragArea {
+            id,
+            key: "view_move".into(),
+            min: lo,
+            max: hi,
+            at: center,
+        });
+    }
     out
+}
+
+/// Moves a view on its sheet so its center is at \`to\` (paper mm); its title goes with it
+/// (ADR-100).
+pub fn move_viewport(
+    doc: &mut Document,
+    viewport: ElementId,
+    to: Pt,
+) -> studio_core::CoreResult<()> {
+    if !matches!(doc.data(viewport)?, ElementData::Viewport { .. }) {
+        return Err(studio_core::CoreError::Invalid(
+            "that isn't a view on a sheet".into(),
+        ));
+    }
+    doc.transact("Move view", |tx| {
+        tx.modify(viewport, |d| {
+            if let ElementData::Viewport { center, .. } = d {
+                *center = to;
+            }
+        })
+    })
 }
 
 /// Stretches a viewport's title rule so it ends at `to` (paper mm), as far as

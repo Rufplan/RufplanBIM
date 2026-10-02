@@ -98,6 +98,8 @@ pub fn drag_handle(
                 studio_sheets::drag_title_start(d, id, to)
             } else if key == "title_move" {
                 studio_sheets::move_title(d, id, to)
+            } else if key == "view_move" {
+                studio_sheets::move_viewport(d, id, to)
             } else {
                 edit::drag_handle(d, id, &key, to)
             }

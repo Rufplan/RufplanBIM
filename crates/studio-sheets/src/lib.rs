@@ -8,8 +8,8 @@ pub mod sheet;
 pub use pdf::export_pdf;
 pub use schedule::{schedule, schedule_on, Table};
 pub use sheet::{
-    drag_title, drag_title_start, move_title, sheet_display_list, sheet_display_list_shared,
-    sheet_handles, title_line,
+    drag_title, drag_title_start, move_title, move_viewport, sheet_display_list,
+    sheet_display_list_shared, sheet_handles, title_line,
 };
 
 /// Version of this crate, from Cargo metadata.
@@ -101,9 +101,22 @@ mod tests {
         let keys: Vec<&str> = h.grips.iter().map(|g| g.key.as_str()).collect();
         assert_eq!(keys, ["title_start", "title_end"]);
         assert!(h.grips[0].at.dist(a) < 1e-9 && h.grips[1].at.dist(b) < 1e-9);
-        assert_eq!(h.areas.len(), 1);
+        assert_eq!(h.areas.len(), 2);
         let area = &h.areas[0];
         assert_eq!(area.key, "title_move");
+        // The view itself (ADR-100): its drawing's box, about its center, even unselected.
+        let view_area = sheet_handles(&doc, sheet, &[]).areas[0].clone();
+        assert_eq!((view_area.key.as_str(), view_area.id), ("view_move", vp));
+        assert!(view_area.at.dist(Pt::new(400.0, 300.0)) < 1e-9);
+        assert!(view_area.min.x < 400.0 && view_area.max.x > 400.0);
+        assert!(view_area.min.y < 300.0 && view_area.max.y > 300.0);
+        assert!(view_area.min.y > a.y, "the title is below the view's box");
+        // Dragged: the view and its title move together.
+        move_viewport(&mut doc, vp, Pt::new(450.0, 320.0)).unwrap();
+        let (a1, _) = title_line(&doc, vp).unwrap();
+        assert!((a1.x - a.x - 50.0).abs() < 1e-6 && (a1.y - a.y - 20.0).abs() < 1e-6);
+        doc.undo().unwrap();
+        assert!(move_viewport(&mut doc, sheet, Pt::new(0.0, 0.0)).is_err());
         assert!(
             area.min.x < a.x - 8.0 && area.max.x >= b.x - 1e-9,
             "covers the bubble and rule"
