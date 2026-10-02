@@ -1929,6 +1929,7 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         }
         case "paint_elements":
+        case "align_3d":
         case "paint_face":
         case "paint_in_view":
           return fake.state;

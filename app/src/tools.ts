@@ -93,6 +93,8 @@ export const TOOLS_3D: Tool[] = [
   "move",
   "copy",
   "paint",
+  // Align faces in 3D (ADR-097).
+  "align",
 ];
 
 /** Drawing tools whose clicks place points (ViewCanvas's placePoint). */

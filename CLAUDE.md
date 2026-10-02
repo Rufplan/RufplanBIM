@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Align in 3D (ADR-097): studio-core `modify::align_3d`/`raise`; app `align_3d`; render/align3d.ts (faceAt, canAlign,
+  alignDelta, faceHighlight); Revit's Align cursor in styles.css.
 - Face paint (ADR-096): studio-core `paint::paint_face`/`face_paints` (`rufplan.paint.faces`), studio-views `faces`
   (Shape, face, triangle_face, face_in_view; meshes split per painted face); app `paint_face`/`paint_in_view`.
 - Hero rendering (ADR-095): studio-core `fascia` (20 profiles, Roof.fascia; studio-regen fascia_quads),

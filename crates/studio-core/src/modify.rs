@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use studio_geom::{line_intersection, project_to_segment, tol, Pt};
 
-use crate::document::{CoreResult, Document, Tx};
-use crate::element::{ElementData, ElementId};
+use crate::document::{CoreError, CoreResult, Document, Tx};
+use crate::element::{ElementData, ElementId, WallTop};
 
 /// Moves elements by `delta` (plan mm) in one transaction, like Revit's Move:
 /// - Walls translate. Walls joined at a moved wall's endpoint stretch to follow it, and walls
@@ -410,6 +410,107 @@ pub fn stretch(
     })
 }
 
+/// Moves elements up or down by `dz` mm, by their offsets (ADR-097): a wall's or column's
+/// base and a level-bound top together, so its height holds; a floor's, roof's, beam's,
+/// railing's, furniture's or plant's offset; a ceiling's height; a light's mounting
+/// height; a window's sill. One transaction.
+pub fn raise(doc: &mut Document, ids: &[ElementId], dz: f64) -> CoreResult<()> {
+    crate::visibility::ensure_unpinned(doc, ids)?;
+    if dz.abs() < tol::LINEAR {
+        return Ok(());
+    }
+    doc.transact("Move vertically", |tx| {
+        let mut changed = 0;
+        for id in ids {
+            let Ok(mut data) = tx.data(*id).cloned() else {
+                continue;
+            };
+            let hit = match &mut data {
+                ElementData::Wall {
+                    base_offset, top, ..
+                }
+                | ElementData::Column {
+                    base_offset, top, ..
+                } => {
+                    *base_offset += dz;
+                    if let WallTop::UpToLevel { offset, .. } = top {
+                        *offset += dz;
+                    }
+                    true
+                }
+                ElementData::Floor { offset, .. }
+                | ElementData::Roof { offset, .. }
+                | ElementData::Beam { offset, .. }
+                | ElementData::Railing { offset, .. }
+                | ElementData::Ffe { offset, .. }
+                | ElementData::Planting { offset, .. } => {
+                    *offset += dz;
+                    true
+                }
+                ElementData::Ceiling { height, .. } => {
+                    *height += dz;
+                    true
+                }
+                ElementData::LightingFixture { elevation, .. } => {
+                    *elevation += dz;
+                    true
+                }
+                ElementData::Window { sill, .. } => {
+                    *sill += dz;
+                    true
+                }
+                _ => false,
+            };
+            if hit {
+                tx.set(*id, data)?;
+                changed += 1;
+            }
+        }
+        if changed == 0 {
+            return Err(CoreError::Invalid("that can't move up or down".into()));
+        }
+        Ok(())
+    })
+}
+
+/// Align in 3D (ADR-097), as Revit's: moves `target` by `delta` (x, y, z mm), the
+/// distance between the picked faces along the reference face's normal, so the target's
+/// face lies on the reference. Across the plan as Move does (joined walls stretch), up or
+/// down by its offsets. One undo step.
+pub fn align_3d(doc: &mut Document, target: ElementId, delta: [f64; 3]) -> CoreResult<()> {
+    crate::visibility::ensure_unpinned(doc, &[target])?;
+    let plan = Pt::new(delta[0], delta[1]);
+    let mark = doc.undo_depth();
+    let result = (|| {
+        if plan.len() >= tol::LINEAR {
+            // Move covers walls, floors, rooms and the like; Copy's transform the rest.
+            match doc.data(target)? {
+                ElementData::Column { .. }
+                | ElementData::Beam { .. }
+                | ElementData::Roof { .. }
+                | ElementData::Railing { .. }
+                | ElementData::LightingFixture { .. } => crate::edit::transform_elements(
+                    doc,
+                    &[target],
+                    crate::edit::Xform::translate(plan),
+                    "Align",
+                )?,
+                _ => move_elements(doc, &[target], plan)?,
+            }
+        }
+        raise(doc, &[target], delta[2])
+    })();
+    if result.is_err() {
+        // Undo whatever half of it happened.
+        while doc.undo_depth() > mark {
+            doc.undo()?;
+        }
+        return result;
+    }
+    doc.merge_undo(mark, "Align");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -540,5 +641,71 @@ mod tests {
         let door = ops::create_door(&mut doc, dt, s, 25.0 * MM_PER_FT, false).unwrap();
         move_elements(&mut doc, &[s, door], Pt::new(0.0, -1000.0)).unwrap();
         assert!((offset_of(&doc, door) - 25.0 * MM_PER_FT).abs() < EPS);
+    }
+
+    #[test]
+    fn align_in_3d_moves_across_and_up_in_one_undo() {
+        let mut doc = Document::new();
+        ops::seed_default_project(&mut doc).unwrap();
+        let wt = ops::first_of(&doc, Category::WallType).unwrap();
+        let l1 = doc.levels()[0].0;
+        let w =
+            ops::create_wall(&mut doc, wt, l1, Pt::new(0.0, 0.0), Pt::new(4000.0, 0.0)).unwrap();
+        let before = doc.data(w).unwrap().clone();
+        align_3d(&mut doc, w, [0.0, 250.0, 300.0]).unwrap();
+        let ElementData::Wall {
+            start,
+            end,
+            base_offset,
+            top,
+            ..
+        } = doc.data(w).unwrap().clone()
+        else {
+            panic!()
+        };
+        assert!(start.dist(Pt::new(0.0, 250.0)) < EPS && end.dist(Pt::new(4000.0, 250.0)) < EPS);
+        assert!((base_offset - 300.0).abs() < EPS);
+        // A level-bound top rises with it, so the height holds.
+        if let ElementData::Wall {
+            top: WallTop::UpToLevel { offset: was, .. },
+            ..
+        } = &before
+        {
+            let WallTop::UpToLevel { offset, .. } = top else {
+                panic!()
+            };
+            assert!((offset - was - 300.0).abs() < EPS);
+        }
+        assert_eq!(doc.can_undo(), Some("Align"));
+        doc.undo().unwrap();
+        assert_eq!(doc.data(w).unwrap(), &before);
+        // Floors and ceilings move up by their offset and height.
+        let ft = ops::first_of(&doc, Category::FloorType).unwrap();
+        let sq = vec![
+            Pt::new(0.0, 0.0),
+            Pt::new(3000.0, 0.0),
+            Pt::new(3000.0, 3000.0),
+            Pt::new(0.0, 3000.0),
+        ];
+        let f = ops::create_floor(&mut doc, ft, l1, sq).unwrap();
+        align_3d(&mut doc, f, [0.0, 0.0, -150.0]).unwrap();
+        let ElementData::Floor { offset, .. } = doc.data(f).unwrap() else {
+            panic!()
+        };
+        assert!((offset + 150.0).abs() < EPS);
+        // Columns slide by the transform Copy uses.
+        if let Some(ct) = ops::first_of(&doc, Category::ColumnType) {
+            let c = crate::structure::create_column(&mut doc, ct, l1, Pt::new(500.0, 500.0), 0.0)
+                .unwrap();
+            align_3d(&mut doc, c, [100.0, 0.0, 0.0]).unwrap();
+            let ElementData::Column { at, .. } = doc.data(c).unwrap() else {
+                panic!()
+            };
+            assert!(at.dist(Pt::new(600.0, 500.0)) < EPS);
+        }
+        // Levels don't move up or down, and a failed align leaves nothing behind.
+        let depth = doc.undo_depth();
+        assert!(align_3d(&mut doc, l1, [0.0, 0.0, 100.0]).is_err());
+        assert_eq!(doc.undo_depth(), depth);
     }
 }

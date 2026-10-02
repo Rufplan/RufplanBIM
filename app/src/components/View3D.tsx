@@ -20,6 +20,7 @@ import { StructuralInfoCard, StructuralLegend, type InfoAt } from "./StructuralO
 import type { Discipline } from "../bindings/Discipline";
 import type { OverlayMesh } from "../bindings/OverlayMesh";
 import { litOf, styleOf, useAppStore } from "../store";
+import { alignDelta, canAlign, faceAt, faceHighlight, type AlignFace } from "../render/align3d";
 import { placePlant } from "../vegetation";
 import { samePt, sketchPrompt } from "../tools";
 import { savedHome, ViewCube } from "../render/viewCube";
@@ -296,7 +297,11 @@ export function prompt3d(tool: string, n = 0): string {
     case "window":
       return `Hover over a wall and click to place the ${tool}; the face you point at sets which way it faces.`;
     case "paint":
-      return "Click walls, floors, roofs, ceilings, columns or beams to paint them. Shift-click paints the whole type. Esc finishes.";
+      return "Click a face of a wall, floor, roof or ceiling to paint it. Shift-click paints the whole assembly (its type). Esc finishes.";
+    case "align":
+      return n === 0
+        ? "Align: pick the face to align to (a wall face, a floor edge or top, a column side…)."
+        : "Pick a parallel face on the element to move onto it. Esc picks a new reference.";
     case "wall":
       return "Click the wall's start on the level's work plane (Level in the options bar), then each next point. Esc finishes.";
     case "column":
@@ -503,6 +508,9 @@ export function View3D({ view }: { view: ViewInfo }) {
     scene.add(ghost);
     const gridGroup = new THREE.Group();
     scene.add(gridGroup);
+    // Align's face highlights (ADR-097).
+    const alignGroup = new THREE.Group();
+    scene.add(alignGroup);
     three.current = {
       renderer,
       scene,
@@ -1417,6 +1425,58 @@ export function View3D({ view }: { view: ViewInfo }) {
         else if (tool === "room") await apply(() => ipc.createRoom(plan, at));
       }
     };
+    // ---- Align (ADR-097): the reference face, then a parallel face on what moves ----
+    let alignRef: AlignFace | null = null;
+    const alignFaceAt = (e: PointerEvent): AlignFace | null => {
+      const h = rayAt(e).intersectObjects(
+        group.children.filter((c) => c instanceof THREE.Mesh && c.visible),
+        false,
+      )[0];
+      if (!h?.face || !(h.object instanceof THREE.Mesh)) return null;
+      return faceAt(h.object, h.point, h.face.normal);
+    };
+    const showAlign = (hover: AlignFace | null) => {
+      for (const c of [...alignGroup.children]) {
+        alignGroup.remove(c);
+        c.traverse((o) => {
+          if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) {
+            o.geometry.dispose();
+            (o.material as THREE.Material).dispose();
+          }
+        });
+      }
+      if (alignRef) alignGroup.add(faceHighlight(alignRef, true));
+      if (hover && hover.tris.length) alignGroup.add(faceHighlight(hover, false));
+    };
+    const alignHover = (e: PointerEvent) => {
+      const f = alignFaceAt(e);
+      // After the reference, only faces that could move onto it light up.
+      showAlign(f && (!alignRef || canAlign(alignRef, f)) ? f : null);
+    };
+    const alignClick = async (e: PointerEvent) => {
+      const s = useAppStore.getState();
+      const f = alignFaceAt(e);
+      if (!f) return;
+      if (!alignRef) {
+        alignRef = f;
+        showAlign(null);
+        s.setPrompt(prompt3d("align", 1));
+        return;
+      }
+      if (!canAlign(alignRef, f)) {
+        s.setError(
+          f.el === alignRef.el
+            ? "Pick a face on another element: the one to move."
+            : "Pick a face parallel to the reference.",
+        );
+        return;
+      }
+      const ref = alignRef;
+      alignRef = null;
+      showAlign(null);
+      s.setPrompt(prompt3d("align", 0));
+      await apply(() => ipc.align3d(f.el, alignDelta(ref, f)));
+    };
     const onCancel = () => {
       const s = useAppStore.getState();
       if (s.tool === "sketch") {
@@ -1425,7 +1485,11 @@ export function View3D({ view }: { view: ViewInfo }) {
       }
       if (wallFrom) wallFrom = null;
       else if (moveFrom) moveFrom = null;
-      else if (s.tool !== "select") s.setTool("select");
+      else if (alignRef) {
+        alignRef = null;
+        showAlign(null);
+        s.setPrompt(prompt3d("align", 0));
+      } else if (s.tool !== "select") s.setTool("select");
       clearGhost();
     };
     window.addEventListener("tool-cancel", onCancel);
@@ -1437,6 +1501,8 @@ export function View3D({ view }: { view: ViewInfo }) {
         skFirst = null;
         skPreview = [];
         skCursor = null;
+        alignRef = null;
+        showAlign(null);
         clearGhost();
         s.setPrompt(prompt3d(s.tool));
       }
@@ -1626,6 +1692,10 @@ export function View3D({ view }: { view: ViewInfo }) {
         return;
       }
       brushRing.visible = false;
+      if (useAppStore.getState().tool === "align") {
+        alignHover(e);
+        return;
+      }
       if (cycle3d && Math.hypot(e.clientX - cycle3d.x, e.clientY - cycle3d.y) > 4) endCycle();
       const b = boxRef.current;
       if (!drag || !b) {
@@ -1678,6 +1748,10 @@ export function View3D({ view }: { view: ViewInfo }) {
         return;
       }
       if (e.button !== 0) return;
+      if (useAppStore.getState().tool === "align") {
+        void alignClick(e);
+        return;
+      }
       if (useAppStore.getState().tool === "paint") {
         const hit = rayAt(e).intersectObjects(
           group.children.filter((c) => c instanceof THREE.Mesh && c.visible),

@@ -3587,3 +3587,27 @@ coursing along a line".
   - 3D and renderings split each painted face into its own mesh with that material.
   - Elevations draw a painted wall face's surface pattern.
   - Properties lists each painted face ("Paint, Edge 3", "Paint, Bottom (Soffit)").
+
+## ADR-097 Align like Revit's: its cursor, and Align in 3D — Accepted (2026-10-01)
+- **The owner's ask:** Align (AL) should show Revit's cursor while picking: the arrow
+  with the small Align symbol. It should also work in 3D, aligning elements there.
+- **Cursor:** an SVG cursor (the arrow, with a blue reference bar and lines drawn to it)
+  on plans, elevations, sections and 3D while Align is active (styles.css,
+  `.canvas-wrap[data-tool="align"]`).
+- **Align in 3D** (app render/align3d.ts, View3D):
+  - **First click:** the reference face, any planar face of any element (a wall face, a
+    floor's edge or top, a column's side, a roof's soffit). It stays lit in blue.
+  - **Second click:** a parallel face (within 3°) on another element. That element moves
+    along the reference's normal only, until the faces are coplanar, as Revit's Align
+    moves square to the reference. Esc drops the reference; the tool stays on for the
+    next align.
+  - While hovering, the whole planar region under the cursor lights. After the reference
+    is picked, only faces that can align light.
+- **Moving** (studio-core `modify::align_3d`, one undo step "Align"):
+  - Across the plan, as Move does (joined walls stretch). Columns, beams, roofs, railings
+    and lights move by Copy's transform.
+  - Up or down by their offsets (`modify::raise`): walls and columns move base and
+    level-bound top together, so their height holds. Also floor, roof, beam, railing,
+    furniture and plant offsets, a ceiling's height, a light's mounting height and a
+    window's sill.
+  - Anything that can't move that way is refused and nothing changes.

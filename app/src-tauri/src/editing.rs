@@ -548,3 +548,18 @@ pub fn render_image(id: ElementId, state: State<'_, SessionState>) -> CommandRes
         _ => Err(anyhow::anyhow!("that isn't a saved rendering").into()),
     }
 }
+
+/// Align in 3D (ADR-097): moves `target` by `delta` (x, y, z mm), the distance between the
+/// picked faces along the reference's normal, as one undo step.
+#[tauri::command]
+pub fn align_3d(
+    target: ElementId,
+    delta: [f64; 3],
+    window: WebviewWindow,
+    state: State<'_, SessionState>,
+) -> StateResult {
+    edit_state(&window, &state, |s| {
+        s.edit(|d| studio_core::modify::align_3d(d, target, delta))?;
+        Ok(())
+    })
+}

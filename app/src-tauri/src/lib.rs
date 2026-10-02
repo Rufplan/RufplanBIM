@@ -144,6 +144,7 @@ pub fn run() -> anyhow::Result<()> {
             editing::set_fascia,
             editing::save_rendering,
             editing::render_image,
+            editing::align_3d,
             editing::ref_line,
             editing::align,
             editing::align_references,
