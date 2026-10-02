@@ -6410,3 +6410,19 @@ button:disabled {
   flex-wrap: wrap;
   gap: 18px;
 }
+
+/* The Sky Library's preview in the Render dialog (ADR-101). */
+.sky-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: -2px 0 8px;
+}
+.sky-preview img,
+.sky-thumb-wait {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  border-radius: 4px;
+  background: linear-gradient(#bcd3ea, #eef3f7);
+}

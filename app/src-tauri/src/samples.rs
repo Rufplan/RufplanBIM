@@ -878,7 +878,7 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
     b.light("Wall Sconce", l2, &[(26.4, 22.5)], 0.0, None)?;
 
     // ---------------------------------------------------------------- site and landscape
-    let lawn = studio_core::planting::ground_material(b.doc, "site-lawn")?;
+    let lawn = studio_core::planting::ground_material(b.doc, "site-lawn-lush")?;
     studio_core::planting::set_ground(b.doc, Some(lawn))?;
     b.ground(
         l1,

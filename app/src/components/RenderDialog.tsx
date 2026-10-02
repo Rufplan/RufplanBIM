@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import type { SunPosition } from "../bindings/SunPosition";
 import { siteImagery } from "../imagery";
 import { errorMessage, ipc } from "../ipc";
-import { BACKGROUNDS, type BackgroundId } from "../render/backgrounds";
+import {
+  BACKGROUNDS,
+  libraryId,
+  skyBackground,
+  skyLibrary,
+  type Background,
+  type BackgroundId,
+} from "../render/backgrounds";
+import type { SkyPreset } from "../bindings/SkyPreset";
 import type { RenderJob } from "../render/pathtrace";
 import { activeViewInfo, useAppStore } from "../store";
 import { apply } from "../fileActions";
@@ -72,6 +80,17 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     (auto?.background as BackgroundId | undefined) ?? "physical",
   );
   const [lighting, setLighting] = useState<Lighting>(auto?.lighting ?? "sunsky");
+  // The Sky Library (ADR-101): photographed skies that light the scene.
+  const [skies, setSkies] = useState<SkyPreset[]>([]);
+  const [matchSun, setMatchSun] = useState(auto?.matchSun ?? true);
+  const [preview, setPreview] = useState<{ id: string; url: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    void skyLibrary().then((s) => live && setSkies(s ?? []));
+    return () => {
+      live = false;
+    };
+  }, []);
   const [rotation, setRotation] = useState(auto?.rotation ?? 0);
   const [exposure, setExposure] = useState(auto?.exposure ?? 1);
   // Corona's and V-Ray's look (ADR-063): filmic highlights, a touch of glare and vignette.
@@ -142,7 +161,36 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   // The building alone, for a transparent PNG.
   const cut = useRef<() => HTMLCanvasElement | null>(() => null);
 
-  const bg = BACKGROUNDS.find((b) => b.id === background)!;
+  const libSky = libraryId(background);
+  const bg: Background =
+    BACKGROUNDS.find((b) => b.id === background) ??
+    skyBackground(
+      skies.find((s) => s.id === libSky) ?? {
+        id: libSky ?? "",
+        name: libSky ?? "Sky",
+        mood: "",
+        note: "",
+      },
+    );
+  // The chosen library sky's preview.
+  const thumb = preview && preview.id === libSky ? preview.url : null;
+  useEffect(() => {
+    if (!libSky) return;
+    let live = true;
+    let url: string | null = null;
+    ipc.skyFile(libSky, "thumb").then(
+      (buf) => {
+        if (!live || !buf) return;
+        url = URL.createObjectURL(new Blob([buf], { type: "image/png" }));
+        setPreview({ id: libSky, url });
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [libSky]);
   // A dome light needs a photo to light by.
   const lightingUsed: Lighting = bg.photo ? lighting : "sunsky";
 
@@ -202,7 +250,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const meshes = await ipc.meshes(view.id);
       const imagery = satellite ? await siteImagery().catch(() => null) : null;
       const levels = useAppStore.getState().app?.levelElevations ?? [0];
-      const rot = (rotation * Math.PI) / 180;
+      let rot = (rotation * Math.PI) / 180;
       setStatus("Preparing the sky…");
       const sunUp = sunOn && sun && sun.altitude > 0 ? sun : null;
       let lights = artificial
@@ -232,7 +280,15 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       let env: import("three").DataTexture;
       let intensity = 1;
       if (lightingUsed === "dome") {
+        if (bg.library) setStatus("Getting the sky (about 25 MB, the first time only)…");
         env = await bgs.backgroundHdr(bg.id);
+        // The sky's own sun turned to where the site's sun is (ADR-101).
+        const hs = bg.library && matchSun && sun ? bgs.hdrSun(env) : null;
+        if (hs && sun) rot = bgs.matchSunRotation(hs.azimuth, sun.dir);
+        if (hs && auto)
+          console.warn(
+            `Render: sky sun at ${((hs.azimuth * 180) / Math.PI).toFixed(1)}°, ${((hs.elevation * 180) / Math.PI).toFixed(1)}° up; site sun ${sun?.azimuth}°, ${sun?.altitude}° up; rotation ${((rot * 180) / Math.PI).toFixed(1)}°`,
+          );
         // A photo HDR is brought to the brightness of a clear afternoon sun & sky, so the
         // exposure means the same in both modes.
         const reference = sky.physicalSky({
@@ -364,14 +420,22 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
           return { x: dx / l, y: dy / l };
         })(),
         auto?.grass ?? 120_000,
-      ))
+      )) {
+        if (auto)
+          console.warn(
+            `Render: grass mesh ${(m.geometry.index?.count ?? m.geometry.getAttribute("position").count) / 3} triangles; surfaces ${surfaces.map((x) => `${x.kind ?? "material"} ${x.grass?.height}mm ${x.positions.length / 9}`).join(", ")}`,
+          );
         scene.add(m);
+      }
       backdrop.current = photo
         ? renderBackdrop(w, h, camera, {
             texture: photo,
             rotation: rot,
             exposure: ev * (auto?.skyExposure ?? 1),
             tone,
+            // A library sky's photo is already toned: shown as photographed (ADR-101).
+            raw: !!bg.library,
+            gain: auto?.skyExposure ?? 1,
           })
         : bg.id === "physical"
           ? renderBackdrop(w, h, camera, {
@@ -542,7 +606,12 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               <select
                 aria-label="Background"
                 value={background}
-                onChange={(e) => setBackground(e.target.value as BackgroundId)}
+                onChange={(e) => {
+                  const id = e.target.value as BackgroundId;
+                  setBackground(id);
+                  // A library sky lights the scene by its own sun and sky.
+                  if (libraryId(id)) setLighting("dome");
+                }}
                 disabled={running}
               >
                 {BACKGROUNDS.map((b) => (
@@ -550,8 +619,35 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                     {b.label}
                   </option>
                 ))}
+                {[...new Set(skies.map((s) => s.mood))].map((mood) => (
+                  <optgroup key={mood} label={`Sky Library: ${mood}`}>
+                    {skies
+                      .filter((s) => s.mood === mood)
+                      .map((s) => (
+                        <option key={s.id} value={`sky:${s.id}`}>
+                          {s.name}: {s.note}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
               </select>
             </label>
+            {bg.library && (
+              <div className="sky-preview">
+                {thumb ? <img src={thumb} alt={bg.label} /> : <div className="sky-thumb-wait" />}
+                <label className="ob-check">
+                  <input
+                    type="checkbox"
+                    aria-label="Turn the sky to the site's sun"
+                    checked={matchSun}
+                    onChange={(e) => setMatchSun(e.target.checked)}
+                    disabled={running}
+                  />
+                  Turn the sky so its sun is the site&apos;s sun
+                </label>
+                <span className="muted">Poly Haven, CC0 · downloaded once, then offline</span>
+              </div>
+            )}
             {bg.photo && (
               <label className="field">
                 Rotate background: {rotation}°

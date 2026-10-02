@@ -258,3 +258,47 @@ mod gen_tests {
         assert!(generated_map(dir.path(), "../etc", TextureMap::Color, 64).is_err());
     }
 }
+
+/// The Sky Library (ADR-101).
+#[tauri::command]
+pub fn sky_library() -> Vec<studio_core::skies::SkyPreset> {
+    studio_core::skies::catalog()
+}
+
+/// One of a library sky's files ("light" HDR, "photo" JPEG, "thumb" PNG): from this
+/// computer's cache, else downloaded once from Poly Haven.
+#[tauri::command]
+pub async fn sky_file(
+    id: String,
+    file: String,
+    app: tauri::AppHandle,
+) -> CommandResult<tauri::ipc::Response> {
+    use studio_core::skies::{url, SkyFile};
+    use studio_sync::textures::{cached_file, is_hdr, is_jpeg, is_png};
+    type Check = fn(&[u8]) -> bool;
+    let (kind, valid, what): (SkyFile, Check, &str) = match file.as_str() {
+        "light" => (SkyFile::Light, is_hdr, "the sky"),
+        "photo" => (SkyFile::Photo, is_jpeg, "the sky photo"),
+        _ => (SkyFile::Thumb, is_png, "the sky preview"),
+    };
+    let url = url(&id, kind).ok_or_else(|| anyhow::anyhow!("{id} is not a library sky"))?;
+    let cache = app
+        .path()
+        .app_local_data_dir()
+        .map_err(anyhow::Error::from)?
+        .join("skies");
+    let bytes = tauri::async_runtime::spawn_blocking(move || {
+        cached_file(
+            &studio_sync::UreqHttp::default(),
+            &cache,
+            &id,
+            &url,
+            what,
+            valid,
+        )
+    })
+    .await
+    .map_err(anyhow::Error::from)?
+    .map_err(anyhow::Error::from)?;
+    Ok(tauri::ipc::Response::new(bytes))
+}

@@ -58,6 +58,7 @@ import type { ThumbSource } from "./bindings/ThumbSource";
 import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { Precedent } from "./bindings/Precedent";
+import type { SkyPreset } from "./bindings/SkyPreset";
 import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
 import type { Cap } from "./bindings/Cap";
@@ -200,6 +201,8 @@ export interface AutoRender {
   clouds?: number;
   /** The backdrop photo's brightness relative to the scene (default 1). */
   skyExposure?: number;
+  /** A Sky Library sky's sun turned to the site's sun (default on, ADR-101). */
+  matchSun?: boolean;
   /** Sunlit to skylit light (default 6): lower lifts the shadows. */
   sunToSky?: number;
   /** Smooth the remaining noise at the end (default on). */
@@ -754,6 +757,10 @@ export const ipc = {
     invoke("site_fetch_topo", { spacing, margin, extent }),
   siteImageryFrame: () => invoke<ImageryFrame>("site_imagery_frame"),
   // Generate with Claude (ADR-030).
+  /** The Sky Library (ADR-101), and one of a sky's files, downloaded once and cached. */
+  skyLibrary: () => invoke<SkyPreset[]>("sky_library"),
+  skyFile: (id: string, file: "light" | "photo" | "thumb") =>
+    invoke<ArrayBuffer>("sky_file", { id, file }),
   claudeKeySet: () => invoke<boolean>("claude_key_set"),
   /** Architects and works Generate can design after (ADR-099). */
   generatePrecedents: () => invoke<Precedent[]>("generate_precedents"),

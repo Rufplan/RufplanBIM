@@ -35,6 +35,7 @@ pub mod references;
 pub mod renderings;
 pub mod site;
 pub mod sketch;
+pub mod skies;
 pub mod slope;
 pub mod specs;
 pub mod standards;

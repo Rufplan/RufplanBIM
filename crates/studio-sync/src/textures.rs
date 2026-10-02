@@ -7,15 +7,54 @@ use crate::{Http, Request, SyncError, SyncResult};
 
 /// Where a map is cached: `<cache>/<set>/<file name of the URL>`.
 pub fn cache_path(cache: &Path, set: &str, url: &str) -> PathBuf {
-    let file = url.rsplit('/').next().unwrap_or("map.jpg");
+    // The URL's file name, without any query (sizes asked for), safe on Windows.
+    let file = url
+        .rsplit('/')
+        .next()
+        .and_then(|f| f.split('?').next())
+        .filter(|f| !f.is_empty())
+        .unwrap_or("map.jpg");
     cache.join(set).join(file)
 }
 
 /// A texture map's JPEG bytes: from the cache, else downloaded (and then cached).
 pub fn texture_map(http: &dyn Http, cache: &Path, set: &str, url: &str) -> SyncResult<Vec<u8>> {
+    cached_file(
+        http,
+        cache,
+        set,
+        url,
+        &format!("the {set} texture"),
+        is_jpeg,
+    )
+}
+
+pub fn is_jpeg(b: &[u8]) -> bool {
+    b.starts_with(&[0xFF, 0xD8])
+}
+
+/// A Radiance HDR (Poly Haven's skies, ADR-101).
+pub fn is_hdr(b: &[u8]) -> bool {
+    b.starts_with(b"#?RADIANCE") || b.starts_with(b"#?RGBE")
+}
+
+pub fn is_png(b: &[u8]) -> bool {
+    b.starts_with(&[0x89, b'P', b'N', b'G'])
+}
+
+/// A file's bytes from `<cache>/<set>/<url's file name>`, else downloaded once and kept
+/// there; `valid` tells the real file from an error page, which is never cached.
+pub fn cached_file(
+    http: &dyn Http,
+    cache: &Path,
+    set: &str,
+    url: &str,
+    what: &str,
+    valid: fn(&[u8]) -> bool,
+) -> SyncResult<Vec<u8>> {
     let path = cache_path(cache, set, url);
     if let Ok(bytes) = std::fs::read(&path) {
-        if bytes.starts_with(&[0xFF, 0xD8]) {
+        if valid(&bytes) {
             return Ok(bytes);
         }
     }
@@ -28,12 +67,12 @@ pub fn texture_map(http: &dyn Http, cache: &Path, set: &str, url: &str) -> SyncR
         })
         .map_err(|e| {
             SyncError::Network(format!(
-                "couldn't download the {set} texture (needs internet the first time): {e}"
+                "couldn't download {what} (needs internet the first time): {e}"
             ))
         })?;
-    if resp.status != 200 || !resp.body.starts_with(&[0xFF, 0xD8]) {
+    if resp.status != 200 || !valid(&resp.body) {
         return Err(SyncError::Api(format!(
-            "the {set} texture didn't download (Poly Haven returned {})",
+            "{what} didn't download (Poly Haven returned {})",
             resp.status
         )));
     }

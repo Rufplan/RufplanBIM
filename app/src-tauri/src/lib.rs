@@ -213,6 +213,8 @@ pub fn run() -> anyhow::Result<()> {
             material_cmds::add_library_material,
             material_cmds::apply_material,
             material_cmds::paint_elements,
+            material_cmds::sky_library,
+            material_cmds::sky_file,
             material_cmds::paint_face,
             material_cmds::paint_in_view,
             material_cmds::render_materials,

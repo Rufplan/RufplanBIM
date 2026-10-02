@@ -633,7 +633,7 @@ const PRESETS: &[P] = &[
         .c([74, 104, 38]).tex("gen:lawn", FT8).r(0.85).sheen(0.3).grass(60.0, 0.35),
     p("site-lawn-lush", "Lawn, Lush Bluegrass", "Site & Landscape", MID).sec("RH")
         .d("Dense, deep green irrigated turf: estate lawns, resort grounds and golf-course fringes.")
-        .c([98, 126, 38]).tex("gen:lawn-lush", FT8).r(0.85).sheen(0.3).grass(70.0, 0.3),
+        .c([76, 112, 42]).tex("gen:lawn-lush", FT8).r(0.85).sheen(0.3).grass(90.0, 0.35),
     p("site-lawn-dry", "Lawn, Summer Dry", "Site & Landscape", TYP).sec("RM")
         .d("Unirrigated turf in late summer, straw patches through the green: realistic suburban yards.")
         .c([128, 124, 70]).tex("gen:lawn-dry", FT8).r(0.9).sheen(0.2).grass(70.0, 0.45),

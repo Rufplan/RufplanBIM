@@ -497,6 +497,9 @@ export function renderBackdrop(
     rotation: number;
     exposure: number;
     tone?: "filmic" | "contrast";
+    /** Already toned (a library sky's photo, ADR-101): shown as is, times \`gain\`. */
+    raw?: boolean;
+    gain?: number;
   } | null,
 ): HTMLCanvasElement {
   const out = document.createElement("canvas");
@@ -517,8 +520,10 @@ export function renderBackdrop(
     renderer.toneMapping =
       pano.tone === "filmic" ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = pano.exposure;
+    if (pano.raw) renderer.toneMapping = THREE.NoToneMapping;
     const scene = new THREE.Scene();
     scene.background = pano.texture;
+    if (pano.raw) scene.backgroundIntensity = pano.gain ?? 1;
     scene.backgroundRotation.set(0, pano.rotation, 0);
     renderer.render(scene, camera);
     ctx.drawImage(renderer.domElement, 0, 0);

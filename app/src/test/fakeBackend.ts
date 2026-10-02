@@ -1801,6 +1801,23 @@ export function installFakeBackend(): FakeBackend {
               warnings: ["Story 2: Loft has no route in"],
             },
           };
+        case "sky_library":
+          return [
+            {
+              id: "kloofendal_48d_partly_cloudy_puresky",
+              name: "Partly Cloudy",
+              mood: "Partly Cloudy",
+              note: "the classic architectural sky",
+            },
+            {
+              id: "kloppenheim_06_puresky",
+              name: "Golden Hour",
+              mood: "Sunrise & Sunset",
+              note: "warm, low sun",
+            },
+          ];
+        case "sky_file":
+          return new ArrayBuffer(8);
         case "generate_precedents":
           return [
             {

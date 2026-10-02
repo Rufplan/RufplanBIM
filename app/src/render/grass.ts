@@ -66,6 +66,9 @@ interface Look {
   seedHeads: number;
   /** Clumps per square metre at full density. */
   perM2: number;
+  /** Lawns (ADR-101): wide leaves arching over, as D5's and Enscape's turf, rather than
+   * upright spikes. */
+  arch?: boolean;
 }
 
 const WHITE: [number, number, number] = [0.9, 0.9, 0.85];
@@ -80,8 +83,16 @@ const look = (o: Partial<Look> & Pick<Look, "blades" | "width" | "perM2">): Look
   ...o,
 });
 const LOOKS: Record<GrassKind, Look> = {
-  Lawn: look({ blades: 26, width: 0.045, perM2: 80 }),
-  LushLawn: look({ blades: 30, width: 0.05, lean: 0.3, spread: 0.9, dry: 0.02, perM2: 85 }),
+  Lawn: look({ blades: 24, width: 0.07, lean: 0.8, spread: 0.9, perM2: 80, arch: true }),
+  LushLawn: look({
+    blades: 26,
+    width: 0.085,
+    lean: 1,
+    spread: 0.95,
+    dry: 0.015,
+    perM2: 85,
+    arch: true,
+  }),
   Meadow: look({
     blades: 26,
     width: 0.036,
@@ -136,7 +147,8 @@ const LOOKS: Record<GrassKind, Look> = {
 
 /** The kind a Grass-type material grows: a lawn, or a meadow when tall. */
 export const kindFor = (s: GrassSurface): GrassKind =>
-  s.kind ?? ((s.grass?.height ?? 60) > 200 ? "Meadow" : "Lawn");
+  s.kind ??
+  ((s.grass?.height ?? 60) > 200 ? "Meadow" : (s.grass?.height ?? 60) >= 90 ? "LushLawn" : "Lawn");
 
 /** A clump of one kind's grass in `color` (sRGB), about 1 unit tall (instances scale it
  * by the grass height). Its vertex colours are linear: each blade its own hue of the base
@@ -145,6 +157,9 @@ export function clumpGeometry(
   kind: GrassKind = "Lawn",
   color: [number, number, number] = [86, 124, 54],
   seed = 7,
+  /** Far from the camera (ADR-101): fewer, wider leaves in fewer segments, covering the
+   * same ground at about a fifth of the triangles. */
+  lod = false,
 ): THREE.BufferGeometry {
   const baseLin = color.map(lin);
   const L = LOOKS[kind];
@@ -163,7 +178,16 @@ export function clumpGeometry(
   };
   // Straw relative to green: the base colour times this reads as dry.
   const straw = [2.6, 1.7, 1.9];
-  for (let b = 0; b < L.blades; b++) {
+  if (L.arch)
+    archedBlades(
+      lod ? { ...L, blades: Math.round(L.blades * 0.38), width: L.width * 1.55 } : L,
+      r,
+      push,
+      idx,
+      pos,
+      lod ? 2 : 4,
+    );
+  for (let b = 0; b < (L.arch ? 0 : L.blades); b++) {
     const a = r() * Math.PI * 2;
     const d = Math.sqrt(r()) * L.spread;
     const base = [Math.cos(a) * d, Math.sin(a) * d];
@@ -207,7 +231,9 @@ export function clumpGeometry(
     }
     for (let s = 0; s < segs; s++) {
       const i = start + s * 2;
-      idx.push(i, i + 1, i + 3, i, i + 3, i + 2);
+      // Wound so the face points the way its normals do (up): a path tracer turns the
+      // normals to the face, and blades lit from above went black (ADR-101).
+      idx.push(i, i + 3, i + 1, i, i + 2, i + 3);
     }
   }
   // A little flat disc (flower head, clover leaflet), coloured `c` relative to the base
@@ -289,6 +315,81 @@ export function clumpGeometry(
   g.setIndex(idx);
   g.normalizeNormals();
   return g;
+}
+
+/** A lawn's blades (ADR-101): flat leaves that rise and arch over (some nearly lying
+ * down), tapering to a point, so a clump covers the ground as real turf does. Each leaf's
+ * normals are its own surface's, fanned across its width as if folded along its rib: the
+ * upper face catches the sun, the far half falls into shade. */
+function archedBlades(
+  L: Look,
+  r: () => number,
+  push: (p: number[], n: number[], c: number[], own?: boolean) => number,
+  idx: number[],
+  pos: number[],
+  segs = 4,
+) {
+  const straw = [2.6, 1.7, 1.9];
+  for (let b = 0; b < L.blades; b++) {
+    const a = r() * Math.PI * 2;
+    const d = Math.sqrt(r()) * L.spread;
+    const base = [Math.cos(a) * d, Math.sin(a) * d];
+    // Any way: leaves fanning out from every clump's middle read as rosettes.
+    const dir = r() * Math.PI * 2;
+    const len = 0.6 + r() * 0.55;
+    const w = L.width * (0.75 + r() * 0.5);
+    // Rises steeply, then arches: the elevation falls along the leaf.
+    const rise = (62 + r() * 24) * (Math.PI / 180);
+    const droop = (25 + r() * 75) * L.lean * (Math.PI / 180);
+    const twist = (r() - 0.5) * 0.9;
+    const hue = r();
+    const bright = 0.86 + r() * 0.24;
+    const tint = [
+      (1.04 - 0.14 * hue) * bright,
+      (1.02 + 0.03 * hue) * bright,
+      (0.8 + 0.3 * hue) * bright,
+    ];
+    const dry = r() < L.dry;
+    const [ux, uy] = [Math.cos(dir), Math.sin(dir)];
+    let [x, y, z] = [base[0]!, base[1]!, 0];
+    const start = pos.length / 3;
+    for (let k = 0; k <= segs; k++) {
+      const t = k / segs;
+      const el = rise - droop * t * t;
+      // Tangent, and the leaf's width across it (horizontal, turning with the twist).
+      const tx = ux * Math.cos(el);
+      const ty = uy * Math.cos(el);
+      const tz = Math.sin(el);
+      const ang = dir + Math.PI / 2 + twist * t;
+      const [sx, sy] = [Math.cos(ang), Math.sin(ang)];
+      // Normal: tangent × side, turned to face up.
+      let nx = ty * 0 - tz * sy;
+      let ny = tz * sx - tx * 0;
+      let nz = tx * sy - ty * sx;
+      if (nz < 0) [nx, ny, nz] = [-nx, -ny, -nz];
+      const half = w * (1 - Math.pow(t, 1.6) * 0.92) * (t < 0.12 ? 0.6 + t * 3.3 : 1);
+      // Thatch-dark only right at the root; light passes through real leaves.
+      const shade = 0.9 + 0.18 * Math.pow(t, 0.6);
+      const tip = [1 + 0.04 * t, 1 + 0.04 * t, 1 - 0.04 * t];
+      const c = [0, 1, 2].map((q) => {
+        const v = tint[q]! * tip[q]! * shade;
+        return dry ? v * straw[q]! * 0.75 : v;
+      });
+      const fan = 0.55;
+      push([x - sx * half, y - sy * half, z], [nx - sx * fan, ny - sy * fan, nz], c);
+      push([x + sx * half, y + sy * half, z], [nx + sx * fan, ny + sy * fan, nz], c);
+      const step = len / segs;
+      x += tx * step;
+      y += ty * step;
+      z = Math.max(0.02, z + tz * step);
+    }
+    for (let k = 0; k < segs; k++) {
+      const i = start + k * 2;
+      // Wound so the face points the way its normals do (up): a path tracer turns the
+      // normals to the face, and blades lit from above went black (ADR-101).
+      idx.push(i, i + 3, i + 1, i, i + 2, i + 3);
+    }
+  }
 }
 
 /** A pine cone, about 80 mm long, lying on its side: a scaled, ridged spindle. */
@@ -409,7 +510,7 @@ const clumpOf = (k: GrassKind, color: [number, number, number]) => {
 function grassMaterial(swaying: boolean) {
   const m = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.62,
+    roughness: 0.5,
     side: THREE.DoubleSide,
   });
   if (swaying) {
@@ -501,7 +602,8 @@ function patchNoise(x: number, y: number, cell: number, seed: number) {
 export function patchTint(x: number, y: number): [number, number, number] {
   const big = patchNoise(x, y, 9000, 1);
   const small = patchNoise(x, y, 2600, 2);
-  const v = 0.86 + 0.22 * big + 0.1 * (small - 0.5);
+  // Gentle, as a kept lawn (ADR-101): the reference turf is even, not blotchy.
+  const v = 0.93 + 0.1 * big + 0.05 * (small - 0.5);
   const yellow = Math.max(0, small - 0.62) * 0.9;
   return [v * (1 + yellow * 0.6), v * (1 + yellow * 0.2), v * (1 - yellow * 0.5)];
 }
@@ -572,7 +674,7 @@ export class GrassField {
       const g = s.grass!;
       const look = LOOKS[kindFor(s)];
       // Taller grass grows in bigger clumps, fewer to the metre.
-      const typical = LOOKS[kindFor(s)] === LOOKS.Lawn ? 70 : 300;
+      const typical = look.arch ? 100 : 300;
       const density =
         look.perM2 * (s.density ?? 1) * Math.min(1.4, Math.max(0.3, (typical / g.height) ** 0.5));
       per = Math.max(per, density);
@@ -771,10 +873,15 @@ export function grassMeshesYUp(
     geo: THREE.BufferGeometry,
     ms: THREE.Matrix4[],
     tints: THREE.Color[] | null = null,
+    /** Clumps beyond \`near\` mm of the camera take this lighter one (ADR-101). */
+    far: { geo: THREE.BufferGeometry; near: number } | null = null,
   ) => {
     if (!ms.length) return null;
     const pieces = ms.map((m, i) => {
-      const p = geo.clone().applyMatrix4(toYUp.clone().multiply(m));
+      const e = m.elements;
+      const d = Math.hypot(e[12]! - camera.x, e[13]! - camera.y);
+      const g = far && d > far.near ? far.geo : geo;
+      const p = g.clone().applyMatrix4(toYUp.clone().multiply(m));
       const t = tints?.[i];
       if (t) {
         const c = p.getAttribute("color");
@@ -812,7 +919,13 @@ export function grassMeshesYUp(
         tints.push(c);
       }
       tmp.dispose();
-      const g = bake(geo, ms, tints);
+      // Lawns: full leaves near the camera, the lighter clump beyond 16 m.
+      const kind = kindFor(list[0]!);
+      const far = LOOKS[kind].arch
+        ? { geo: clumpGeometry(kind, list[0]!.color, 7, true), near: 16_000 }
+        : null;
+      const g = bake(geo, ms, tints, far);
+      far?.geo.dispose();
       if (g) out.push(new THREE.Mesh(g, grassMaterial(false)));
     }
     const c = bake(coneGeometry(), conePlacements(list, center, radius));
