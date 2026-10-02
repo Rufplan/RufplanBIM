@@ -8,7 +8,7 @@ pub mod sheet;
 pub use pdf::export_pdf;
 pub use schedule::{schedule, schedule_on, Table};
 pub use sheet::{
-    drag_title, drag_title_start, move_title, move_viewport, sheet_display_list,
+    drag_title, drag_title_start, keep_placed, move_title, move_viewport, sheet_display_list,
     sheet_display_list_shared, sheet_handles, title_line,
 };
 
@@ -117,6 +117,35 @@ mod tests {
         assert!((a1.x - a.x - 50.0).abs() < 1e-6 && (a1.y - a.y - 20.0).abs() < 1e-6);
         doc.undo().unwrap();
         assert!(move_viewport(&mut doc, sheet, Pt::new(0.0, 0.0)).is_err());
+        // Cropping the placed view keeps its drawing where it was on the sheet: a model
+        // point inside both crops prints at the same place before and after.
+        let dl = studio_views::display_list(&doc, plan).unwrap();
+        let [x0, y0, x1, y1] = dl.bounds;
+        let probe = Pt::new(x0 + (x1 - x0) * 0.3, y0 + (y1 - y0) * 0.4);
+        let paper = |doc: &Document| {
+            let ElementData::Viewport { center, .. } = doc.data(vp).unwrap() else {
+                panic!()
+            };
+            let ElementData::View { scale, .. } = doc.data(plan).unwrap() else {
+                panic!()
+            };
+            let [a, b, c, d] = studio_views::display_list(doc, plan).unwrap().bounds;
+            let mid = Pt::new((a + c) / 2.0, (b + d) / 2.0);
+            center.add(probe.sub(mid).scale(1.0 / f64::from(*scale)))
+        };
+        let at = paper(&doc);
+        let crop = studio_core::CropBox {
+            min: Pt::new(x0 - 500.0, y0 - 500.0),
+            max: Pt::new(probe.x + 2000.0, probe.y + 1500.0),
+        };
+        keep_placed(&mut doc, plan, |d| {
+            studio_core::edit::set_crop(d, plan, Some(crop))
+        })
+        .unwrap();
+        assert!(paper(&doc).dist(at) < 1e-6, "{:?} vs {:?}", paper(&doc), at);
+        // One undo step brings back the crop and the placement.
+        doc.undo().unwrap();
+        assert!(paper(&doc).dist(at) < 1e-6);
         assert!(
             area.min.x < a.x - 8.0 && area.max.x >= b.x - 1e-9,
             "covers the bubble and rule"

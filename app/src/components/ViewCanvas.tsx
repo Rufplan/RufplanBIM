@@ -2274,8 +2274,11 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
                 // Revit selects a view as you press on it (ADR-100).
                 const area = handles.current!.areas[i]!;
                 const st = useAppStore.getState();
-                if (area.key === "view_move" && !st.selection.includes(area.id))
-                  st.select(e.shiftKey || e.ctrlKey ? [...st.selection, area.id] : [area.id]);
+                if (area.key === "view_move") {
+                  if (canvasRef.current) canvasRef.current.style.cursor = "move";
+                  if (!st.selection.includes(area.id))
+                    st.select(e.shiftKey || e.ctrlKey ? [...st.selection, area.id] : [area.id]);
+                }
               }
             }
             const v = sketchGripAt(x, y);
@@ -2411,17 +2414,17 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           const area = ad ? handles.current?.areas[ad.index] : undefined;
           if (ad && area) {
             if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
+            if (canvasRef.current)
+              canvasRef.current.style.cursor = area.key === "view_move" ? "move" : "";
             if (d?.moved)
               ad.to = { x: area.at.x + p.x - ad.from.x, y: area.at.y + p.y - ad.from.y };
             redraw();
             return;
           }
           if (s.tool === "select" && canvasRef.current) {
-            // A view on a sheet, or the title of a selected one, drags as a whole.
-            const over = (handles.current?.areas ?? []).some(
-              (a) => p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
-            );
-            canvasRef.current.style.cursor = over ? "move" : "";
+            // The normal cursor, except while a view on a sheet is pressed and dragged
+            // (ADR-100).
+            canvasRef.current.style.cursor = "";
           }
           if (gripDrag.current) {
             gripDrag.current.shift = e.shiftKey;
@@ -2502,6 +2505,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           const ad = areaDrag.current;
           if (ad) {
             areaDrag.current = null;
+            if (canvasRef.current) canvasRef.current.style.cursor = "";
             const area = handles.current?.areas[ad.index];
             if (area && ad.to && d?.moved) {
               void apply(() => ipc.dragHandle(area.id, area.key, ad.to!));

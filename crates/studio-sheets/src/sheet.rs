@@ -531,6 +531,56 @@ pub fn sheet_handles(
     out
 }
 
+/// Runs \`edit\` on view \`view\` (cropping it, say) keeping its drawing where it was on every
+/// sheet it's placed on (ADR-100): a viewport is placed by its drawing's center, so when
+/// the crop moves that center the viewport moves with it, and only the extent grows or
+/// shrinks. One undo step with the edit.
+pub fn keep_placed<T>(
+    doc: &mut Document,
+    view: ElementId,
+    edit: impl FnOnce(&mut Document) -> studio_core::CoreResult<T>,
+) -> studio_core::CoreResult<T> {
+    let center_of = |doc: &Document| -> Option<(Pt, f64)> {
+        let s = match doc.data(view).ok()? {
+            ElementData::View { scale, .. } => f64::from(*scale),
+            _ => return None,
+        };
+        let [x0, y0, x1, y1] = studio_views::display_list(doc, view)?.bounds;
+        Some((Pt::new((x0 + x1) / 2.0, (y0 + y1) / 2.0), s))
+    };
+    let placed: Vec<ElementId> = doc
+        .of(Category::Viewport)
+        .filter(|e| matches!(&e.data, ElementData::Viewport { view: v, .. } if *v == view))
+        .map(|e| e.id)
+        .collect();
+    let before = if placed.is_empty() {
+        None
+    } else {
+        center_of(doc)
+    };
+    let mark = doc.undo_depth();
+    let out = edit(doc)?;
+    if let (Some((c0, s0)), Some((c1, s1))) = (before, center_of(doc)) {
+        // Only when the scale holds (a new scale re-fits the view about its center).
+        if (s0 - s1).abs() < 1e-9 && c0.dist(c1) > 1e-6 {
+            let by = c1.sub(c0).scale(1.0 / s1);
+            let name = doc.can_undo().unwrap_or("Crop view").to_string();
+            doc.transact("Keep view placed", |tx| {
+                for vp in &placed {
+                    tx.modify(*vp, |d| {
+                        if let ElementData::Viewport { center, .. } = d {
+                            *center = center.add(by);
+                        }
+                    })?;
+                }
+                Ok(())
+            })?;
+            doc.merge_undo(mark, &name);
+        }
+    }
+    Ok(out)
+}
+
 /// Moves a view on its sheet so its center is at \`to\` (paper mm); its title goes with it
 /// (ADR-100).
 pub fn move_viewport(

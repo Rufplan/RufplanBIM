@@ -1098,7 +1098,17 @@ pub fn set_property(
         if studio_regen::derived::handles(&key, &value) {
             s.edit(|d| studio_regen::derived::set_property(d, id, &key, &value))
         } else {
-            s.edit(|d| ops::set_property(d, id, &key, &value, now_ms()))
+            s.edit(|d| {
+                // A view cropped on a sheet keeps its place there (ADR-100).
+                let is_view = matches!(d.data(id), Ok(studio_core::ElementData::View { .. }));
+                if is_view && (key == "crop" || key.starts_with("crop")) {
+                    studio_sheets::keep_placed(d, id, |d| {
+                        ops::set_property(d, id, &key, &value, now_ms())
+                    })
+                } else {
+                    ops::set_property(d, id, &key, &value, now_ms())
+                }
+            })
         }
     })
 }

@@ -3722,11 +3722,17 @@ coursing along a line".
     area, its drawing's box, whether or not it's selected. Selected titles' `title_move`
     areas come first, so a selected title still drags on its own. Among overlapping
     views, a selected one wins.
-  - On a sheet the app fetches handles even with nothing selected. Over a view the
-    cursor is `move`.
+  - On a sheet the app fetches handles even with nothing selected. The cursor stays
+    normal: it turns to `move` only while a view is pressed and dragged. Titles drag
+    with the normal cursor.
   - Pressing on a view selects it (Shift or Ctrl adds it), and a click is that selection.
     Dragging shows the view's box moving dashed. On release, `move_viewport` sets its
     center, one undo step, and the title goes with it.
 - Clicking inside a view no longer starts a box selection there. That matches Revit,
   where a press on a viewport picks it. Box selection still starts from empty sheet
   space.
+- **Cropping a placed view** (studio-sheets `keep_placed`, around the crop grips and the
+  Crop View property): a viewport is placed by its drawing's center, so a new crop used
+  to shift the drawing on the sheet. The viewport now moves by the change in that center
+  (at the view's scale), so the drawing stays put and only the extent grows or shrinks.
+  It's one undo step with the crop.

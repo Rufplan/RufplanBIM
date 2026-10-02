@@ -100,6 +100,9 @@ pub fn drag_handle(
                 studio_sheets::move_title(d, id, to)
             } else if key == "view_move" {
                 studio_sheets::move_viewport(d, id, to)
+            } else if key.starts_with("crop:") {
+                // The view stays put on its sheets; only its extent changes (ADR-100).
+                studio_sheets::keep_placed(d, id, |d| edit::drag_handle(d, id, &key, to))
             } else {
                 edit::drag_handle(d, id, &key, to)
             }
