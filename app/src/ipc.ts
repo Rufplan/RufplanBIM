@@ -214,6 +214,8 @@ export interface AutoRender {
   /** "guided" (albedo/normal/depth à-trous, ADR-102) or "blur" (the old bilateral). */
   denoiser?: "guided" | "blur";
   denoiseStrength?: number;
+  /** Trace this much larger and draw it down (1, 1.5 or 2; ADR-102). */
+  supersample?: number;
   /** Aerial haze: metres to fade 63% toward the horizon (default 2500; 0 off, ADR-102). */
   haze?: number;
   /** A Lighting Scheme name ("Exterior: Sun and Artificial"…). */

@@ -810,6 +810,9 @@ export function composite(
   const ctx = display.getContext("2d");
   if (!ctx) return;
   ctx.clearRect(0, 0, display.width, display.height);
+  // A supersampled render is drawn down with the browser's best filter.
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   if (backdrop) ctx.drawImage(backdrop, 0, 0, display.width, display.height);
   ctx.drawImage(render, 0, 0, display.width, display.height);
 }

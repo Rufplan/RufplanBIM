@@ -26,11 +26,14 @@ const SIZES: [number, number][] = [
   [2560, 1440],
   [3840, 2160],
 ];
-const QUALITY: [string, number][] = [
-  ["Draft", 32],
-  ["Medium", 128],
-  ["High", 512],
-  ["Best", 2048],
+/** (name, samples, supersampling): Final and Best trace larger and draw it down, so grass,
+ * siding lines and window frames don't step (ADR-102). */
+const QUALITY: [string, number, number][] = [
+  ["Draft", 32, 1],
+  ["Medium", 128, 1],
+  ["High", 512, 1],
+  ["Final", 512, 1.5],
+  ["Best", 1024, 2],
 ];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -217,6 +220,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     ? [auto.width, auto.height ?? Math.round((auto.width * 9) / 16)]
     : SIZES[size]!;
   const samples = auto?.samples ?? QUALITY[quality]![1];
+  const supersample = auto?.supersample ?? QUALITY[quality]![2];
 
   const render = async () => {
     if (!view) return;
@@ -454,7 +458,14 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               tone,
             })
           : renderBackdrop(w, h, camera, null);
-      const j = new RenderJob({ width: w, height: h, samples, exposure: ev, tone });
+      // Supersampled: traced larger, drawn down to the image (ADR-102).
+      const j = new RenderJob({
+        width: Math.round(w * supersample),
+        height: Math.round(h * supersample),
+        samples,
+        exposure: ev,
+        tone,
+      });
       job.current = j;
       const shown = document.createElement("canvas");
       shown.width = w;
@@ -616,9 +627,10 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setQuality(Number(e.target.value))}
                   disabled={running}
                 >
-                  {QUALITY.map(([name, n], i) => (
+                  {QUALITY.map(([name, n, ss], i) => (
                     <option key={name} value={i}>
-                      {name} ({n})
+                      {name} ({n}
+                      {ss > 1 ? `, ${ss}× supersampled` : ""})
                     </option>
                   ))}
                 </select>

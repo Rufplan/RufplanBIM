@@ -89,7 +89,8 @@ const LOOKS: Record<GrassKind, Look> = {
     width: 0.085,
     lean: 1,
     spread: 0.95,
-    dry: 0.015,
+    // A few dry, yellowed blades among the green (ADR-102).
+    dry: 0.045,
     perM2: 85,
     arch: true,
   }),
@@ -580,7 +581,12 @@ export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, 
     // the grid's stair-steps (ADR-101).
     const jx = (patchNoise(x, y, 420, 31) - 0.5) * cell * 1.4;
     const jy = (patchNoise(x, y, 420, 37) - 0.5) * cell * 1.4;
-    return at(Math.floor((x + jx - x0) / cell), Math.floor((y + jy - y0) / cell), z);
+    // Eroded (ADR-102): a clump is held back only well inside paving, so turf grows up to
+    // and leans over the edges of stepping stones and the patio, as it does.
+    const e = 25;
+    const ok = (dx: number, dy: number) =>
+      at(Math.floor((x + jx + dx - x0) / cell), Math.floor((y + jy + dy - y0) / cell), z);
+    return ok(0, 0) && ok(e, 0) && ok(-e, 0) && ok(0, e) && ok(0, -e);
   };
 }
 
@@ -653,6 +659,21 @@ export function clipNear(
 
 /** Candidate clumps over grass surfaces: (x, y, z, height, turn) per clump, bucketed in
  * 4 m cells for finding those near a point. */
+/** Clumps per m² a surface grows (ADR-102): its kind's, by its density and height. */
+export function densityOf(s: GrassSurface): number {
+  const g = s.grass ?? { height: 70, variation: 0 };
+  const look = LOOKS[kindFor(s)];
+  const typical = look.arch ? 100 : 300;
+  return (
+    look.perM2 *
+    (s.density ?? 1) *
+    // Lawns cover the ground: a clump's footprint goes as its height squared.
+    (look.arch
+      ? Math.min(2.2, Math.max(0.5, (typical / g.height) ** 2))
+      : Math.min(1.4, Math.max(0.3, (typical / g.height) ** 0.5)))
+  );
+}
+
 export class GrassField {
   readonly data: Float32Array;
   readonly count: number;
@@ -677,11 +698,7 @@ export class GrassField {
     let per = 0;
     grassy.forEach((s, k) => {
       const g = s.grass!;
-      const look = LOOKS[kindFor(s)];
-      // Taller grass grows in bigger clumps, fewer to the metre.
-      const typical = look.arch ? 100 : 300;
-      const density =
-        look.perM2 * (s.density ?? 1) * Math.min(1.4, Math.max(0.3, (typical / g.height) ** 0.5));
+      const density = densityOf(s);
       per = Math.max(per, density);
       scatter(
         reach ? clipNear(s.positions, center, far) : s.positions,
@@ -906,7 +923,9 @@ export function grassMeshesYUp(
       const budget = Math.floor(total / grassy);
       // A render seeds its field about the camera, out to what the budget reaches in
       // its view cone, so a large site doesn't thin the lawn in front of it.
-      const reach = look ? Math.sqrt(budget / (CLUMPS_PER_M2 * Math.PI * 0.3)) * 1000 : null;
+      // At the lawn's own density, or the field thins out to fit (ADR-102).
+      const per = Math.max(...list.filter((x) => x.grass).map(densityOf), CLUMPS_PER_M2);
+      const reach = look ? Math.sqrt(budget / (per * Math.PI * 0.3)) * 1000 : null;
       const field = look
         ? new GrassField(list, new THREE.Vector3(camera.x, camera.y, 0), radius, blockers, reach)
         : new GrassField(list, center, radius, blockers);
