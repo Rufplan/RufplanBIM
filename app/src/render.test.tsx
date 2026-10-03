@@ -198,7 +198,7 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
     await userEvent.selectOptions(within(dialog).getByLabelText("Lighting"), "dome");
     expect(within(dialog).getByText(/Lit by the photo/)).toBeTruthy();
     expect(within(dialog).getByLabelText("Background rotation")).toBeTruthy();
-    expect((within(dialog).getByLabelText("Tone") as HTMLSelectElement).value).toBe("filmic");
+    expect((within(dialog).getByLabelText("Tone") as HTMLSelectElement).value).toBe("neutral");
     const keep = within(dialog).getByLabelText("Include background") as HTMLInputElement;
     expect(keep.checked).toBe(true);
     await userEvent.click(keep);

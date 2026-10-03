@@ -92,9 +92,13 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
   const [rotation, setRotation] = useState(auto?.rotation ?? 0);
-  const [exposure, setExposure] = useState(auto?.exposure ?? 1);
+  // A camera's exposure in stops (ADR-102); the multiplier is 2^EV.
+  const [exposure, setExposure] = useState(
+    auto?.ev !== undefined ? Math.pow(2, auto.ev) : (auto?.exposure ?? 1),
+  );
+  const stops = Math.log2(exposure);
   // Corona's and V-Ray's look (ADR-063): filmic highlights, a touch of glare and vignette.
-  const [tone, setTone] = useState<"contrast" | "filmic">(auto?.tone ?? "filmic");
+  const [tone, setTone] = useState<"contrast" | "filmic" | "neutral">(auto?.tone ?? "neutral");
   const [glare, setGlare] = useState(auto?.glare ?? true);
   const [vignette, setVignette] = useState(auto?.vignette ?? true);
   // D5's colour: a touch more saturation and contrast (ADR-065).
@@ -282,6 +286,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       if (lightingUsed === "dome") {
         if (bg.library) setStatus("Getting the sky (about 25 MB, the first time only)…");
         env = await bgs.backgroundHdr(bg.id);
+        // A library sky's sun, brighter or softer against its sky (ADR-102).
+        const sunK = bg.library ? (auto?.sunScale ?? 1) : 1;
+        if (sunK !== 1) env = bgs.scaleSun(env, sunK);
         // The sky's own sun turned to where the site's sun is (ADR-101).
         const hs = bg.library && matchSun && sun ? bgs.hdrSun(env) : null;
         if (hs && sun) rot = bgs.matchSunRotation(hs.azimuth, sun.dir);
@@ -462,7 +469,17 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         // The guided denoiser (ADR-102); "blur" is the old bilateral one, for comparison.
         if (denoise) {
           if ((auto?.denoiser ?? "guided") === "guided")
-            j.guidedDenoise({ strength: auto?.denoiseStrength ?? 1, passes: 5 });
+            j.guidedDenoise({
+              strength: auto?.denoiseStrength ?? 1,
+              passes: 5,
+              // Aerial perspective (ADR-102): distant trees and hills fade to the horizon.
+              hazeDistance: (auto?.haze ?? 2500) * 1000,
+              hazeColor: bgs.horizonColor(env).map((v) => v * intensity) as [
+                number,
+                number,
+                number,
+              ],
+            });
           else j.denoise();
         }
         show();
@@ -765,15 +782,16 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               </p>
             )}
             <label className="field">
-              Exposure: {exposure.toFixed(1)}
+              Exposure: {stops >= 0 ? "+" : "−"}
+              {Math.abs(stops).toFixed(1)} EV
               <input
                 aria-label="Exposure"
                 type="range"
-                min={0.3}
-                max={2.5}
-                step={0.1}
-                value={exposure}
-                onChange={(e) => setExposure(Number(e.target.value))}
+                min={-2}
+                max={2}
+                step={1 / 3}
+                value={stops}
+                onChange={(e) => setExposure(Math.pow(2, Number(e.target.value)))}
                 disabled={running}
               />
             </label>
@@ -782,9 +800,10 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               <select
                 aria-label="Tone"
                 value={tone}
-                onChange={(e) => setTone(e.target.value as "contrast" | "filmic")}
+                onChange={(e) => setTone(e.target.value as "contrast" | "filmic" | "neutral")}
                 disabled={running}
               >
+                <option value="neutral">Neutral (true whites and greens, no clipping)</option>
                 <option value="contrast">Contrast (punchy, V-Ray style)</option>
                 <option value="filmic">Filmic (soft highlights)</option>
               </select>

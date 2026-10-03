@@ -201,6 +201,56 @@ export function matchSunRotation(hdrAzimuth: number, sunDir: [number, number, nu
   return Math.atan2(Math.sin(r), Math.cos(r));
 }
 
+/** A copy of HDR `t` with its sun (the pixels far brighter than the sky) scaled by `k`
+ * (ADR-102): below 1 the shadows open up against the sunlit faces, as a hazier day's do,
+ * so whites needn't clip for the shade to read. */
+export function scaleSun(t: THREE.DataTexture, k: number): THREE.DataTexture {
+  const img = t.image as { data: Float32Array; width: number; height: number };
+  const data = new Float32Array(img.data);
+  // The sun: within a few percent of the brightest pixel (the sky itself is thousands of
+  // times dimmer).
+  let peak = 0;
+  for (let i = 0; i < data.length; i += 4)
+    peak = Math.max(peak, 0.2126 * data[i]! + 0.7152 * data[i + 1]! + 0.0722 * data[i + 2]!);
+  const sky = peak / 30 / 20;
+  for (let i = 0; i < data.length; i += 4) {
+    const l = 0.2126 * data[i]! + 0.7152 * data[i + 1]! + 0.0722 * data[i + 2]!;
+    if (l > sky * 30) {
+      data[i] = data[i]! * k;
+      data[i + 1] = data[i + 1]! * k;
+      data[i + 2] = data[i + 2]! * k;
+    }
+  }
+  const out = new THREE.DataTexture(data, img.width, img.height, THREE.RGBAFormat, t.type);
+  out.mapping = t.mapping;
+  // The loader flips HDRs on upload; a copy that didn't would put the sun underground.
+  out.flipY = t.flipY;
+  out.colorSpace = t.colorSpace;
+  out.needsUpdate = true;
+  return out;
+}
+
+/** The sky's mean radiance just above the horizon (linear), what aerial haze fades to. */
+export function horizonColor(t: THREE.DataTexture): [number, number, number] {
+  const img = t.image as { data: Float32Array; width: number; height: number };
+  const { data, width: w, height: h } = img;
+  const out: [number, number, number] = [0, 0, 0];
+  let n = 0;
+  // Rows a few degrees above the horizon (row 0 is the zenith).
+  for (let j = Math.floor(h * 0.44); j < Math.floor(h * 0.49); j++)
+    for (let i = 0; i < w; i += 4) {
+      const k = (j * w + i) * 4;
+      const l = 0.2126 * data[k]! + 0.7152 * data[k + 1]! + 0.0722 * data[k + 2]!;
+      // Leave out the sun if it's low.
+      if (l > 50) continue;
+      out[0] += data[k]!;
+      out[1] += data[k + 1]!;
+      out[2] += data[k + 2]!;
+      n++;
+    }
+  return out.map((v) => v / Math.max(n, 1)) as [number, number, number];
+}
+
 /** A pure sky is black below the horizon: nothing would bounce up from the ground, and
  * shade (the inside of a lawn, under eaves) goes black. Fill it as the physical sky does
  * (ADR-101): a grassy ground lit by this sky, its radiance albedo × irradiance / π. */

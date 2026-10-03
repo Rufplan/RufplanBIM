@@ -325,11 +325,13 @@ const STAINED: Species = Species {
 
 /// Cedar under a warm semi-transparent stain (ADR-095): the stain evens the boards toward
 /// one honey-brown, the grain still showing through softly.
+// A natural, semi-transparent stain on western red cedar (ADR-102): tan rather than
+// orange, and boards that differ, as the reference's do.
 const STAINED_CEDAR: Species = Species {
-    early: [178, 112, 58],
-    late: [150, 92, 48],
+    early: [204, 162, 120],
+    late: [166, 124, 88],
     ring: 6.0,
-    spread: 0.16,
+    spread: 0.26,
     knots: 0.08,
     rough: 0.62,
     weathered: false,

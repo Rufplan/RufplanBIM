@@ -23,7 +23,7 @@ export interface RenderSettings {
   samples: number;
   exposure: number;
   /** Tone curve: punchier contrast (ACES, the default) or soft filmic (AgX). */
-  tone?: "filmic" | "contrast";
+  tone?: Tone;
 }
 
 /** Model space is z-up; three.js (and the path tracer's sky) is y-up. */
@@ -40,6 +40,18 @@ export interface Surface {
   specularIntensity: number;
   /** Fabric's soft sheen (0 for none). */
   sheen?: number;
+}
+
+/** The tone curves (ADR-102): ACES's punch, AgX's soft filmic roll-off, or Khronos PBR
+ * Neutral, which keeps whites white and greens their own hue without clipping. */
+export type Tone = "contrast" | "filmic" | "neutral";
+
+export function toneMappingOf(t: Tone | undefined): THREE.ToneMapping {
+  return t === "filmic"
+    ? THREE.AgXToneMapping
+    : t === "neutral"
+      ? THREE.NeutralToneMapping
+      : THREE.ACESFilmicToneMapping;
 }
 
 /** A category's physical surface, tuned like V-Ray's standard materials: glass with
@@ -518,7 +530,7 @@ export function renderBackdrop(
     texture: THREE.Texture;
     rotation: number;
     exposure: number;
-    tone?: "filmic" | "contrast";
+    tone?: Tone;
     /** Already toned (a library sky's photo, ADR-101): shown as is, times \`gain\`. */
     raw?: boolean;
     gain?: number;
@@ -539,8 +551,7 @@ export function renderBackdrop(
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     // The same tone curve as the render, so projected ground meets the backdrop cleanly.
-    renderer.toneMapping =
-      pano.tone === "filmic" ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
+    renderer.toneMapping = toneMappingOf(pano.tone);
     renderer.toneMappingExposure = pano.exposure;
     if (pano.raw) renderer.toneMapping = THREE.NoToneMapping;
     const scene = new THREE.Scene();
@@ -579,8 +590,7 @@ export class RenderJob {
     this.renderer.setPixelRatio(1);
     this.renderer.setSize(settings.width, settings.height, false);
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.toneMapping =
-      settings.tone === "filmic" ? THREE.AgXToneMapping : THREE.ACESFilmicToneMapping;
+    this.renderer.toneMapping = toneMappingOf(settings.tone);
     this.renderer.toneMappingExposure = settings.exposure;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.canvas = this.renderer.domElement;

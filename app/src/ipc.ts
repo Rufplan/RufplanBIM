@@ -203,6 +203,8 @@ export interface AutoRender {
   skyExposure?: number;
   /** Ceilings' glow in exteriors, so interiors read lit (default 1, ADR-101). */
   interiorGlow?: number;
+  /** A Sky Library sky's sun against its sky (default 1, ADR-102). */
+  sunScale?: number;
   /** A Sky Library sky's sun turned to the site's sun (default on, ADR-101). */
   matchSun?: boolean;
   /** Sunlit to skylit light (default 6): lower lifts the shadows. */
@@ -212,11 +214,15 @@ export interface AutoRender {
   /** "guided" (albedo/normal/depth à-trous, ADR-102) or "blur" (the old bilateral). */
   denoiser?: "guided" | "blur";
   denoiseStrength?: number;
+  /** Aerial haze: metres to fade 63% toward the horizon (default 2500; 0 off, ADR-102). */
+  haze?: number;
   /** A Lighting Scheme name ("Exterior: Sun and Artificial"…). */
   scheme?: string;
   /** Grass clumps in the render (default 120,000). */
   grass?: number;
-  tone?: "contrast" | "filmic";
+  tone?: "contrast" | "filmic" | "neutral";
+  /** Exposure in stops (ADR-102), in place of the `exposure` multiplier. */
+  ev?: number;
   glare?: boolean;
   vignette?: boolean;
   d5?: boolean;

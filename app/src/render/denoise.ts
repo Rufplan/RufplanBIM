@@ -18,6 +18,11 @@ export interface DenoiseSettings {
   strength: number;
   /** Passes (each doubles the reach): 5 reaches about 60 px. */
   passes: number;
+  /** Aerial perspective (ADR-102): the distance (mm) at which 63% of a surface gives way
+   * to the horizon's colour; 0 for none. */
+  hazeDistance?: number;
+  /** The horizon's radiance (linear), what distance fades to. */
+  hazeColor?: [number, number, number];
 }
 
 export const DEFAULT_DENOISE: DenoiseSettings = { strength: 1, passes: 5 };
@@ -148,12 +153,17 @@ const OUTPUT_FRAG = /* glsl */ `
   uniform sampler2D map;
   uniform sampler2D original;
   uniform sampler2D normalTex;
+  uniform float hazeDistance;
+  uniform vec3 hazeColor;
   varying vec2 vUv;
   void main() {
     ivec2 p = ivec2(gl_FragCoord.xy);
     vec4 o = texelFetch(original, p, 0);
+    float depth = texelFetch(normalTex, p, 0).w;
     // Only where there's a surface; the alpha (and the sky) is the trace's own.
-    vec4 c = texelFetch(normalTex, p, 0).w > 0.0 ? vec4(texelFetch(map, p, 0).rgb, o.a) : o;
+    vec4 c = depth > 0.0 ? vec4(texelFetch(map, p, 0).rgb, o.a) : o;
+    if (depth > 0.0 && hazeDistance > 0.0)
+      c.rgb = mix(c.rgb, hazeColor, 1.0 - exp(-depth / hazeDistance));
     gl_FragColor = c;
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -317,6 +327,8 @@ export function guidedDenoise(
         map: { value: dst.texture },
         original: { value: color },
         normalTex: { value: normal.texture },
+        hazeDistance: { value: o.hazeDistance ?? 0 },
+        hazeColor: { value: new THREE.Vector3(...(o.hazeColor ?? [0, 0, 0])) },
       },
       null,
     );
