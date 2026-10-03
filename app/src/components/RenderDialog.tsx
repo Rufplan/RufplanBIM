@@ -459,7 +459,12 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const show = () => composite(shown, backdrop.current, j.canvas);
       cut.current = () => pt.cutout(j.canvas, scene, camera);
       finish.current = () => {
-        if (denoise) j.denoise();
+        // The guided denoiser (ADR-102); "blur" is the old bilateral one, for comparison.
+        if (denoise) {
+          if ((auto?.denoiser ?? "guided") === "guided")
+            j.guidedDenoise({ strength: auto?.denoiseStrength ?? 1, passes: 5 });
+          else j.denoise();
+        }
         show();
         if (glare || vignette)
           pt.lensEffects(shown, { glare: glare ? 0.35 : 0, vignette: vignette ? 0.22 : 0 });

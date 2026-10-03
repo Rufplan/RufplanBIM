@@ -209,6 +209,9 @@ export interface AutoRender {
   sunToSky?: number;
   /** Smooth the remaining noise at the end (default on). */
   denoise?: boolean;
+  /** "guided" (albedo/normal/depth à-trous, ADR-102) or "blur" (the old bilateral). */
+  denoiser?: "guided" | "blur";
+  denoiseStrength?: number;
   /** A Lighting Scheme name ("Exterior: Sun and Artificial"…). */
   scheme?: string;
   /** Grass clumps in the render (default 120,000). */

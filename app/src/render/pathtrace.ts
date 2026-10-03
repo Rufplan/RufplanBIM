@@ -11,6 +11,7 @@ import type { Mesh } from "../ipc";
 import { uvAt, type Imagery } from "../imagery";
 import { meshColor } from "../components/View3D";
 import { GROUND_ALBEDO } from "./sky";
+import { guidedDenoise, type DenoiseSettings } from "./denoise";
 import { boxUv, physicalMaterial, texturesFor, type TextureLoader } from "./materials";
 import type { RenderMaterial } from "../bindings/RenderMaterial";
 import type { LightInfo } from "../bindings/LightInfo";
@@ -563,6 +564,8 @@ export class RenderJob {
   private stopped = false;
   private started = 0;
   private logged = 0;
+  private scene: THREE.Scene | null = null;
+  private camera: THREE.Camera | null = null;
 
   constructor(settings: RenderSettings) {
     this.renderer = new THREE.WebGLRenderer({
@@ -619,6 +622,8 @@ export class RenderJob {
     if (this.stopped) return;
     this.tracer.textureSize.setScalar(textureSizeFor(scene));
     this.tracer.setScene(scene, camera);
+    this.scene = scene;
+    this.camera = camera;
     this.started = performance.now();
     const loop = () => {
       if (this.stopped) return;
@@ -661,6 +666,13 @@ export class RenderJob {
   stop() {
     this.stopped = true;
     cancelAnimationFrame(this.raf);
+  }
+
+  /** The guided denoiser (ADR-102): albedo, normal and depth from the scene steer an
+   * à-trous filter of the lighting, so texture keeps its detail. */
+  guidedDenoise(o?: DenoiseSettings) {
+    if (!this.scene || !this.camera) return this.denoise();
+    guidedDenoise(this.renderer, this.tracer.target.texture, this.scene, this.camera, o);
   }
 
   /** Smooths the remaining noise, edge-aware, as V-Ray's denoiser does at the end. */
