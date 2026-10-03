@@ -3789,3 +3789,65 @@ coursing along a line".
   without lights thinning the samples.
 - **Dev aid:** the autorender settings take `matchSun`, `rotation` and `interiorGlow`;
   `background` takes `sky:<poly haven id>`.
+
+## ADR-102 Clean renders: guided denoiser, Neutral tone, haze, supersampling — Accepted (2026-10-03)
+- **The owner's brief:** bring raw renders closer to the reference (photoreal, clean,
+  warm). Every fix is a toggleable setting for A/B testing. In priority order:
+  1. noise
+  2. resolution and anti-aliasing
+  3. tone mapping
+  4. lighting and sky
+  5. cedar
+  6. stucco
+  7. glazing
+  8. bevels
+  9. grass
+- **1 Noise — a guided denoiser written here** (app render/denoise.ts). OIDN and OptiX
+  are major dependencies needing the owner's approval; this does the same job without
+  them.
+  - A G-buffer is rasterized in the render's own WebGL context: albedo (textures and
+    vertex colours, leaves cut out by alpha) plus view normal and depth. Glass is left
+    out, so the room behind guides.
+  - The trace is divided by the albedo, so only lighting is filtered. Fireflies are
+    clamped to their neighbours' brightest.
+  - Five à-trous passes (steps 1–16 px) are edge-stopped by normal, relative depth and
+    log-luminance, then remultiplied by the albedo.
+  - Wood grain, board lines, paver joints and leaves keep their detail. At 64 samples
+    the stucco and cedar come out clean.
+  - Settings: `denoiser` is "guided" by default, or "blur" for the old bilateral one;
+    `denoiseStrength`.
+- **2 Supersampling:** the Quality presets are now Draft 32, Medium 128, High 512, Final
+  512 at 1.5× and Best 1024 at 2×. The trace renders larger and is drawn down with
+  high-quality smoothing. Setting: `supersample`.
+- **3 Tone and exposure:**
+  - Khronos PBR Neutral tone mapping (`tone: "neutral"`, the new default) keeps hues
+    and whites without ACES's saturation or AgX's wash.
+  - Exposure is shown in EV, ±2 in thirds. The setting `ev` takes stops.
+- **4 Lighting:**
+  - `sunScale` scales a library sky's sun against its sky (0.4 for the hero), opening
+    the shade as a hazier day does, so whites needn't clip for the shade to read. A bug
+    fixed while building it: a copied HDR has to keep the loader's `flipY`, or the sun
+    goes underground.
+  - Aerial haze fades surfaces toward the horizon's radiance with depth from the
+    G-buffer (`haze`, metres to 63%, default 2500; 0 is off).
+  - Contact shadows and bounce light come from the path tracer itself (5 diffuse
+    bounces), so no AO pass was added.
+- **5–6 Materials:**
+  - Cedar is a natural tan stain (early [204,162,120], late [166,124,88]) with wider
+    per-board variation (spread 0.26).
+  - Stucco is a warm off-white, about 0.7 reflectance, roughness 0.88.
+  - The lawn's albedo is less saturated and more yellow, matching the reference's
+    sunlit turf (about 88,101,54 on screen).
+- **9 Grass:**
+  - Turf grows 25 mm over the edges of paving and stones.
+  - 4.5% of blades are dry.
+  - Lawn density scales with height squared, so shorter turf still covers the ground.
+  - The render's grass field is sized from the lawn's own density. It had been sized for
+    70/m² and was thinning out evenly to fit its cap.
+- **8 Bevels:** ground regions in a slab material (stepping stones, treads) are stones
+  50 mm proud with a 10 mm chamfered top edge, their sides running below grade. The
+  fascia keeps its stepped profile; bevelling it is still to do.
+- **7 Glazing:** the glass was already Fresnel (IOR 1.52), and interiors read through it
+  by the ceiling glow (ADR-101). Recessed frames and returns are still to do.
+- **Not done:** an AI enhancement pass, the furniture weave and teak textures, an
+  anisotropic grill, depth of field, and fascia and slab-edge bevels.
