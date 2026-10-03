@@ -2391,6 +2391,48 @@ pub fn region_mesh(doc: &Document, id: ElementId) -> Vec<f32> {
     out
 }
 
+/// A stone slab (ADR-102): `thick` mm proud of the ground with its top edge chamfered
+/// `chamfer` mm, so it sits on the lawn and catches a highlight along its arris, as cut
+/// stone does, rather than lying flat as a razor-edged decal. Its sides run a little below
+/// grade. Triangles (9 floats each), wound outward.
+pub fn slab_mesh(poly: &studio_geom::Poly, z: f64, thick: f64, chamfer: f64) -> Vec<f32> {
+    let mut ring = poly.outer.clone();
+    if studio_geom::signed_area(&ring) < 0.0 {
+        ring.reverse();
+    }
+    let top = studio_geom::offset_ring(&ring, -chamfer);
+    let n = ring.len();
+    let mut out: Vec<f32> = vec![];
+    let mut tri = |a: [f64; 3], b: [f64; 3], c: [f64; 3]| {
+        for q in [a, b, c] {
+            out.extend(q.map(|v| v as f32));
+        }
+    };
+    let v = |p: Pt, h: f64| [p.x, p.y, z + h];
+    // The top.
+    let (pts, tris) = studio_geom::triangulate(&studio_geom::Poly::simple(top.clone()));
+    for t in tris {
+        tri(
+            v(pts[t[0]], thick),
+            v(pts[t[1]], thick),
+            v(pts[t[2]], thick),
+        );
+    }
+    for i in 0..n {
+        let j = (i + 1) % n;
+        // The chamfer, from the top's edge out and down to the outline.
+        let (a, b) = (v(top[i], thick), v(top[j], thick));
+        let (c, d) = (v(ring[j], thick - chamfer), v(ring[i], thick - chamfer));
+        tri(a, d, c);
+        tri(a, c, b);
+        // The side, down past grade.
+        let (e, f) = (v(ring[j], -20.0), v(ring[i], -20.0));
+        tri(d, f, e);
+        tri(d, e, c);
+    }
+    out
+}
+
 /// Triangulates areas and lays them over the ground: split finely (under 1.5 m a side)
 /// when `fine`, so they follow the topography, heights from `z_at`.
 fn drape(polys: &[studio_geom::Poly], z_at: impl Fn(Pt) -> f64, fine: bool) -> Vec<f32> {
@@ -2515,10 +2557,26 @@ pub(crate) fn plan_grass(doc: &Document, b: &mut Builder, level: ElementId, site
 pub(crate) fn region_meshes(doc: &Document, out: &mut Vec<Mesh>) {
     for e in doc.of(Category::GroundRegion) {
         let ElementData::GroundRegion {
-            level, material, ..
+            level,
+            material,
+            boundary,
+            sketch,
         } = &e.data
         else {
             continue;
+        };
+        // Stone slabs (stepping stones, treads) stand proud, chamfered (ADR-102).
+        let slab = doc
+            .data(*material)
+            .is_ok_and(|m| m.name().to_lowercase().contains("slab"));
+        let positions = if slab {
+            let z = doc.level_elevation(*level).unwrap_or(0.0);
+            region_polys(doc, boundary, sketch)
+                .iter()
+                .flat_map(|p| slab_mesh(p, z, 50.0, 10.0))
+                .collect()
+        } else {
+            region_mesh(doc, e.id)
         };
         let color = match doc.data(*material) {
             Ok(ElementData::Material { color, .. }) => Some(*color),
@@ -2532,7 +2590,7 @@ pub(crate) fn region_meshes(doc: &Document, out: &mut Vec<Mesh>) {
             color,
             material: Some(*material),
             level: Some(*level),
-            positions: region_mesh(doc, e.id),
+            positions,
             edges: vec![],
             glow: None,
         });
@@ -2571,6 +2629,42 @@ pub(crate) fn plan_regions(doc: &Document, b: &mut Builder, level: ElementId, si
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A stepping stone stands 50 mm proud, chamfered, its faces outward (ADR-102).
+    #[test]
+    fn a_slab_stands_proud_with_a_chamfered_edge() {
+        let sq = studio_geom::Poly::simple(vec![
+            Pt::new(0.0, 0.0),
+            Pt::new(600.0, 0.0),
+            Pt::new(600.0, 400.0),
+            Pt::new(0.0, 400.0),
+        ]);
+        let t = slab_mesh(&sq, 100.0, 50.0, 10.0);
+        let zs: Vec<f32> = t.iter().skip(2).step_by(3).copied().collect();
+        let top = zs.iter().copied().fold(f32::MIN, f32::max);
+        assert!((top - 150.0).abs() < 1e-3);
+        assert!(zs.iter().any(|z| (*z - 140.0).abs() < 1e-3), "the chamfer");
+        assert!(zs.iter().any(|z| *z < 100.0), "below grade");
+        // Every triangle faces out of the stone (away from its middle).
+        let mid = [300.0f32, 200.0, 125.0];
+        for c in t.as_chunks::<9>().0 {
+            let v = |k: usize| [c[k * 3], c[k * 3 + 1], c[k * 3 + 2]];
+            let (a, b, d) = (v(0), v(1), v(2));
+            let u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+            let w = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+            let n = [
+                u[1] * w[2] - u[2] * w[1],
+                u[2] * w[0] - u[0] * w[2],
+                u[0] * w[1] - u[1] * w[0],
+            ];
+            let o = [
+                (a[0] + b[0] + d[0]) / 3.0 - mid[0],
+                (a[1] + b[1] + d[1]) / 3.0 - mid[1],
+                (a[2] + b[2] + d[2]) / 3.0 - mid[2],
+            ];
+            assert!(n[0] * o[0] + n[1] * o[1] + n[2] * o[2] > 0.0, "{c:?}");
+        }
+    }
 
     /// Faces point the way their normals do (ADR-101): the path tracer turns normals to
     /// the face, so a leaf wound against its normal is lit from the wrong side.
