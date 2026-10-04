@@ -562,6 +562,7 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
                 }],
                 align: note.align,
                 width: None,
+                angle: 0.0,
             });
         }
         Ok(view)

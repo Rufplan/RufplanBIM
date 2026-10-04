@@ -141,6 +141,62 @@ pub fn leader_points(tb: &TextBox, l: &Leader) -> Vec<Pt> {
     }
 }
 
+/// `p` turned by `angle` (radians, counter-clockwise) about `about` (ADR-108).
+pub fn turn(p: Pt, about: Pt, angle: f64) -> Pt {
+    if angle == 0.0 {
+        return p;
+    }
+    let (s, c) = angle.sin_cos();
+    let d = p.sub(about);
+    about.add(Pt::new(d.x * c - d.y * s, d.x * s + d.y * c))
+}
+
+/// A leader's polyline for a note turned by `angle` about `at`: worked out in the note's
+/// own frame, so it leaves the text's side as it would unturned.
+pub fn leader_points_turned(tb: &TextBox, l: &Leader, at: Pt, angle: f64) -> Vec<Pt> {
+    if angle == 0.0 {
+        return leader_points(tb, l);
+    }
+    let local = Leader {
+        end: turn(l.end, at, -angle),
+        elbow: l.elbow.map(|e| turn(e, at, -angle)),
+        arc: l.arc,
+    };
+    leader_points(tb, &local)
+        .into_iter()
+        .map(|p| turn(p, at, angle))
+        .collect()
+}
+
+/// The note's box in the model, turned with it: bottom left, bottom right, top right, top
+/// left.
+pub fn box_corners(tb: &TextBox, at: Pt, angle: f64) -> [Pt; 4] {
+    [
+        tb.min,
+        Pt::new(tb.max.x, tb.min.y),
+        tb.max,
+        Pt::new(tb.min.x, tb.max.y),
+    ]
+    .map(|p| turn(p, at, angle))
+}
+
+/// How far outside the box a selected note's move and rotate grips sit, paper mm (ADR-108).
+pub const GRIP_OFFSET: f64 = 3.0;
+
+/// A selected note's box grips (ADR-108), model mm, turned with it: the move grip off the
+/// box's top left corner, the rotate grip off its top right, and the width grips at the
+/// middle of its left and right sides. `scale`: the view's.
+pub fn frame_grips(tb: &TextBox, at: Pt, angle: f64, scale: f64) -> [(&'static str, Pt); 4] {
+    let off = GRIP_OFFSET * scale;
+    let mid = (tb.min.y + tb.max.y) / 2.0;
+    [
+        ("text_move_grip", Pt::new(tb.min.x - off, tb.max.y + off)),
+        ("text_rotate", Pt::new(tb.max.x + off, tb.max.y + off)),
+        ("text_width_left", Pt::new(tb.min.x, mid)),
+        ("text_width", Pt::new(tb.max.x, mid)),
+    ]
+    .map(|(k, p)| (k, turn(p, at, angle)))
+}
 /// Revit's "Arrow Filled 30 Degree": a solid triangle at the leader's end, `len` long.
 pub fn arrowhead(pts: &[Pt], len: f64) -> Option<[Pt; 3]> {
     let n = pts.len();

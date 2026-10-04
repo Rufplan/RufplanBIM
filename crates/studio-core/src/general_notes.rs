@@ -341,7 +341,7 @@ pub fn place(
         view,
         at,
         &text(heading, notes),
-        2.4,
+        3.2,
         vec![],
         crate::text::TextAlign::Left,
         Some(width.clamp(60.0, 400.0)),

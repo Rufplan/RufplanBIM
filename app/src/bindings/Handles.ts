@@ -3,9 +3,14 @@ import type { DragArea } from "./DragArea";
 import type { FlipControl } from "./FlipControl";
 import type { Grip } from "./Grip";
 import type { TempDim } from "./TempDim";
+import type { TextFrame } from "./TextFrame";
 
 export type Handles = { grips: Array<Grip>, dims: Array<TempDim>, areas: Array<DragArea>, 
 /**
  * Revit's flip controls on a selected door or window.
  */
-flips: Array<FlipControl>, };
+flips: Array<FlipControl>, 
+/**
+ * Selected text notes' boxes (ADR-108).
+ */
+frames: Array<TextFrame>, };

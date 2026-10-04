@@ -587,8 +587,8 @@ pub fn layout(
     let mut p = Pen {
         k,
         plan: CoverPlan::default(),
-        head_size: 3.4,
-        body_size: 2.6,
+        head_size: 4.0,
+        body_size: 3.2,
     };
     let g = 8.0 * k;
 
@@ -785,8 +785,8 @@ pub fn text_sheet(
     let mut p = Pen {
         k: (w / 775.0).clamp(0.6, 1.0),
         plan: CoverPlan::default(),
-        head_size: 3.2,
-        body_size: 2.4,
+        head_size: 4.0,
+        body_size: 3.2,
     };
     let g = 8.0 * p.k;
     let n = ((w + g) / (180.0 * p.k + g)).floor().max(1.0);

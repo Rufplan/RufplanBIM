@@ -17,7 +17,7 @@ export const LEADER_MODES: [LeaderMode, string][] = [
 /** Revit's text types: Arial at these printed heights (paper mm). */
 export const TEXT_TYPES: [number, string][] = [
   [2.4, `3/32" Arial`],
-  [3.0, `1/8" Arial`],
+  [3.2, `1/8" Arial`],
   [4.8, `3/16" Arial`],
   [6.4, `1/4" Arial`],
   [12.7, `1/2" Arial`],

@@ -809,9 +809,11 @@ pub struct TextNoteInfo {
     /// Paper mm.
     pub width: Option<f64>,
     pub view: ElementId,
-    /// The box, model mm.
+    /// The box, model mm, before turning.
     pub min: Pt,
     pub max: Pt,
+    /// Rotation about `at`, radians counter-clockwise (ADR-108).
+    pub angle: f64,
 }
 
 #[tauri::command]
@@ -829,6 +831,7 @@ pub fn text_note_info(
         size,
         align,
         width,
+        angle,
         ..
     } = doc.data(id)?
     else {
@@ -843,6 +846,7 @@ pub fn text_note_info(
         view: *view,
         min: tb.min,
         max: tb.max,
+        angle: *angle,
     })
 }
 

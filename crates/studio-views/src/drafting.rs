@@ -226,7 +226,7 @@ pub fn detail_preview(id: &str) -> Option<DisplayList> {
         super::text_note(
             &mut b,
             None,
-            n.at,
+            (n.at, 0.0),
             &n.text,
             details::TEXT_SIZE,
             &[leader],

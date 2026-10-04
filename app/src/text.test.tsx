@@ -103,7 +103,7 @@ describe("Revit's Text (ADR-070)", () => {
     const leader = screen.getByRole("radiogroup", { name: "Leader" });
     await userEvent.click(within(leader).getByRole("radio", { name: "Two Segments" }));
     await userEvent.click(screen.getByRole("radio", { name: "Align Right" }));
-    await userEvent.selectOptions(screen.getByLabelText("Text Type"), "3");
+    await userEvent.selectOptions(screen.getByLabelText("Text Type"), "3.2");
     clickAt(canvas, 100, 100);
     clickAt(canvas, 150, 150);
     expect(screen.queryByRole("textbox", { name: "Text" })).toBeNull();
@@ -113,7 +113,7 @@ describe("Revit's Text (ADR-070)", () => {
     fireEvent.keyDown(editor, { key: "Enter", ctrlKey: true });
     await waitFor(() => expect(argsOf("create_text_note")).toHaveLength(1));
     const args = argsOf("create_text_note")[0]!;
-    expect(args).toMatchObject({ text: "SEALANT", size: 3, align: "Right" });
+    expect(args).toMatchObject({ text: "SEALANT", size: 3.2, align: "Right" });
     const leaders = args.leaders as { end: unknown; elbow: unknown; arc: boolean }[];
     expect(leaders).toHaveLength(1);
     expect(leaders[0]!.elbow).not.toBeNull();

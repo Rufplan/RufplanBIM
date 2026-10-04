@@ -510,8 +510,11 @@ pub fn create_text_note(
     } else {
         text.to_owned()
     };
-    if !(0.5..=100.0).contains(&size) {
-        return Err(CoreError::Invalid("pick a text size".into()));
+    // 3/32" is the smallest text a set prints (ADR-108).
+    if !(2.38..=100.0).contains(&size) {
+        return Err(CoreError::Invalid(
+            "text is 3/32\" (2.4 mm) or larger; pick a text type".into(),
+        ));
     }
     doc.transact("Place text", |tx| {
         Ok(tx.insert(ElementData::TextNote {
@@ -522,6 +525,7 @@ pub fn create_text_note(
             leaders,
             align,
             width: width.filter(|w| *w > 1.0),
+            angle: 0.0,
         }))
     })
 }
@@ -539,6 +543,7 @@ pub fn text_note_box(
         leaders,
         align,
         width,
+        angle,
     } = doc.data(id)?
     else {
         return Err(CoreError::Invalid("select a text note".into()));
@@ -550,7 +555,7 @@ pub fn text_note_box(
     let tb = crate::text::layout(*at, text, size * scale, width.map(|w| w * scale), *align);
     let lines = leaders
         .iter()
-        .map(|l| crate::text::leader_points(&tb, l))
+        .map(|l| crate::text::leader_points_turned(&tb, l, *at, *angle))
         .collect();
     Ok((tb, lines, scale))
 }
@@ -558,7 +563,10 @@ pub fn text_note_box(
 /// Add Leader (ADR-070): another leader off the text's left or right side.
 pub fn add_leader(doc: &mut Document, id: ElementId, left: bool) -> CoreResult<()> {
     let (tb, _, _) = text_note_box(doc, id)?;
-    let l = crate::text::default_leader(&tb, left);
+    let mut l = crate::text::default_leader(&tb, left);
+    if let ElementData::TextNote { at, angle, .. } = doc.data(id)? {
+        l.end = crate::text::turn(l.end, *at, *angle);
+    }
     doc.transact("Add leader", |tx| {
         tx.modify(id, |d| {
             if let ElementData::TextNote { leaders, .. } = d {

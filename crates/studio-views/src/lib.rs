@@ -212,7 +212,7 @@ impl Builder {
     ) {
         self.text_rot(el, at, text, paper_mm, anchor, 0.0);
     }
-    /// Rotated text sized in paper mm.
+    /// Rotated text sized in paper mm, never under 3/32" (ADR-108).
     pub fn text_rot(
         &mut self,
         el: Option<ElementId>,
@@ -222,6 +222,7 @@ impl Builder {
         anchor: Anchor,
         angle: f64,
     ) {
+        let paper_mm = paper_mm.max(MIN_TEXT_MM);
         self.push(
             el,
             Prim::Text {
@@ -256,6 +257,12 @@ struct DisplayCache(HashMap<ElementId, (u64, Arc<DisplayList>)>);
 const CACHE_KEY: &str = "studio-views";
 
 /// Generates the display list of a 2D view. Returns None for 3D views.
+/// The smallest printed text, paper mm: 3/32" (ADR-108). Notes default to 1/8" (3.2 mm);
+/// titles and headings run larger.
+pub const MIN_TEXT_MM: f64 = 2.38;
+/// The default note text, paper mm: 1/8".
+pub const NOTE_TEXT_MM: f64 = 3.2;
+
 pub fn display_list(doc: &Document, view: ElementId) -> Option<DisplayList> {
     display_list_shared(doc, view).map(|d| (*d).clone())
 }
@@ -3199,8 +3206,18 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
                 leaders,
                 align,
                 width,
+                angle,
             } if *v == view => {
-                text_note(b, Some(e.id), *at, text, *size, leaders, *align, *width);
+                text_note(
+                    b,
+                    Some(e.id),
+                    (*at, *angle),
+                    text,
+                    *size,
+                    leaders,
+                    *align,
+                    *width,
+                );
             }
             // Detail components (ADR-071), in their place in the view's drawing order: a
             // break line's mask hides what was drawn before it.
@@ -3258,26 +3275,24 @@ pub fn annotations(doc: &Document, b: &mut Builder, view: ElementId) {
 }
 
 /// A text note (ADR-070): its lines (wrapped at `width` paper mm), its leaders with
-/// Revit's filled 30° arrowheads, and an invisible box so the whole note picks.
+/// Revit's filled 30° arrowheads, and an invisible box so the whole note picks; turned by
+/// its angle about `at` (ADR-108).
 #[allow(clippy::too_many_arguments)]
 pub fn text_note(
     b: &mut Builder,
     el: Option<ElementId>,
-    at: Pt,
+    (at, angle): (Pt, f64),
     text: &str,
     size: f64,
     leaders: &[studio_core::text::Leader],
     align: studio_core::text::TextAlign,
     width: Option<f64>,
 ) {
-    use studio_core::text::{arrowhead, layout, leader_points, TextAlign};
+    use studio_core::text::{
+        arrowhead, box_corners, layout, leader_points_turned, turn, TextAlign,
+    };
     let tb = layout(at, text, b.paper(size), width.map(|w| b.paper(w)), align);
-    let (lo, hi) = (tb.min, tb.max);
-    b.fill(
-        el,
-        vec![ring(&[lo, Pt::new(hi.x, lo.y), hi, Pt::new(lo.x, hi.y)])],
-        FillKind::Room,
-    );
+    b.fill(el, vec![ring(&box_corners(&tb, at, angle))], FillKind::Room);
     let anchor = match align {
         TextAlign::Left => Anchor::Left,
         TextAlign::Center => Anchor::Center,
@@ -3285,11 +3300,11 @@ pub fn text_note(
     };
     for (line, p) in tb.lines.iter().zip(&tb.line_at) {
         if !line.is_empty() {
-            b.text(el, *p, line.clone(), size, anchor);
+            b.text_rot(el, turn(*p, at, angle), line.clone(), size, anchor, angle);
         }
     }
     for l in leaders {
-        let pts = leader_points(&tb, l);
+        let pts = leader_points_turned(&tb, l, at, angle);
         b.line(el, &pts, false, 1, Dash::Solid);
         if let Some(tri) = arrowhead(&pts, b.paper(2.4)) {
             b.fill(el, vec![ring(&tri)], FillKind::Ink);

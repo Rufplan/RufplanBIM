@@ -165,6 +165,8 @@ Read these before writing code:
 - Sky Library and turf (ADR-101): studio-core `skies` (31 Poly Haven pure skies), app sky_library/sky_file, render/backgrounds.ts
   (hdrSun, matchSunRotation, fillGround); grass.ts arched lawn blades + far LOD; plants.rs mopheads, outward leaf winding;
   ffe.rs `canopy` umbrella (`Part::Tris`); pathtrace `interiorGlow`.
+- Text box and sizes (ADR-108): TextNote `angle`; studio-core `text::{turn, frame_grips, box_corners, leader_points_turned}`;
+  studio-views `Handles.frames`, `MIN_TEXT_MM` floor in `text_rot`; render.ts move/rotate/round grips, `textFrameGhost`.
 - Notes, RCP, maps, text tab (ADR-107): sets `sheet_notes` (notes per drawing sheet beside/under plans), bottom-right `pack`;
   studio-views RCP shared-edge cleanup, white ceilings; studio-core `maps` (MapFrame), app `map_image`/`sheet_maps`,
   studio-sheets `export_pdf_with`; Ribbon `TextPanels` contextual Modify tab, store `textEditing`.

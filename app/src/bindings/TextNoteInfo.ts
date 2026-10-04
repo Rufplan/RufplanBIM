@@ -16,6 +16,10 @@ size: number, align: TextAlign,
  */
 width: number | null, view: ElementId, 
 /**
- * The box, model mm.
+ * The box, model mm, before turning.
  */
-min: Pt, max: Pt, };
+min: Pt, max: Pt, 
+/**
+ * Rotation about `at`, radians counter-clockwise (ADR-108).
+ */
+angle: number, };

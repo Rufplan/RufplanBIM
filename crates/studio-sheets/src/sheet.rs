@@ -870,7 +870,7 @@ fn title_block(
             None,
             Pt::new(tx, *y),
             text.to_owned(),
-            2.2 * k,
+            2.4 * k,
             Anchor::Left,
         );
     };

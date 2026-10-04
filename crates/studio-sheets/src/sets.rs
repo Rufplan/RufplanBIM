@@ -439,8 +439,8 @@ fn interior_detail(view_name: &str) -> bool {
 }
 
 /// Width of a sheet's general notes column, paper mm, and their text height.
-const NOTES_W: f64 = 110.0;
-const NOTES_H: f64 = 2.4;
+const NOTES_W: f64 = 130.0;
+const NOTES_H: f64 = 3.2;
 
 /// The general notes each drawing sheet carries (ADR-107), by its number: the site plan,
 /// floor, roof and ceiling plans, elevations, sections, enlarged plans, interior elevations,
@@ -1518,6 +1518,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     leaders: vec![],
                     align: Default::default(),
                     width: Some(NOTES_W),
+                    angle: 0.0,
                 });
             }
             let note = |tx: &mut studio_core::Tx<'_>, at: Pt, text: String, size: f64| {
@@ -1529,6 +1530,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     leaders: vec![],
                     align: Default::default(),
                     width: None,
+                    angle: 0.0,
                 });
             };
             match &d.content {
@@ -1611,6 +1613,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                             leaders: vec![],
                             align,
                             width,
+                            angle: 0.0,
                         });
                     }
                     for (p, q, style) in plan.lines {
@@ -1706,6 +1709,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     leaders: vec![],
                     align: *align,
                     width: *width,
+                    angle: 0.0,
                 });
             }
             for (p, q, style) in &plan.lines {

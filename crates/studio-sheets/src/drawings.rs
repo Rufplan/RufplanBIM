@@ -60,9 +60,9 @@ pub const WALL_SECTION: &str = "Wall Section";
 
 /// Paper mm of wall section notes: text height, and the width of the notes outside and
 /// inside the wall.
-const NOTE: f64 = 2.4;
-const OUT_W: f64 = 46.0;
-const IN_W: f64 = 34.0;
+const NOTE: f64 = 3.2;
+const OUT_W: f64 = 56.0;
+const IN_W: f64 = 40.0;
 /// Wall sections: 3/4" = 1'-0".
 pub const WALL_SECTION_SCALE: u32 = 16;
 
@@ -786,21 +786,37 @@ fn place_notes(
     notes: &mut [Callout],
     x: f64,
     w: f64,
-    top: f64,
+    (top, floor): (f64, f64),
 ) -> CoreResult<()> {
     let k = f64::from(WALL_SECTION_SCALE);
     let lh = line_h();
     let wanted = |n: &Callout| n.top.unwrap_or(n.target.y + lh * 0.3);
     notes.sort_by(|a, b| wanted(b).total_cmp(&wanted(a)));
     let gap = NOTE * k * 0.9;
+    let tall =
+        |n: &Callout| studio_core::text::wrap(&n.text, NOTE, Some(w)).len().max(1) as f64 * lh;
+    // Down from the top: each first line level with its target, unless the note above is
+    // in the way.
     let mut cursor = top;
+    let mut ys: Vec<f64> = notes
+        .iter()
+        .map(|n| {
+            let y = wanted(n).min(cursor);
+            cursor = y - tall(n) - gap;
+            y
+        })
+        .collect();
+    // Then up from the crop's bottom (ADR-108): notes that ran past it rise, in order.
+    let mut limit = floor;
+    for (i, n) in notes.iter().enumerate().rev() {
+        let h = tall(n);
+        if ys[i] - h < limit {
+            ys[i] = limit + h;
+        }
+        limit = ys[i] + gap;
+    }
     let mut placed = vec![];
-    for n in notes.iter() {
-        let lines = studio_core::text::wrap(&n.text, NOTE, Some(w)).len().max(1) as f64;
-        let h = lines * lh;
-        // The first line level with the target, unless the note above is in the way.
-        let y = wanted(n).min(cursor);
-        cursor = y - h - gap;
+    for (n, y) in notes.iter().zip(ys) {
         let right = n.target.x > x;
         let shoulder = if right {
             x + w * k + 2.0 * k
@@ -827,6 +843,7 @@ fn place_notes(
                 leaders: vec![leader],
                 align: TextAlign::Left,
                 width: Some(w),
+                angle: 0.0,
             });
         }
         Ok(())
@@ -1053,18 +1070,18 @@ fn make_wall_section(
         // Finish grade 8" below the floor, sloping away.
         let grade = lowest - 8.0 * inch;
         lines.push((
-            Pt::new(lo.x.min(0.0), grade - 4.0 * inch),
+            Pt::new(ue - 4.0 * ft, grade - 4.0 * inch),
             Pt::new(ue, grade),
             LineStyle::Wide,
         ));
         regions.push((
             vec![
-                Pt::new(lo.x.min(0.0), bottom + 6.0 * inch),
+                Pt::new(ue - 2.5 * ft, bottom + 6.0 * inch),
                 Pt::new(ue - 4.0 * inch, bottom + 6.0 * inch),
                 Pt::new(ue - 4.0 * inch, lowest - 18.0 * inch),
                 Pt::new(ue, lowest - 18.0 * inch),
                 Pt::new(ue, grade),
-                Pt::new(lo.x.min(0.0), grade - 4.0 * inch),
+                Pt::new(ue - 2.5 * ft, grade - 3.0 * inch),
             ],
             FillPattern::Earth,
             None,
@@ -1241,9 +1258,16 @@ fn make_wall_section(
         &mut out_notes,
         lo.x.min(0.0) + 3.0 * k,
         OUT_W,
-        top - 2.0 * k,
+        (top - 2.0 * k, bottom + 4.0 * k),
     )?;
-    place_notes(doc, view, &mut in_notes, x_in, IN_W, top - 2.0 * k)?;
+    place_notes(
+        doc,
+        view,
+        &mut in_notes,
+        x_in,
+        IN_W,
+        (top - 2.0 * k, bottom + 4.0 * k),
+    )?;
     Ok(view)
 }
 

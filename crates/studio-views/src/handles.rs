@@ -56,6 +56,17 @@ pub struct Handles {
     pub areas: Vec<DragArea>,
     /// Revit's flip controls on a selected door or window.
     pub flips: Vec<FlipControl>,
+    /// Selected text notes' boxes (ADR-108).
+    pub frames: Vec<TextFrame>,
+}
+
+/// A selected text note's box, drawn round it as Revit does: bottom left, bottom right, top
+/// right, top left, turned with the note (ADR-108).
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[ts(export)]
+pub struct TextFrame {
+    pub id: ElementId,
+    pub corners: [Pt; 4],
 }
 
 /// A flip control: the double arrow drawn at `at` along `dir`; clicking it flips the
@@ -580,21 +591,42 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                     });
                 }
             }
-            // A text note (ADR-070): drag the text (its arrowheads stay), each leader's
-            // arrowhead and elbow (a straight leader's middle bends it), and the wrap width.
+            // A text note, as Revit shows one selected (ADR-070, ADR-108): its box, turned
+            // with it; the move grip (four arrows) and the rotate grip on the box's top
+            // corners; width grips on its left and right sides; each leader's arrowhead and
+            // elbow (a straight leader's middle bends it). The text itself drags too.
             ElementData::TextNote {
-                at, leaders, align, ..
+                at, leaders, angle, ..
             } => {
-                let Ok((tb, lines, _)) = studio_core::ops::text_note_box(doc, *id) else {
+                let Ok((tb, lines, scale)) = studio_core::ops::text_note_box(doc, *id) else {
                     continue;
                 };
+                let corners = studio_core::text::box_corners(&tb, *at, *angle);
+                let (lo, hi) = corners.iter().fold(
+                    (Pt::new(f64::MAX, f64::MAX), Pt::new(f64::MIN, f64::MIN)),
+                    |(lo, hi), p| {
+                        (
+                            Pt::new(lo.x.min(p.x), lo.y.min(p.y)),
+                            Pt::new(hi.x.max(p.x), hi.y.max(p.y)),
+                        )
+                    },
+                );
                 out.areas.push(DragArea {
                     id: *id,
                     key: "text_move".into(),
-                    min: tb.min,
-                    max: tb.max,
+                    min: lo,
+                    max: hi,
                     at: *at,
                 });
+                out.frames.push(TextFrame { id: *id, corners });
+                for (key, p) in studio_core::text::frame_grips(&tb, *at, *angle, scale) {
+                    out.grips.push(Grip {
+                        id: *id,
+                        key: key.into(),
+                        at: p,
+                        anchor: None,
+                    });
+                }
                 for (i, (l, pts)) in leaders.iter().zip(&lines).enumerate() {
                     out.grips.push(Grip {
                         id: *id,
@@ -613,18 +645,6 @@ pub fn handles(doc: &Document, view: ElementId, ids: &[ElementId]) -> Handles {
                         anchor: None,
                     });
                 }
-                let y = (tb.min.y + tb.max.y) / 2.0;
-                let x = if *align == studio_core::text::TextAlign::Right {
-                    tb.min.x
-                } else {
-                    tb.max.x
-                };
-                out.grips.push(Grip {
-                    id: *id,
-                    key: "text_width".into(),
-                    at: Pt::new(x, y),
-                    anchor: None,
-                });
             }
             _ => {}
         }

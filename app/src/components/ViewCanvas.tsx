@@ -53,6 +53,8 @@ import {
   draw,
   drawFlipControls,
   drawGrips,
+  drawTextFrames,
+  textFrameGhost,
   FLIP_HIT,
   drawOverlay,
   drawPreview,
@@ -209,6 +211,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     width: number | null;
     leaders: Leader[];
     text: string;
+    angle: number;
   } | null>(null);
   // The ribbon follows the editor (ADR-107): Modify | Edit Text while a note is typed.
   const setTextEditing = useAppStore((s) => s.setTextEditing);
@@ -394,11 +397,26 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       const hd = handles.current;
       if (s.tool === "select" && hd) {
         drawTempDims(ctx, cam.current, w, h, gripDrag.current ? [] : hd.dims);
+        // Selected text notes' boxes, and where a dragged grip will leave one (ADR-108).
+        let ghost: Pt[] | null = null;
+        const gd = gripDrag.current;
+        const dragged = gd?.to ? hd.grips[gd.index] : undefined;
+        if (gd?.to && dragged?.key.startsWith("text_")) {
+          const f = (hd.frames ?? []).find((x) => x.id === dragged.id);
+          if (f) ghost = textFrameGhost(f.corners, dragged.key, dragged.at, gd.to);
+        }
+        const ta = areaDrag.current;
+        const tArea = ta?.to ? (hd.areas ?? [])[ta.index] : undefined;
+        if (ta?.to && tArea?.key === "text_move") {
+          const f = (hd.frames ?? []).find((x) => x.id === tArea.id);
+          if (f) ghost = textFrameGhost(f.corners, "text_move", tArea.at, ta.to);
+        }
+        drawTextFrames(ctx, cam.current, w, h, hd.frames ?? [], ghost);
         drawGrips(ctx, cam.current, w, h, hd.grips, hoverGrip.current);
         drawFlipControls(ctx, cam.current, w, h, hd.flips ?? [], hoverFlip.current);
         const ad = areaDrag.current;
         const area = ad?.to ? (hd.areas ?? [])[ad.index] : undefined;
-        if (ad?.to && area) {
+        if (ad?.to && area && area.key !== "text_move") {
           const dx = ad.to.x - area.at.x;
           const dy = ad.to.y - area.at.y;
           const [x0, y0] = toScreen(cam.current, w, h, area.min.x + dx, area.max.y + dy);
@@ -412,7 +430,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         }
         const g = gripDrag.current;
         const grip = g ? hd.grips[g.index] : undefined;
-        if (g?.to && grip) {
+        if (g?.to && grip && !grip.key.startsWith("text_")) {
           drawOverlay(
             ctx,
             cam.current,
@@ -2018,6 +2036,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       width,
       leaders: leadersFrom(mode, textPts.current),
       text: "",
+      angle: 0,
     });
     textPts.current = [];
     textGhost.current = [];
@@ -2054,6 +2073,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       width: info.width,
       leaders: [],
       text: info.text,
+      angle: info.angle,
     });
   }
 
@@ -2611,6 +2631,8 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           fontPx={textEdit.size * view.scale * cam.current.zoom}
           widthPx={textEdit.width ? textEdit.width * view.scale * cam.current.zoom : null}
           align={textEdit.align}
+          angle={textEdit.angle}
+          origin={editorOrigin(textEdit, cam.current, view.scale)}
           initial={textEdit.text}
           onDone={(v) => void commitText(v)}
         />
@@ -2639,4 +2661,23 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       {!dl && <div className="canvas-loading">Generating view…</div>}
     </div>
   );
+}
+
+/** Where a turned note pivots in the editor (ADR-108): its anchor, px from the editor's
+ * top-left (the anchor sits at the first line, offset by the alignment). */
+function editorOrigin(
+  t: { at: Pt; size: number; align: TextAlign; width: number | null },
+  cam: Camera,
+  scale: number,
+): [number, number] {
+  const k = scale * cam.zoom;
+  const left =
+    t.width === null
+      ? 0
+      : t.align === "Center"
+        ? (t.width * k) / 2
+        : t.align === "Right"
+          ? t.width * k
+          : 0;
+  return [left, t.size * k * 0.8];
 }

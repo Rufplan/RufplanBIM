@@ -4088,3 +4088,29 @@ coursing along a line".
   - Picking Text no longer replaces the ribbon. The tab bar stays and the Modify tab becomes "Modify | Place Text" (Select, Properties, Format).
   - While a note is typed it becomes "Modify | Edit Text", with Close.
   - Finishing returns to the tab you were on, as Revit's contextual tabs do.
+
+## ADR-108 Revit's text box and grips; 1/8" text, 3/32" minimum — Accepted (2026-10-04)
+- **The owner's ask:**
+  - Make the text box itself and its grips work as Revit's do.
+  - Most text should default to 1/8", with 3/32" the minimum. Title blocks, view titles and headings may be larger.
+- **Selected text notes** (studio-views `handles`, studio-core `text::frame_grips`, app `render.ts`):
+  - The note's box is drawn as a thin blue outline (`Handles.frames`, `TextFrame`).
+  - Revit's grips:
+    - A four-arrow move grip off the box's top left corner and a round-arrow rotate grip off its top right (`GRIP_OFFSET`, 3 mm paper).
+    - Round width grips at the middle of its left and right sides; dragging one keeps the other side where it is.
+    - Round grips at each leader's arrowhead and elbow.
+  - The text itself still drags to move.
+  - While a grip drags, the box previews live (dashed) where it will land (`textFrameGhost`): moved, turned or widened.
+- **Rotation:**
+  - `TextNote.angle` (radians, counter-clockwise about `at`; `serde(default)`, so older files open unchanged).
+  - The rotate grip turns the note about its box's centre and snaps to 15° within 3°.
+  - Lines, the box and leaders turn with it (`text::turn`, `leader_points_turned`, `box_corners`). Leaders still leave the text's side as they would unturned.
+  - The PDF prints the turned text.
+- **The in-place editor:**
+  - Sits exactly on the note: its width and its turn (CSS rotate about the note's anchor, `TextNoteInfo.angle`).
+  - Grows with wrapped lines as you type, not just typed ones.
+- **Text sizes:**
+  - Every piece of text in views and on sheets prints at 3/32" (2.38 mm) or larger (`studio_views::MIN_TEXT_MM`, enforced by `Builder::text_rot`), and new notes can't be smaller.
+  - Notes default to 1/8" (3.2 mm, `NOTE_TEXT_MM`): the Text tool's default type (whose 1/8" entry was 3.0 mm), General Notes, sheet notes (column 130 mm), the general sheets' and cover's boxes (headings 5/32", 4.0 mm) and wall section notes.
+  - Title blocks, view titles and project text stay as large as they were. Title block labels went from 2.2 to 2.4 mm.
+- **Wall sections:** notes that run past the crop's bottom now rise in order. The earth hatch stops 2'-6" outside the footing, as wall sections draw it, so the notes beside it read cleanly.

@@ -1030,34 +1030,93 @@ pub fn drag_handle(doc: &mut Document, id: ElementId, key: &str, to: Pt) -> Core
                     }
                 })
             }),
-        // Text notes (ADR-070): the text itself (its leaders' arrowheads stay), a leader's
-        // arrowhead or elbow, and the wrap width.
-        (ElementData::TextNote { .. }, k)
-            if k == "text_move" || k == "text_width" || k.starts_with("leader:") =>
-        {
+        // Text notes (ADR-070, ADR-108): the text itself or its move grip (its leaders'
+        // arrowheads stay), the rotate grip (about the box's centre, snapping to 15°), a
+        // width grip on either side (the other side stays), a leader's arrowhead or elbow.
+        (ElementData::TextNote { .. }, k) if k.starts_with("text_") || k.starts_with("leader:") => {
+            use crate::text::{frame_grips, turn, TextAlign};
             let (tb, _, scale) = crate::ops::text_note_box(doc, id)?;
+            let ElementData::TextNote {
+                at: at0,
+                angle: a0,
+                align: al,
+                ..
+            } = doc.data(id)?
+            else {
+                return Err(bad());
+            };
+            let (at0, a0, al) = (*at0, *a0, *al);
+            let grip = |key: &str| {
+                frame_grips(&tb, at0, a0, scale)
+                    .into_iter()
+                    .find(|g| g.0 == key)
+                    .map(|g| g.1)
+            };
+            // The drag in the note's own (unturned) frame.
+            let local = turn(to, at0, -a0);
             doc.transact("Edit text note", |tx| {
                 tx.modify(id, |d| {
                     let ElementData::TextNote {
                         at,
                         leaders,
-                        align,
                         width,
+                        angle,
                         ..
                     } = d
                     else {
                         return;
                     };
+                    let min_w = tb.height * 2.0;
+                    let set_width = |width: &mut Option<f64>, w: f64| {
+                        *width = Some(w.max(min_w) / scale);
+                    };
                     match k {
                         "text_move" => *at = to,
-                        "text_width" => {
-                            let w = match align {
-                                crate::text::TextAlign::Left => to.x - tb.min.x,
-                                crate::text::TextAlign::Right => tb.max.x - to.x,
-                                crate::text::TextAlign::Center => 2.0 * (to.x - at.x).abs(),
-                            };
-                            *width = Some((w / scale).max(tb.height / scale * 2.0));
+                        "text_move_grip" => {
+                            if let Some(g) = grip(k) {
+                                *at = at0.add(to.sub(g));
+                            }
                         }
+                        "text_rotate" => {
+                            let c = turn(tb.min.lerp(tb.max, 0.5), at0, a0);
+                            let Some(g) = grip(k) else { return };
+                            let from = (g.y - c.y).atan2(g.x - c.x);
+                            let now = (to.y - c.y).atan2(to.x - c.x);
+                            let mut next = a0 + (now - from);
+                            let step = 15f64.to_radians();
+                            let snapped = (next / step).round() * step;
+                            if (next - snapped).abs() < 3f64.to_radians() {
+                                next = snapped;
+                            }
+                            let next = next.rem_euclid(std::f64::consts::TAU);
+                            let next = if next > std::f64::consts::PI {
+                                next - std::f64::consts::TAU
+                            } else {
+                                next
+                            };
+                            *at = turn(at0, c, next - a0);
+                            *angle = if next.abs() < 1e-9 { 0.0 } else { next };
+                        }
+                        "text_width" => match al {
+                            TextAlign::Left => set_width(width, local.x - tb.min.x),
+                            TextAlign::Center => set_width(width, 2.0 * (local.x - at0.x).abs()),
+                            TextAlign::Right => {
+                                // The right side is the anchor: it moves, the left stays.
+                                let x = local.x.max(tb.min.x + min_w);
+                                set_width(width, x - tb.min.x);
+                                *at = turn(Pt::new(x, at0.y), at0, a0);
+                            }
+                        },
+                        "text_width_left" => match al {
+                            TextAlign::Right => set_width(width, tb.max.x - local.x),
+                            TextAlign::Center => set_width(width, 2.0 * (local.x - at0.x).abs()),
+                            TextAlign::Left => {
+                                // The left side is the anchor: it moves, the right stays.
+                                let x = local.x.min(tb.max.x - min_w);
+                                set_width(width, tb.max.x - x);
+                                *at = turn(Pt::new(x, at0.y), at0, a0);
+                            }
+                        },
                         _ => {
                             let mut parts = k.split(':').skip(1);
                             let (Some(i), Some(what)) = (
@@ -1570,5 +1629,92 @@ mod tests {
         let (s, e) = ends(&doc, w);
         assert!((s.y - h).abs() < 1e-9 && (e.y - h).abs() < 1e-9);
         assert!(s.x > e.x, "runs the other way");
+    }
+
+    #[test]
+    fn text_note_grips_move_turn_and_widen_it_as_revit_does() {
+        use crate::text::{frame_grips, TextAlign};
+        let mut doc = Document::new();
+        crate::ops::seed_default_project(&mut doc).unwrap();
+        let view = doc
+            .of(crate::Category::View)
+            .find(|e| {
+                matches!(
+                    &e.data,
+                    ElementData::View {
+                        kind: crate::ViewKind::FloorPlan { .. },
+                        ..
+                    }
+                )
+            })
+            .unwrap()
+            .id;
+        let scale = match doc.data(view).unwrap() {
+            ElementData::View { scale, .. } => f64::from(*scale),
+            _ => unreachable!(),
+        };
+        let note = crate::ops::create_text_note(
+            &mut doc,
+            view,
+            Pt::new(1000.0, 2000.0),
+            "TYPICAL NOTE",
+            2.4,
+            vec![],
+            TextAlign::Left,
+            Some(40.0),
+        )
+        .unwrap();
+        let data = |doc: &Document| match doc.data(note).unwrap() {
+            ElementData::TextNote {
+                at, angle, width, ..
+            } => (*at, *angle, *width),
+            _ => unreachable!(),
+        };
+        let grips = |doc: &Document| {
+            let (tb, _, _) = crate::ops::text_note_box(doc, note).unwrap();
+            let (at, angle, _) = data(doc);
+            frame_grips(&tb, at, angle, scale)
+        };
+        // The move grip carries the note by the drag.
+        let g = grips(&doc)[0].1;
+        drag_handle(
+            &mut doc,
+            note,
+            "text_move_grip",
+            g.add(Pt::new(500.0, -250.0)),
+        )
+        .unwrap();
+        let (at, _, _) = data(&doc);
+        assert!(at.dist(Pt::new(1500.0, 1750.0)) < 1e-6, "{at:?}");
+        // The left width grip narrows it from the left; the right side stays put.
+        let (tb0, _, _) = crate::ops::text_note_box(&doc, note).unwrap();
+        let left = grips(&doc)[2].1;
+        drag_handle(
+            &mut doc,
+            note,
+            "text_width_left",
+            left.add(Pt::new(10.0 * scale, 0.0)),
+        )
+        .unwrap();
+        let (tb1, _, _) = crate::ops::text_note_box(&doc, note).unwrap();
+        assert!((tb1.max.x - tb0.max.x).abs() < 1e-6);
+        assert!((data(&doc).2.unwrap() - 30.0).abs() < 1e-6);
+        // The rotate grip turns it about the box's centre, snapping near 90°.
+        let (tb, _, _) = crate::ops::text_note_box(&doc, note).unwrap();
+        let c = tb.min.lerp(tb.max, 0.5);
+        let r = grips(&doc)[1].1;
+        let target = crate::text::turn(r, c, 88f64.to_radians());
+        drag_handle(&mut doc, note, "text_rotate", target).unwrap();
+        let (_, angle, _) = data(&doc);
+        assert!(
+            (angle - 90f64.to_radians()).abs() < 1e-9,
+            "{}",
+            angle.to_degrees()
+        );
+        // Its box and grips turn with it: the centre stays.
+        let (tb2, _, _) = crate::ops::text_note_box(&doc, note).unwrap();
+        let (at2, a2, _) = data(&doc);
+        let c2 = crate::text::turn(tb2.min.lerp(tb2.max, 0.5), at2, a2);
+        assert!(c2.dist(c) < 1e-6, "{c2:?} {c:?}");
     }
 }

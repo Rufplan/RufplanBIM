@@ -1180,6 +1180,9 @@ pub enum ElementData {
         /// Wrap width, paper mm; None: the lines as typed.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         width: Option<f64>,
+        /// Rotation about `at`, radians counter-clockwise (ADR-108).
+        #[serde(default)]
+        angle: f64,
     },
     Sheet {
         number: String,

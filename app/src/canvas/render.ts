@@ -357,19 +357,40 @@ export function drawOverlay(
   ctx.restore();
 }
 
-/** Grip squares for the selection (hovered grip filled cyan). */
+/** Grips for the selection (hovered grip filled cyan): squares, and a text note's as Revit
+ * draws them (ADR-108): the four-arrow move grip and the rotate grip on its box's top
+ * corners, and round grips for its width and leaders. */
 export function drawGrips(
   ctx: CanvasRenderingContext2D,
   cam: Camera,
   w: number,
   h: number,
-  grips: { at: Pt }[],
+  grips: { at: Pt; key?: string }[],
   hover: number | null,
 ) {
   ctx.save();
   ctx.setLineDash([]);
   grips.forEach((g, i) => {
     const [sx, sy] = toScreen(cam, w, h, g.at.x, g.at.y);
+    const key = g.key ?? "";
+    if (key === "text_move_grip") {
+      drawMoveGrip(ctx, sx, sy, i === hover);
+      return;
+    }
+    if (key === "text_rotate") {
+      drawRotateGrip(ctx, sx, sy, i === hover);
+      return;
+    }
+    if (key.startsWith("text_width") || key.startsWith("leader:")) {
+      ctx.beginPath();
+      ctx.arc(sx, sy, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = i === hover ? THEME.cyan : "#2f7fd8";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      return;
+    }
     ctx.fillStyle = i === hover ? THEME.cyan : "#ffffff";
     ctx.strokeStyle = THEME.ink;
     ctx.lineWidth = 1.5;
@@ -737,4 +758,138 @@ export function drawCameraGhost(
   ctx.closePath();
   ctx.fill();
   ctx.restore();
+}
+
+/** Revit's move grip: a four-way arrow, 18 px across. */
+function drawMoveGrip(ctx: CanvasRenderingContext2D, x: number, y: number, hover: boolean) {
+  const L = 9;
+  const H = 3.5;
+  ctx.save();
+  ctx.strokeStyle = hover ? THEME.cyan : "#2f7fd8";
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(x - L, y);
+  ctx.lineTo(x + L, y);
+  ctx.moveTo(x, y - L);
+  ctx.lineTo(x, y + L);
+  ctx.stroke();
+  for (const [dx, dy] of [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ] as const) {
+    const tx = x + dx * L;
+    const ty = y + dy * L;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - dx * H - dy * H, ty - dy * H - dx * H);
+    ctx.lineTo(tx - dx * H + dy * H, ty - dy * H + dx * H);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Revit's rotate grip: a round arrow, 16 px across. */
+function drawRotateGrip(ctx: CanvasRenderingContext2D, x: number, y: number, hover: boolean) {
+  const r = 7;
+  ctx.save();
+  ctx.strokeStyle = hover ? THEME.cyan : "#2f7fd8";
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(x, y, r, -Math.PI * 0.15, Math.PI * 1.35);
+  ctx.stroke();
+  // The arrowhead at the arc's start, pointing along it.
+  const a = -Math.PI * 0.15;
+  const ex = x + r * Math.cos(a);
+  const ey = y + r * Math.sin(a);
+  ctx.beginPath();
+  ctx.moveTo(ex + 4, ey + 1);
+  ctx.lineTo(ex - 2.5, ey - 3.5);
+  ctx.lineTo(ex - 1, ey + 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Selected text notes' boxes (ADR-108): a thin blue outline, turned with each note;
+ * `ghost` draws one dashed where a drag will leave it. */
+export function drawTextFrames(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  w: number,
+  h: number,
+  frames: { corners: Pt[] }[],
+  ghost: Pt[] | null,
+) {
+  ctx.save();
+  const poly = (pts: Pt[]) => {
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const [sx, sy] = toScreen(cam, w, h, p.x, p.y);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  };
+  ctx.strokeStyle = "#2f7fd8";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  for (const f of frames) poly(f.corners);
+  if (ghost) {
+    ctx.strokeStyle = THEME.cyan;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 3]);
+    poly(ghost);
+  }
+  ctx.restore();
+}
+
+/** Where a text note's box goes while one of its grips is dragged (ADR-108), for the live
+ * preview: moved, turned about its centre, or widened on the dragged side. */
+export function textFrameGhost(corners: Pt[], key: string, from: Pt, to: Pt): Pt[] | null {
+  if (corners.length !== 4) return null;
+  const [a, b, , d] = corners as [Pt, Pt, Pt, Pt];
+  if (key === "text_move_grip" || key === "text_move") {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    return corners.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+  }
+  if (key === "text_rotate") {
+    const c = {
+      x: corners.reduce((s, p) => s + p.x, 0) / 4,
+      y: corners.reduce((s, p) => s + p.y, 0) / 4,
+    };
+    let t = Math.atan2(to.y - c.y, to.x - c.x) - Math.atan2(from.y - c.y, from.x - c.x);
+    // Snaps near multiples of 15°, as the drop does.
+    const turned = Math.atan2(b.y - a.y, b.x - a.x) + t;
+    const step = Math.PI / 12;
+    const snap = Math.round(turned / step) * step;
+    if (Math.abs(turned - snap) < (3 * Math.PI) / 180) t += snap - turned;
+    const [s, co] = [Math.sin(t), Math.cos(t)];
+    return corners.map((p) => ({
+      x: c.x + (p.x - c.x) * co - (p.y - c.y) * s,
+      y: c.y + (p.x - c.x) * s + (p.y - c.y) * co,
+    }));
+  }
+  if (key === "text_width" || key === "text_width_left") {
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const u = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+    const along = (to.x - from.x) * u.x + (to.y - from.y) * u.y;
+    const shift = (p: Pt) => ({ x: p.x + u.x * along, y: p.y + u.y * along });
+    const out = corners.slice();
+    if (key === "text_width") {
+      out[1] = shift(corners[1]!);
+      out[2] = shift(corners[2]!);
+    } else {
+      out[0] = shift(corners[0]!);
+      out[3] = shift(d);
+    }
+    return out;
+  }
+  return null;
 }
