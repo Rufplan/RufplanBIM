@@ -4114,3 +4114,38 @@ coursing along a line".
   - Notes default to 1/8" (3.2 mm, `NOTE_TEXT_MM`): the Text tool's default type (whose 1/8" entry was 3.0 mm), General Notes, sheet notes (column 130 mm), the general sheets' and cover's boxes (headings 5/32", 4.0 mm) and wall section notes.
   - Title blocks, view titles and project text stay as large as they were. Title block labels went from 2.2 to 2.4 mm.
 - **Wall sections:** notes that run past the crop's bottom now rise in order. The earth hatch stops 2'-6" outside the footing, as wall sections draw it, so the notes beside it read cleanly.
+
+## ADR-109 The office's text types; a full title block with the stamps — Accepted (2026-10-04)
+- **The owner's ask:** standardize the set's text to his table of plotted heights for full-size sheets; put the project name in the title block (with what a title block should hold); move the stamps to the title block.
+- **Text types** (studio-core `text::sizes`, paper mm, the one table every drawing uses):
+  - Title block:
+    - Cover project name 3/4"; title block project name 1/4".
+    - Sheet number 1/2"; sheet title 3/16" (wrapping to two lines).
+    - Firm info, dates and project number 3/32".
+  - Drawing titles: view title 3/16"; view number 1/8"; scale 3/32".
+  - Plan annotation:
+    - Room names 1/8".
+    - 3/32": room numbers and areas, dimensions, notes and leaders, keynotes, door and window tags, callouts, levels and spot elevations, revision tags.
+    - Note headers 1/8".
+    - Grid text 3/16" in a 1/2" bubble.
+    - Match lines and the north arrow's N 1/8".
+  - Schedules: title 3/16", column headers 1/8", body 3/32" (title row 10 mm).
+  - Notes sheets and the cover's boxes: section headers 3/16", subheaders 1/8", body 3/32".
+  - 3/32" stays the floor for everything (`studio_views::MIN_TEXT_MM`), so the set reads at half size on 11x17.
+- **Notes:** per the table, notes are 3/32" under 1/8" headings, which supersedes ADR-108's 1/8" notes.
+  - General Notes (Annotate) and each drawing sheet's notes are placed as two notes: the heading at 1/8", the numbered notes at 3/32" under it (`general_notes::body`).
+  - The Text tool defaults to 3/32" again.
+  - Wall section notes are 3/32".
+- **The title block** (studio-sheets `sheet::title_block`), top to bottom:
+  - The architect's firm (Project Info's Architect, else Rufplan Studio): name, address, phone, email, web.
+  - Consultants (the rest of the team, up to six).
+  - The project: name at 1/4", address, owner, project number.
+  - The architect's stamp: a 48 mm dashed seal box, with license number and renewal lines, as California's B&P Code §5536.1 asks of each sheet.
+  - The agency's approval space.
+  - The design stage, with NOT FOR CONSTRUCTION before CD.
+  - Date, scale (the sheet's scale, AS INDICATED when mixed, NTS when none), drawn by and checked by.
+  - Issues.
+  - The instruments-of-service notice.
+  - Key plan and north arrow.
+  - Sheet title and number.
+- **The cover** no longer carries the stamp and agency boxes (they're on every sheet now); its project name is 3/4", building type 1/4", address 1/8".

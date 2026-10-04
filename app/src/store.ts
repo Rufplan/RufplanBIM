@@ -522,7 +522,7 @@ export const useAppStore = create<UiState>((set, get) => ({
     grassBrush: 1200,
     grassDensity: 100,
     grassErase: false,
-    textSize: 3.2,
+    textSize: 2.4,
     textLeader: "None",
     textAlign: "Left",
     componentKey: "lum-2x6",

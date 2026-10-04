@@ -303,7 +303,13 @@ pub fn north_arrow(
         (tip, back.add(side), c, back.sub(side))
     };
     let letter = |b: &mut Builder, up: Pt, text: &str, dist: f64| {
-        b.text(el, c.add(up.scale(dist)), text.into(), 3.0, Anchor::Center);
+        b.text(
+            el,
+            c.add(up.scale(dist)),
+            text.into(),
+            studio_core::text::sizes::NORTH,
+            Anchor::Center,
+        );
     };
     match style {
         NorthStyle::ProjectAndTrue => {

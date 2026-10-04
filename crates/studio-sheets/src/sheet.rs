@@ -1,6 +1,7 @@
 //! Sheet layout in paper millimetres (origin at the sheet's bottom-left): the Rufplan title
 //! block plus viewports, each a view's display list scaled from model mm to paper mm.
 
+use studio_core::text::sizes;
 use studio_core::{ops, Category, Document, ElementData, ElementId, SheetSize, ViewKind};
 use studio_geom::Pt;
 use studio_views::{Anchor, Builder, Dash, DisplayList, FillKind, Item, Prim, ViewType};
@@ -495,7 +496,9 @@ fn title_rule(at: Pt, name: &str, scale: &str, length: Option<f64>) -> (Pt, Pt) 
     let c = at.add(Pt::new(TITLE_BUBBLE, -TITLE_BUBBLE));
     let x0 = c.x + TITLE_BUBBLE + 2.0;
     let len = length
-        .unwrap_or_else(|| approx_width(name, 4.0).max(approx_width(scale, 2.6)) + 6.0)
+        .unwrap_or_else(|| {
+            approx_width(name, sizes::VIEW_TITLE).max(approx_width(scale, sizes::SCALE)) + 6.0
+        })
         .max(MIN_TITLE_LENGTH);
     (Pt::new(x0, c.y), Pt::new(x0 + len, c.y))
 }
@@ -739,7 +742,7 @@ fn view_title(
     let r = TITLE_BUBBLE;
     let c = at.add(Pt::new(r, -r));
     b.circle(el, c, r, 3, false);
-    b.text(el, c, n.to_string(), 3.2, Anchor::Center);
+    b.text(el, c, n.to_string(), sizes::VIEW_NUMBER, Anchor::Center);
     let (start, end) = title_rule(at, name, scale, length);
     let x0 = start.x;
     let len = end.x - start.x;
@@ -752,16 +755,16 @@ fn view_title(
     );
     b.text(
         el,
-        Pt::new(x0, c.y + 2.8),
+        Pt::new(x0, c.y + 3.4),
         name.to_uppercase(),
-        4.0,
+        sizes::VIEW_TITLE,
         Anchor::Left,
     );
     b.text(
         el,
         Pt::new(x0, c.y - 2.6),
         scale.to_owned(),
-        2.6,
+        sizes::SCALE,
         Anchor::Left,
     );
 }
@@ -833,26 +836,30 @@ fn title_block(
             ),
         };
 
+    // The title block, top to bottom (ADR-109), as US sets carry it: the architect's firm,
+    // the consultants, the project, the architect's stamp (with license and renewal, as
+    // California's B&P Code 5536.1 asks of every sheet) and the agency's approval space,
+    // the phase, date, scale and drawn/checked, the issues, the instruments-of-service
+    // notice, the key plan, then the sheet title and number. Text to the office's types.
     let pad = 5.0 * k;
     let tx = x0 + pad;
+    let inner = tb - 2.0 * pad;
+    let (ident, details) =
+        studio_core::project::get(doc).unwrap_or_else(|_| (Default::default(), Default::default()));
+    let _ = &ident;
     let mut y = h - m;
-    // Cyan accent bar and the Rufplan wordmark.
-    b.fill(
-        None,
-        vec![studio_views::ring(&rect(x0, y - 5.0 * k, x1, y))],
-        FillKind::Accent,
-    );
-    y -= 5.0 * k + 11.0 * k;
-    b.text(
-        None,
-        Pt::new(tx, y),
-        "RUFPLAN".into(),
-        11.0 * k,
-        Anchor::Left,
-    );
-    y -= 7.0 * k;
-    b.text(None, Pt::new(tx, y), "STUDIO".into(), 4.0 * k, Anchor::Left);
-    y -= 7.0 * k;
+    let txt = |b: &mut Builder, x: f64, y: f64, s: String, size: f64| {
+        b.text(None, Pt::new(x, y), s, size * k, Anchor::Left);
+    };
+    // Lines of `text` wrapped to the block, from `y` down; returns the new y.
+    let wrapped = |b: &mut Builder, y: f64, text: &str, size: f64| -> f64 {
+        let mut y = y;
+        for l in studio_core::text::wrap(text, size * k, Some(inner)) {
+            y -= size * k * 1.45;
+            b.text(None, Pt::new(tx, y), l, size * k, Anchor::Left);
+        }
+        y
+    };
     let rule = |b: &mut Builder, y: f64| {
         b.line(
             None,
@@ -862,80 +869,205 @@ fn title_block(
             Dash::Solid,
         )
     };
-    rule(b, y);
-
     let label = |b: &mut Builder, y: &mut f64, text: &str| {
-        *y -= 5.5 * k;
+        *y -= 5.0 * k;
         b.text(
             None,
             Pt::new(tx, *y),
             text.to_owned(),
-            2.4 * k,
+            sizes::TB_INFO * k,
             Anchor::Left,
         );
     };
-    let value = |b: &mut Builder, y: &mut f64, text: &str, size: f64| {
-        if text.is_empty() {
-            return;
+    // Cyan accent bar, then the firm.
+    b.fill(
+        None,
+        vec![studio_views::ring(&rect(x0, y - 5.0 * k, x1, y))],
+        FillKind::Accent,
+    );
+    y -= 5.0 * k;
+    let architect = details.team.iter().find(|t| {
+        t.discipline.to_lowercase().contains("architect")
+            && !t.discipline.to_lowercase().contains("landscape")
+    });
+    let firm = architect
+        .map(|a| a.contact.company.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "RUFPLAN STUDIO".into());
+    y -= sizes::TB_PROJECT * k * 1.6;
+    txt(b, tx, y, firm.to_uppercase(), sizes::TB_PROJECT);
+    if let Some(a) = architect {
+        let c = &a.contact;
+        for line in [
+            c.address.trim().to_string(),
+            [c.phone.trim(), c.email.trim()]
+                .iter()
+                .filter(|s| !s.is_empty())
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("  ·  "),
+            c.website.trim().to_string(),
+        ] {
+            if !line.is_empty() {
+                y = wrapped(b, y, &line, sizes::TB_INFO);
+            }
         }
-        *y -= size * k * 1.35;
-        b.text(
-            None,
-            Pt::new(tx, *y),
-            text.to_owned(),
-            size * k,
-            Anchor::Left,
-        );
-    };
-    label(b, &mut y, "PROJECT");
-    value(b, &mut y, &project.to_uppercase(), 5.0);
-    value(b, &mut y, &address, 3.0);
-    value(b, &mut y, &client, 3.0);
-    if !number_p.is_empty() {
-        value(b, &mut y, &format!("PROJECT NO. {number_p}"), 3.0);
     }
-    y -= 4.0 * k;
+    y -= 3.0 * k;
     rule(b, y);
+    // Consultants.
+    let consultants: Vec<String> = details
+        .team
+        .iter()
+        .filter(|t| !std::ptr::eq(*t, architect.map_or(std::ptr::null(), |a| a as *const _)))
+        .filter(|t| !t.contact.company.trim().is_empty())
+        .take(6)
+        .map(|t| {
+            format!(
+                "{}: {}",
+                t.discipline.to_uppercase(),
+                t.contact.company.trim()
+            )
+        })
+        .collect();
+    if !consultants.is_empty() {
+        label(b, &mut y, "CONSULTANTS");
+        for c in &consultants {
+            y = wrapped(b, y, c, sizes::TB_INFO);
+        }
+        y -= 3.0 * k;
+        rule(b, y);
+    }
+    // The project.
+    label(b, &mut y, "PROJECT");
+    if !project.is_empty() {
+        y = wrapped(b, y, &project.to_uppercase(), sizes::TB_PROJECT);
+    }
+    for line in [
+        address.clone(),
+        if client.is_empty() {
+            String::new()
+        } else {
+            format!("OWNER: {client}")
+        },
+        if number_p.is_empty() {
+            String::new()
+        } else {
+            format!("PROJECT NO. {number_p}")
+        },
+    ] {
+        if !line.is_empty() {
+            y = wrapped(b, y, &line, sizes::TB_INFO);
+        }
+    }
+    y -= 3.0 * k;
+    rule(b, y);
+    // The architect's stamp, and the license lines under it.
+    label(b, &mut y, "ARCHITECT'S STAMP");
+    let stamp = 48.0 * k;
+    y -= 2.0 * k;
+    b.line(
+        None,
+        &rect(
+            tx + (inner - stamp) / 2.0,
+            y - stamp,
+            tx + (inner + stamp) / 2.0,
+            y,
+        ),
+        true,
+        1,
+        Dash::Dashed,
+    );
+    y -= stamp;
+    y = wrapped(
+        b,
+        y,
+        "LICENSE NO. __________   RENEWS __________",
+        sizes::TB_INFO,
+    );
+    y -= 3.0 * k;
+    rule(b, y);
+    // The agency's approval space.
+    label(b, &mut y, "AGENCY APPROVAL");
+    y -= 2.0 * k;
+    b.line(
+        None,
+        &rect(tx, y - 34.0 * k, tx + inner, y),
+        true,
+        1,
+        Dash::Dashed,
+    );
+    y -= 34.0 * k;
+    y -= 3.0 * k;
+    rule(b, y);
+    // Phase and status.
     label(b, &mut y, "DESIGN STAGE");
     if let Some((stage_name, abbr)) = &stage {
-        value(b, &mut y, &stage_name.to_uppercase(), 4.2);
-        y -= 16.0 * k;
-        b.text(None, Pt::new(tx, y), abbr.clone(), 16.0 * k, Anchor::Left);
-        y -= 6.0 * k;
+        y -= sizes::EIGHTH * k * 1.6;
+        txt(b, tx, y, stage_name.to_uppercase(), sizes::EIGHTH);
+        y -= sizes::SHEET_NUMBER * 0.75 * k * 1.25;
+        txt(b, tx, y, abbr.clone(), sizes::SHEET_NUMBER * 0.75);
+        if matches!(abbr.as_str(), "PD" | "SD" | "DD") {
+            y -= (sizes::SHEET_NUMBER * 0.75 * 0.5 + sizes::TB_INFO * 1.6) * k;
+            txt(b, tx, y, "NOT FOR CONSTRUCTION".into(), sizes::TB_INFO);
+        }
     }
+    y -= 3.0 * k;
     rule(b, y);
-    label(b, &mut y, "DATE");
-    value(b, &mut y, date, 3.4);
-    y -= 4.0 * k;
+    // Date, scale, drawn and checked.
+    let scales: std::collections::BTreeSet<String> = viewports_on(doc, sheet)
+        .into_iter()
+        .filter_map(|(_, view, ..)| match doc.data(view) {
+            Ok(ElementData::View { scale, kind, .. })
+                if !matches!(kind, ViewKind::Schedule { .. } | ViewKind::Rendering { .. }) =>
+            {
+                Some(ops::scale_label(*scale))
+            }
+            _ => None,
+        })
+        .collect();
+    let scale = match scales.len() {
+        0 => "NTS".to_string(),
+        1 => scales.into_iter().next().unwrap_or_default(),
+        _ => "AS INDICATED".into(),
+    };
+    let half = inner / 2.0;
+    for (a, b_) in [
+        (("DATE", date.to_string()), ("SCALE", scale)),
+        (
+            ("DRAWN BY", "—".to_string()),
+            ("CHECKED BY", "—".to_string()),
+        ),
+    ] {
+        y -= 4.5 * k;
+        txt(b, tx, y, a.0.into(), sizes::TB_INFO);
+        txt(b, tx + half, y, b_.0.into(), sizes::TB_INFO);
+        y -= 3.8 * k;
+        txt(b, tx, y, a.1, sizes::TB_INFO);
+        txt(b, tx + half, y, b_.1, sizes::TB_INFO);
+    }
+    y -= 3.0 * k;
     rule(b, y);
-
-    // Issue block: every issued set that included this sheet (newest last).
+    // Issues: every issued set that included this sheet (newest last).
     label(b, &mut y, "ISSUES");
     let issues = ops::sheet_issues(doc, sheet);
     if issues.is_empty() {
-        value(b, &mut y, "—", 2.6);
+        y -= 4.0 * k;
+        txt(b, tx, y, "—".into(), sizes::TB_INFO);
     }
     for (issue, date, abbr) in issues.iter().rev().take(6).rev() {
-        y -= 2.6 * k * 1.5;
-        b.text(None, Pt::new(tx, y), date.clone(), 2.4 * k, Anchor::Left);
-        b.text(
-            None,
-            Pt::new(tx + 18.0 * k, y),
-            abbr.clone(),
-            2.4 * k,
-            Anchor::Left,
-        );
-        b.text(
-            None,
-            Pt::new(tx + 27.0 * k, y),
-            issue.to_uppercase(),
-            2.4 * k,
-            Anchor::Left,
-        );
+        y -= sizes::TB_INFO * k * 1.6;
+        txt(b, tx, y, date.clone(), sizes::TB_INFO);
+        txt(b, tx + 20.0 * k, y, abbr.clone(), sizes::TB_INFO);
+        txt(b, tx + 29.0 * k, y, issue.to_uppercase(), sizes::TB_INFO);
     }
-    y -= 4.0 * k;
+    y -= 3.0 * k;
     rule(b, y);
-
+    // Instruments of service.
+    let notice = format!(
+        "These drawings are instruments of service and the property of {firm}; do not use, copy or scale them without its written consent."
+    );
+    let _ = wrapped(b, y - 1.0 * k, &notice, sizes::TB_INFO);
     // Key plan with north arrow, just above the sheet name block, as the Key Plan & North
     // Arrow standard says (ADR-048).
     let key_top = m + 42.0 * k + 62.0 * k;
@@ -1003,21 +1135,28 @@ fn title_block(
         None,
         Pt::new(tx, bottom + 37.0 * k),
         "SHEET".into(),
-        2.2 * k,
+        sizes::TB_INFO * k,
         Anchor::Left,
     );
+    // The sheet title, wrapped to two lines when long.
+    let lines = studio_core::text::wrap(&name.to_uppercase(), sizes::SHEET_TITLE * k, Some(inner));
+    let two = lines.len() > 1;
+    for (i, l) in lines.into_iter().take(2).enumerate() {
+        let y =
+            bottom + if two { 31.5 } else { 29.0 } * k - i as f64 * sizes::SHEET_TITLE * k * 1.3;
+        b.text(
+            None,
+            Pt::new(tx, y),
+            l,
+            sizes::SHEET_TITLE * k,
+            Anchor::Left,
+        );
+    }
     b.text(
         None,
-        Pt::new(tx, bottom + 30.0 * k),
-        name.to_uppercase(),
-        4.6 * k,
-        Anchor::Left,
-    );
-    b.text(
-        None,
-        Pt::new(tx, bottom + 13.0 * k),
+        Pt::new(tx, bottom + 11.0 * k),
         number.to_owned(),
-        17.0 * k,
+        sizes::SHEET_NUMBER * k,
         Anchor::Left,
     );
 }

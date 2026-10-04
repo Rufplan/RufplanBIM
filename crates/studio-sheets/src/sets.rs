@@ -408,7 +408,7 @@ struct Draft {
     content: Content,
     phases: Vec<&'static str>,
     /// The drawing's general notes and where they go (top-left, paper mm), ADR-107.
-    notes: Option<(String, Pt)>,
+    notes: Option<(String, String, Pt)>,
 }
 
 fn num(d: &str, n: usize) -> String {
@@ -440,7 +440,9 @@ fn interior_detail(view_name: &str) -> bool {
 
 /// Width of a sheet's general notes column, paper mm, and their text height.
 const NOTES_W: f64 = 130.0;
-const NOTES_H: f64 = 3.2;
+/// Notes at 3/32", their heading at 1/8" (ADR-109).
+const NOTES_H: f64 = studio_core::text::sizes::NOTE;
+const NOTES_HEAD: f64 = studio_core::text::sizes::NOTE_HEADER;
 
 /// The general notes each drawing sheet carries (ADR-107), by its number: the site plan,
 /// floor, roof and ceiling plans, elevations, sections, enlarged plans, interior elevations,
@@ -484,9 +486,12 @@ fn sheet_notes(doc: &Document, t: BuildingType, drafts: &mut [Draft], a: &Area) 
         let Some(kind) = notes_for(&d.number, &d.name) else {
             continue;
         };
-        let text = gn::text(&kind.heading(), &gn::notes(nb, kind, &code));
+        let heading = kind.heading();
+        let text = gn::body(&gn::notes(nb, kind, &code));
         let tall =
-            studio_core::text::wrap(&text, NOTES_H, Some(NOTES_W)).len() as f64 * NOTES_H * line;
+            studio_core::text::wrap(&text, NOTES_H, Some(NOTES_W)).len() as f64 * NOTES_H * line
+                + NOTES_HEAD * line
+                + 1.0;
         // The first line's baseline sits just under the top of the column.
         let at = |left: f64, top: f64| Pt::new(left, top - NOTES_H);
         let spot = match &mut d.content {
@@ -517,7 +522,7 @@ fn sheet_notes(doc: &Document, t: BuildingType, drafts: &mut [Draft], a: &Area) 
             Content::Views(_) | Content::Schedules(_) => at(a.x0, a.y1),
             _ => continue,
         };
-        d.notes = Some((text, spot));
+        d.notes = Some((heading, text, spot));
     }
 }
 
@@ -1509,10 +1514,21 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
             if !fill {
                 continue;
             }
-            if let Some((text, at)) = &d.notes {
+            if let Some((heading, text, at)) = &d.notes {
+                // The heading at 1/8", the notes under it at 3/32" (ADR-109).
                 tx.insert(ElementData::TextNote {
                     view: sheet,
                     at: *at,
+                    text: heading.clone(),
+                    size: NOTES_HEAD,
+                    leaders: vec![],
+                    align: Default::default(),
+                    width: Some(NOTES_W),
+                    angle: 0.0,
+                });
+                tx.insert(ElementData::TextNote {
+                    view: sheet,
+                    at: Pt::new(at.x, at.y - NOTES_HEAD * studio_core::text::LINE - 1.0),
                     text: text.clone(),
                     size: NOTES_H,
                     leaders: vec![],

@@ -587,29 +587,31 @@ pub fn layout(
     let mut p = Pen {
         k,
         plan: CoverPlan::default(),
-        head_size: 4.0,
-        body_size: 3.2,
+        head_size: studio_core::text::sizes::NOTES_HEADER,
+        body_size: studio_core::text::sizes::NOTES_BODY,
     };
     let g = 8.0 * k;
 
     // The title band.
-    let head = 50.0 * k;
+    // The project name at 3/4", the building type at 1/4", the address at 1/8" (ADR-109).
+    use studio_core::text::sizes;
+    let head = 58.0 * k;
     p.note(
-        Pt::new(x0 + 2.0, y1 - 15.0 * k),
+        Pt::new(x0 + 2.0, y1 - 18.0 * k),
         c.title.clone(),
-        12.0 * k,
+        sizes::COVER_TITLE * k,
         None,
     );
     p.note(
-        Pt::new(x0 + 2.5, y1 - 29.0 * k),
+        Pt::new(x0 + 2.5, y1 - 38.0 * k),
         c.kind.clone(),
-        5.0 * k,
+        sizes::TB_PROJECT * k,
         None,
     );
     p.note(
-        Pt::new(x0 + 2.5, y1 - 39.0 * k),
+        Pt::new(x0 + 2.5, y1 - 49.0 * k),
         c.address.clone(),
-        3.6 * k,
+        sizes::EIGHTH * k,
         None,
     );
     p.plan.lines.push((
@@ -738,28 +740,11 @@ pub fn layout(
         Some(left),
     );
 
-    // Right: the sheet index, then the stamp and the agency's approval.
+    // Right: the sheet index (the stamps are in the title block, ADR-109).
     if let Some((iw, ih)) = index {
         p.plan.index = Some(Pt::new(xc + iw / 2.0 + 1.0, top - ih / 2.0));
     }
-    let bh = 62.0 * k;
-    let half = (c3 - g) / 2.0;
-    p.boxed(
-        xc,
-        y0 + bh,
-        half,
-        "ARCHITECT'S STAMP",
-        Body::Empty(0.0),
-        Some(bh),
-    );
-    p.boxed(
-        xc + half + g,
-        y0 + bh,
-        half,
-        "AGENCY APPROVAL",
-        Body::Empty(0.0),
-        Some(bh),
-    );
+    let _ = c3;
     p.plan
 }
 
@@ -785,8 +770,8 @@ pub fn text_sheet(
     let mut p = Pen {
         k: (w / 775.0).clamp(0.6, 1.0),
         plan: CoverPlan::default(),
-        head_size: 4.0,
-        body_size: 3.2,
+        head_size: studio_core::text::sizes::NOTES_HEADER,
+        body_size: studio_core::text::sizes::NOTES_BODY,
     };
     let g = 8.0 * p.k;
     let n = ((w + g) / (180.0 * p.k + g)).floor().max(1.0);
@@ -1018,8 +1003,6 @@ mod tests {
             "APPLICABLE CODES",
             "DEFERRED SUBMITTALS",
             "VICINITY MAP",
-            "ARCHITECT'S STAMP",
-            "AGENCY APPROVAL",
         ] {
             assert!(titles.contains(&t), "{t}");
         }

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::document::{CoreError, CoreResult, Document};
+use crate::element::ElementData;
 use crate::element::ElementId;
 use studio_geom::Pt;
 
@@ -323,8 +324,19 @@ pub fn text(heading: &str, notes: &[String]) -> String {
     s
 }
 
-/// Places the notes in `view` at `at` (the view's own coordinates), 2.4 mm text wrapping at
-/// `width` paper mm, as one undo step.
+/// The numbered notes without their heading, one per line.
+pub fn body(notes: &[String]) -> String {
+    notes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| format!("{}. {}", i + 1, n.trim()))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Places the notes in `view` at `at` (the view's own coordinates), wrapping at `width` paper
+/// mm, as one undo step: the heading at 1/8", the notes under it at 3/32" (ADR-109).
+/// Returns the notes' text note.
 pub fn place(
     doc: &mut Document,
     view: ElementId,
@@ -336,16 +348,40 @@ pub fn place(
     if notes.is_empty() {
         return Err(CoreError::Invalid("choose at least one note".into()));
     }
-    crate::ops::create_text_note(
-        doc,
-        view,
-        at,
-        &text(heading, notes),
-        3.2,
-        vec![],
-        crate::text::TextAlign::Left,
-        Some(width.clamp(60.0, 400.0)),
-    )
+    use crate::text::sizes;
+    let scale = match doc.data(view)? {
+        ElementData::View { scale, .. } => f64::from(*scale),
+        _ => 1.0,
+    };
+    let width = Some(width.clamp(60.0, 400.0));
+    let below = Pt::new(
+        at.x,
+        at.y - (sizes::NOTE_HEADER * crate::text::LINE + 1.0) * scale,
+    );
+    let heading = heading.trim().to_uppercase();
+    let lines = body(notes);
+    doc.transact("Place general notes", |tx| {
+        tx.insert(ElementData::TextNote {
+            view,
+            at,
+            text: heading.clone(),
+            size: sizes::NOTE_HEADER,
+            leaders: vec![],
+            align: crate::text::TextAlign::Left,
+            width,
+            angle: 0.0,
+        });
+        Ok(tx.insert(ElementData::TextNote {
+            view,
+            at: below,
+            text: lines.clone(),
+            size: sizes::NOTE,
+            leaders: vec![],
+            align: crate::text::TextAlign::Left,
+            width,
+            angle: 0.0,
+        }))
+    })
 }
 
 #[cfg(test)]
@@ -407,12 +443,27 @@ mod tests {
             150.0,
         )
         .unwrap();
-        let crate::element::ElementData::TextNote { text, width, .. } = doc.data(id).unwrap()
+        // The notes at 3/32" under their heading at 1/8" (ADR-109).
+        let crate::element::ElementData::TextNote {
+            text,
+            width,
+            size,
+            at,
+            ..
+        } = doc.data(id).unwrap()
         else {
             panic!()
         };
-        assert!(text.starts_with("FLOOR PLANS GENERAL NOTES\n1. Dimensions"));
+        assert!(text.starts_with("1. Dimensions"), "{text}");
         assert_eq!(*width, Some(150.0));
+        assert!((size - crate::text::sizes::NOTE).abs() < 1e-9);
+        assert!(at.y < 0.0);
+        let heading = doc.iter().any(|e| {
+            matches!(&e.data, crate::element::ElementData::TextNote { text, size, .. }
+                if text == "FLOOR PLANS GENERAL NOTES"
+                    && (size - crate::text::sizes::NOTE_HEADER).abs() < 1e-9)
+        });
+        assert!(heading);
         assert!(place(&mut doc, plan, Pt::new(0.0, 0.0), "X", &[], 150.0).is_err());
     }
 }

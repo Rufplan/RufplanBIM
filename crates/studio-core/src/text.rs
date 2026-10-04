@@ -31,6 +31,81 @@ pub enum TextAlign {
     Right,
 }
 
+/// The office's text types (ADR-109): plotted heights for a full-size (24x36 or 30x42) set,
+/// paper mm. 3/32" for anything read, 1/8" for labels scanned, 3/16"–1/4" for titles
+/// navigated by; 3/32" is the floor, so the set reads at half size on 11x17.
+pub mod sizes {
+    const IN: f64 = 25.4;
+    /// 3/32": the smallest text a set prints.
+    pub const MIN: f64 = 3.0 / 32.0 * IN;
+    /// 1/8".
+    pub const EIGHTH: f64 = IN / 8.0;
+    /// 3/16".
+    pub const THREE_SIXTEENTHS: f64 = 3.0 / 16.0 * IN;
+
+    // Title block.
+    /// Project name on the cover: 3/4".
+    pub const COVER_TITLE: f64 = 0.75 * IN;
+    /// Project name in the title block: 1/4".
+    pub const TB_PROJECT: f64 = IN / 4.0;
+    /// Sheet number: 1/2".
+    pub const SHEET_NUMBER: f64 = IN / 2.0;
+    /// Sheet title: 3/16".
+    pub const SHEET_TITLE: f64 = THREE_SIXTEENTHS;
+    /// Firm info, dates, project number: 3/32".
+    pub const TB_INFO: f64 = MIN;
+
+    // Drawing titles.
+    /// View title (FLOOR PLAN – LEVEL 1): 3/16".
+    pub const VIEW_TITLE: f64 = THREE_SIXTEENTHS;
+    /// View number in the title bubble: 1/8".
+    pub const VIEW_NUMBER: f64 = EIGHTH;
+    /// Scale under the view title: 3/32".
+    pub const SCALE: f64 = MIN;
+
+    // Plan annotation.
+    /// Room names: 1/8".
+    pub const ROOM_NAME: f64 = EIGHTH;
+    /// Room numbers (and areas): 3/32".
+    pub const ROOM_NUMBER: f64 = MIN;
+    /// Dimensions: 3/32".
+    pub const DIMENSION: f64 = MIN;
+    /// Notes, leaders, keynote text: 3/32".
+    pub const NOTE: f64 = MIN;
+    /// Note and legend headers: 1/8".
+    pub const NOTE_HEADER: f64 = EIGHTH;
+    /// Door and window tags: 3/32".
+    pub const TAG: f64 = MIN;
+    /// Grid bubble text: 3/16", in a 1/2" bubble.
+    pub const GRID: f64 = THREE_SIXTEENTHS;
+    pub const GRID_BUBBLE: f64 = IN / 2.0;
+    /// Section, elevation and detail callouts: 3/32".
+    pub const CALLOUT: f64 = MIN;
+    /// Levels and spot elevations: 3/32".
+    pub const LEVEL: f64 = MIN;
+    /// Match lines: 1/8".
+    pub const MATCH_LINE: f64 = EIGHTH;
+    /// The north arrow's "N": 1/8".
+    pub const NORTH: f64 = EIGHTH;
+    /// Revision tags: 3/32".
+    pub const REVISION: f64 = MIN;
+
+    // Schedules.
+    /// Schedule title: 3/16".
+    pub const SCHEDULE_TITLE: f64 = THREE_SIXTEENTHS;
+    /// Column headers: 1/8".
+    pub const SCHEDULE_HEADER: f64 = EIGHTH;
+    /// Body: 3/32".
+    pub const SCHEDULE_BODY: f64 = MIN;
+
+    // Notes sheets.
+    /// Section headers (GENERAL NOTES): 3/16".
+    pub const NOTES_HEADER: f64 = THREE_SIXTEENTHS;
+    /// Subheaders: 1/8".
+    pub const NOTES_SUBHEADER: f64 = EIGHTH;
+    /// Body: 3/32".
+    pub const NOTES_BODY: f64 = MIN;
+}
 /// A character's advance, as a share of the text height (the drafting font is condensed).
 pub const CHAR_W: f64 = 0.5;
 /// Line spacing, as a multiple of the text height.

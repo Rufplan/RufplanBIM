@@ -283,9 +283,12 @@ pub fn schedule_on(doc: &Document, view: ElementId, sheet: Option<ElementId>) ->
 }
 
 /// Text height used in printed schedules, paper mm.
-const TEXT: f64 = 2.5;
+// Schedule text types (ADR-109): title 3/16", column headers 1/8", body 3/32".
+const TEXT: f64 = studio_core::text::sizes::SCHEDULE_BODY;
+const HEADER: f64 = studio_core::text::sizes::SCHEDULE_HEADER;
+const TITLE: f64 = studio_core::text::sizes::SCHEDULE_TITLE;
 const ROW: f64 = 6.0;
-const TITLE_ROW: f64 = 8.0;
+const TITLE_ROW: f64 = 10.0;
 
 /// Approximate width of `s` in Barlow Condensed at `size` mm (0.43 em per character).
 pub fn approx_width(s: &str, size: f64) -> f64 {
@@ -298,17 +301,18 @@ pub fn table_items(t: &Table, el: Option<ElementId>, top_left: Pt) -> (Vec<Item>
     let pad = 2.5;
     let widths: Vec<f64> = (0..t.columns.len())
         .map(|c| {
-            let longest = std::iter::once(t.columns[c].to_uppercase())
-                .chain(t.rows.iter().map(|r| r.get(c).cloned().unwrap_or_default()))
-                .map(|s| approx_width(&s, TEXT))
-                .fold(0.0, f64::max);
+            let longest = t
+                .rows
+                .iter()
+                .map(|r| approx_width(&r.get(c).cloned().unwrap_or_default(), TEXT))
+                .fold(approx_width(&t.columns[c].to_uppercase(), HEADER), f64::max);
             (longest + pad * 2.0).max(14.0)
         })
         .collect();
     let width: f64 = widths
         .iter()
         .sum::<f64>()
-        .max(approx_width(&t.title, 3.2) + pad * 2.0);
+        .max(approx_width(&t.title, TITLE) + pad * 2.0);
     let height = TITLE_ROW + ROW * (t.rows.len() as f64 + 1.0);
     let mut b = Builder::new(1.0);
     let (x0, y0) = (top_left.x, top_left.y);
@@ -329,7 +333,7 @@ pub fn table_items(t: &Table, el: Option<ElementId>, top_left: Pt) -> (Vec<Item>
         el,
         Pt::new(x0 + width / 2.0, y0 - TITLE_ROW / 2.0),
         t.title.clone(),
-        3.2,
+        TITLE,
         Anchor::Center,
     );
     // Header band.
@@ -345,7 +349,7 @@ pub fn table_items(t: &Table, el: Option<ElementId>, top_left: Pt) -> (Vec<Item>
             el,
             Pt::new(x + pad, hy - ROW / 2.0),
             t.columns[c].to_uppercase(),
-            TEXT,
+            HEADER,
             Anchor::Left,
         );
         for (r, row) in t.rows.iter().enumerate() {

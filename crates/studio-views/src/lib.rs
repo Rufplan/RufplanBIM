@@ -259,9 +259,9 @@ const CACHE_KEY: &str = "studio-views";
 /// Generates the display list of a 2D view. Returns None for 3D views.
 /// The smallest printed text, paper mm: 3/32" (ADR-108). Notes default to 1/8" (3.2 mm);
 /// titles and headings run larger.
-pub const MIN_TEXT_MM: f64 = 2.38;
-/// The default note text, paper mm: 1/8".
-pub const NOTE_TEXT_MM: f64 = 3.2;
+pub const MIN_TEXT_MM: f64 = studio_core::text::sizes::MIN;
+/// The default note text, paper mm: 3/32" (ADR-109).
+pub const NOTE_TEXT_MM: f64 = studio_core::text::sizes::NOTE;
 
 pub fn display_list(doc: &Document, view: ElementId) -> Option<DisplayList> {
     display_list_shared(doc, view).map(|d| (*d).clone())
@@ -1025,7 +1025,7 @@ fn opening_tag(
             ];
             b.fill(el, vec![ring(&r)], FillKind::Paper);
             b.line(el, &r, true, 2, Dash::Solid);
-            b.text(el, c, mark, 2.6, Anchor::Center);
+            b.text(el, c, mark, studio_core::text::sizes::TAG, Anchor::Center);
         }
         OpeningKind::Window(_) => {
             let c = mid.add(n.scale(s * (o.half_thickness + b.paper(6.0))));
@@ -1038,7 +1038,7 @@ fn opening_tag(
                 .collect();
             b.fill(el, vec![ring(&hex)], FillKind::Paper);
             b.line(el, &hex, true, 2, Dash::Solid);
-            b.text(el, c, mark, 2.4, Anchor::Center);
+            b.text(el, c, mark, studio_core::text::sizes::TAG, Anchor::Center);
         }
     }
 }
@@ -1134,16 +1134,22 @@ fn room_tag_at(b: &mut Builder, r: &studio_regen::RoomInfo, el: Option<ElementId
         el,
         p.add(Pt::new(0.0, line)),
         r.name.to_uppercase(),
-        3.4,
+        studio_core::text::sizes::ROOM_NAME,
         Anchor::Center,
     );
-    b.text(el, p, r.number.clone(), 3.0, Anchor::Center);
+    b.text(
+        el,
+        p,
+        r.number.clone(),
+        studio_core::text::sizes::ROOM_NUMBER,
+        Anchor::Center,
+    );
     if r.boundary.is_some() {
         b.text(
             el,
             p.sub(Pt::new(0.0, line)),
             format_area_sf(r.area()),
-            2.6,
+            studio_core::text::sizes::ROOM_NUMBER,
             Anchor::Center,
         );
     } else {
@@ -1151,7 +1157,7 @@ fn room_tag_at(b: &mut Builder, r: &studio_regen::RoomInfo, el: Option<ElementId
             el,
             p.sub(Pt::new(0.0, line)),
             "NOT ENCLOSED".into(),
-            2.6,
+            studio_core::text::sizes::ROOM_NUMBER,
             Anchor::Center,
         );
         let k = b.paper(2.0);
@@ -1179,13 +1185,20 @@ fn room_tag_at(b: &mut Builder, r: &studio_regen::RoomInfo, el: Option<ElementId
 }
 
 fn grid_in_plan(b: &mut Builder, id: ElementId, name: &str, start: Pt, end: Pt) {
-    let r = 6.0;
+    // A 1/2" bubble with 3/16" text (ADR-109).
+    let r = studio_core::text::sizes::GRID_BUBBLE / 2.0;
     let dir = end.sub(start).norm();
     b.line(Some(id), &[start, end], false, 2, Dash::Center);
     for (p, d) in [(end, dir), (start, dir.scale(-1.0))] {
         let c = p.add(d.scale(b.paper(r)));
         b.circle(Some(id), c, r, 2, false);
-        b.text(Some(id), c, name.to_owned(), 4.5, Anchor::Center);
+        b.text(
+            Some(id),
+            c,
+            name.to_owned(),
+            studio_core::text::sizes::GRID,
+            Anchor::Center,
+        );
     }
 }
 
@@ -1264,14 +1277,14 @@ pub(crate) fn level_head(b: &mut Builder, el: ElementId, end: Pt, name: &str, el
         el,
         Pt::new(x, end.y + b.paper(5.2)),
         name.to_owned(),
-        2.8,
+        studio_core::text::sizes::LEVEL,
         Anchor::Right,
     );
     b.text(
         el,
         Pt::new(x, end.y + b.paper(1.6)),
         revit_ft_in(elevation),
-        2.4,
+        studio_core::text::sizes::LEVEL,
         Anchor::Right,
     );
 }
@@ -2474,9 +2487,16 @@ fn projected(
             2,
             Dash::Center,
         );
-        let c = Pt::new(u, top + b.paper(6.0));
-        b.circle(Some(g.id), c, 6.0, 2, false);
-        b.text(Some(g.id), c, g.name.clone(), 4.5, Anchor::Center);
+        let gr = studio_core::text::sizes::GRID_BUBBLE / 2.0;
+        let c = Pt::new(u, top + b.paper(gr));
+        b.circle(Some(g.id), c, gr, 2, false);
+        b.text(
+            Some(g.id),
+            c,
+            g.name.clone(),
+            studio_core::text::sizes::GRID,
+            Anchor::Center,
+        );
     }
 
     let mut maxx = umax + ext * 2.0 + b.paper(30.0);
@@ -3422,7 +3442,14 @@ pub fn dimension_string(b: &mut Builder, el: Option<ElementId>, pts: &[Pt], u: P
     let labels = segment_labels(pts, u, offset, b.paper(1.0));
     for (w, at) in on_line.windows(2).zip(labels) {
         let len = w[1].sub(w[0]).dot(u).abs();
-        b.text_rot(el, at, format_ft_in(len), 2.6, Anchor::Center, angle);
+        b.text_rot(
+            el,
+            at,
+            format_ft_in(len),
+            studio_core::text::sizes::DIMENSION,
+            Anchor::Center,
+            angle,
+        );
     }
 }
 

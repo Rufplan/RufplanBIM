@@ -60,7 +60,8 @@ pub const WALL_SECTION: &str = "Wall Section";
 
 /// Paper mm of wall section notes: text height, and the width of the notes outside and
 /// inside the wall.
-const NOTE: f64 = 3.2;
+// Notes, leaders and keynote text: 3/32" (ADR-109).
+const NOTE: f64 = studio_core::text::sizes::NOTE;
 const OUT_W: f64 = 56.0;
 const IN_W: f64 = 40.0;
 /// Wall sections: 3/4" = 1'-0".
