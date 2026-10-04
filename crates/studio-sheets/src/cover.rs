@@ -403,6 +403,17 @@ pub struct CoverPlan {
     pub index: Option<Pt>,
     /// The location and vicinity maps' boxes (ADR-107).
     pub maps: Vec<(MapKind, Pt, Pt)>,
+    /// The blocks of information (ADR-111), each detail-grouped on its sheet.
+    pub blocks: Vec<PlanBlock>,
+}
+
+/// A block's title and the notes, lines and regions of the plan that draw it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct PlanBlock {
+    pub name: String,
+    pub notes: std::ops::Range<usize>,
+    pub lines: std::ops::Range<usize>,
+    pub regions: std::ops::Range<usize>,
 }
 
 /// A titled box's body.
@@ -422,6 +433,33 @@ pub(crate) struct Pen {
 }
 
 impl Pen {
+    /// Where the plan's lists end now.
+    fn mark(&self) -> (usize, usize, usize) {
+        (
+            self.plan.notes.len(),
+            self.plan.lines.len(),
+            self.plan.regions.len(),
+        )
+    }
+    /// Records what was drawn since `from` as the block `name`.
+    fn block(&mut self, name: &str, from: (usize, usize, usize)) {
+        let to = self.mark();
+        self.plan.blocks.push(PlanBlock {
+            name: name.to_string(),
+            notes: from.0..to.0,
+            lines: from.1..to.1,
+            regions: from.2..to.2,
+        });
+    }
+    /// Takes what was drawn since into the last block (a box's figure or map).
+    fn extend_last(&mut self) {
+        let to = self.mark();
+        if let Some(b) = self.plan.blocks.last_mut() {
+            b.notes.end = to.0;
+            b.lines.end = to.1;
+            b.regions.end = to.2;
+        }
+    }
     fn head(&self) -> f64 {
         self.head_size * self.k
     }
@@ -501,6 +539,7 @@ impl Pen {
         body: Body<'_>,
         height: Option<f64>,
     ) -> f64 {
+        let from = self.mark();
         let pad = self.pad();
         let content = self.measure(&body, w);
         let h = (self.bar() + pad + content + pad).max(height.unwrap_or(0.0));
@@ -568,6 +607,7 @@ impl Pen {
             }
             Body::Empty(_) => {}
         }
+        self.block(title, from);
         h
     }
 }
@@ -596,6 +636,7 @@ pub fn layout(
     // The project name at 3/4", the building type at 1/4", the address at 1/8" (ADR-109).
     use studio_core::text::sizes;
     let head = 58.0 * k;
+    let band = p.mark();
     p.note(
         Pt::new(x0 + 2.0, y1 - 18.0 * k),
         c.title.clone(),
@@ -619,6 +660,7 @@ pub fn layout(
         Pt::new(x1, y1 - head),
         LineStyle::Wide,
     ));
+    p.block("PROJECT TITLE", band);
     let top = y1 - head - g;
 
     // Columns: the right fits the sheet index.
@@ -640,6 +682,7 @@ pub fn layout(
             p.plan.rendering = Some((Pt::new(xa + c1 / 2.0, top - rh / 2.0), rw));
         }
         None => {
+            let from = p.mark();
             p.rect(xa, top, c1, rh, LineStyle::Thin);
             let s = 4.0 * k;
             p.plan.notes.push((
@@ -649,6 +692,7 @@ pub fn layout(
                 None,
                 TextAlign::Center,
             ));
+            p.block("PROJECT RENDERING", from);
         }
     }
     let mut y = top - rh - title_room - g * 0.5;
@@ -677,6 +721,7 @@ pub fn layout(
             }
         } else if kind == MapKind::Vicinity {
             vicinity(&mut p, x, y - bar, mw, mh - bar, &c.street);
+            p.extend_last();
         } else {
             p.plan.notes.push((
                 Pt::new(x + mw / 2.0, y - mh / 2.0),
@@ -685,6 +730,7 @@ pub fn layout(
                 None,
                 TextAlign::Center,
             ));
+            p.extend_last();
         }
     }
     y -= mh + g;
@@ -868,6 +914,7 @@ pub fn text_sheet(
                         cw - 2.0 * pad,
                         extra - pad,
                     );
+                    p.extend_last();
                 }
                 y -= boxed + g;
                 break;

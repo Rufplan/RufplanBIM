@@ -6488,3 +6488,23 @@ button:disabled {
   margin-left: 12px;
   font-size: 12px;
 }
+
+/* The title block dialog (ADR-111): sheet, project, architect, stamp in columns. */
+.title-block-dialog {
+  width: min(960px, 94vw);
+  max-height: 88vh;
+  overflow: auto;
+}
+.title-block-dialog .tb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px 18px;
+}
+.title-block-dialog section h3 {
+  margin: 4px 0 6px;
+}
+.title-block-dialog .field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}

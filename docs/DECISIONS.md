@@ -4174,3 +4174,28 @@ coursing along a line".
   - Edited in the sheet index's dialog.
   - Kept as Project Info's `rufplan.placeholder_sheets` parameter.
   - A number can't repeat or be a real sheet's.
+
+## ADR-111 Sheet text in detail groups; editing the title block — Accepted (2026-10-04)
+- **The owner's ask:**
+  - Detail-group the text on sheets by default (general notes, the general sheets' blocks, every other block of information), and edit them by double-clicking.
+  - Double-click the title block to edit it.
+- **Detail groups** (studio-sheets `sets::insert_plan`, `plan_groups`, `group_blocks`; `cover::PlanBlock`):
+  - The sets put each block they write in its own detail group on its sheet (ADR-087's groups), named after the sheet and block, e.g. "G-001 PROJECT DATA" or "A-101 FLOOR PLAN NOTES". A name already taken gets a number.
+  - **The blocks:**
+    - Each titled box on the cover and the general sheets, with its rules (a box continued in the next column is its own group, "(CONT.)").
+    - The cover's title band and rendering placeholder.
+    - A drawing sheet's notes heading and body.
+    - A placeholder sheet's text.
+  - The cover's maps (MapFrame) and north arrow aren't annotation kinds, so they stay out of the location and vicinity boxes' groups.
+  - Each group is one undo step with the rest of the sets.
+- **Double-click order:**
+  - A grouped element opens Edit Group, as in Revit. Inside the group, double-clicking a note edits its text (ADR-070).
+- **The title block** (studio-sheets `titleblock`; app `titleblock_cmds`, `TitleBlockDialog`, store `titleBlockEdit`):
+  - Double-clicking empty space on the title block strip (`titleblock::hit`) opens its fields:
+    - The sheet's number and name.
+    - The project's name, number, owner and address, from Project Information, so every sheet changes.
+    - The architect's firm: company, address, phone, email, website. This is the team's Architect, added if missing.
+    - The license number and renewal date: Project Info's `rufplan.titleblock.license` parameter, printed in place of the blanks.
+    - Drawn By and Checked By for this sheet: the sheet's `rufplan.titleblock.sign` parameter, printed in place of "—".
+  - Saving is one undo step. A sheet number that's already taken is refused.
+  - No file-format change: settings live in parameters.

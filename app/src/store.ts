@@ -413,6 +413,9 @@ interface UiState {
   /** The schedule whose appearance and placeholder sheets are being edited (ADR-110). */
   scheduleEdit: string | null;
   setScheduleEdit: (view: string | null) => void;
+  /** The sheet whose title block is being edited (ADR-111). */
+  titleBlockEdit: string | null;
+  setTitleBlockEdit: (sheet: string | null) => void;
   /** Collaborate > Gray Inactive Workset Graphics (ADR-079). */
   grayInactive: boolean;
   setGrayInactive: (on: boolean) => void;
@@ -559,6 +562,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setTextEditing: (textEditing) => set({ textEditing }),
   scheduleEdit: null,
   setScheduleEdit: (scheduleEdit) => set({ scheduleEdit }),
+  titleBlockEdit: null,
+  setTitleBlockEdit: (titleBlockEdit) => set({ titleBlockEdit }),
   grayInactive: false,
   setGrayInactive: (grayInactive) => set({ grayInactive }),
   structuralOverlay: false,

@@ -1,3 +1,4 @@
+import { TitleBlockDialog } from "./TitleBlockDialog";
 import { ScheduleDialog } from "./ScheduleDialog";
 import { GeneralNotesDialog } from "./GeneralNotesDialog";
 import { useEffect, useMemo, useState } from "react";
@@ -39,7 +40,15 @@ export function ViewDialogs() {
   const which = useAppStore((s) => s.viewDialog);
   const close = () => useAppStore.getState().setUi({ viewDialog: null });
   const scheduleEdit = useAppStore((s) => s.scheduleEdit);
+  const titleBlockEdit = useAppStore((s) => s.titleBlockEdit);
   const picker = useAppStore((s) => s.picker);
+  if (titleBlockEdit)
+    return (
+      <TitleBlockDialog
+        sheet={titleBlockEdit}
+        onClose={() => useAppStore.getState().setTitleBlockEdit(null)}
+      />
+    );
   if (scheduleEdit)
     return (
       <ScheduleDialog

@@ -2149,11 +2149,23 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       }
     }
     const id = await ipc.pick(view.id, at, 6 / cam.current.zoom);
-    if (!id) return;
+    if (!id) {
+      // The title block opens its fields (ADR-111), as a Revit title block's labels do.
+      if (view.viewType === "Sheet" && !onSheet && (await ipc.titleBlockAt(view.id, at)))
+        s.setTitleBlockEdit(view.id);
+      return;
+    }
     // A reference section or callout opens the view it points at (ADR-076).
     const referenced = await ipc.referenceTarget(id).catch(() => null);
     if (referenced) {
       s.openView(referenced);
+      return;
+    }
+    // A grouped block of sheet text (ADR-111), or any group, opens in Edit Group first;
+    // inside it, double-clicking a note edits its text.
+    const grouped = groupOf(s.app, id);
+    if (grouped) {
+      await editGroup(grouped);
       return;
     }
     // Double-clicking a text note edits its text in place, as in Revit (ADR-070).
@@ -2180,12 +2192,6 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     const target = asView ?? levelPlan;
     if (target && target.id !== view.id) s.openView(target.id);
     else if (!target) {
-      // Double-clicking a group edits it (Revit's Edit Group, ADR-087).
-      const group = groupOf(s.app, id);
-      if (group) {
-        await editGroup(group);
-        return;
-      }
       // Double-clicking an in-place element opens it in the In-Place Editor (ADR-068).
       const inPlace = await ipc.inPlaceOf([id]).catch(() => []);
       if (inPlace.length > 0) {

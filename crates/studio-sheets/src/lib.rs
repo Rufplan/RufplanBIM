@@ -8,6 +8,7 @@ pub mod pdf;
 pub mod schedule;
 pub mod sets;
 pub mod sheet;
+pub mod titleblock;
 
 pub use pdf::{export_pdf, export_pdf_with, Maps};
 pub use schedule::{schedule, schedule_on, Table};

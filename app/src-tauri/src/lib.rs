@@ -36,6 +36,7 @@ mod standards_cmds;
 mod structural_cmds;
 mod structure;
 mod symbols_cmds;
+mod titleblock_cmds;
 mod window_cmds;
 mod workset_cmds;
 
@@ -222,6 +223,9 @@ pub fn run() -> anyhow::Result<()> {
             schedule_cmds::join_schedule,
             schedule_cmds::placeholder_sheets,
             schedule_cmds::set_placeholder_sheets,
+            titleblock_cmds::title_block_fields,
+            titleblock_cmds::set_title_block_fields,
+            titleblock_cmds::title_block_at,
             material_cmds::material_library,
             material_cmds::add_library_material,
             material_cmds::apply_material,

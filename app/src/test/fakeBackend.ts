@@ -84,6 +84,7 @@ export interface FakeBackend {
   placedNotes?: unknown;
   /** Placeholder sheets and schedule styles set (ADR-110). */
   placeholders?: { number: string; name: string }[];
+  titleBlock?: Record<string, unknown>;
   scheduleStyle?: unknown;
   generated: unknown;
   /** The last Plans to 3D inputs. */
@@ -1877,6 +1878,32 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "schedule_parts":
           return 1;
+        case "title_block_at":
+          return true;
+        case "title_block_fields":
+          return (
+            fake.titleBlock ?? {
+              sheetNumber: "A-101",
+              sheetName: "Floor Plan",
+              projectName: "Modern House",
+              projectNumber: "2026-01",
+              client: "",
+              street: "",
+              city: "",
+              state: "",
+              zip: "",
+              firm: "",
+              firmAddress: "",
+              firmPhone: "",
+              firmEmail: "",
+              firmWebsite: "",
+              license: { number: "", renews: "" },
+              signed: { drawn: "", checked: "" },
+            }
+          );
+        case "set_title_block_fields":
+          fake.titleBlock = a.fields as Record<string, unknown>;
+          return fake.state;
         case "sky_library":
           return [
             {

@@ -156,6 +156,9 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Sheet text groups and title block (ADR-111): studio-sheets `sets::group_blocks` (each cover/general/notes block a detail group,
+  `cover::PlanBlock`), `titleblock` (TitleBlockFields, license + drawn/checked params, hit); app titleblock_cmds;
+  components/TitleBlockDialog.tsx (double-click the title block); double-click opens a group before its text.
 - General sheets (ADR-104): studio-sheets `general` (Jurisdiction, general_sheets G-002…G-011, Block), sets `Content::Text` +
   `text_layout`, SetOptions.jurisdiction; app `jurisdictions`; Sheet Sets dialog Jurisdiction picker.
 - General Notes and sample sets (ADR-103): studio-core `general_notes` (NotesBuilding, NotesDrawing, notes, place); app

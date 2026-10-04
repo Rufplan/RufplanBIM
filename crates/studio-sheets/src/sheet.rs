@@ -999,10 +999,22 @@ fn title_block(
         Dash::Dashed,
     );
     y -= stamp;
+    let lic = crate::titleblock::license(doc);
+    let blank = |s: &str| {
+        if s.trim().is_empty() {
+            "__________".to_string()
+        } else {
+            s.trim().to_uppercase()
+        }
+    };
     y = wrapped(
         b,
         y,
-        "LICENSE NO. __________   RENEWS __________",
+        &format!(
+            "LICENSE NO. {}   RENEWS {}",
+            blank(&lic.number),
+            blank(&lic.renews)
+        ),
         sizes::TB_INFO,
     );
     y -= 3.0 * k;
@@ -1051,12 +1063,20 @@ fn title_block(
         1 => scales.into_iter().next().unwrap_or_default(),
         _ => "AS INDICATED".into(),
     };
+    let signed = crate::titleblock::signed(doc, sheet);
+    let dash = |s: &str| {
+        if s.trim().is_empty() {
+            "—".to_string()
+        } else {
+            s.trim().to_uppercase()
+        }
+    };
     let half = inner / 2.0;
     for (a, b_) in [
         (("DATE", date.to_string()), ("SCALE", scale)),
         (
-            ("DRAWN BY", "—".to_string()),
-            ("CHECKED BY", "—".to_string()),
+            ("DRAWN BY", dash(&signed.drawn)),
+            ("CHECKED BY", dash(&signed.checked)),
         ),
     ] {
         y -= 4.5 * k;

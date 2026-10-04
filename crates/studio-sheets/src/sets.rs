@@ -1440,6 +1440,108 @@ pub fn create(doc: &mut Document, o: &SetOptions) -> CoreResult<SetReport> {
     }
 }
 
+/// The ids a laid-out plan's notes, lines and regions got on the sheet.
+struct PlanIds {
+    notes: Vec<ElementId>,
+    lines: Vec<ElementId>,
+    regions: Vec<ElementId>,
+}
+
+/// Puts a cover or general sheet's notes, lines and regions on `sheet`.
+fn insert_plan(
+    tx: &mut studio_core::Tx<'_>,
+    sheet: ElementId,
+    plan: &crate::cover::CoverPlan,
+) -> PlanIds {
+    let notes = plan
+        .notes
+        .iter()
+        .map(|(at, text, size, width, align)| {
+            tx.insert(ElementData::TextNote {
+                view: sheet,
+                at: *at,
+                text: text.clone(),
+                size: *size,
+                leaders: vec![],
+                align: *align,
+                width: *width,
+                angle: 0.0,
+            })
+        })
+        .collect();
+    let lines = plan
+        .lines
+        .iter()
+        .map(|(p, q, style)| {
+            tx.insert(ElementData::DetailLine {
+                view: sheet,
+                curve: studio_core::sketch::SketchCurve::Line {
+                    a: *p,
+                    b: *q,
+                    wall: None,
+                },
+                style: *style,
+            })
+        })
+        .collect();
+    let regions = plan
+        .regions
+        .iter()
+        .map(|(ring, pattern)| {
+            tx.insert(ElementData::FilledRegion {
+                view: sheet,
+                boundary: vec![ring.clone()],
+                pattern: *pattern,
+                outline: None,
+            })
+        })
+        .collect();
+    PlanIds {
+        notes,
+        lines,
+        regions,
+    }
+}
+
+/// Each of the plan's blocks as (group name, members), named after its sheet.
+fn plan_groups(
+    number: &str,
+    plan: &crate::cover::CoverPlan,
+    ids: &PlanIds,
+) -> Vec<(String, Vec<ElementId>)> {
+    plan.blocks
+        .iter()
+        .map(|b| {
+            let mut m: Vec<ElementId> = ids.notes[b.notes.clone()].to_vec();
+            m.extend_from_slice(&ids.lines[b.lines.clone()]);
+            m.extend_from_slice(&ids.regions[b.regions.clone()]);
+            (format!("{number} {}", b.name), m)
+        })
+        .filter(|(_, m)| !m.is_empty())
+        .collect()
+}
+
+/// Detail-groups each block of sheet text (ADR-111), so it moves as one and opens with a
+/// double-click, as an office's Revit template keeps its notes blocks. A name already taken
+/// gets a number.
+fn group_blocks(doc: &mut Document, blocks: Vec<(String, Vec<ElementId>)>) -> CoreResult<()> {
+    let mut taken: BTreeSet<String> = studio_core::groups::types(doc)
+        .into_iter()
+        .map(|t| t.name)
+        .collect();
+    for (name, ids) in blocks {
+        let mut n = name.clone();
+        let mut i = 2;
+        while taken.contains(&n) {
+            n = format!("{name} {i}");
+            i += 1;
+        }
+        studio_core::groups::create(doc, &ids, &n)?;
+        taken.insert(n);
+    }
+    Ok(())
+}
+
 fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> CoreResult<()> {
     report.sections = ensure_sections(doc)?;
     report.sections += crate::drawings::prepare(doc, construction(o))?.wall_sections;
@@ -1478,6 +1580,8 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
     let mut cover: Option<(ElementId, crate::cover::CoverData)> = None;
     let a = area(o.size);
     let size = o.size;
+    // Each block of sheet text and its lines, detail-grouped once placed (ADR-111).
+    let mut blocks: Vec<(String, Vec<ElementId>)> = vec![];
 
     doc.transact("Create sheet sets", |tx| {
         for d in &drafts {
@@ -1516,7 +1620,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
             }
             if let Some((heading, text, at)) = &d.notes {
                 // The heading at 1/8", the notes under it at 3/32" (ADR-109).
-                tx.insert(ElementData::TextNote {
+                let head = tx.insert(ElementData::TextNote {
                     view: sheet,
                     at: *at,
                     text: heading.clone(),
@@ -1526,7 +1630,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     width: Some(NOTES_W),
                     angle: 0.0,
                 });
-                tx.insert(ElementData::TextNote {
+                let body = tx.insert(ElementData::TextNote {
                     view: sheet,
                     at: Pt::new(at.x, at.y - NOTES_HEAD * studio_core::text::LINE - 1.0),
                     text: text.clone(),
@@ -1536,6 +1640,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     width: Some(NOTES_W),
                     angle: 0.0,
                 });
+                blocks.push((format!("{} {heading}", d.number), vec![head, body]));
             }
             let note = |tx: &mut studio_core::Tx<'_>, at: Pt, text: String, size: f64| {
                 tx.insert(ElementData::TextNote {
@@ -1547,7 +1652,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     align: Default::default(),
                     width: None,
                     angle: 0.0,
-                });
+                })
             };
             match &d.content {
                 Content::Cover { index, data } => {
@@ -1618,50 +1723,32 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                         report.views += 1;
                     }
                 }
-                Content::Text(blocks) => {
-                    let plan = crate::cover::text_sheet(blocks, (a.x0, a.y0, a.x1, a.y1));
-                    for (at, text, size, width, align) in plan.notes {
-                        tx.insert(ElementData::TextNote {
-                            view: sheet,
-                            at,
-                            text,
-                            size,
-                            leaders: vec![],
-                            align,
-                            width,
-                            angle: 0.0,
-                        });
-                    }
-                    for (p, q, style) in plan.lines {
-                        tx.insert(ElementData::DetailLine {
-                            view: sheet,
-                            curve: studio_core::sketch::SketchCurve::Line {
-                                a: p,
-                                b: q,
-                                wall: None,
-                            },
-                            style,
-                        });
-                    }
+                Content::Text(list) => {
+                    let plan = crate::cover::text_sheet(list, (a.x0, a.y0, a.x1, a.y1));
+                    let ids = insert_plan(tx, sheet, &plan);
+                    blocks.extend(plan_groups(&d.number, &plan, &ids));
                 }
                 Content::Placeholder { by, note: what } => {
                     let c = a.center();
                     let x = (c.x - 160.0).max(a.x0 + 20.0);
-                    note(tx, Pt::new(x, c.y + 30.0), d.name.to_uppercase(), 9.5);
-                    note(
-                        tx,
-                        Pt::new(x + 1.0, c.y + 8.0),
-                        format!("PLACEHOLDER — BY {}", by.to_uppercase()),
-                        4.8,
-                    );
-                    note(tx, Pt::new(x + 1.0, c.y - 8.0), what.clone(), 3.0);
-                    note(
-                        tx,
-                        Pt::new(x + 1.0, c.y - 20.0),
-                        "Replace this sheet with the final drawings before the set is issued."
-                            .into(),
-                        3.0,
-                    );
+                    let ids = vec![
+                        note(tx, Pt::new(x, c.y + 30.0), d.name.to_uppercase(), 9.5),
+                        note(
+                            tx,
+                            Pt::new(x + 1.0, c.y + 8.0),
+                            format!("PLACEHOLDER — BY {}", by.to_uppercase()),
+                            4.8,
+                        ),
+                        note(tx, Pt::new(x + 1.0, c.y - 8.0), what.clone(), 3.0),
+                        note(
+                            tx,
+                            Pt::new(x + 1.0, c.y - 20.0),
+                            "Replace this sheet with the final drawings before the set is issued."
+                                .into(),
+                            3.0,
+                        ),
+                    ];
+                    blocks.push((format!("{} Placeholder", d.number), ids));
                     report.placeholders += 1;
                 }
             }
@@ -1715,38 +1802,13 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                 .map(|e| e.id)
         };
         let placed_render = rendering.and_then(|r| on_sheet(doc, r));
+        let number = match doc.data(sheet) {
+            Ok(ElementData::Sheet { number, .. }) => number.clone(),
+            _ => String::new(),
+        };
         doc.transact("Lay out the cover", |tx| {
-            for (at, text, size, width, align) in &plan.notes {
-                tx.insert(ElementData::TextNote {
-                    view: sheet,
-                    at: *at,
-                    text: text.clone(),
-                    size: *size,
-                    leaders: vec![],
-                    align: *align,
-                    width: *width,
-                    angle: 0.0,
-                });
-            }
-            for (p, q, style) in &plan.lines {
-                tx.insert(ElementData::DetailLine {
-                    view: sheet,
-                    curve: studio_core::sketch::SketchCurve::Line {
-                        a: *p,
-                        b: *q,
-                        wall: None,
-                    },
-                    style: *style,
-                });
-            }
-            for (ring, pattern) in &plan.regions {
-                tx.insert(ElementData::FilledRegion {
-                    view: sheet,
-                    boundary: vec![ring.clone()],
-                    pattern: *pattern,
-                    outline: None,
-                });
-            }
+            let ids = insert_plan(tx, sheet, &plan);
+            blocks.extend(plan_groups(&number, &plan, &ids));
             if let Some(at) = plan.north {
                 tx.insert(ElementData::NorthArrow { view: sheet, at });
             }
@@ -1799,6 +1861,7 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
             Ok(())
         })?;
     }
+    group_blocks(doc, blocks)?;
     // Older sheets left empty by the move leave the chosen phases' sets.
     let now_empty: Vec<(ElementId, String)> = doc
         .of(Category::Sheet)
@@ -2176,6 +2239,60 @@ mod tests {
             copy.data(ops::project_info(&copy).unwrap()),
             Ok(ElementData::ProjectInfo { current_stage: Some(s), .. }) if *s == sd
         ));
+    }
+
+    #[test]
+    fn sheet_text_blocks_are_detail_grouped() {
+        let mut doc = house(2);
+        create(&mut doc, &opts(BuildingType::SingleFamily, &["CD"])).unwrap();
+        let sheets: BTreeSet<ElementId> = doc.of(Category::Sheet).map(|e| e.id).collect();
+        // Every note the sets wrote on a sheet is in a detail group on that sheet.
+        let mut notes = 0;
+        for e in doc.of(Category::TextNote) {
+            let ElementData::TextNote { view, .. } = &e.data else {
+                continue;
+            };
+            if !sheets.contains(view) {
+                continue;
+            }
+            notes += 1;
+            let g = studio_core::groups::group_of(&doc, e.id)
+                .unwrap_or_else(|| panic!("{:?} isn't grouped", e.data));
+            assert!(matches!(
+                doc.data(g),
+                Ok(ElementData::Group { view: Some(v), .. }) if v == view
+            ));
+        }
+        assert!(notes > 20, "{notes}");
+        let names: Vec<String> = studio_core::groups::types(&doc)
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+        // The cover's boxes, each on its own; a plan sheet's notes heading and body.
+        for want in ["G-001 PROJECT DATA", "G-001 APPLICABLE CODES"] {
+            assert!(names.iter().any(|n| n == want), "{want} in {names:?}");
+        }
+        let a101 = ops::sheets(&doc)
+            .into_iter()
+            .find(|s| s.1 == "A-101")
+            .unwrap()
+            .0;
+        let plan_notes: Vec<ElementId> = doc
+            .of(Category::Group)
+            .filter_map(|e| match &e.data {
+                ElementData::Group {
+                    view: Some(v),
+                    members,
+                    ..
+                } if *v == a101 => Some(members.clone()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        assert_eq!(plan_notes.len(), 2);
+        // Still one undo step.
+        doc.undo().unwrap();
+        assert_eq!(doc.count(Category::Group), 0);
     }
 
     #[test]

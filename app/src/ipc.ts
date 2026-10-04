@@ -60,6 +60,7 @@ import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { Precedent } from "./bindings/Precedent";
 import type { SkyPreset } from "./bindings/SkyPreset";
 import type { ScheduleStyle } from "./bindings/ScheduleStyle";
+import type { TitleBlockFields } from "./bindings/TitleBlockFields";
 import type { TextFont } from "./bindings/TextFont";
 import type { PlaceholderSheet } from "./bindings/PlaceholderSheet";
 import type { NotesOptions } from "./bindings/NotesOptions";
@@ -486,6 +487,11 @@ export const ipc = {
   placeholderSheets: () => invoke<PlaceholderSheet[]>("placeholder_sheets"),
   setPlaceholderSheets: (sheets: PlaceholderSheet[]) =>
     invoke<AppState | null>("set_placeholder_sheets", { sheets }),
+  // The title block (ADR-111): its fields, and whether a sheet point is on it.
+  titleBlockFields: (sheet: ElementId) => invoke<TitleBlockFields>("title_block_fields", { sheet }),
+  setTitleBlockFields: (sheet: ElementId, fields: TitleBlockFields) =>
+    invoke<AppState | null>("set_title_block_fields", { sheet, fields }),
+  titleBlockAt: (sheet: ElementId, at: Pt) => invoke<boolean>("title_block_at", { sheet, at }),
   generalNotesPreset: (building: NotesBuilding, drawing: NotesDrawing, code: string) =>
     invoke<[string, string[]]>("general_notes_preset", { building, drawing, code }),
   placeGeneralNotes: (view: ElementId, heading: string, notes: string[], width: number): S =>
