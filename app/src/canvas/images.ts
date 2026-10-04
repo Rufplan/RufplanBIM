@@ -13,6 +13,9 @@ export function renderImage(id: ElementId): HTMLImageElement | null {
   cache.set(id, null);
   ipc
     .renderImage(id)
+    // A sheet map (ADR-107) answers with what to fetch: the imagery comes from Google now,
+    // held only here, never saved.
+    .then((url) => (url.startsWith("map:") ? ipc.mapImage(JSON.parse(url.slice(4))) : url))
     .then((url) => {
       const img = new Image();
       img.onload = () => {
@@ -21,7 +24,8 @@ export function renderImage(id: ElementId): HTMLImageElement | null {
       };
       img.src = url;
     })
-    .catch(() => cache.delete(id));
+    // Not retried on every redraw (a missing Maps key would ask Google each frame).
+    .catch(() => cache.set(id, null));
   return null;
 }
 

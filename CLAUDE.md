@@ -165,6 +165,9 @@ Read these before writing code:
 - Sky Library and turf (ADR-101): studio-core `skies` (31 Poly Haven pure skies), app sky_library/sky_file, render/backgrounds.ts
   (hdrSun, matchSunRotation, fillGround); grass.ts arched lawn blades + far LOD; plants.rs mopheads, outward leaf winding;
   ffe.rs `canopy` umbrella (`Part::Tris`); pathtrace `interiorGlow`.
+- Notes, RCP, maps, text tab (ADR-107): sets `sheet_notes` (notes per drawing sheet beside/under plans), bottom-right `pack`;
+  studio-views RCP shared-edge cleanup, white ceilings; studio-core `maps` (MapFrame), app `map_image`/`sheet_maps`,
+  studio-sheets `export_pdf_with`; Ribbon `TextPanels` contextual Modify tab, store `textEditing`.
 - Sheet layout and interiors (ADR-106): sets `Area::right` (from the top right, plans centred), sheet `full_width` title rules,
   studio-views `interior_cut` (wall-only crop + heavy profile), `ElementData::view` hides RoomSeparator in plans,
   drawings `ensure_interior_markers`, details A-501 exterior / A-551 interior, renderings G-901; canvas greeked text.

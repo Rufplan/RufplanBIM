@@ -9,7 +9,7 @@ pub mod schedule;
 pub mod sets;
 pub mod sheet;
 
-pub use pdf::export_pdf;
+pub use pdf::{export_pdf, export_pdf_with, Maps};
 pub use schedule::{schedule, schedule_on, Table};
 pub use sheet::{
     drag_title, drag_title_start, keep_placed, move_title, move_viewport, sheet_display_list,

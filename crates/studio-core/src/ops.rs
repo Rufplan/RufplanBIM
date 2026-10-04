@@ -2366,6 +2366,13 @@ pub fn properties(doc: &Document, id: ElementId) -> CoreResult<PropertySheet> {
                 format!("{width} x {height} px"),
             ));
         }
+        ElementData::MapFrame {
+            kind, zoom, label, ..
+        } => {
+            props.push(ro("kind", "Map", "Identity Data", kind.label().into()));
+            props.push(text("label", "Address", "Text", label));
+            props.push(text("zoom", "Zoom (1–21)", "Map", &zoom.to_string()));
+        }
         ElementData::PlantingType { .. }
         | ElementData::Planting { .. }
         | ElementData::GroundRegion { .. } => crate::planting::properties(doc, id, &mut props),
@@ -2903,6 +2910,18 @@ pub fn set_property(
     let unknown = || CoreError::Invalid(format!("unknown property {key}"));
     let mut d = data;
     match &mut d {
+        ElementData::MapFrame { zoom, label, .. } => match key {
+            "label" => *label = value.trim().to_string(),
+            "zoom" => {
+                *zoom = value
+                    .trim()
+                    .parse::<u32>()
+                    .ok()
+                    .filter(|z| (1..=21).contains(z))
+                    .ok_or_else(|| CoreError::Invalid("zoom is 1 to 21".into()))?
+            }
+            _ => return Err(unknown()),
+        },
         ElementData::Level { name, elevation } => match key {
             "name" => *name = non_empty(value)?,
             "elevation" => *elevation = parse_len(value)?,

@@ -22,6 +22,7 @@ pub mod keynotes;
 pub mod library;
 pub mod lighting;
 pub mod lines;
+pub mod maps;
 pub mod material;
 pub mod mep;
 pub mod model_edit;

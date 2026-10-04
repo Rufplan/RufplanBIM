@@ -944,7 +944,8 @@ pub(crate) fn write_pdf(
     sheets: &[ElementId],
     path: &str,
 ) -> anyhow::Result<PathBuf> {
-    let bytes = studio_sheets::export_pdf(doc, sheets, &today())?;
+    let maps = crate::site_cmds::sheet_maps(doc, sheets);
+    let bytes = studio_sheets::export_pdf_with(doc, sheets, &today(), &maps)?;
     let mut path = PathBuf::from(path);
     if path
         .extension()

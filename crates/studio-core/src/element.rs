@@ -135,6 +135,8 @@ pub enum Category {
     KeynoteTag,
     /// The MEPT layers (ADR-082).
     MepScheme,
+    /// A location or vicinity map on a sheet (ADR-107); its imagery is fetched when shown.
+    MapFrame,
 }
 
 impl Category {
@@ -209,6 +211,7 @@ impl Category {
             Category::KeynoteTable => "KeynoteTable",
             Category::KeynoteTag => "KeynoteTag",
             Category::MepScheme => "MepScheme",
+            Category::MapFrame => "MapFrame",
         }
     }
 }
@@ -1357,6 +1360,19 @@ pub enum ElementData {
         height: u32,
         paper_width: f64,
     },
+    /// A map on a sheet (ADR-107): the location or vicinity of `(lat, lon)` at `zoom` in the
+    /// box `min`–`max` (paper mm), with `label` (the address) over it. Only these are kept:
+    /// the imagery comes from Google when the sheet is shown or printed, never saved.
+    MapFrame {
+        sheet: ElementId,
+        kind: crate::maps::MapKind,
+        min: Pt,
+        max: Pt,
+        lat: f64,
+        lon: f64,
+        zoom: u32,
+        label: String,
+    },
     /// A furniture or equipment type (ADR-090).
     FfeType {
         name: String,
@@ -1652,6 +1668,7 @@ impl ElementData {
             ElementData::GroupType { .. } => Category::GroupType,
             ElementData::FfeType { .. } => Category::FfeType,
             ElementData::RenderImage { .. } => Category::RenderImage,
+            ElementData::MapFrame { .. } => Category::MapFrame,
             ElementData::Ffe { class, .. } => class.category(),
             ElementData::Group { .. } => Category::Group,
             ElementData::SpotElevation { .. } => Category::SpotElevation,
@@ -1839,6 +1856,7 @@ impl ElementData {
             ElementData::GroupType { name, .. } => name.clone(),
             ElementData::FfeType { name, .. } => name.clone(),
             ElementData::RenderImage { name, .. } => name.clone(),
+            ElementData::MapFrame { kind, .. } => kind.label().into(),
             ElementData::Ffe { class, .. } => class.label().into(),
             ElementData::Group { .. } => "Group".into(),
             ElementData::Site { address, .. } => {

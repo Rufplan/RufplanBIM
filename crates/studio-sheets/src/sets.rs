@@ -17,6 +17,7 @@ use studio_geom::Pt;
 use ts_rs::TS;
 
 use crate::sheet::{margins, title_block_width, viewport_items};
+use studio_core::general_notes::NotesDrawing;
 
 /// The building types sets are tailored to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -259,21 +260,25 @@ fn pack(boxes: &[(f64, f64)], a: &Area) -> Option<Vec<Pt>> {
         return None;
     }
     let mut out = vec![Pt::default(); boxes.len()];
-    let mut y = if a.right {
-        a.y1
-    } else {
-        a.y1 - (ah - total) / 2.0
-    };
-    for (r, h) in rows.iter().zip(&heights) {
-        let rw = r.iter().map(|i| boxes[*i].0).sum::<f64>() + GAP * (r.len() - 1) as f64;
-        if a.right {
+    if a.right {
+        // From the bottom right corner (ADR-107): the first row along the bottom, each view
+        // standing on its title, right to left; later rows above.
+        let mut base = a.y0;
+        for (r, h) in rows.iter().zip(&heights) {
             let mut x = a.x1;
             for i in r {
                 let (w, bh) = boxes[*i];
-                out[*i] = Pt::new(x - w / 2.0, y - bh / 2.0);
+                out[*i] = Pt::new(x - w / 2.0, base + TITLE + bh / 2.0);
                 x -= w + GAP;
             }
-        } else {
+            base += h + GAP;
+        }
+        return Some(out);
+    }
+    let mut y = a.y1 - (ah - total) / 2.0;
+    for (r, h) in rows.iter().zip(&heights) {
+        let rw = r.iter().map(|i| boxes[*i].0).sum::<f64>() + GAP * (r.len() - 1) as f64;
+        {
             let mut x = a.x0 + (aw - rw) / 2.0;
             for i in r {
                 let (w, bh) = boxes[*i];
@@ -402,6 +407,8 @@ struct Draft {
     name: String,
     content: Content,
     phases: Vec<&'static str>,
+    /// The drawing's general notes and where they go (top-left, paper mm), ADR-107.
+    notes: Option<(String, Pt)>,
 }
 
 fn num(d: &str, n: usize) -> String {
@@ -429,6 +436,102 @@ fn interior_detail(view_name: &str) -> bool {
         .is_some_and(|d| {
             !EXTERIOR.contains(&d.category.as_str()) && !EXTERIOR_IDS.contains(&d.id.as_str())
         })
+}
+
+/// Width of a sheet's general notes column, paper mm, and their text height.
+const NOTES_W: f64 = 110.0;
+const NOTES_H: f64 = 2.4;
+
+/// The general notes each drawing sheet carries (ADR-107), by its number: the site plan,
+/// floor, roof and ceiling plans, elevations, sections, enlarged plans, interior elevations,
+/// details and schedules.
+fn notes_for(number: &str, name: &str) -> Option<NotesDrawing> {
+    let n: usize = number.strip_prefix("A-")?.parse().ok()?;
+    Some(match n {
+        100 => NotesDrawing::SitePlan,
+        101..=149 if name.contains("Roof") => NotesDrawing::RoofPlan,
+        101..=149 => NotesDrawing::FloorPlan,
+        150..=199 => NotesDrawing::CeilingPlan,
+        200..=299 | 450..=499 => NotesDrawing::Elevations,
+        300..=399 => NotesDrawing::Sections,
+        400..=449 => NotesDrawing::EnlargedPlans,
+        500..=599 => NotesDrawing::Details,
+        600..=699 => NotesDrawing::Schedules,
+        _ => return None,
+    })
+}
+
+/// Places each drawing sheet's general notes (ADR-107), as architects lay them out:
+/// - beside a plan, in a column from the plan's top right, when the sheet is wide enough
+///   (the plan moves left to make room);
+/// - else under the plan, below its title, aligned to the plan's left side;
+/// - on sheets of elevations, sections, details and schedules, in the column kept for them
+///   at the top left, the views filling from the bottom right.
+fn sheet_notes(doc: &Document, t: BuildingType, drafts: &mut [Draft], a: &Area) {
+    use studio_core::general_notes as gn;
+    let nb = match t {
+        BuildingType::SingleFamily => gn::NotesBuilding::SingleFamily,
+        BuildingType::Duplex | BuildingType::Townhouses => gn::NotesBuilding::DuplexTownhouse,
+        BuildingType::GardenApartments | BuildingType::MidRiseApartments => {
+            gn::NotesBuilding::Multifamily
+        }
+        BuildingType::MixedUse => gn::NotesBuilding::MixedUse,
+        BuildingType::Hotel => gn::NotesBuilding::Hotel,
+    };
+    let code = gn::code_for(doc);
+    let line = studio_core::text::LINE;
+    for d in drafts.iter_mut() {
+        let Some(kind) = notes_for(&d.number, &d.name) else {
+            continue;
+        };
+        let text = gn::text(&kind.heading(), &gn::notes(nb, kind, &code));
+        let tall =
+            studio_core::text::wrap(&text, NOTES_H, Some(NOTES_W)).len() as f64 * NOTES_H * line;
+        // The first line's baseline sits just under the top of the column.
+        let at = |left: f64, top: f64| Pt::new(left, top - NOTES_H);
+        let spot = match &mut d.content {
+            Content::Views(p) if plan_sheet(doc, p) => {
+                let (v, c) = p.views[0];
+                let Some((w, h)) = model_size(doc, v) else {
+                    continue;
+                };
+                let s = f64::from(p.scale);
+                let (pw, ph) = (w / s, h / s);
+                let aw = a.x1 - a.x0;
+                if pw + GAP + NOTES_W <= aw {
+                    // Beside the plan: the plan and its notes centred together.
+                    let x = a.x0 + (aw - (pw + GAP + NOTES_W)) / 2.0 + pw / 2.0;
+                    p.views[0].1 = Pt::new(x, c.y);
+                    at(x + pw / 2.0 + GAP, c.y + ph / 2.0)
+                } else if c.y - ph / 2.0 - TITLE - 4.0 - tall >= a.y0 {
+                    // Under the plan's title, from its left side.
+                    at(c.x - pw / 2.0, c.y - ph / 2.0 - TITLE - 4.0)
+                } else {
+                    // Too big for either: the plan against the left edge, the notes in the
+                    // right-hand column, over the margin of its crop.
+                    let x = a.x0 + pw / 2.0;
+                    p.views[0].1 = Pt::new(x, c.y);
+                    at((x + pw / 2.0 + GAP).min(a.x1 - NOTES_W), c.y + ph / 2.0)
+                }
+            }
+            Content::Views(_) | Content::Schedules(_) => at(a.x0, a.y1),
+            _ => continue,
+        };
+        d.notes = Some((text, spot));
+    }
+}
+
+/// A sheet holding one plan (site, floor, roof or ceiling plan).
+fn plan_sheet(doc: &Document, p: &Placed) -> bool {
+    p.views.len() == 1
+        && matches!(
+            doc.data(p.views[0].0),
+            Ok(ElementData::View {
+                kind: ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. },
+                callout_of: None,
+                ..
+            })
+        )
 }
 /// The rendering the cover shows: the project's first.
 fn cover_rendering(doc: &Document) -> Option<ElementId> {
@@ -531,7 +634,12 @@ fn drafts(
     warnings: &mut Vec<String>,
 ) -> Vec<Draft> {
     let a = area(size);
-    let ar = a.right_aligned();
+    // Sheets of elevations, sections, details and schedules fill from the bottom right and
+    // keep a column at the left for their notes (ADR-107).
+    let ar = Area {
+        x0: a.x0 + NOTES_W + GAP,
+        ..a.right_aligned()
+    };
     let mut v: Vec<Draft> = vec![];
     let mut add =
         |number: String, name: &str, content: Content, phases: &'static [&'static str]| {
@@ -540,6 +648,7 @@ fn drafts(
                 name: name.into(),
                 content,
                 phases: phases.to_vec(),
+                notes: None,
             })
         };
     let irc = t.irc();
@@ -1089,6 +1198,7 @@ fn drafts(
             );
         }
     }
+    sheet_notes(doc, t, &mut v, &a);
     v
 }
 
@@ -1399,6 +1509,17 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
             if !fill {
                 continue;
             }
+            if let Some((text, at)) = &d.notes {
+                tx.insert(ElementData::TextNote {
+                    view: sheet,
+                    at: *at,
+                    text: text.clone(),
+                    size: NOTES_H,
+                    leaders: vec![],
+                    align: Default::default(),
+                    width: Some(NOTES_W),
+                });
+            }
             let note = |tx: &mut studio_core::Tx<'_>, at: Pt, text: String, size: f64| {
                 tx.insert(ElementData::TextNote {
                     view: sheet,
@@ -1560,7 +1681,15 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
         let aspect = rendering
             .and_then(|r| studio_core::renderings::image_of(doc, r))
             .map(|(_, _, w, h, _)| f64::from(w) / f64::from(h.max(1)));
-        let plan = crate::cover::layout(&data, (a.x0, a.y0, a.x1, a.y1), size, aspect);
+        let located = studio_core::maps::site_location(doc);
+        let label = studio_core::maps::address(doc);
+        let plan = crate::cover::layout(
+            &data,
+            (a.x0, a.y0, a.x1, a.y1),
+            size,
+            aspect,
+            located.is_some(),
+        );
         let on_sheet = |doc: &Document, view: ElementId| {
             doc.of(Category::Viewport)
                 .find(|e| matches!(&e.data, ElementData::Viewport { view: v, sheet: s, .. } if *v == view && *s == sheet))
@@ -1600,6 +1729,20 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
             }
             if let Some(at) = plan.north {
                 tx.insert(ElementData::NorthArrow { view: sheet, at });
+            }
+            if let Some((lat, lon)) = located {
+                for (kind, min, max) in &plan.maps {
+                    tx.insert(ElementData::MapFrame {
+                        sheet,
+                        kind: *kind,
+                        min: *min,
+                        max: *max,
+                        lat,
+                        lon,
+                        zoom: kind.zoom(),
+                        label: label.clone(),
+                    });
+                }
             }
             if let (Some(vp), Some(center)) = (cover_index, plan.index) {
                 tx.modify(vp, |d| {
@@ -1789,16 +1932,16 @@ mod tests {
         // Three 180-wide boxes: two rows.
         let c = pack(&[(180.0, 50.0); 3], &a).unwrap();
         assert!(c[2].y < c[0].y && (c[0].y - c[1].y).abs() < 1e-9);
-        // From the right (ADR-106): the first box against the right edge at the top, the
-        // next to its left, the third below the first.
+        // From the bottom right (ADR-107): the first box in the corner standing on its title,
+        // the next to its left, the third above the first.
         let r = a.right_aligned();
         let c = pack(&[(180.0, 50.0); 3], &r).unwrap();
         assert!(
-            (c[0].x - 310.0).abs() < 1e-9 && (c[0].y - 275.0).abs() < 1e-9,
+            (c[0].x - 310.0).abs() < 1e-9 && (c[0].y - 41.0).abs() < 1e-9,
             "{c:?}"
         );
-        assert!((c[1].x - 112.0).abs() < 1e-9 && (c[1].y - 275.0).abs() < 1e-9);
-        assert!((c[2].x - 310.0).abs() < 1e-9 && c[2].y < c[0].y);
+        assert!((c[1].x - 112.0).abs() < 1e-9 && (c[1].y - 41.0).abs() < 1e-9);
+        assert!((c[2].x - 310.0).abs() < 1e-9 && (c[2].y - 125.0).abs() < 1e-9);
         // A 40' plan on ARCH D: 1/4" fits (120 mm wide), a 400' one needs 1/16".
         let d = area(SheetSize::ArchD);
         let ft = MM_PER_FT;
@@ -1833,13 +1976,10 @@ mod tests {
         assert_eq!(name("A-102").name, "Level 2 Floor Plan");
         assert!(name("A-101").contents.contains("1/4\" = 1'-0\""));
         assert_eq!(name("A-151").name, "Level 1 Reflected Ceiling Plan");
-        // A 40' x 30' house at 1/4", cropped to the building (ADR-105): three elevations
-        // on A-201, the fourth on A-202.
-        assert_eq!(
-            name("A-201").contents,
-            "South, North, East at 1/4\" = 1'-0\""
-        );
-        assert_eq!(name("A-202").contents, "West at 1/4\" = 1'-0\"");
+        // A 40' x 30' house at 1/4", cropped to the building (ADR-105), beside the notes
+        // column (ADR-107): two elevations a sheet.
+        assert_eq!(name("A-201").contents, "South, North at 1/4\" = 1'-0\"");
+        assert_eq!(name("A-202").contents, "East, West at 1/4\" = 1'-0\"");
         assert!(name("A-301")
             .contents
             .contains("Building Section 1, Building Section 2"));

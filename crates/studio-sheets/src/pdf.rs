@@ -36,7 +36,7 @@ fn color(fill: FillKind) -> Option<rgb::Color> {
         FillKind::PocheLight => rgb::Color::new(0xb4, 0xb4, 0xae),
         FillKind::Paper => rgb::Color::new(0xff, 0xff, 0xff),
         FillKind::Slab => rgb::Color::new(0xef, 0xef, 0xeb),
-        FillKind::Ceiling => rgb::Color::new(0xf2, 0xfb, 0xfe),
+        FillKind::Ceiling => rgb::Color::new(0xff, 0xff, 0xff),
         FillKind::Ink => rgb::Color::new(0x0a, 0x0a, 0x0a),
         FillKind::Glass => rgb::Color::new(0xdf, 0xf5, 0xfd),
         FillKind::Accent => rgb::Color::new(0x3e, 0xcf, 0xf7),
@@ -58,6 +58,20 @@ fn text_width_em(face: &ttf_parser::Face<'_>, text: &str) -> f64 {
 
 /// Writes the given sheets, one page each, to PDF bytes. `date` goes in the title blocks.
 pub fn export_pdf(doc: &Document, sheets: &[ElementId], date: &str) -> Result<Vec<u8>, PdfError> {
+    export_pdf_with(doc, sheets, date, &Maps::new())
+}
+
+/// Map images by map frame (ADR-107): fetched by the caller just before printing (never
+/// stored); a frame without one prints as a gray box.
+pub type Maps = std::collections::HashMap<ElementId, Vec<u8>>;
+
+/// Like [`export_pdf`], with the sheets' map images.
+pub fn export_pdf_with(
+    doc: &Document,
+    sheets: &[ElementId],
+    date: &str,
+    maps: &Maps,
+) -> Result<Vec<u8>, PdfError> {
     let font = Font::new(FONT.to_vec().into(), 0).ok_or(PdfError::Font)?;
     let face = ttf_parser::Face::parse(FONT, 0).map_err(|_| PdfError::Font)?;
     let mut pdf = Pdf::new();
@@ -66,7 +80,7 @@ pub fn export_pdf(doc: &Document, sheets: &[ElementId], date: &str) -> Result<Ve
             return Err(PdfError::NotASheet(sheet));
         }
         let dl = sheet_display_list(doc, sheet, date).ok_or(PdfError::NotASheet(sheet))?;
-        draw_page(&mut pdf, doc, &dl, &font, &face)?;
+        draw_page(&mut pdf, doc, &dl, &font, &face, maps)?;
     }
     pdf.finish().map_err(|e| PdfError::Write(format!("{e:?}")))
 }
@@ -77,6 +91,7 @@ fn draw_page(
     dl: &DisplayList,
     font: &Font,
     face: &ttf_parser::Face<'_>,
+    maps: &Maps,
 ) -> Result<(), PdfError> {
     let [_, _, w, h] = dl.bounds;
     let settings = PageSettings::from_wh((w * PT_PER_MM) as f32, (h * PT_PER_MM) as f32)
@@ -154,13 +169,38 @@ fn draw_page(
             // A saved rendering (ADR-095), embedded as it was rendered.
             Prim::Image { image, min, max } => {
                 use base64::Engine;
-                let Ok(ElementData::RenderImage { mime, data, .. }) = doc.data(*image) else {
-                    continue;
+                let (bytes, png) = match doc.data(*image) {
+                    Ok(ElementData::RenderImage { mime, data, .. }) => {
+                        let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(data)
+                        else {
+                            continue;
+                        };
+                        (bytes, mime == "image/png")
+                    }
+                    Ok(ElementData::MapFrame { .. }) => match maps.get(image) {
+                        Some(b) => (b.clone(), b.starts_with(&[0x89, b'P', b'N', b'G'])),
+                        None => {
+                            // No imagery (no key, or offline): a gray box where it goes.
+                            let mut pb = PathBuilder::new();
+                            pb.move_to(x(min[0]), y(min[1]));
+                            pb.line_to(x(max[0]), y(min[1]));
+                            pb.line_to(x(max[0]), y(max[1]));
+                            pb.line_to(x(min[0]), y(max[1]));
+                            pb.close();
+                            if let Some(path) = pb.finish() {
+                                surface.set_stroke(None);
+                                surface.set_fill(Some(Fill {
+                                    paint: rgb::Color::new(0xe8, 0xe6, 0xe1).into(),
+                                    ..Default::default()
+                                }));
+                                surface.draw_path(&path);
+                            }
+                            continue;
+                        }
+                    },
+                    _ => continue,
                 };
-                let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(data) else {
-                    continue;
-                };
-                let img = if mime == "image/png" {
+                let img = if png {
                     krilla::image::Image::from_png(bytes.into(), true)
                 } else {
                     krilla::image::Image::from_jpeg(bytes.into(), true)

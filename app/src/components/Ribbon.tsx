@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   apply,
   deleteSelection,
@@ -19,7 +19,7 @@ import { SketchRibbon } from "./SketchRibbon";
 import { InPlaceRibbon } from "./InPlaceRibbon";
 import { GroupEditRibbon, groupsLabel, placeGroup } from "./Groups";
 import { QaRibbon } from "./Qa";
-import { TextRibbon } from "./TextRibbon";
+import { TextPanels } from "./TextRibbon";
 import { NewViewMenu } from "./NewViewMenu";
 import { ActiveWorkset } from "./Worksets";
 import type { Discipline } from "../bindings/Discipline";
@@ -468,16 +468,22 @@ export function Ribbon() {
       : `Lighting, ${sun.azimuth}° azimuth, ${sun.altitude}° altitude`;
   // Selecting elements turns the Modify tab into Revit's "Modify | Walls" (ADR-055).
   const selectedCats = useSelectionCategories();
-  const ctxLabel = groupsLabel(app, selection) ?? contextLabel(selectedCats);
+  // Text's contextual tab (ADR-070, ADR-107): the Modify tab, renamed, in the same tab bar.
+  const textEditing = useAppStore((s) => s.textEditing);
+  const textMode = activeTool === "text" || textEditing;
+  const ctxLabel = textEditing
+    ? "Modify | Edit Text"
+    : activeTool === "text"
+      ? "Modify | Place Text"
+      : (groupsLabel(app, selection) ?? contextLabel(selectedCats));
   useContextualSwitch(ctxLabel);
+  useTextSwitch(textMode);
   // Sketch mode replaces the ribbon with its contextual tab, as in Revit.
   if (app?.sketch) return <SketchRibbon />;
   // So does the In-Place Editor (ADR-068).
   if (app?.inPlace) return <InPlaceRibbon />;
   // So does Edit Group (ADR-087).
   if (app?.editingGroup) return <GroupEditRibbon />;
-  // Text's contextual tab (ADR-070).
-  if (activeTool === "text") return <TextRibbon />;
   const sketchButton = (
     kind: "Floor" | "Ceiling",
     label: string,
@@ -544,7 +550,8 @@ export function Ribbon() {
         {tab === "Specifications" && <SpecsRibbon />}
         {tab === "Standards" && <StandardsRibbon />}
         {/* Modify, Move and Delete live on the Modify tab only (Esc still returns to Modify). */}
-        {tab === "Modify" && (
+        {tab === "Modify" && textMode && <TextPanels editing={textEditing} />}
+        {tab === "Modify" && !textMode && (
           <Group title="Select">
             <ToolButton tool="select" label="Modify" icon={Icons.select} keys="MD / Esc" />
           </Group>
@@ -1062,7 +1069,7 @@ export function Ribbon() {
         )}
         {tab === "Structure" && <StructureAnalyze />}
         {tab === "MEPT" && <MeptRibbon />}
-        {tab === "Modify" && (
+        {tab === "Modify" && !textMode && (
           <>
             {ctxLabel && <ContextPropertiesGroup />}
             <Group title="Modify">
@@ -1095,7 +1102,7 @@ export function Ribbon() {
             </Group>
           </>
         )}
-        {tab === "Modify" && (
+        {tab === "Modify" && !textMode && (
           <Group title="Move">
             <ToolButton tool="move" label="Move" icon={Icons.move} keys="MV — select first" />
             <button
@@ -1109,7 +1116,7 @@ export function Ribbon() {
             </button>
           </Group>
         )}
-        {tab === "Modify" && ctxLabel && <ContextPanels cats={selectedCats} />}
+        {tab === "Modify" && !textMode && ctxLabel && <ContextPanels cats={selectedCats} />}
         {tab === "Annotate" && (
           <Group title="Annotate">
             <ToolButton tool="dimension" label="Aligned" icon={Icons.dimension} keys="DI" />
@@ -1496,4 +1503,22 @@ export function Ribbon() {
       </div>
     </div>
   );
+}
+
+/** Shows the Modify tab while text is placed or edited, and returns to the tab you were on
+ * after (ADR-107), as Revit's contextual tabs do. */
+let textReturnTab: string | null = null;
+function useTextSwitch(on: boolean) {
+  useEffect(() => {
+    const s = useAppStore.getState();
+    if (on) {
+      if (s.ribbonTab !== "Modify") {
+        textReturnTab = s.ribbonTab;
+        s.setRibbonTab("Modify");
+      }
+    } else if (textReturnTab) {
+      if (s.ribbonTab === "Modify") s.setRibbonTab(textReturnTab);
+      textReturnTab = null;
+    }
+  }, [on]);
 }

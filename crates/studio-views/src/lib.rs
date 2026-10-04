@@ -668,7 +668,37 @@ fn plan(
                     b.line(Some(c.id), &seg, false, 1, Dash::Solid);
                 }
             }
-            b.line(Some(c.id), &c.base.outer, true, 2, Dash::Solid);
+            // The outline, less edges shared with a ceiling of the same type and height
+            // next to it (ADR-107): an open plan's ceilings read as one, as in Revit.
+            let ty = doc.data(c.id).ok().and_then(|d| d.type_id());
+            let twins: Vec<&Vec<Pt>> = model
+                .ceilings
+                .iter()
+                .filter(|o| {
+                    o.id != c.id
+                        && o.level == level
+                        && (o.z0 - c.z0).abs() < 1.0
+                        && doc.data(o.id).ok().and_then(|d| d.type_id()) == ty
+                })
+                .map(|o| &o.base.outer)
+                .collect();
+            let ring_pts = &c.base.outer;
+            let n = ring_pts.len();
+            for i in 0..n {
+                let (p, q) = (ring_pts[i], ring_pts[(i + 1) % n]);
+                let mid = p.lerp(q, 0.5);
+                let shared = twins.iter().any(|t| {
+                    (0..t.len()).any(|j| {
+                        let (a, e) = (t[j], t[(j + 1) % t.len()]);
+                        project_to_segment(mid, a, e).1 < 2.0
+                            && project_to_segment(p, a, e).1 < 2.0
+                            && project_to_segment(q, a, e).1 < 2.0
+                    })
+                });
+                if !shared {
+                    b.line(Some(c.id), &[p, q], false, 2, Dash::Solid);
+                }
+            }
         }
     }
 

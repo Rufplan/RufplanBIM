@@ -407,6 +407,9 @@ interface UiState {
   /** The ribbon tab shown; Standards replaces the workspace (ADR-047). */
   ribbonTab: string;
   setRibbonTab: (tab: string) => void;
+  /** A text note is being typed (ADR-107): the ribbon shows Modify | Edit Text. */
+  textEditing: boolean;
+  setTextEditing: (on: boolean) => void;
   /** Collaborate > Gray Inactive Workset Graphics (ADR-079). */
   grayInactive: boolean;
   setGrayInactive: (on: boolean) => void;
@@ -549,6 +552,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setElevationType: (elevationType) => set({ elevationType }),
   ribbonTab: "Architecture",
   setRibbonTab: (ribbonTab) => set({ ribbonTab }),
+  textEditing: false,
+  setTextEditing: (textEditing) => set({ textEditing }),
   grayInactive: false,
   setGrayInactive: (grayInactive) => set({ grayInactive }),
   structuralOverlay: false,

@@ -29,7 +29,7 @@ const FILL: Record<FillKind, string> = {
   PocheLight: "#b4b4ae",
   Paper: "#ffffff",
   Slab: "#efefeb",
-  Ceiling: "#f2fbfe",
+  Ceiling: "#ffffff",
   Ink: "#0a0a0a",
   Glass: "#dff5fd",
   Room: "rgba(0, 0, 0, 0)",

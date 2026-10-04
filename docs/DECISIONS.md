@@ -4054,3 +4054,37 @@ coursing along a line".
 - **Zoomed-out sheets** (app canvas `render.ts`):
   - Text too small to read draws as gray bars ("greeking", as Revit does) instead of vanishing below 4 px.
   - The thinnest pens draw at about one pixel.
+
+## ADR-107 Bottom-right layout, notes on every drawing sheet, Revit's RCP, cover maps, the Text contextual tab — Accepted (2026-10-04)
+- **The owner's ask:**
+  - Lay out sheets from the bottom right corner, except plan sheets.
+  - Put each drawing sheet's typical general notes on it, next to the plan: a column from the plan's top right, or under the plan's title aligned to its left.
+  - Keep room separation lines out of the RCPs.
+  - Stop ceilings looking blue.
+  - Put Google location and vicinity maps, with the address over them, on the cover.
+  - Make the Text tool's header (its contextual ribbon) work as smoothly as Revit's.
+- **Layout from the bottom right** (sets `pack`, `Area::right`):
+  - The first view sits in the bottom right corner, standing on its title. Views go leftward along the row, and later rows stack above.
+  - Plan sheets stay centred.
+- **General notes on drawing sheets** (sets `sheet_notes`, `notes_for`):
+  - **Where they come from:** the General Notes catalog (ADR-103) for the sheet's drawing type — site, floor, roof and ceiling plans, elevations and interior elevations, sections, enlarged plans, details and schedules — for the building type and code.
+  - **Format:** one 110 mm column of 3/32" text.
+  - **Plan sheets:**
+    - Beside the plan, from its top right, when the sheet is wide enough. The plan and its notes are centred together.
+    - Else under the plan's title, from its left side.
+    - Else the plan moves to the left edge and the notes take the right-hand column.
+  - **Grid sheets** keep a column for the notes at the top left, opposite the corner the views fill from.
+- **Ceiling plans** (studio-views `plan`):
+  - A ceiling's outline leaves out edges shared with a ceiling of the same type and height beside it, so an open plan's ceilings read as one, as in Revit. Those edges were where the room separators run.
+  - Ceilings fill white (canvas and PDF), not light blue.
+- **Cover maps** (studio-core `maps`, element `MapFrame` and category `MapFrame`):
+  - **What's kept:** each map's frame on the sheet — kind (Location: satellite with labels at zoom 18; Vicinity: road map at zoom 14), box, site latitude and longitude, zoom and address label.
+  - **Imagery:** fetched from Google's Maps Static API when the sheet is shown (app `map_image`; `render_image` answers `map:` with the request) or printed (`site_cmds::sheet_maps`, `studio_sheets::export_pdf_with`). It is never saved, as Google's terms require (ADR-026), and carries Google's pin and attribution.
+  - **On the sheet:** the address on a white label over the map's top left.
+  - **Without a Maps key, or offline:** the map is a gray box. Before the site is located, the cover keeps its schematic vicinity map.
+  - **Cover layout:** the left column holds the rendering, the two maps side by side, the description and scope, then deferred submittals and permits.
+  - **File format:** a new element type, so older versions of the app can't open files that have one.
+- **Text's contextual tab** (components `Ribbon`, `TextRibbon` `TextPanels`; store `textEditing`):
+  - Picking Text no longer replaces the ribbon. The tab bar stays and the Modify tab becomes "Modify | Place Text" (Select, Properties, Format).
+  - While a note is typed it becomes "Modify | Edit Text", with Close.
+  - Finishing returns to the tab you were on, as Revit's contextual tabs do.

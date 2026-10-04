@@ -7,6 +7,7 @@
 
 use studio_core::details::FillPattern;
 use studio_core::lines::LineStyle;
+use studio_core::maps::MapKind;
 use studio_core::text::{TextAlign, LINE};
 use studio_core::Document;
 use studio_geom::Pt;
@@ -400,6 +401,8 @@ pub struct CoverPlan {
     pub rendering: Option<(Pt, f64)>,
     /// The sheet index's centre.
     pub index: Option<Pt>,
+    /// The location and vicinity maps' boxes (ADR-107).
+    pub maps: Vec<(MapKind, Pt, Pt)>,
 }
 
 /// A titled box's body.
@@ -570,12 +573,14 @@ impl Pen {
 }
 
 /// Lays the cover out in the drawing area (x0, y0)–(x1, y1). `index` is the sheet index's
-/// printed size, `rendering` the aspect (width / height) of the rendering to show.
+/// printed size, `rendering` the aspect (width / height) of the rendering to show; `located`:
+/// the site is located, so the maps can show it.
 pub fn layout(
     c: &CoverData,
     (x0, y0, x1, y1): (f64, f64, f64, f64),
     index: Option<(f64, f64)>,
     rendering: Option<f64>,
+    located: bool,
 ) -> CoverPlan {
     let w = x1 - x0;
     let k = (w / 775.0).clamp(0.55, 1.0);
@@ -625,7 +630,7 @@ pub fn layout(
     // Left: rendering, description and vicinity map, deferred submittals.
     let aspect = rendering.unwrap_or(16.0 / 9.0);
     let body_h = top - y0;
-    let rh = (c1 / aspect).min(body_h * 0.44);
+    let rh = (c1 / aspect).min(body_h * 0.38);
     let rw = rh * aspect;
     let title_room = 12.0 * k;
     match rendering {
@@ -645,30 +650,54 @@ pub fn layout(
         }
     }
     let mut y = top - rh - title_room - g * 0.5;
-    let dw = (c1 - g) * 0.56;
-    let vw = c1 - g - dw;
+    // The location and vicinity maps side by side (ADR-107): Google's imagery with the
+    // address over it, or, before the site is located, a schematic vicinity map.
+    let mw = (c1 - g) / 2.0;
+    let mh = mw * 0.66;
+    let bar = p.bar();
+    for (i, (kind, title)) in [
+        (MapKind::Location, "LOCATION MAP"),
+        (MapKind::Vicinity, "VICINITY MAP"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let x = xa + i as f64 * (mw + g);
+        p.boxed(x, y, mw, title, Body::Empty(0.0), Some(mh));
+        let (lo, hi) = (
+            Pt::new(x + 2.0 * k, y - mh + 2.0 * k),
+            Pt::new(x + mw - 2.0 * k, y - bar - 2.0 * k),
+        );
+        if located {
+            p.plan.maps.push((kind, lo, hi));
+            if kind == MapKind::Vicinity {
+                p.plan.north = Some(Pt::new(hi.x - 8.0 * k, hi.y - 9.0 * k));
+            }
+        } else if kind == MapKind::Vicinity {
+            vicinity(&mut p, x, y - bar, mw, mh - bar, &c.street);
+        } else {
+            p.plan.notes.push((
+                Pt::new(x + mw / 2.0, y - mh / 2.0),
+                "Locate the project on the Site tab to show its map".into(),
+                2.2 * k,
+                None,
+                TextAlign::Center,
+            ));
+        }
+    }
+    y -= mh + g;
     let mut desc = vec![c.description.clone()];
     desc.extend(c.scope.iter().map(|s| format!("• {s}")));
-    let vh = (vw * 0.82).max(p.bar() + p.pad() * 2.0 + p.measure(&Body::Text(&desc, false), dw));
+    let dh = p.bar() + 2.0 * p.pad() + p.measure(&Body::Text(&desc, false), c1);
     p.boxed(
         xa,
         y,
-        dw,
+        c1,
         "PROJECT DESCRIPTION & SCOPE OF WORK",
         Body::Text(&desc, false),
-        Some(vh),
+        Some(dh),
     );
-    p.boxed(
-        xa + dw + g,
-        y,
-        vw,
-        "VICINITY MAP",
-        Body::Empty(0.0),
-        Some(vh),
-    );
-    let bar = p.bar();
-    vicinity(&mut p, xa + dw + g, y - bar, vw, vh - bar, &c.street);
-    y -= vh + g;
+    y -= dh + g;
     let left = (y - y0).max(0.0);
     let half1 = (c1 - g) / 2.0;
     p.boxed(
@@ -973,7 +1002,8 @@ mod tests {
         assert!(c.directory.iter().any(|d| d.0 == "TITLE 24 CONSULTANT"));
         assert!(c.deferred[0].contains("sprinkler"));
         let area = (31.4, 18.7, 806.8, 590.9);
-        let plan = layout(&c, area, Some((180.0, 200.0)), Some(16.0 / 9.0));
+        let plan = layout(&c, area, Some((180.0, 200.0)), Some(16.0 / 9.0), true);
+        assert_eq!(plan.maps.len(), 2);
         assert!(plan.rendering.is_some() && plan.index.is_some() && plan.north.is_some());
         for (a, b, _) in &plan.lines {
             for q in [a, b] {

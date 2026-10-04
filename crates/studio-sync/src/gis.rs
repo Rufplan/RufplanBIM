@@ -356,6 +356,54 @@ pub fn static_map(
     }
 }
 
+/// The Static Maps request for a sheet map (ADR-107): `maptype` (roadmap, hybrid…) centred
+/// on (lat, lon) at `zoom`, `width` x `height` px at scale 2, with a pin on the site.
+pub fn sheet_map_url(
+    key: &str,
+    (lat, lon): (f64, f64),
+    zoom: u32,
+    (width, height): (u32, u32),
+    maptype: &str,
+) -> String {
+    format!(
+        "https://maps.googleapis.com/maps/api/staticmap?center={lat:.7},{lon:.7}&zoom={zoom}&size={width}x{height}&scale=2&maptype={maptype}&markers=color:red%7C{lat:.7},{lon:.7}&format=png&key={}",
+        enc(key.trim())
+    )
+}
+
+/// A sheet map's image (PNG bytes) from Google's Maps Static API, for showing or printing
+/// only, never stored.
+pub fn sheet_map(
+    http: &dyn Http,
+    key: &str,
+    at: (f64, f64),
+    zoom: u32,
+    size: (u32, u32),
+    maptype: &str,
+) -> SyncResult<Vec<u8>> {
+    if key.trim().is_empty() {
+        return Err(SyncError::Api(
+            "add your Google Maps key (Site > API Keys) for the cover's maps".into(),
+        ));
+    }
+    let resp = http
+        .send(Request {
+            method: "GET",
+            url: sheet_map_url(key, at, zoom, size, maptype),
+            headers: vec![],
+            body: vec![],
+        })
+        .map_err(|e| SyncError::Network(format!("Google Maps: {e}")))?;
+    let image = resp.body.starts_with(&[0xFF, 0xD8]) || resp.body.starts_with(b"\x89PNG");
+    match resp.status {
+        200 if image => Ok(resp.body),
+        401 | 403 => Err(SyncError::Api(
+            "Google refused the map: enable the Maps Static API for your key in Google Cloud"
+                .into(),
+        )),
+        s => Err(SyncError::Api(format!("Google Maps returned {s}"))),
+    }
+}
 fn ring_area(r: &[(f64, f64)]) -> f64 {
     let n = r.len();
     (0..n)

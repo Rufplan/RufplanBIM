@@ -249,6 +249,14 @@ export const ipc = {
     invoke("save_rendering", { name, mime, data, width, height }),
   /** A saved rendering's image as a data URL. */
   renderImage: (id: ElementId) => invoke<string>("render_image", { id }),
+  mapImage: (frame: {
+    lat: number;
+    lon: number;
+    zoom: number;
+    width: number;
+    height: number;
+    maptype: string;
+  }) => invoke<string>("map_image", { frame }),
   projectOpen: (path: string): S => invoke("project_open", { path }),
   /** Omit `path` to save to the project's current location. */
   projectSave: (path?: string): S => invoke("project_save", { path: path ?? null }),

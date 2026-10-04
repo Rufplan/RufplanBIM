@@ -279,6 +279,7 @@ pub fn run() -> anyhow::Result<()> {
             site_cmds::site_fetch_topo,
             site_cmds::site_imagery_frame,
             site_cmds::site_imagery,
+            site_cmds::map_image,
             render_cmds::create_camera,
             render_cmds::set_camera_pose,
             render_cmds::sun_position,

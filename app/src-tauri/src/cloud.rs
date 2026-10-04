@@ -319,7 +319,9 @@ pub async fn publish_to_rufplan(
             )
             .into());
         }
-        let pdf = studio_sheets::export_pdf(doc, &sheets, &today()).map_err(anyhow::Error::from)?;
+        let maps = crate::site_cmds::sheet_maps(doc, &sheets);
+        let pdf = studio_sheets::export_pdf_with(doc, &sheets, &today(), &maps)
+            .map_err(anyhow::Error::from)?;
         let (ifc, _) =
             studio_io::ifc::export_ifc(doc, env!("CARGO_PKG_VERSION"), &crate::commands::now_iso());
         let project = session.state().map(|s| s.project_name).unwrap_or_default();

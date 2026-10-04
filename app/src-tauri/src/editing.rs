@@ -559,6 +559,25 @@ pub fn render_image(id: ElementId, state: State<'_, SessionState>) -> CommandRes
     let session = lock(&state)?;
     match session.doc()?.data(id) {
         Ok(ElementData::RenderImage { mime, data, .. }) => Ok(format!("data:{mime};base64,{data}")),
+        // A sheet map (ADR-107): what to fetch, which the page asks map_image for.
+        Ok(ElementData::MapFrame {
+            kind,
+            min,
+            max,
+            lat,
+            lon,
+            zoom,
+            ..
+        }) => {
+            let (width, height) = studio_core::maps::pixels(*min, *max);
+            Ok(format!(
+                "map:{}",
+                serde_json::json!({
+                    "lat": lat, "lon": lon, "zoom": zoom, "width": width, "height": height,
+                    "maptype": kind.maptype(),
+                })
+            ))
+        }
         _ => Err(anyhow::anyhow!("that isn't a saved rendering").into()),
     }
 }

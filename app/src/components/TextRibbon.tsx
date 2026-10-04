@@ -4,8 +4,10 @@ import { LEADER_MODES, TEXT_ALIGNS, TEXT_TYPES, type LeaderMode } from "../text"
 import type { TextAlign } from "../bindings/TextAlign";
 import { Icons } from "./Icons";
 
-// Revit's "Modify | Place Text" contextual tab (ADR-070): the text type, the leader
-// (none, one segment, two segments or curved) and the paragraph's alignment.
+// Revit's "Modify | Place Text" and "Edit Text" contextual panels (ADR-070, ADR-107): the
+// text type, the leader (none, one segment, two segments or curved) and the paragraph's
+// alignment. They show in the Modify tab, which takes the contextual name, so the tab bar
+// stays put as in Revit.
 
 const I = ({ children }: { children: ReactNode }) => (
   <svg
@@ -76,82 +78,88 @@ const ALIGN_ICONS: Record<TextAlign, ReactNode> = {
   ),
 };
 
-export function TextRibbon() {
+export function TextPanels({ editing }: { editing: boolean }) {
   const o = useAppStore((s) => s.options);
   const setOption = useAppStore((s) => s.setOption);
   const setTool = useAppStore((s) => s.setTool);
   return (
-    <div className="ribbon text-ribbon" role="toolbar" aria-label="Tools">
-      <div className="rb-tabs" role="tablist" aria-label="Ribbon tabs">
-        <button role="tab" aria-selected className="rb-tab active contextual">
-          Modify | Place Text
-        </button>
-      </div>
-      <div className="rb-body">
-        <div className="rb-group">
-          <div className="rb-items">
+    <>
+      <div className="rb-group">
+        <div className="rb-items">
+          {editing ? (
+            <button
+              className="rb-btn"
+              // Finishing is the editor's blur, as clicking outside the box.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => (document.activeElement as HTMLElement | null)?.blur()}
+              title="Close the text editor (Esc)"
+            >
+              {Icons.select}
+              <span>Close</span>
+            </button>
+          ) : (
             <button className="rb-btn" onClick={() => setTool("select")} title="Modify (Esc)">
               {Icons.select}
               <span>Modify</span>
             </button>
-          </div>
-          <div className="rb-title">Select</div>
+          )}
         </div>
-        <div className="rb-group">
-          <div className="rb-items">
-            <label className="rb-field">
-              <span>Type</span>
-              <select
-                aria-label="Text Type"
-                value={o.textSize}
-                onChange={(e) => setOption("textSize", Number(e.target.value))}
-              >
-                {TEXT_TYPES.map(([mm, label]) => (
-                  <option key={mm} value={mm}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="rb-title">Properties</div>
-        </div>
-        <div className="rb-group">
-          <div className="rb-items">
-            <div className="rb-seg" role="radiogroup" aria-label="Leader">
-              {LEADER_MODES.map(([m, label]) => (
-                <button
-                  key={m}
-                  role="radio"
-                  aria-checked={o.textLeader === m}
-                  aria-label={label}
-                  title={label}
-                  className={`rb-btn rb-small${o.textLeader === m ? " active" : ""}`}
-                  onClick={() => setOption("textLeader", m)}
-                >
-                  {LEADER_ICONS[m]}
-                </button>
-              ))}
-            </div>
-            <div className="rb-seg" role="radiogroup" aria-label="Alignment">
-              {TEXT_ALIGNS.map(([a, label]) => (
-                <button
-                  key={a}
-                  role="radio"
-                  aria-checked={o.textAlign === a}
-                  aria-label={label}
-                  title={label}
-                  className={`rb-btn rb-small${o.textAlign === a ? " active" : ""}`}
-                  onClick={() => setOption("textAlign", a)}
-                >
-                  {ALIGN_ICONS[a]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="rb-title">Format</div>
-        </div>
+        <div className="rb-title">{editing ? "Edit Text" : "Select"}</div>
       </div>
-    </div>
+      <div className="rb-group">
+        <div className="rb-items">
+          <label className="rb-field">
+            <span>Type</span>
+            <select
+              aria-label="Text Type"
+              value={o.textSize}
+              onChange={(e) => setOption("textSize", Number(e.target.value))}
+            >
+              {TEXT_TYPES.map(([mm, label]) => (
+                <option key={mm} value={mm}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="rb-title">Properties</div>
+      </div>
+      <div className="rb-group">
+        <div className="rb-items">
+          <div className="rb-seg" role="radiogroup" aria-label="Leader">
+            {LEADER_MODES.map(([m, label]) => (
+              <button
+                key={m}
+                role="radio"
+                aria-checked={o.textLeader === m}
+                aria-label={label}
+                title={label}
+                className={`rb-btn rb-small${o.textLeader === m ? " active" : ""}`}
+                onClick={() => setOption("textLeader", m)}
+              >
+                {LEADER_ICONS[m]}
+              </button>
+            ))}
+          </div>
+          <div className="rb-seg" role="radiogroup" aria-label="Alignment">
+            {TEXT_ALIGNS.map(([a, label]) => (
+              <button
+                key={a}
+                role="radio"
+                aria-checked={o.textAlign === a}
+                aria-label={label}
+                title={label}
+                className={`rb-btn rb-small${o.textAlign === a ? " active" : ""}`}
+                onClick={() => setOption("textAlign", a)}
+              >
+                {ALIGN_ICONS[a]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rb-title">Format</div>
+      </div>
+    </>
   );
 }

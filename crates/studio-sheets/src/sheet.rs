@@ -226,6 +226,7 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
     }
     // Text notes placed on the sheet itself (e.g. a cover title), in paper mm.
     studio_views::annotations(doc, &mut b, sheet);
+    maps(doc, &mut b, sheet);
     placed_key_plans(doc, &mut b, sheet);
     title_block(doc, &mut b, sheet, *size, number, name, date);
     Some(DisplayList {
@@ -328,6 +329,62 @@ fn key_plan(
     for r in &regions {
         let outline: Vec<Pt> = r.outer.iter().map(map).collect();
         b.line(el, &outline, true, 3, Dash::Solid);
+    }
+}
+
+/// Location and vicinity maps on the sheet (ADR-107): the image (fetched when shown or
+/// printed, with Google's attribution in it), its frame, and the address on a white label
+/// over its top left.
+fn maps(doc: &Document, b: &mut Builder, sheet: ElementId) {
+    for e in doc.of(Category::MapFrame) {
+        let ElementData::MapFrame {
+            sheet: s,
+            min,
+            max,
+            label,
+            ..
+        } = &e.data
+        else {
+            continue;
+        };
+        if *s != sheet {
+            continue;
+        }
+        let el = Some(e.id);
+        b.items.push(Item {
+            el,
+            prim: Prim::Image {
+                image: e.id,
+                min: [min.x, min.y],
+                max: [max.x, max.y],
+            },
+        });
+        let frame = [*min, Pt::new(max.x, min.y), *max, Pt::new(min.x, max.y)];
+        b.line(el, &frame, true, 2, Dash::Solid);
+        if !label.trim().is_empty() {
+            let size = 3.2;
+            let lines =
+                studio_core::text::wrap(&label.to_uppercase(), size, Some((max.x - min.x) * 0.7));
+            let w = lines
+                .iter()
+                .map(|l| studio_core::text::text_width(l, size))
+                .fold(0.0, f64::max)
+                + 4.0;
+            let h = lines.len() as f64 * size * studio_core::text::LINE + 2.0;
+            let (x0, y1) = (min.x + 3.0, max.y - 3.0);
+            let r = [
+                Pt::new(x0, y1 - h),
+                Pt::new(x0 + w, y1 - h),
+                Pt::new(x0 + w, y1),
+                Pt::new(x0, y1),
+            ];
+            b.fill(el, vec![studio_views::ring(&r)], FillKind::Paper);
+            b.line(el, &r, true, 1, Dash::Solid);
+            for (i, l) in lines.iter().enumerate() {
+                let y = y1 - 1.0 - size * 0.6 - i as f64 * size * studio_core::text::LINE;
+                b.text(el, Pt::new(x0 + 2.0, y), l.clone(), size, Anchor::Left);
+            }
+        }
     }
 }
 

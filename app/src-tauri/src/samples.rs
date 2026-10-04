@@ -1479,6 +1479,10 @@ mod preview {
         // The JPEG goes in whole (a DCT-encoded image XObject).
         assert!(pdf.len() > HERO_RENDERING.len());
         if let Ok(out) = std::env::var("COVER_PDF") {
+            // With the cover's maps from Google when a Maps key is saved (ADR-107).
+            let maps = crate::site_cmds::sheet_maps(&doc, &[cover]);
+            eprintln!("cover maps fetched: {}", maps.len());
+            let pdf = studio_sheets::export_pdf_with(&doc, &[cover], "2026-10-04", &maps).unwrap();
             std::fs::write(out, pdf).unwrap();
         }
         // The general sheets are filled with preset text (ADR-104), not placeholders.

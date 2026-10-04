@@ -15,7 +15,7 @@ use crate::session::AppState;
 type CommandResult<T> = Result<T, CommandError>;
 
 const SERVICE: &str = "Rufplan Studio";
-const GOOGLE: &str = "google-maps-api-key";
+pub(crate) const GOOGLE: &str = "google-maps-api-key";
 const REGRID: &str = "regrid-api-token";
 
 pub(crate) fn get(user: &str) -> Option<String> {
@@ -201,4 +201,79 @@ pub async fn site_imagery(frame: site::ImageryFrame) -> CommandResult<tauri::ipc
     })
     .await?;
     Ok(tauri::ipc::Response::new(bytes))
+}
+
+/// What a sheet map needs from Google (ADR-107).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct MapRequest {
+    pub lat: f64,
+    pub lon: f64,
+    pub zoom: u32,
+    pub width: u32,
+    pub height: u32,
+    pub maptype: String,
+}
+
+/// A sheet map's image as a PNG data URL, fetched now and kept only by the page (Google's
+/// terms don't allow saving it).
+#[tauri::command]
+pub async fn map_image(frame: MapRequest) -> CommandResult<String> {
+    use base64::Engine;
+    let key = get(GOOGLE).ok_or_else(|| {
+        anyhow::anyhow!("add your Google Maps key (Site > API Keys) for the cover's maps")
+    })?;
+    let bytes = blocking(move || {
+        Ok(gis::sheet_map(
+            &studio_sync::UreqHttp::default(),
+            &key,
+            (frame.lat, frame.lon),
+            frame.zoom,
+            (frame.width, frame.height),
+            &frame.maptype,
+        )?)
+    })
+    .await?;
+    Ok(format!(
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
+}
+
+/// The map images of `sheets` for printing (ADR-107), fetched now; maps that can't be
+/// fetched (no key, offline) print as gray boxes.
+pub(crate) fn sheet_maps(
+    doc: &studio_core::Document,
+    sheets: &[studio_core::ElementId],
+) -> studio_sheets::Maps {
+    let mut out = studio_sheets::Maps::new();
+    let frames: Vec<_> = doc
+        .of(studio_core::Category::MapFrame)
+        .filter_map(|e| match &e.data {
+            studio_core::ElementData::MapFrame {
+                sheet,
+                kind,
+                min,
+                max,
+                lat,
+                lon,
+                zoom,
+                ..
+            } if sheets.contains(sheet) => Some((e.id, *kind, *min, *max, *lat, *lon, *zoom)),
+            _ => None,
+        })
+        .collect();
+    if frames.is_empty() {
+        return out;
+    }
+    let Some(key) = get(GOOGLE) else {
+        return out;
+    };
+    let http = studio_sync::UreqHttp::default();
+    for (id, kind, min, max, lat, lon, zoom) in frames {
+        let size = studio_core::maps::pixels(min, max);
+        if let Ok(bytes) = gis::sheet_map(&http, &key, (lat, lon), zoom, size, kind.maptype()) {
+            out.insert(id, bytes);
+        }
+    }
+    out
 }

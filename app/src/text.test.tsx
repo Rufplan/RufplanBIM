@@ -71,9 +71,12 @@ describe("Revit's Text (ADR-070)", () => {
     const canvas = await openPlan();
     useAppStore.getState().setTool("text");
     expect(await screen.findByRole("tab", { name: "Modify | Place Text" })).toBeTruthy();
+    // The tab bar stays, as in Revit (ADR-107): the Modify tab takes the contextual name.
+    expect(screen.getByRole("tab", { name: "Architecture" })).toBeTruthy();
     expect(screen.getByLabelText("Text Type")).toHaveValue("2.4");
     clickAt(canvas, 300, 200);
     const editor = await screen.findByRole("textbox", { name: "Text" });
+    expect(await screen.findByRole("tab", { name: "Modify | Edit Text" })).toBeTruthy();
     await userEvent.type(editor, "TYPICAL{Enter}AT ALL WINDOWS");
     fireEvent.blur(editor);
     await waitFor(() => expect(argsOf("create_text_note")).toHaveLength(1));

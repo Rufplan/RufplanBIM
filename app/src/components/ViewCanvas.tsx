@@ -210,6 +210,12 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     leaders: Leader[];
     text: string;
   } | null>(null);
+  // The ribbon follows the editor (ADR-107): Modify | Edit Text while a note is typed.
+  const setTextEditing = useAppStore((s) => s.setTextEditing);
+  useEffect(() => {
+    setTextEditing(textEdit !== null);
+    return () => setTextEditing(false);
+  }, [textEdit, setTextEditing]);
   // Activated on a sheet, the camera follows the sheet's (below).
   const cam = useRef<Camera | null>(onSheet ? null : (cameras.get(view.id) ?? null));
   // The rest of the sheet, drawn faded around an activated view.
