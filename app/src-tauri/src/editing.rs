@@ -103,8 +103,8 @@ pub fn drag_handle(
             } else if key == "block_move" {
                 // A block of sheet text (ADR-112).
                 studio_sheets::blocks::move_block(d, id, to)
-            } else if key == "block_right" || key == "block_left" {
-                studio_sheets::blocks::stretch_block(d, id, key == "block_right", to.x)
+            } else if let Some(side) = studio_sheets::blocks::Side::from_key(&key) {
+                studio_sheets::blocks::stretch_block(d, id, side, to)
             } else if let Some(i) = key.strip_prefix("part:").and_then(|i| i.parse().ok()) {
                 // A split schedule's later part (ADR-110).
                 studio_sheets::schedule::move_part(d, id, i, to)

@@ -530,12 +530,40 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
               onClick={() => selection[0] && void goToView(selection[0], true)}
             />
           )}
+          {has("Viewport") && viewType === "Sheet" && selection[0] && (
+            <ViewTitleToggle viewport={selection[0]} />
+          )}
         </Group>
       )}
       {one && has("Viewport") && viewType === "Sheet" && selection[0] && (
         <ScheduleGroup viewport={selection[0]} />
       )}
     </>
+  );
+}
+
+/** Show or hide a view's title on its sheet (ADR-113), as Revit's Show Title. */
+function ViewTitleToggle({ viewport }: { viewport: ElementId }) {
+  const revision = useAppStore((s) => s.app?.revision ?? 0);
+  const [shown, setShown] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void ipc
+      .viewportTitleShown(viewport)
+      .then((v) => live && setShown(v))
+      .catch(() => live && setShown(null));
+    return () => {
+      live = false;
+    };
+  }, [viewport, revision]);
+  if (shown === null) return null;
+  return (
+    <Btn
+      label={shown ? "Hide Title" : "Show Title"}
+      icon={Icons.sheet}
+      title={shown ? "Turn off this view's title on the sheet" : "Show this view's title again"}
+      onClick={() => void apply(() => ipc.setViewportTitleShown(viewport, !shown))}
+    />
   );
 }
 

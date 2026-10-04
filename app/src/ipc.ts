@@ -63,6 +63,7 @@ import type { ScheduleStyle } from "./bindings/ScheduleStyle";
 import type { TitleBlockFields } from "./bindings/TitleBlockFields";
 import type { TextFont } from "./bindings/TextFont";
 import type { PlaceholderSheet } from "./bindings/PlaceholderSheet";
+import type { IndexRow } from "./bindings/IndexRow";
 import type { NotesOptions } from "./bindings/NotesOptions";
 import type { Jurisdiction } from "./bindings/Jurisdiction";
 import type { NotesBuilding } from "./bindings/NotesBuilding";
@@ -492,6 +493,16 @@ export const ipc = {
   setTitleBlockFields: (sheet: ElementId, fields: TitleBlockFields) =>
     invoke<AppState | null>("set_title_block_fields", { sheet, fields }),
   titleBlockAt: (sheet: ElementId, at: Pt) => invoke<boolean>("title_block_at", { sheet, at }),
+  // The sheet index's rows (ADR-113), and view titles on or off.
+  sheetIndexRows: () => invoke<IndexRow[]>("sheet_index_rows"),
+  setSheetIndexRows: (rows: IndexRow[]) =>
+    invoke<AppState | null>("set_sheet_index_rows", { rows }),
+  nextIndexNumber: (after: string, taken: string[]) =>
+    invoke<string>("next_index_number", { after, taken }),
+  viewportTitleShown: (viewport: ElementId) =>
+    invoke<boolean>("viewport_title_shown", { viewport }),
+  setViewportTitleShown: (viewport: ElementId, shown: boolean) =>
+    invoke<AppState | null>("set_viewport_title_shown", { viewport, shown }),
   generalNotesPreset: (building: NotesBuilding, drawing: NotesDrawing, code: string) =>
     invoke<[string, string[]]>("general_notes_preset", { building, drawing, code }),
   placeGeneralNotes: (view: ElementId, heading: string, notes: string[], width: number): S =>

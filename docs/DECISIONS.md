@@ -4219,3 +4219,38 @@ coursing along a line".
   - Centred and right-aligned notes keep their place relative to the edge.
   - Each row of notes that gains or loses lines moves everything under it (rows, rules, the box's bottom, a figure) down or up by that height, so the box grows or shrinks to fit.
   - A left stretch works like a right stretch, then moves the block left by the same amount.
+
+## ADR-113 Block stretching fixed and four-sided; view titles off; an editable sheet index — Accepted (2026-10-04)
+- **The owner's report and ask:**
+  - Stretching compacted a block but wouldn't expand it again, and didn't work up or down.
+  - Select a view on a sheet and turn its title off.
+  - Double-clicking the sheet index should make it fully editable: click to edit, right-click to add sheets, and order them.
+- **Why expanding failed:**
+  - A block's edges were its whole extent, notes included.
+  - Once compacted, a title that doesn't wrap stuck out past the box, so the block's edge became the title's end. The box's rules were no longer "on the edge" and stayed put.
+- **Stretch fixes** (studio-sheets `blocks::frame`, `Side`, `stretch_block(doc, group, side, to)`):
+  - A block's edges are its rules' and regions' extent; a block with no rules uses its notes.
+  - A block can't be made narrower than its unwrapped titles plus the shortest width each wrapping note allows, or 25 mm, whichever is wider.
+  - Top and bottom edges stretch too, with `block_top` / `block_bottom` strips and an `ns-resize` cursor. The bottom moves the box's bottom rule, never into the text. The top grows the box upward and carries the title bar and text with it.
+- **View titles** (`sheet::title_shown`, `set_title_shown`):
+  - Modify > Views > Hide Title / Show Title on a selected view on a sheet, as Revit's Show Title.
+  - Kept as the viewport's `rufplan.viewport.title_hidden` parameter. A hidden title draws nothing, prints nothing and has no grips.
+- **The sheet index** (studio-sheets `sheet_index`; app `SheetIndexEditor`, `sheetIndex.ts`):
+  - **Rows:** the index's dialog lists the current stage's sheets and the placeholders, in index order, as rows to type in. A sheet's number and name rename the sheet itself.
+  - **Right-click a row:**
+    - Add Sheet Above/Below, Add Placeholder Sheet Below.
+    - Move Up/Down/to Top/to Bottom.
+    - Make a Sheet/Placeholder (new rows only).
+    - Remove from Index (new rows and placeholders only; sheets are deleted in the project browser).
+  - **Right-click the empty list:** add at the end.
+  - **Ordering:** rows drag by their handle; buttons add and move the selected row.
+  - **New rows** take the next number in the series that isn't taken (`next_number`).
+  - **Saving:** one undo step (`set_rows`):
+    - Renames sheets.
+    - Makes the new sheets in the current stage's set, at the project's sheet size.
+    - Sets the placeholders.
+    - Keeps the order as Project Info's `rufplan.sheet_index.order`, but only when it differs from sheet-index order.
+  - The preview shows the edited rows.
+- **The sheet index's order** (`sheet_index::arrange`):
+  - Follows the user's order.
+  - A sheet made since goes after the last number of its own series that comes before it (A-102 after A-101), else after the nearest earlier number.

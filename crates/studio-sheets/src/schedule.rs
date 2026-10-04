@@ -280,7 +280,10 @@ pub fn schedule_on(doc: &Document, view: ElementId, sheet: Option<ElementId>) ->
     };
     // Sheets read in sheet-index (discipline) order; everything else naturally by key.
     if *kind == ScheduleKind::Sheets {
-        rows.sort_by(|a, b| ops::sheet_cmp(&a.0, &b.0));
+        // In the user's order where they've set one (ADR-113).
+        let mut numbers: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
+        crate::sheet_index::arrange(&mut numbers, &crate::sheet_index::order(doc));
+        rows.sort_by_key(|r| numbers.iter().position(|n| *n == r.0));
     } else {
         rows.sort_by(|a, b| ops::natural_cmp(&a.0, &b.0));
     }

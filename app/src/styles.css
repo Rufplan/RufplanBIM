@@ -6508,3 +6508,48 @@ button:disabled {
   flex-direction: column;
   margin-bottom: 6px;
 }
+
+/* The sheet index editor (ADR-113): rows to type in, drag, and right-click. */
+.sheet-index-editor .sie-bar {
+  gap: 6px;
+  align-items: center;
+}
+.sheet-index-editor .sie-list {
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid var(--line, #d8d8d8);
+  min-height: 80px;
+}
+.sheet-index-editor .sie-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--line, #eee);
+}
+.sheet-index-editor .sie-row.on {
+  background: rgba(0, 174, 239, 0.1);
+}
+.sheet-index-editor .sie-row.dragging {
+  opacity: 0.4;
+}
+.sheet-index-editor .sie-handle {
+  cursor: grab;
+  user-select: none;
+  color: #888;
+}
+.sheet-index-editor .sie-number {
+  width: 84px;
+}
+.sheet-index-editor .sie-kind {
+  font-size: 11px;
+  color: #777;
+  width: 74px;
+  text-align: right;
+}
+.sheet-index-editor .sie-kind.new {
+  color: var(--cyan, #00aeef);
+}
+.sheet-index-editor .sie-kind.ph {
+  font-style: italic;
+}

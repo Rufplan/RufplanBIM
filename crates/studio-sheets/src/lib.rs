@@ -9,6 +9,7 @@ pub mod pdf;
 pub mod schedule;
 pub mod sets;
 pub mod sheet;
+pub mod sheet_index;
 pub mod titleblock;
 
 pub use pdf::{export_pdf, export_pdf_with, Maps};
@@ -87,6 +88,33 @@ mod tests {
         let span = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
             - xs.iter().cloned().fold(f64::INFINITY, f64::min);
         assert!(span > 100.0 && span < 500.0, "{span}");
+        assert!(title_line(&doc, vp).is_some());
+    }
+
+    #[test]
+    fn a_view_title_can_be_turned_off() {
+        let (mut doc, _, plan) = project();
+        let sheet = ops::create_sheet(&mut doc, "Floor Plan", SheetSize::ArchD).unwrap();
+        let vp = ops::place_view(&mut doc, sheet, plan, Pt::new(400.0, 300.0)).unwrap();
+        let texts = |doc: &studio_core::Document| -> Vec<String> {
+            sheet_display_list(doc, sheet, "2026-10-04")
+                .unwrap()
+                .items
+                .into_iter()
+                .filter(|i| i.el == Some(vp))
+                .filter_map(|i| match i.prim {
+                    Prim::Text { text, .. } => Some(text),
+                    _ => None,
+                })
+                .collect()
+        };
+        let name = doc.data(plan).unwrap().name().to_uppercase();
+        assert!(texts(&doc).iter().any(|t| t.to_uppercase() == name));
+        sheet::set_title_shown(&mut doc, vp, false).unwrap();
+        assert!(!sheet::title_shown(&doc, vp));
+        assert!(!texts(&doc).iter().any(|t| t.to_uppercase() == name));
+        assert!(title_line(&doc, vp).is_none());
+        doc.undo().unwrap();
         assert!(title_line(&doc, vp).is_some());
     }
 

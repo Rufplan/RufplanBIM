@@ -27,6 +27,7 @@ mod render_cmds;
 mod samples;
 mod schedule_cmds;
 mod session;
+mod sheet_index_cmds;
 mod sheetset_cmds;
 mod shortcut_cmds;
 mod site_cmds;
@@ -226,6 +227,11 @@ pub fn run() -> anyhow::Result<()> {
             titleblock_cmds::title_block_fields,
             titleblock_cmds::set_title_block_fields,
             titleblock_cmds::title_block_at,
+            sheet_index_cmds::sheet_index_rows,
+            sheet_index_cmds::set_sheet_index_rows,
+            sheet_index_cmds::next_index_number,
+            sheet_index_cmds::viewport_title_shown,
+            sheet_index_cmds::set_viewport_title_shown,
             material_cmds::material_library,
             material_cmds::add_library_material,
             material_cmds::apply_material,

@@ -84,6 +84,8 @@ export interface FakeBackend {
   placedNotes?: unknown;
   /** Placeholder sheets and schedule styles set (ADR-110). */
   placeholders?: { number: string; name: string }[];
+  indexRows?: { sheet: string | null; number: string; name: string; placeholder: boolean }[];
+  titleShown?: boolean;
   titleBlock?: Record<string, unknown>;
   scheduleStyle?: unknown;
   generated: unknown;
@@ -1878,6 +1880,22 @@ export function installFakeBackend(): FakeBackend {
           return fake.state;
         case "schedule_parts":
           return 1;
+        case "sheet_index_rows":
+          return (
+            fake.indexRows ?? [
+              { sheet: "s1", number: "A-101", name: "Floor Plan", placeholder: false },
+            ]
+          );
+        case "set_sheet_index_rows":
+          fake.indexRows = a.rows as typeof fake.indexRows;
+          return fake.state;
+        case "next_index_number":
+          return "A-102";
+        case "viewport_title_shown":
+          return fake.titleShown ?? true;
+        case "set_viewport_title_shown":
+          fake.titleShown = a.shown as boolean;
+          return fake.state;
         case "title_block_at":
           return true;
         case "title_block_fields":

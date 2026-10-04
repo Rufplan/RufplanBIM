@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import type { PlaceholderSheet } from "../bindings/PlaceholderSheet";
+import type { IndexRow } from "../bindings/IndexRow";
 import type { ScheduleStyle } from "../bindings/ScheduleStyle";
 import type { TextFont } from "../bindings/TextFont";
 import { apply } from "../fileActions";
 import { errorMessage, ipc, type Table } from "../ipc";
 import { useAppStore } from "../store";
+import { SheetIndexEditor } from "./SheetIndexEditor";
 
 // A schedule opened from its sheet (ADR-110), as Revit opens one on double-click: its
 // appearance (font, title, header and body text, row height) with a preview, and, for the
-// sheet index, the placeholder sheets it lists that aren't in the project.
+// sheet index, its rows: the sheets to renumber, rename, add and order, and placeholders
+// (ADR-113).
 
 /** Text heights offered, inches → paper mm (3/32" is the floor). */
 const HEIGHTS: [number, string][] = [
@@ -37,7 +39,7 @@ export function ScheduleDialog({ view, onClose }: { view: string; onClose: () =>
   const [table, setTable] = useState<Table | null>(null);
   const [style, setStyle] = useState<ScheduleStyle | null>(null);
   const [fonts, setFonts] = useState<[TextFont, string][]>([]);
-  const [places, setPlaces] = useState<PlaceholderSheet[] | null>(null);
+  const [rows, setRows] = useState<IndexRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,12 +54,12 @@ export function ScheduleDialog({ view, onClose }: { view: string; onClose: () =>
   }, [view, revision]);
   useEffect(() => {
     let live = true;
-    void Promise.all([ipc.scheduleStyle(view), ipc.textFonts(), ipc.placeholderSheets()]).then(
-      ([s, f, p]) => {
+    void Promise.all([ipc.scheduleStyle(view), ipc.textFonts(), ipc.sheetIndexRows()]).then(
+      ([s, f, r]) => {
         if (!live) return;
         setStyle(s);
         setFonts(f);
-        setPlaces(p);
+        setRows(r);
       },
       (e) => setError(errorMessage(e)),
     );
@@ -72,9 +74,9 @@ export function ScheduleDialog({ view, onClose }: { view: string; onClose: () =>
     if (!style) return;
     const ok = await apply(() => ipc.setScheduleStyle(view, style));
     if (!ok) return;
-    if (sheetIndex && places) {
-      const rows = places.filter((p) => p.number.trim() || p.name.trim());
-      if (!(await apply(() => ipc.setPlaceholderSheets(rows)))) return;
+    if (sheetIndex && rows) {
+      const kept = rows.filter((r) => r.sheet !== null || r.number.trim() || r.name.trim());
+      if (!(await apply(() => ipc.setSheetIndexRows(kept)))) return;
     }
     onClose();
   };
@@ -148,64 +150,22 @@ export function ScheduleDialog({ view, onClose }: { view: string; onClose: () =>
                 </tr>
               </thead>
               <tbody>
-                {table.rows.slice(0, 40).map((r, i) => (
-                  <tr key={i} style={{ height: px(style.row) }}>
-                    {r.map((c, j) => (
-                      <td key={j} style={{ fontSize: px(style.body) }}>
-                        {c}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {(sheetIndex && rows ? rows.map((r) => [r.number, r.name]) : table.rows)
+                  .slice(0, 40)
+                  .map((r, i) => (
+                    <tr key={i} style={{ height: px(style.row) }}>
+                      {r.map((c, j) => (
+                        <td key={j} style={{ fontSize: px(style.body) }}>
+                          {c}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
         )}
-        {sheetIndex && places && (
-          <div className="placeholder-sheets">
-            <h3>Placeholder sheets</h3>
-            <p className="muted">
-              Listed in the sheet index but not in the project — a consultant&apos;s sheets, or ones
-              drawn elsewhere.
-            </p>
-            {places.map((p, i) => (
-              <div className="row" key={i}>
-                <input
-                  aria-label={`Placeholder ${i + 1} number`}
-                  placeholder="S-101"
-                  value={p.number}
-                  onChange={(e) =>
-                    setPlaces(
-                      places.map((x, k) => (k === i ? { ...x, number: e.target.value } : x)),
-                    )
-                  }
-                />
-                <input
-                  className="grow"
-                  aria-label={`Placeholder ${i + 1} name`}
-                  placeholder="Foundation Plan"
-                  value={p.name}
-                  onChange={(e) =>
-                    setPlaces(places.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))
-                  }
-                />
-                <button
-                  className="btn-ghost"
-                  aria-label={`Remove placeholder ${i + 1}`}
-                  onClick={() => setPlaces(places.filter((_, k) => k !== i))}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <button
-              className="btn-outline"
-              onClick={() => setPlaces([...places, { number: "", name: "" }])}
-            >
-              Add Placeholder Sheet
-            </button>
-          </div>
-        )}
+        {sheetIndex && rows && <SheetIndexEditor rows={rows} onChange={setRows} />}
         <div className="modal-actions">
           <button className="btn-cyan" disabled={!style} onClick={() => void save()}>
             OK

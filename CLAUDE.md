@@ -156,6 +156,9 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Stretch fixes, view titles, sheet index (ADR-113): studio-sheets `blocks::{frame, Side}` (four edges), `sheet::title_shown`
+  (`rufplan.viewport.title_hidden`), `sheet_index` (IndexRow, rows, set_rows, arrange, `rufplan.sheet_index.order`); app
+  sheet_index_cmds, components/SheetIndexEditor.tsx (right-click, drag rows), ModifyContext Hide/Show Title.
 - Text blocks drag and stretch (ADR-112): studio-sheets `blocks` (sheet_blocks, move_block, stretch_block re-wraps and reflows),
   sheet_handles `block_left`/`block_right`/`block_move`; app blocks.ts (blockGhost, areaCursor ew-resize).
 - Sheet text groups and title block (ADR-111): studio-sheets `sets::group_blocks` (each cover/general/notes block a detail group,

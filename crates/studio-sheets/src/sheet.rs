@@ -218,7 +218,7 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
         let at = title_at(&items, center, *size, offset);
         let length = length.or_else(|| full_width(&items, center, *size, offset));
         b.items.extend(items);
-        if !title.is_empty() {
+        if !title.is_empty() && title_shown(doc, vp) {
             view_title(&mut b, Some(vp), i + 1, &title, &scale, at, length);
         }
     }
@@ -501,7 +501,43 @@ fn title_rule(at: Pt, name: &str, scale: &str, length: Option<f64>) -> (Pt, Pt) 
 }
 
 /// A viewport's title rule on its sheet (paper mm), if it has a title.
+/// A viewport's parameter turning its view title off (ADR-113), as Revit's Show Title.
+pub const TITLE_HIDDEN_KEY: &str = "rufplan.viewport.title_hidden";
+
+/// Whether a viewport shows its view title (the default).
+pub fn title_shown(doc: &Document, viewport: ElementId) -> bool {
+    !matches!(
+        doc.param(viewport, TITLE_HIDDEN_KEY),
+        Some(studio_core::params::ParamValue::Bool(true))
+    )
+}
+
+/// Shows or hides a viewport's view title, in one undo step.
+pub fn set_title_shown(
+    doc: &mut Document,
+    viewport: ElementId,
+    shown: bool,
+) -> studio_core::CoreResult<()> {
+    if !matches!(doc.data(viewport)?, ElementData::Viewport { .. }) {
+        return Err(studio_core::CoreError::Invalid(
+            "select a view on a sheet".into(),
+        ));
+    }
+    let value = (!shown).then_some(studio_core::params::ParamValue::Bool(true));
+    doc.transact(
+        if shown {
+            "Show View Title"
+        } else {
+            "Hide View Title"
+        },
+        |tx| tx.set_param(viewport, TITLE_HIDDEN_KEY, value.clone()),
+    )
+}
+
 pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
+    if !title_shown(doc, viewport) {
+        return None;
+    }
     let ElementData::Viewport {
         sheet,
         view,
@@ -563,19 +599,44 @@ pub fn sheet_handles(
             });
         }
     }
-    // Blocks of sheet text (ADR-112): their left and right edges stretch, then each drags
+    // Blocks of sheet text (ADR-112): their edges stretch, then each drags
     // whole, as the views do.
     let blocks = crate::blocks::sheet_blocks(doc, sheet);
     const EDGE: f64 = 2.0;
     for (id, lo, hi) in &blocks {
-        let y = (lo.y + hi.y) / 2.0;
-        for (key, x) in [("block_left", lo.x), ("block_right", hi.x)] {
+        let (x, y) = ((lo.x + hi.x) / 2.0, (lo.y + hi.y) / 2.0);
+        for (key, a, b, at) in [
+            (
+                "block_left",
+                Pt::new(lo.x - EDGE, lo.y),
+                Pt::new(lo.x + EDGE, hi.y),
+                Pt::new(lo.x, y),
+            ),
+            (
+                "block_right",
+                Pt::new(hi.x - EDGE, lo.y),
+                Pt::new(hi.x + EDGE, hi.y),
+                Pt::new(hi.x, y),
+            ),
+            (
+                "block_top",
+                Pt::new(lo.x, hi.y - EDGE),
+                Pt::new(hi.x, hi.y + EDGE),
+                Pt::new(x, hi.y),
+            ),
+            (
+                "block_bottom",
+                Pt::new(lo.x, lo.y - EDGE),
+                Pt::new(hi.x, lo.y + EDGE),
+                Pt::new(x, lo.y),
+            ),
+        ] {
             out.areas.push(studio_views::handles::DragArea {
                 id: *id,
                 key: key.into(),
-                min: Pt::new(x - EDGE, lo.y),
-                max: Pt::new(x + EDGE, hi.y),
-                at: Pt::new(x, y),
+                min: a,
+                max: b,
+                at,
             });
         }
     }

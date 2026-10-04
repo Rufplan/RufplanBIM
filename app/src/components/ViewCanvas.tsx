@@ -17,7 +17,7 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { keyForControl, nudgeDirection, nudgeStep } from "../nudge";
-import { areaCursor, blockGhost } from "../blocks";
+import { areaCursor, blockGhost, hoverCursor } from "../blocks";
 import type { OverlayPrim } from "../bindings/OverlayPrim";
 import type { KeynoteSource } from "../bindings/KeynoteSource";
 import type { Assignable } from "../bindings/Assignable";
@@ -2473,8 +2473,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             // (ADR-112), and while a view on a sheet is pressed and dragged (ADR-100).
             const i = view.viewType === "Sheet" ? areaIndexAt(p) : -1;
             const key = i >= 0 ? handles.current!.areas[i]!.key : "";
-            canvasRef.current.style.cursor =
-              key.startsWith("block_") && key !== "block_move" ? "ew-resize" : "";
+            canvasRef.current.style.cursor = hoverCursor(key);
           }
           if (gripDrag.current) {
             gripDrag.current.shift = e.shiftKey;
