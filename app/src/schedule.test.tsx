@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ScheduleDialog } from "./components/ScheduleDialog";
 import { installFakeBackend } from "./test/fakeBackend";
-import { indexProblems, insertRow, moveRow, removable } from "./sheetIndex";
+import { dropGap, dropTo, indexProblems, insertRow, moveRow, removable } from "./sheetIndex";
 
 // Double-clicking the sheet index on a sheet opens the Sheet Index dialog (ADR-110, 113,
 // 114): its type and a 1:1 preview, and its rows: sheets renamed, added, ordered, and
@@ -58,6 +58,38 @@ describe("sheet index dialog", () => {
     ]);
   }, 20000);
 
+  it("drags a row by its handle to a new place", async () => {
+    const fake = installFakeBackend();
+    fake.indexRows = ["A-101", "A-102", "A-103", "A-104"].map((n, i) => ({
+      sheet: `s${i}`,
+      number: n,
+      name: "",
+      placeholder: false,
+    }));
+    // jsdom has no PointerEvent: a MouseEvent carries clientY just as well.
+    if (!("PointerEvent" in window))
+      Object.assign(window, { PointerEvent: class extends MouseEvent {} });
+    render(<ScheduleDialog view="index" onClose={() => {}} />);
+    const dialog = await screen.findByRole("dialog", { name: "Sheet Index" });
+    await within(dialog).findByText("4 SHEETS");
+    // Rows 40 px tall, top down.
+    within(dialog)
+      .getAllByRole("listitem")
+      .forEach((row, i) =>
+        Object.defineProperty(row, "getBoundingClientRect", {
+          value: () => ({ top: i * 40, bottom: i * 40 + 40, left: 0, right: 600 }),
+        }),
+      );
+    const handle = within(dialog).getByLabelText("Drag A-101 to reorder");
+    fireEvent.pointerDown(handle, { button: 0, clientY: 20 });
+    fireEvent.pointerMove(handle, { clientY: 130 });
+    fireEvent.pointerUp(handle, { clientY: 130 });
+    const numbers = within(dialog)
+      .getAllByRole("listitem")
+      .map((r) => r.getAttribute("aria-label")!.trim());
+    expect(numbers).toEqual(["A-102", "A-103", "A-101", "A-104"]);
+  });
+
   it("inserts, moves, checks and keeps sheets that only the project browser deletes", () => {
     const a = { sheet: "a", number: "A-101", name: "", placeholder: false };
     const b = { sheet: null, number: "A-102", name: "", placeholder: false };
@@ -66,6 +98,12 @@ describe("sheet index dialog", () => {
     expect(moveRow([a, b, c], 2, 0)).toEqual([c, a, b]);
     expect(moveRow([a, b, c], 0, 9)).toEqual([b, c, a]);
     expect([a, b, c].map(removable)).toEqual([false, true, true]);
+    // Rows centred at 20, 60, 100: dropping at 70 goes in the gap before the third.
+    expect(dropGap([20, 60, 100], 70)).toBe(2);
+    expect(dropGap([20, 60, 100], 500)).toBe(3);
+    expect(dropTo(0, 2)).toBe(1);
+    expect(dropTo(2, 0)).toBe(0);
+    expect(dropTo(1, 2)).toBe(1);
     expect(indexProblems([a, { ...b, number: "A-101" }, { ...c, number: " " }])).toEqual([
       { row: 1, message: "Sheet A-101 is listed twice" },
       { row: 2, message: "Row 3 needs a sheet number" },

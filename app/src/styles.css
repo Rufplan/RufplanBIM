@@ -6969,3 +6969,13 @@ button:disabled {
 .sid .sid-ok:hover:not(:disabled) {
   background: #1fb5d6;
 }
+.sid-row.over-end {
+  box-shadow: inset 0 -2px 0 #3ccbe8;
+}
+.sid-handle {
+  touch-action: none;
+}
+.sid-row.dragging .sid-handle,
+.sid-handle:active {
+  cursor: grabbing;
+}

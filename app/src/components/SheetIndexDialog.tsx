@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { IndexRow } from "../bindings/IndexRow";
 import type { ScheduleStyle } from "../bindings/ScheduleStyle";
 import type { TextFont } from "../bindings/TextFont";
 import { apply } from "../fileActions";
 import { errorMessage, ipc } from "../ipc";
-import { indexProblems, insertRow, moveRow, removable, rowKind } from "../sheetIndex";
+import {
+  dropGap,
+  dropTo,
+  indexProblems,
+  insertRow,
+  moveRow,
+  removable,
+  rowKind,
+} from "../sheetIndex";
 import { useAppStore } from "../store";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 
@@ -67,7 +75,9 @@ export function SheetIndexDialog({
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [drag, setDrag] = useState<number | null>(null);
+  // While a row is dragged by its handle: the gap (0..rows) it would drop into.
   const [over, setOver] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; row: number | null } | null>(null);
   const [rowText, setRowText] = useState<string | null>(null);
   const [scale, setScale] = useState(fit);
@@ -139,6 +149,32 @@ export function SheetIndexDialog({
     if (!(await apply(() => ipc.setSheetIndexRows(rows)))) return;
     onClose();
   };
+
+  // Dragging a row by its handle (ADR-115): pointer events, so it works in the app's
+  // window (which keeps HTML drag and drop for dropping files). The list scrolls near its ends.
+  const dragTo = (y: number) => {
+    const el = listRef.current;
+    if (!el) return;
+    const box = el.getBoundingClientRect();
+    if (y < box.top + 24) el.scrollTop -= 12;
+    else if (y > box.bottom - 24) el.scrollTop += 12;
+    const mids = Array.from(el.children).map((c) => {
+      const r = c.getBoundingClientRect();
+      return (r.top + r.bottom) / 2;
+    });
+    const gap = dropGap(mids, y);
+    if (gap !== over) setOver(gap);
+  };
+  const endDrag = (drop: boolean) => {
+    if (drop && drag !== null && over !== null) {
+      const to = dropTo(drag, over);
+      if (to !== drag) move(drag, to);
+    }
+    setDrag(null);
+    setOver(null);
+  };
+  // The gap a line shows at: none where the row would stay put.
+  const showGap = drag !== null && over !== null && dropTo(drag, over) !== drag ? over : null;
 
   const items = (i: number | null): MenuItem[] => {
     if (i === null)
@@ -246,6 +282,7 @@ export function SheetIndexDialog({
               <span className="r">TYPE</span>
             </div>
             <div
+              ref={listRef}
               className="sid-rows"
               role="list"
               aria-label="Sheet index rows"
@@ -262,8 +299,7 @@ export function SheetIndexDialog({
                     key={`${r.sheet ?? "new"}-${i}`}
                     role="listitem"
                     aria-label={`${r.number} ${r.name}`}
-                    draggable
-                    className={`sid-row${selected === i ? " on" : ""}${drag === i ? " dragging" : ""}${over === i && drag !== null && drag !== i ? " over" : ""}`}
+                    className={`sid-row${selected === i ? " on" : ""}${drag === i ? " dragging" : ""}${showGap === i ? " over" : ""}${showGap === list.length && i === list.length - 1 ? " over-end" : ""}`}
                     onClick={() => setSelected(i)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -271,28 +307,23 @@ export function SheetIndexDialog({
                       setSelected(i);
                       setMenu({ x: e.clientX, y: e.clientY, row: i });
                     }}
-                    onDragStart={(e) => {
-                      e.dataTransfer.effectAllowed = "move";
-                      setDrag(i);
-                      setSelected(i);
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      if (over !== i) setOver(i);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      // The dragged row goes in before the one it's dropped on.
-                      if (drag !== null && drag !== i) move(drag, drag < i ? i - 1 : i);
-                      setDrag(null);
-                      setOver(null);
-                    }}
-                    onDragEnd={() => {
-                      setDrag(null);
-                      setOver(null);
-                    }}
                   >
-                    <span className="sid-handle" title="Drag to reorder">
+                    <span
+                      className="sid-handle"
+                      title="Drag to reorder"
+                      aria-label={`Drag ${r.number} to reorder`}
+                      onPointerDown={(e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        e.currentTarget.setPointerCapture?.(e.pointerId);
+                        setDrag(i);
+                        setOver(i);
+                        setSelected(i);
+                      }}
+                      onPointerMove={(e) => drag !== null && dragTo(e.clientY)}
+                      onPointerUp={() => endDrag(true)}
+                      onPointerCancel={() => endDrag(false)}
+                    >
                       ⋮⋮
                     </span>
                     <input

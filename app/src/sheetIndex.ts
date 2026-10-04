@@ -42,3 +42,15 @@ export function indexProblems(rows: IndexRow[]): { row: number; message: string 
   });
   return out;
 }
+
+/** The gap (0 = before the first row … n = after the last) a dragged row at `y` drops
+ * into, given each row's vertical middle, top down. */
+export function dropGap(mids: number[], y: number): number {
+  const i = mids.findIndex((m) => y < m);
+  return i < 0 ? mids.length : i;
+}
+
+/** Where the row at `from` ends up when dropped into gap `gap`. */
+export function dropTo(from: number, gap: number): number {
+  return gap > from ? gap - 1 : gap;
+}

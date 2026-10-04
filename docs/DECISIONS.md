@@ -4280,3 +4280,13 @@ coursing along a line".
   - **Font list:** the three fonts the PDF embeds (drafting Barlow Condensed, Carlito, Tinos) instead of Barlow / IBM Plex Mono, so the sheet prints what the preview shows.
   - **BODY sizes:** 3/32", 1/8", 5/32", 3/16". The 1/16" and 5/64" options are left out under the office's 3/32" floor (ADR-109).
   - **Row height:** never under twice the body text, as Rust keeps it.
+
+## ADR-115 Sheet index rows drag by their handle with pointer events — Accepted (2026-10-04)
+- **The ask:** drag each sheet by its handle to put the sheets in order.
+- **Why it did not work:** the rows used HTML drag and drop. The Tauri window keeps drag and drop for dropping files (`dragDropEnabled`, on by default), so WebView2 never delivers those events to the page.
+- **The fix** (SheetIndexDialog `dragTo` / `endDrag`; `sheetIndex.ts` `dropGap`, `dropTo`):
+  - Pressing the ⋮⋮ handle captures the pointer.
+  - Moving it finds the gap between rows under the cursor, from the rows' middles, and draws the cyan line there: above a row, or under the last one. No line shows where the row would stay put.
+  - Near the top or bottom of the list, the list scrolls.
+  - Releasing moves the row into the gap, and Esc-style pointer cancel leaves it.
+  - File drops into the app are unchanged.
