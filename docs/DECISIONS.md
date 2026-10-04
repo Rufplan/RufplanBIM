@@ -3886,3 +3886,51 @@ coursing along a line".
     view, just right of the drawing. One undo step.
   - The notes are typical US practice for an architect to review. They're editable text,
     not code compliance.
+
+## ADR-104 General sheets by building type, phase and jurisdiction, filled by the sets — Accepted (2026-10-04)
+- **The owner's ask:** mimic typical general sheets and what they usually hold, per
+  building type, per construction-documents phase and per local jurisdiction, preset as
+  part of sheet set creation.
+- **Jurisdictions** (studio-sheets `general::Jurisdiction`): International Codes (the
+  default for most of the US), California, New York City, Florida, Texas, Washington,
+  Massachusetts and Chicago.
+  - Taken from Project Info's location (state, plus city for New York City and Chicago),
+    or chosen in View > Sheet Sets (`SetOptions.jurisdiction`, optional, so older
+    options still parse).
+  - Each one sets the applicable codes list, the accessibility standard, the energy
+    compliance path and forms, the special-inspection program and the local extras.
+- **The G series** (`general_sheets`), filled with preset text in titled blocks, laid
+  out in columns (3/32" notes, larger headings) by the new `Content::Text`:
+  - **G-001 Cover Sheet & Sheet Index** (all phases), as before.
+  - **G-002 Project Information** (from SD): project directory (Project Info's team),
+    project data (address, APN, zoning, lot, occupancy, construction type, sprinklers,
+    stories, model gross area), scope of work, applicable codes, the jurisdiction,
+    deferred submittals and a vicinity map placeholder.
+  - **G-003 General Notes** (from CD): the General Notes catalog (ADR-103) plus the
+    jurisdiction's own notes.
+  - **G-004 Abbreviations, Symbols & Legends** (from DD).
+  - **G-005 Code Summary or Code Analysis** (from DD):
+    - IRC buildings: occupancy, type, life safety, fire separation, energy path.
+    - IBC buildings: building data, allowable height and area prompts, IBC Table 601
+      ratings filled for the construction type, occupant load from the gross area,
+      egress limits, plumbing fixtures, and separations by building type.
+  - **G-006 Life Safety Plans** (IBC, from CD): the legend, with plans to add.
+  - **G-007 Accessibility Notes & Details** (IBC, from CD): the jurisdiction's standard,
+    Type A/B units and the FHA for multifamily, accessible guest rooms for hotels, TDLR
+    registration in Texas, path of travel in California.
+  - **G-008 Energy Code Compliance** (from CD): the jurisdiction's path (Title 24
+    CF1R/NRCC, WSEC credits, NYCECC EN1 and Local Law 97, the Massachusetts Stretch Code,
+    FBC-EC, else the IECC with REScheck or COMcheck) and an envelope summary to fill in.
+  - **G-009 CALGreen Checklist** (California, from CD).
+  - **G-010 Statement of Special Inspections** (IBC, or NYC TR1 and TR8; the Florida
+    threshold inspection).
+  - **G-011 Product Approval Schedule** (Florida; Miami-Dade NOAs in the HVHZ).
+- **Defaults** by building type (occupancy, construction type, sprinklers) give way to
+  Project Info's codes when they're filled in.
+- **Caveats:**
+  - The code editions are those commonly adopted. Every set says to verify them with the
+    building department at permit.
+  - The text is typical US practice for the architect to review, not jurisdiction
+    advice. It's text notes, edited like any other note.
+- The old G-002 to G-005 placeholders are gone. Life Safety moved from G-003 to G-006,
+  and Accessibility from G-004 to G-007.

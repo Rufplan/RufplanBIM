@@ -3,6 +3,7 @@ import type { BuildingType } from "../bindings/BuildingType";
 import type { BuildingTypeOption } from "../bindings/BuildingTypeOption";
 import type { SetOptions } from "../bindings/SetOptions";
 import type { SetPlan } from "../bindings/SetPlan";
+import type { Jurisdiction } from "../bindings/Jurisdiction";
 import type { SheetSize } from "../bindings/SheetSize";
 import { dialogs, errorMessage, ipc } from "../ipc";
 import { useAppStore } from "../store";
@@ -27,6 +28,10 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
   const [buildingType, setBuildingType] = useState<BuildingType>(savedType);
   const [phases, setPhases] = useState<Set<string>>(new Set(PHASES));
   const [size, setSize] = useState<SheetSize>("ArchD");
+  // Where it's permitted (ADR-104): "auto" follows Project Info's location.
+  const [places, setPlaces] = useState<[Jurisdiction, string][]>([]);
+  const [implied, setImplied] = useState<Jurisdiction | null>(null);
+  const [jurisdiction, setJurisdiction] = useState<Jurisdiction | "auto">("auto");
   const [plan, setPlan] = useState<SetPlan | null>(null);
   const [shown, setShown] = useState<string | null>(null);
   const [record, setRecord] = useState(false);
@@ -40,6 +45,14 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
       (t) => live && setTypes(t),
       () => {},
     );
+    ipc.jurisdictions().then(
+      (r) => {
+        if (!live || !r) return;
+        setPlaces(r[0]);
+        setImplied(r[1]);
+      },
+      () => {},
+    );
     return () => {
       live = false;
     };
@@ -49,6 +62,7 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
     buildingType,
     phases: PHASES.filter((p) => phases.has(p)),
     size,
+    ...(jurisdiction === "auto" ? {} : { jurisdiction }),
   };
   const optionsKey = JSON.stringify(options);
   useEffect(() => {
@@ -150,6 +164,22 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
               {types.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.label}
+                </option>
+              ))}
+            </select>
+            <h3>Jurisdiction</h3>
+            <select
+              aria-label="Jurisdiction"
+              value={jurisdiction}
+              onChange={(e) => setJurisdiction(e.target.value as Jurisdiction | "auto")}
+            >
+              <option value="auto">
+                From Project Info
+                {implied ? `: ${places.find((p) => p[0] === implied)?.[1] ?? implied}` : ""}
+              </option>
+              {places.map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
                 </option>
               ))}
             </select>

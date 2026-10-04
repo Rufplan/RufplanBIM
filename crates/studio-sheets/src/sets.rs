@@ -53,7 +53,7 @@ impl BuildingType {
     }
     /// Built under the International Residential Code (one- and two-family dwellings and
     /// townhouses); everything else is IBC.
-    fn irc(self) -> bool {
+    pub(crate) fn irc(self) -> bool {
         matches!(
             self,
             BuildingType::SingleFamily | BuildingType::Duplex | BuildingType::Townhouses
@@ -116,6 +116,11 @@ pub struct SetOptions {
     /// Stage abbreviations to build sets for (PD, SD, DD, CD, BN, CA).
     pub phases: Vec<String>,
     pub size: SheetSize,
+    /// Where it's permitted (ADR-104): shapes the general sheets. Project Info's location
+    /// when absent.
+    #[serde(default)]
+    #[ts(optional)]
+    pub jurisdiction: Option<crate::general::Jurisdiction>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -347,6 +352,8 @@ enum Content {
     },
     Views(Placed),
     Schedules(Vec<(ElementId, Pt)>),
+    /// Preset text in titled blocks (the general sheets, ADR-104), laid out in columns.
+    Text(Vec<crate::general::Block>),
     /// Who provides the sheet, and a line on what it holds.
     Placeholder {
         by: String,
@@ -462,11 +469,90 @@ fn placeholder(by: &str, note: &str) -> Content {
     }
 }
 
+/// Lays titled blocks out in columns across a sheet's drawing area (ADR-104): each a
+/// heading over its (numbered) lines, flowing down a column and on to the next; a block
+/// too long for what's left continues in the next column. (top-left, text, size, width).
+fn text_layout(blocks: &[crate::general::Block], a: &Area) -> Vec<(Pt, String, f64, f64)> {
+    const HEAD: f64 = 4.0;
+    const BODY: f64 = 2.4;
+    const GAP: f64 = 12.0;
+    let line = studio_core::text::LINE;
+    let aw = a.x1 - a.x0 - 20.0;
+    let cols = ((aw + GAP) / (150.0 + GAP)).floor().max(1.0);
+    let cw = (aw - GAP * (cols - 1.0)) / cols;
+    let top = a.y1 - 14.0;
+    let bottom = a.y0 + 10.0;
+    let mut out = vec![];
+    let (mut col, mut y) = (0.0, top);
+    let x_of = |c: f64| a.x0 + 10.0 + c * (cw + GAP);
+    for b in blocks {
+        let items: Vec<String> = b
+            .lines
+            .iter()
+            .enumerate()
+            .map(|(i, l)| {
+                if b.numbered {
+                    format!("{}. {l}", i + 1)
+                } else {
+                    l.clone()
+                }
+            })
+            .collect();
+        let tall = |ls: &[String]| -> f64 {
+            ls.iter()
+                .map(|l| studio_core::text::wrap(l, BODY, Some(cw)).len().max(1) as f64)
+                .sum::<f64>()
+                * BODY
+                * line
+        };
+        let mut rest: &[String] = &items;
+        let mut first = true;
+        while !rest.is_empty() {
+            // Room for the heading and at least a couple of lines, else the next column.
+            if y - HEAD * line - BODY * line * 2.0 < bottom && y < top {
+                col += 1.0;
+                y = top;
+            }
+            let room = y - HEAD * line - 2.0 - bottom;
+            let mut n = 0;
+            while n < rest.len() && tall(&rest[..=n]) <= room {
+                n += 1;
+            }
+            let n = n.max(1);
+            let title = if first {
+                b.title.clone()
+            } else {
+                format!("{} (CONT.)", b.title)
+            };
+            out.push((Pt::new(x_of(col), y), title, HEAD, cw));
+            let body_y = y - HEAD * line - 2.0;
+            out.push((
+                Pt::new(x_of(col), body_y),
+                rest[..n].join(
+                    "
+",
+                ),
+                BODY,
+                cw,
+            ));
+            y = body_y - tall(&rest[..n]) - 8.0;
+            rest = &rest[n..];
+            first = false;
+            if !rest.is_empty() {
+                col += 1.0;
+                y = top;
+            }
+        }
+    }
+    out
+}
+
 /// Every sheet the building type's sets can hold, before choosing phases.
 fn drafts(
     doc: &Document,
     t: BuildingType,
     size: SheetSize,
+    jurisdiction: crate::general::Jurisdiction,
     warnings: &mut Vec<String>,
 ) -> Vec<Draft> {
     let a = area(size);
@@ -481,10 +567,6 @@ fn drafts(
             })
         };
     let irc = t.irc();
-    let multifamily = matches!(
-        t,
-        BuildingType::GardenApartments | BuildingType::MidRiseApartments | BuildingType::MixedUse
-    );
     let (floors, roof) = plan_levels(doc);
     let groups = floor_groups(&floors);
     let pref = t.plan_scale();
@@ -498,36 +580,16 @@ fn drafts(
         },
         ALL,
     );
-    if irc {
-        add(num("G", 2), "Code Summary (IRC)", placeholder("the architect", "Code edition, occupancy, construction type, fire separation, egress windows, smoke alarms."), DD_ON);
-    } else {
-        add(num("G", 2), "Code Analysis (IBC)", placeholder("the architect", "Occupancy, construction type, allowable height and area, fire-resistance ratings, occupant loads and egress."), DD_ON);
-        add(num("G", 3), "Life Safety Plans", placeholder("the architect", "Exits, exit access travel distances, common path, fire-rated walls and doors, per floor."), CD_ON);
-        let access = if multifamily {
-            "Fair Housing Act and ICC A117.1 Type A and Type B unit plans and details."
-        } else {
-            "ADA and ICC A117.1 accessible guest rooms, routes, clearances and details."
-        };
+    // The rest of the general sheets (ADR-104): preset text by building type, phase and
+    // jurisdiction.
+    for gs in crate::general::general_sheets(doc, t, jurisdiction) {
         add(
-            num("G", 4),
-            "Accessibility Plans & Details",
-            placeholder("the architect", access),
-            CD_ON,
+            num("G", gs.number),
+            &gs.name,
+            Content::Text(gs.blocks),
+            gs.phases,
         );
     }
-    add(
-        num("G", 5),
-        "Energy Code Compliance",
-        placeholder(
-            "the architect",
-            if irc {
-                "IECC residential compliance: REScheck, envelope U-values, air sealing."
-            } else {
-                "IECC commercial or ASHRAE 90.1 compliance: COMcheck envelope and lighting."
-            },
-        ),
-        CD_ON,
-    );
 
     // Civil and landscape.
     let civil = "the civil engineer";
@@ -986,7 +1048,12 @@ fn chosen(doc: &Document, o: &SetOptions, warnings: &mut Vec<String>) -> Vec<Dra
             ));
         }
     }
-    let mut out: Vec<Draft> = drafts(doc, o.building_type, o.size, warnings)
+    let jurisdiction = o.jurisdiction.unwrap_or_else(|| {
+        studio_core::project::get(doc)
+            .map(|(_, d)| crate::general::Jurisdiction::from_project(&d))
+            .unwrap_or(crate::general::Jurisdiction::ModelCodes)
+    });
+    let mut out: Vec<Draft> = drafts(doc, o.building_type, o.size, jurisdiction, warnings)
         .into_iter()
         .filter_map(|mut d| {
             d.phases.retain(|p| phases.contains(p));
@@ -1020,6 +1087,17 @@ fn contents_label(doc: &Document, c: &Content) -> (String, bool) {
             false,
         ),
         Content::Placeholder { by, note } => (format!("Placeholder by {by}: {note}"), true),
+        Content::Text(blocks) => (
+            format!(
+                "Preset: {}",
+                blocks
+                    .iter()
+                    .map(|b| b.title.to_lowercase())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            false,
+        ),
     }
 }
 
@@ -1336,6 +1414,19 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                         report.views += 1;
                     }
                 }
+                Content::Text(blocks) => {
+                    for (at, text, size, width) in text_layout(blocks, &a) {
+                        tx.insert(ElementData::TextNote {
+                            view: sheet,
+                            at,
+                            text,
+                            size,
+                            leaders: vec![],
+                            align: Default::default(),
+                            width: Some(width),
+                        });
+                    }
+                }
                 Content::Placeholder { by, note: what } => {
                     let c = a.center();
                     let x = (c.x - 160.0).max(a.x0 + 20.0);
@@ -1512,6 +1603,7 @@ mod tests {
             building_type: t,
             phases: phases.iter().map(|p| (*p).to_owned()).collect(),
             size: SheetSize::ArchD,
+            jurisdiction: None,
         }
     }
 
@@ -1573,7 +1665,7 @@ mod tests {
             .contains("Building Section 1, Building Section 2"));
         // IRC: no life safety or accessibility sheets, one sheet per MEP discipline, no
         // landscape.
-        assert!(!numbers.contains(&"G-003") && !numbers.contains(&"L-101"));
+        assert!(!numbers.contains(&"G-006") && !numbers.contains(&"L-101"));
         assert!(!numbers.iter().any(|n| n.starts_with("F-")));
         assert!(name("S-101").placeholder && !name("A-101").placeholder);
         // Phases: plans in SD on, RCPs from DD, details from CD, renderings in SD only.
@@ -1607,8 +1699,8 @@ mod tests {
         let doc = house(6);
         let p = plan(&doc, &opts(BuildingType::MidRiseApartments, &["CD"]));
         let has = |n: &str, name: &str| p.sheets.iter().any(|s| s.number == n && s.name == name);
-        assert!(has("G-003", "Life Safety Plans"));
-        assert!(has("G-004", "Accessibility Plans & Details"));
+        assert!(has("G-006", "Life Safety Plans"));
+        assert!(has("G-007", "Accessibility Notes & Details"));
         assert!(has("A-106", "Level 6 Floor Plan"));
         assert!(has("M-101", "Level 1 Mechanical Plan"));
         assert!(has("M-102", "Typical Levels 2–5 Mechanical Plan"));

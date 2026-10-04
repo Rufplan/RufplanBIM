@@ -1143,6 +1143,7 @@ mod tests {
                         building_type: sets::BuildingType::SingleFamily,
                         phases: phases.clone(),
                         size: studio_core::SheetSize::ArchD,
+                        jurisdiction: None,
                     },
                 )
             })

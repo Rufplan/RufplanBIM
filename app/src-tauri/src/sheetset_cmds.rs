@@ -30,6 +30,28 @@ pub fn building_types() -> Vec<BuildingTypeOption> {
         .collect()
 }
 
+/// The jurisdictions the general sheets know (ADR-104), and the one Project Info implies.
+#[tauri::command]
+pub fn jurisdictions(
+    state: State<'_, SessionState>,
+) -> CommandResult<(
+    Vec<(studio_sheets::general::Jurisdiction, String)>,
+    studio_sheets::general::Jurisdiction,
+)> {
+    use studio_sheets::general::Jurisdiction;
+    let s = lock(&state)?;
+    let implied = studio_core::project::get(s.doc()?)
+        .map(|(_, d)| Jurisdiction::from_project(&d))
+        .unwrap_or(Jurisdiction::ModelCodes);
+    Ok((
+        Jurisdiction::ALL
+            .iter()
+            .map(|j| (*j, j.label().to_string()))
+            .collect(),
+        implied,
+    ))
+}
+
 /// What Create Sheets would make.
 #[tauri::command]
 pub fn sheet_set_plan(

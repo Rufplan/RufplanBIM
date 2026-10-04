@@ -1225,6 +1225,7 @@ fn documents(b: &mut B<'_>, l1: ElementId) -> anyhow::Result<()> {
             .map(|p| (*p).to_string())
             .collect(),
         size: SheetSize::ArchD,
+        jurisdiction: None,
     };
     // The title blocks and the cover carry the project's name.
     let info = b.doc.of(Category::ProjectInfo).next().map(|e| e.id);
@@ -1375,6 +1376,27 @@ mod preview {
         assert!(pdf.len() > HERO_RENDERING.len());
         if let Ok(out) = std::env::var("COVER_PDF") {
             std::fs::write(out, pdf).unwrap();
+        }
+        // The general sheets are filled with preset text (ADR-104), not placeholders.
+        let general: Vec<ElementId> = ops::sheets(&doc)
+            .into_iter()
+            .filter(|s| s.1.starts_with("G-") && s.1 != "G-001")
+            .map(|s| s.0)
+            .collect();
+        assert!(general.len() >= 4, "{}", general.len());
+        for g in &general {
+            let notes = doc
+                .of(Category::TextNote)
+                .filter(|e| matches!(&e.data, ElementData::TextNote { view, .. } if view == g))
+                .count();
+            assert!(notes >= 2, "{notes}");
+        }
+        if let Ok(out) = std::env::var("GENERAL_PDF") {
+            std::fs::write(
+                out,
+                studio_sheets::export_pdf(&doc, &general, "2026-10-04").unwrap(),
+            )
+            .unwrap();
         }
     }
 

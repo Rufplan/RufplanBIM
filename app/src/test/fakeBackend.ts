@@ -1802,6 +1802,14 @@ export function installFakeBackend(): FakeBackend {
               warnings: ["Story 2: Loft has no route in"],
             },
           };
+        case "jurisdictions":
+          return [
+            [
+              ["ModelCodes", "International Codes (most US jurisdictions)"],
+              ["California", "California (Title 24)"],
+            ],
+            "ModelCodes",
+          ];
         case "general_notes_options":
           return {
             buildings: [

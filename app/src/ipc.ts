@@ -60,6 +60,7 @@ import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { Precedent } from "./bindings/Precedent";
 import type { SkyPreset } from "./bindings/SkyPreset";
 import type { NotesOptions } from "./bindings/NotesOptions";
+import type { Jurisdiction } from "./bindings/Jurisdiction";
 import type { NotesBuilding } from "./bindings/NotesBuilding";
 import type { NotesDrawing } from "./bindings/NotesDrawing";
 import type { GenerateResult } from "./bindings/GenerateResult";
@@ -795,6 +796,8 @@ export const ipc = {
   projectImportIfc: (path: string) => invoke<IfcImported>("project_import_ifc", { path }),
   // Sheet sets (ADR-032).
   buildingTypes: () => invoke<BuildingTypeOption[]>("building_types"),
+  /** The general sheets' jurisdictions (ADR-104), and the one Project Info implies. */
+  jurisdictions: () => invoke<[[Jurisdiction, string][], Jurisdiction]>("jurisdictions"),
   sheetSetPlan: (options: SetOptions) => invoke<SetPlan>("sheet_set_plan", { options }),
   createSheetSets: (options: SetOptions) => invoke<SetsCreated>("create_sheet_sets", { options }),
   exportSheetSets: (phases: string[], folder: string, record: boolean) =>
