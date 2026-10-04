@@ -1173,14 +1173,13 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
         5.0 * MM_PER_FT,
     )?;
     ops::set_property(b.doc, hero, "name", "Hero View - Southeast", 0)?;
-    documents(&mut b, l1, l2)
+    documents(&mut b, l1)
 }
 
 /// The drawing set: plans, elevations, a section and schedules on ARCH D sheets.
-fn documents(b: &mut B<'_>, l1: ElementId, l2: ElementId) -> anyhow::Result<()> {
-    use studio_core::{ScheduleKind, SheetSize};
+fn documents(b: &mut B<'_>, l1: ElementId) -> anyhow::Result<()> {
+    use studio_core::SheetSize;
     let plan1 = b.view_where(&|k, _| matches!(k, ViewKind::FloorPlan { level } if *level == l1))?;
-    let plan2 = b.view_where(&|k, _| matches!(k, ViewKind::FloorPlan { level } if *level == l2))?;
     // Overall dimensions on the Level 1 plan, outside face to outside face.
     let face = 3.75 / 12.0;
     let six = 6.0 * MM_PER_FT;
@@ -1213,18 +1212,37 @@ fn documents(b: &mut B<'_>, l1: ElementId, l2: ElementId) -> anyhow::Result<()> 
         ft(66.0, 40.0 + face),
         3.0 * MM_PER_FT,
     )?;
-    let section = ops::create_section(b.doc, ft(49.0, -22.0), ft(49.0, 48.0))?;
-    let cross = ops::create_section(b.doc, ft(-6.0, 22.0), ft(72.0, 22.0))?;
-    let schedule = |b: &B<'_>, kind: ScheduleKind| {
-        b.view_where(&|k, _| matches!(k, ViewKind::Schedule { kind: s } if *s == kind))
-    };
-    let elevation = |b: &B<'_>, name: &str| {
-        b.view_where(&|k, n| matches!(k, ViewKind::Elevation { .. }) && n == name)
-    };
+    // A longitudinal and a cross section (the sets use these rather than their own).
+    ops::create_section(b.doc, ft(49.0, -22.0), ft(49.0, 48.0))?;
+    ops::create_section(b.doc, ft(-6.0, 22.0), ft(72.0, 22.0))?;
     let p = Pt::new;
-    let cover = ops::create_sheet(b.doc, "Cover Sheet", SheetSize::ArchD)?;
-    ops::set_property(b.doc, cover, "number", "A0.0", 0)?;
-    // The hero rendering (ADR-095), path traced from the Hero View camera, across the top.
+    // Every phase's drawing set, as View > Sheet Sets builds them (ADR-103): PD through CA,
+    // NCS-numbered, each sheet tagged with the stages whose sets include it.
+    let o = studio_sheets::sets::SetOptions {
+        building_type: studio_sheets::sets::BuildingType::SingleFamily,
+        phases: studio_sheets::sets::PHASES
+            .iter()
+            .map(|p| (*p).to_string())
+            .collect(),
+        size: SheetSize::ArchD,
+    };
+    // The title blocks and the cover carry the project's name.
+    if let Some(info) = b.doc.of(Category::ProjectInfo).next().map(|e| e.id) {
+        b.doc.transact("Name project", |tx| {
+            tx.modify(info, |d| {
+                if let ElementData::ProjectInfo { name, .. } = d {
+                    *name = "The Modern House".into();
+                }
+            })
+        })?;
+    }
+    studio_sheets::sets::create(b.doc, &o)?;
+    // The hero rendering (ADR-095) across the cover, the sheet index beside it.
+    let cover = ops::sheets(b.doc)
+        .into_iter()
+        .find(|s| s.1 == "G-001")
+        .map(|s| s.0)
+        .context("no cover sheet in the sets")?;
     {
         use base64::Engine;
         let data = base64::engine::general_purpose::STANDARD.encode(HERO_RENDERING);
@@ -1236,44 +1254,16 @@ fn documents(b: &mut B<'_>, l1: ElementId, l2: ElementId) -> anyhow::Result<()> 
             1600,
             900,
         )?;
-        ops::place_view(b.doc, cover, hero, p(400.0, 410.0))?;
+        ops::place_view(b.doc, cover, hero, p(330.0, 330.0))?;
     }
-    ops::place_view(
-        b.doc,
-        cover,
-        schedule(b, ScheduleKind::Sheets)?,
-        p(170.0, 150.0),
-    )?;
-    ops::place_view(
-        b.doc,
-        cover,
-        schedule(b, ScheduleKind::Rooms)?,
-        p(420.0, 150.0),
-    )?;
-    ops::place_view(
-        b.doc,
-        cover,
-        schedule(b, ScheduleKind::Doors)?,
-        p(670.0, 150.0),
-    )?;
-    let plans = ops::create_sheet(b.doc, "Floor Plans", SheetSize::ArchD)?;
-    ops::set_property(b.doc, plans, "number", "A1.0", 0)?;
-    ops::place_view(b.doc, plans, plan1, p(225.0, 320.0))?;
-    ops::place_view(b.doc, plans, plan2, p(600.0, 320.0))?;
-    let elevations = ops::create_sheet(b.doc, "Exterior Elevations", SheetSize::ArchD)?;
-    ops::set_property(b.doc, elevations, "number", "A2.0", 0)?;
-    for (name, at) in [
-        ("South", p(225.0, 440.0)),
-        ("North", p(600.0, 440.0)),
-        ("East", p(225.0, 200.0)),
-        ("West", p(600.0, 200.0)),
-    ] {
-        ops::place_view(b.doc, elevations, elevation(b, name)?, at)?;
+    let index = b
+        .doc
+        .of(Category::Viewport)
+        .find(|e| matches!(&e.data, ElementData::Viewport { sheet, view, .. } if *sheet == cover && b.doc.data(*view).is_ok_and(|v| matches!(v, ElementData::View { kind: ViewKind::Schedule { .. }, .. }))))
+        .map(|e| e.id);
+    if let Some(index) = index {
+        studio_sheets::move_viewport(b.doc, index, p(735.0, 330.0))?;
     }
-    let sections = ops::create_sheet(b.doc, "Building Sections", SheetSize::ArchD)?;
-    ops::set_property(b.doc, sections, "number", "A3.0", 0)?;
-    ops::place_view(b.doc, sections, section, p(225.0, 320.0))?;
-    ops::place_view(b.doc, sections, cross, p(600.0, 320.0))?;
     Ok(())
 }
 
@@ -1308,7 +1298,8 @@ mod tests {
         assert!(count(Category::LightingFixture) >= 50);
         assert!(count(Category::Planting) >= 35);
         assert_eq!(count(Category::Casework), 2);
-        assert_eq!(count(Category::Sheet), 4);
+        // Every phase's set (ADR-103).
+        assert!(count(Category::Sheet) >= 15, "{} sheets", count(Category::Sheet));
         // Every room closes (an open boundary would leave it unplaced, with no area).
         let model = studio_regen::regenerate(&doc);
         for e in doc.of(Category::Room) {
@@ -1359,7 +1350,7 @@ mod preview {
         build_modern(&mut doc).unwrap();
         let (cover, _, _) = ops::sheets(&doc)
             .into_iter()
-            .find(|(_, number, _)| number == "A0.0")
+            .find(|(_, number, _)| number == "G-001")
             .unwrap();
         let on_cover: Vec<ElementId> = doc
             .of(Category::Viewport)
