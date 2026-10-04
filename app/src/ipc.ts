@@ -59,6 +59,9 @@ import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { Precedent } from "./bindings/Precedent";
 import type { SkyPreset } from "./bindings/SkyPreset";
+import type { NotesOptions } from "./bindings/NotesOptions";
+import type { NotesBuilding } from "./bindings/NotesBuilding";
+import type { NotesDrawing } from "./bindings/NotesDrawing";
 import type { GenerateResult } from "./bindings/GenerateResult";
 import type { PlansInputs } from "./bindings/PlansInputs";
 import type { Cap } from "./bindings/Cap";
@@ -458,6 +461,12 @@ export const ipc = {
     style: KeynoteStyle,
   ): S => invoke("keynote_place", { view, source, arrow, at, style }),
   keynoteLegend: () => invoke<[ElementId, AppState | null]>("keynote_legend"),
+  /** General Notes (ADR-103): the choices for a view, the presets, and placing them. */
+  generalNotesOptions: (view: ElementId) => invoke<NotesOptions>("general_notes_options", { view }),
+  generalNotesPreset: (building: NotesBuilding, drawing: NotesDrawing, code: string) =>
+    invoke<[string, string[]]>("general_notes_preset", { building, drawing, code }),
+  placeGeneralNotes: (view: ElementId, heading: string, notes: string[], width: number): S =>
+    invoke("place_general_notes", { view, heading, notes, width }),
   // Suggest Structure and the structural overlay (ADR-080).
   structuralSuggest: (seismic: Seismic) =>
     invoke<StructuralProposal>("structural_suggest", { seismic }),

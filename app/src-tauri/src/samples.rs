@@ -1300,7 +1300,11 @@ mod tests {
         assert!(count(Category::Planting) >= 35);
         assert_eq!(count(Category::Casework), 2);
         // Every phase's set (ADR-103).
-        assert!(count(Category::Sheet) >= 15, "{} sheets", count(Category::Sheet));
+        assert!(
+            count(Category::Sheet) >= 15,
+            "{} sheets",
+            count(Category::Sheet)
+        );
         // Every room closes (an open boundary would leave it unplaced, with no area).
         let model = studio_regen::regenerate(&doc);
         for e in doc.of(Category::Room) {

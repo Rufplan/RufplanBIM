@@ -155,6 +155,25 @@ function KeynoteGroup() {
   );
 }
 
+/** Annotate > General Notes (ADR-103): presets by building type and drawing. */
+function GeneralNotesGroup() {
+  const app = useAppStore((s) => s.app);
+  const setUi = useAppStore((s) => s.setUi);
+  return (
+    <Group title="General Notes">
+      <button
+        className="rb-btn"
+        disabled={!app}
+        title="General Notes: numbered notes preset by building type and drawing (site plan, floor plans, elevations…)"
+        onClick={() => setUi({ viewDialog: "generalNotes" })}
+      >
+        {Icons.keynoteLegend}
+        <span>General Notes</span>
+      </button>
+    </Group>
+  );
+}
+
 /** MEPT (ADR-082): Mechanical, Electrical, Plumbing and Technology, each with its
  * Suggest, overlay and export; one opacity for them all. */
 function MeptRibbon() {
@@ -1197,6 +1216,7 @@ export function Ribbon() {
           </>
         )}
         {tab === "Annotate" && <KeynoteGroup />}
+        {tab === "Annotate" && <GeneralNotesGroup />}
         {tab === "Annotate" && (
           <Group title="Detail">
             <ToolButton

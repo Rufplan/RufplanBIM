@@ -3851,3 +3851,38 @@ coursing along a line".
   by the ceiling glow (ADR-101). Recessed frames and returns are still to do.
 - **Not done:** an AI enhancement pass, the furniture weave and teak textures, an
   anisotropic grill, depth of field, and fascia and slab-edge bevels.
+
+## ADR-103 The Modern House opens with every phase's set; General Notes presets — Accepted (2026-10-03)
+- **The owner's asks:** the Modern House sample should include every stage's sheet set
+  from the start, without recreating them. The Annotate tab should get General Notes,
+  preset by building project type and by drawing (site plan, floor plans, elevations
+  and so on).
+- **Sample sets:**
+  - `build_modern` builds the sets with studio-sheets `sets::create` (the View > Sheet
+    Sets tool) for all six phases, PD through CA, as a single-family house on ARCH D.
+    This replaces its four hand-made sheets.
+  - The hero rendering goes on G-001, Cover Sheet & Sheet Index, with the index beside
+    it. The project is named "The Modern House" for the title blocks.
+  - The sample's two building sections are made before the sets, so the sets place
+    those rather than generating their own.
+- **General Notes** (studio-core `general_notes`; app `notes_cmds`;
+  components/GeneralNotesDialog.tsx; Annotate > General Notes):
+  - Six building types: Single-Family, Duplex/Townhouses, Multifamily, Mixed-Use, Hotel
+    and Office/Commercial.
+  - Ten drawings: General (cover), Site Plan, Floor Plans, Reflected Ceiling Plans,
+    Roof Plan, Exterior Elevations, Building Sections, Wall Sections & Details, Enlarged
+    Plans & Interior Elevations, and Door & Window Schedules.
+  - Notes apply to all buildings or to a class: IRC buildings (escape openings, garage
+    separation, residential stair limits), IBC buildings (egress, rated doors,
+    commercial stairs), attached buildings (unit separations), public buildings
+    (accessibility per ICC A117.1 and the ADA) or hotels (accessible guest rooms).
+  - `{code}` takes Project Info's building code, else the 2021 IRC or IBC.
+  - Defaults: the building type from Project Info's project type, and the drawing from
+    the open view or sheet (its kind, or the sheet's name).
+  - Every note can be unticked, your own lines can be added, and the heading, code and
+    width can be edited.
+  - The notes are placed as one numbered text note, 2.4 mm text wrapped at the chosen
+    width. On a sheet they go at the top of the column beside the title block; in a
+    view, just right of the drawing. One undo step.
+  - The notes are typical US practice for an architect to review. They're editable text,
+    not code compliance.

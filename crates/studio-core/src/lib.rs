@@ -12,6 +12,7 @@ pub mod edit;
 pub mod element;
 pub mod fascia;
 pub mod ffe;
+pub mod general_notes;
 pub mod generate;
 pub mod grass;
 pub mod groups;

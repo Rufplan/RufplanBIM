@@ -17,6 +17,7 @@ mod material_cmds;
 mod menu;
 mod mep_cmds;
 mod model_edit_cmds;
+mod notes_cmds;
 mod plans_cmds;
 mod planting_cmds;
 mod precedents;
@@ -209,6 +210,9 @@ pub fn run() -> anyhow::Result<()> {
             generate_cmds::claude_set_key,
             generate_cmds::generate_building,
             precedents::generate_precedents,
+            notes_cmds::general_notes_options,
+            notes_cmds::general_notes_preset,
+            notes_cmds::place_general_notes,
             material_cmds::material_library,
             material_cmds::add_library_material,
             material_cmds::apply_material,

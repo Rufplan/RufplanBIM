@@ -360,6 +360,7 @@ interface UiState {
     | "worksets"
     | "structure"
     | "keynotes"
+    | "generalNotes"
     | "mep"
     | "createGroup"
     | "fascia"

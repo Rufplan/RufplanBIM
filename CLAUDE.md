@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- General Notes and sample sets (ADR-103): studio-core `general_notes` (NotesBuilding, NotesDrawing, notes, place); app
+  notes_cmds; components/GeneralNotesDialog.tsx (Annotate > General Notes); the Modern House builds all six phases' sets.
 - Clean renders (ADR-102): render/denoise.ts guided à-trous denoiser (albedo/normal/depth G-buffer, haze); pathtrace
   `toneMappingOf` (Neutral), Quality presets with supersampling; backgrounds `scaleSun`/`horizonColor`; plants `slab_mesh`.
 - Sky Library and turf (ADR-101): studio-core `skies` (31 Poly Haven pure skies), app sky_library/sky_file, render/backgrounds.ts

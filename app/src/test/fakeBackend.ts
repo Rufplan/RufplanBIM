@@ -81,6 +81,7 @@ export interface FakeBackend {
   applied: [string[], string][];
   /** Whether a Claude key is saved, and the last generate inputs. */
   claudeKey: boolean;
+  placedNotes?: unknown;
   generated: unknown;
   /** The last Plans to 3D inputs. */
   plans: unknown;
@@ -1801,6 +1802,34 @@ export function installFakeBackend(): FakeBackend {
               warnings: ["Story 2: Loft has no route in"],
             },
           };
+        case "general_notes_options":
+          return {
+            buildings: [
+              ["SingleFamily", "Single-Family House"],
+              ["Hotel", "Hotel"],
+            ],
+            drawings: [
+              ["General", "General (Cover Sheet)"],
+              ["FloorPlan", "Floor Plans"],
+              ["SitePlan", "Site Plan"],
+            ],
+            building: "SingleFamily",
+            drawing: "FloorPlan",
+            code: "",
+          };
+        case "general_notes_preset":
+          return a.drawing === "SitePlan"
+            ? [
+                "SITE PLAN GENERAL NOTES",
+                ["Call 811 before digging.", "Grade away from the building."],
+              ]
+            : [
+                "FLOOR PLANS GENERAL NOTES",
+                ["Dimensions are to face of stud.", "Provide backer board at wet walls."],
+              ];
+        case "place_general_notes":
+          fake.placedNotes = a;
+          return fake.state;
         case "sky_library":
           return [
             {

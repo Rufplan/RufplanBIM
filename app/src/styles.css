@@ -6426,3 +6426,24 @@ button:disabled {
   border-radius: 4px;
   background: linear-gradient(#bcd3ea, #eef3f7);
 }
+
+/* General Notes (ADR-103). */
+.general-notes {
+  width: min(760px, 94vw);
+}
+.gn-list {
+  max-height: 46vh;
+  overflow: auto;
+  margin: 6px 0 10px;
+  padding-left: 1.4em;
+}
+.gn-list li {
+  margin: 4px 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.gn-list label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}

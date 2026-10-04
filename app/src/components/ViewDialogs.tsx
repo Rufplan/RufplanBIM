@@ -1,3 +1,4 @@
+import { GeneralNotesDialog } from "./GeneralNotesDialog";
 import { useEffect, useMemo, useState } from "react";
 import type { Category } from "../bindings/Category";
 import { apply } from "../fileActions";
@@ -71,6 +72,7 @@ export function ViewDialogs() {
   if (which === "worksets") return <WorksetsDialog onClose={close} />;
   if (which === "structure") return <StructuralDialog onClose={close} />;
   if (which === "keynotes") return <KeynoteManager onClose={close} />;
+  if (which === "generalNotes") return <GeneralNotesDialog onClose={close} />;
   if (which === "mep") return <MepDialog onClose={close} />;
   if (which === "createGroup") return <CreateGroupDialog onClose={close} />;
   if (which === "render") return <RenderDialog onClose={close} />;
