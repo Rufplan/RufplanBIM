@@ -17,6 +17,7 @@ import {
 } from "../ipc";
 import { apply } from "../fileActions";
 import { keyForControl, nudgeDirection, nudgeStep } from "../nudge";
+import { areaCursor, blockGhost } from "../blocks";
 import type { OverlayPrim } from "../bindings/OverlayPrim";
 import type { KeynoteSource } from "../bindings/KeynoteSource";
 import type { Assignable } from "../bindings/Assignable";
@@ -419,8 +420,14 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
         if (ad?.to && area && area.key !== "text_move") {
           const dx = ad.to.x - area.at.x;
           const dy = ad.to.y - area.at.y;
-          const [x0, y0] = toScreen(cam.current, w, h, area.min.x + dx, area.max.y + dy);
-          const [x1, y1] = toScreen(cam.current, w, h, area.max.x + dx, area.min.y + dy);
+          // A text block's edge (ADR-112): the block with that edge where it's dragged.
+          const stretch = blockGhost(hd.areas ?? [], area, ad.to);
+          const [x0, y0] = stretch
+            ? toScreen(cam.current, w, h, stretch[0], stretch[3])
+            : toScreen(cam.current, w, h, area.min.x + dx, area.max.y + dy);
+          const [x1, y1] = stretch
+            ? toScreen(cam.current, w, h, stretch[2], stretch[1])
+            : toScreen(cam.current, w, h, area.max.x + dx, area.min.y + dy);
           ctx.save();
           ctx.setLineDash([4, 3]);
           ctx.strokeStyle = THEME.cyan;
@@ -2136,6 +2143,15 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
     return () => window.removeEventListener("edit-text", on);
   }, []);
 
+  /** The drag area under paper point `p`, leaving out the group being edited's (ADR-112). */
+  function areaIndexAt(p: Pt): number {
+    const editing = useAppStore.getState().app?.editingGroup ?? null;
+    return (handles.current?.areas ?? []).findIndex(
+      (a) =>
+        a.id !== editing && p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
+    );
+  }
+
   async function doubleClick(sx: number, sy: number) {
     const s = useAppStore.getState();
     if (s.tool !== "select" || !cam.current || !s.app) return;
@@ -2300,16 +2316,14 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             if (g !== null) gripDrag.current = { index: g, to: null };
             else if (cam.current && useAppStore.getState().tool === "select") {
               const p = modelAt(x, y);
-              const i = (handles.current?.areas ?? []).findIndex(
-                (a) => p.x >= a.min.x && p.x <= a.max.x && p.y >= a.min.y && p.y <= a.max.y,
-              );
+              const i = areaIndexAt(p);
               if (i >= 0) {
                 areaDrag.current = { index: i, from: p, to: null };
                 // Revit selects a view as you press on it (ADR-100).
                 const area = handles.current!.areas[i]!;
                 const st = useAppStore.getState();
-                if (area.key === "view_move") {
-                  if (canvasRef.current) canvasRef.current.style.cursor = "move";
+                if (canvasRef.current) canvasRef.current.style.cursor = areaCursor(area.key);
+                if (area.key === "view_move" || area.key === "block_move") {
                   if (!st.selection.includes(area.id))
                     st.select(e.shiftKey || e.ctrlKey ? [...st.selection, area.id] : [area.id]);
                 }
@@ -2448,17 +2462,19 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
           const area = ad ? handles.current?.areas[ad.index] : undefined;
           if (ad && area) {
             if (d && Math.abs(sx - d.x) + Math.abs(sy - d.y) > 2) d.moved = true;
-            if (canvasRef.current)
-              canvasRef.current.style.cursor = area.key === "view_move" ? "move" : "";
+            if (canvasRef.current) canvasRef.current.style.cursor = areaCursor(area.key);
             if (d?.moved)
               ad.to = { x: area.at.x + p.x - ad.from.x, y: area.at.y + p.y - ad.from.y };
             redraw();
             return;
           }
           if (s.tool === "select" && canvasRef.current) {
-            // The normal cursor, except while a view on a sheet is pressed and dragged
-            // (ADR-100).
-            canvasRef.current.style.cursor = "";
+            // The normal cursor, except over a text block's edge on a sheet, which stretches
+            // (ADR-112), and while a view on a sheet is pressed and dragged (ADR-100).
+            const i = view.viewType === "Sheet" ? areaIndexAt(p) : -1;
+            const key = i >= 0 ? handles.current!.areas[i]!.key : "";
+            canvasRef.current.style.cursor =
+              key.startsWith("block_") && key !== "block_move" ? "ew-resize" : "";
           }
           if (gripDrag.current) {
             gripDrag.current.shift = e.shiftKey;
@@ -2548,7 +2564,7 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
             }
             redraw();
             // A click on a view selects it (done on the press).
-            if (area?.key === "view_move") return;
+            if (area?.key === "view_move" || area?.key === "block_move") return;
           }
           const g = gripDrag.current;
           if (g) {

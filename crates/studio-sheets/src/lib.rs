@@ -1,5 +1,6 @@
 //! Sheets, title blocks, viewports, schedules and PDF export.
 
+pub mod blocks;
 pub mod california;
 pub mod cover;
 pub mod drawings;

@@ -4199,3 +4199,23 @@ coursing along a line".
     - Drawn By and Checked By for this sheet: the sheet's `rufplan.titleblock.sign` parameter, printed in place of "—".
   - Saving is one undo step. A sheet number that's already taken is refused.
   - No file-format change: settings live in parameters.
+
+## ADR-112 Text blocks on sheets drag and stretch — Accepted (2026-10-04)
+- **The owner's ask:**
+  - Drag the other blocks on a sheet as the sheet index drags.
+  - Stretch them, with Revit's left/right push-pull cursor at the edges.
+  - The text inside wraps when the block gets narrower.
+- **Drag areas** (studio-sheets `sheet_handles`; `blocks::sheet_blocks`):
+  - Every detail group on a sheet (the blocks ADR-111 makes, or any the user groups) has three areas, selected or not:
+    - `block_left` and `block_right`: 4 mm strips on its edges. The canvas shows `ew-resize` over them.
+    - `block_move`: its whole extent. Pressing it selects the group and shows the move cursor, as views do.
+  - The edge strips come before the move area, so the edge wins.
+  - The group open in Edit Group gives up its areas, so its members can be picked one by one.
+  - The canvas draws a dashed ghost of the block while it's dragged (app `blocks.ts` `blockGhost`).
+- **Move** (`blocks::move_block`): the group's centre goes to the dragged point (`modify::move_elements`, which moves the group whole).
+- **Stretch** (`blocks::stretch_block`), one undo step, never narrower than 25 mm:
+  - Lines and region points on the dragged edge move with it.
+  - Left-aligned notes with a width that reach within 6 mm of the right edge widen or narrow by as much, then wrap again. That covers a box's text, a table's value column and a directory's lines. Labels and unwrapped titles stay as they are.
+  - Centred and right-aligned notes keep their place relative to the edge.
+  - Each row of notes that gains or loses lines moves everything under it (rows, rules, the box's bottom, a figure) down or up by that height, so the box grows or shrinks to fit.
+  - A left stretch works like a right stretch, then moves the block left by the same amount.

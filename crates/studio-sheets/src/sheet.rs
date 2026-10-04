@@ -563,6 +563,31 @@ pub fn sheet_handles(
             });
         }
     }
+    // Blocks of sheet text (ADR-112): their left and right edges stretch, then each drags
+    // whole, as the views do.
+    let blocks = crate::blocks::sheet_blocks(doc, sheet);
+    const EDGE: f64 = 2.0;
+    for (id, lo, hi) in &blocks {
+        let y = (lo.y + hi.y) / 2.0;
+        for (key, x) in [("block_left", lo.x), ("block_right", hi.x)] {
+            out.areas.push(studio_views::handles::DragArea {
+                id: *id,
+                key: key.into(),
+                min: Pt::new(x - EDGE, lo.y),
+                max: Pt::new(x + EDGE, hi.y),
+                at: Pt::new(x, y),
+            });
+        }
+    }
+    for (id, lo, hi) in blocks {
+        out.areas.push(studio_views::handles::DragArea {
+            id,
+            key: "block_move".into(),
+            min: lo,
+            max: hi,
+            at: lo.lerp(hi, 0.5),
+        });
+    }
     // Every view on the sheet drags as a whole by its drawing, selected or not (ADR-100),
     // as Revit's viewports do. Titles (above) come first, so a selected title still drags
     // on its own.
