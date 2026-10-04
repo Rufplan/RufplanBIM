@@ -73,7 +73,11 @@ pub fn arrange(numbers: &mut Vec<String>, order: &[String]) {
 /// The sheet index's rows: the current stage's sheets (every sheet when none are assigned)
 /// and the placeholders, in index order.
 pub fn rows(doc: &Document) -> Vec<IndexRow> {
-    let stage = current_stage(doc);
+    rows_for(doc, current_stage(doc))
+}
+
+/// [`rows`] for the set of `stage` (every sheet for None).
+pub fn rows_for(doc: &Document, stage: Option<ElementId>) -> Vec<IndexRow> {
     let mut all: Vec<IndexRow> = ops::stage_sheets(doc, stage)
         .into_iter()
         .filter_map(|id| match doc.data(id) {
@@ -100,7 +104,7 @@ pub fn rows(doc: &Document) -> Vec<IndexRow> {
         .collect()
 }
 
-fn current_stage(doc: &Document) -> Option<ElementId> {
+pub fn current_stage(doc: &Document) -> Option<ElementId> {
     ops::project_info(doc).and_then(|i| match doc.data(i) {
         Ok(ElementData::ProjectInfo { current_stage, .. }) => *current_stage,
         _ => None,
@@ -108,9 +112,12 @@ fn current_stage(doc: &Document) -> Option<ElementId> {
 }
 
 /// Saves the edited index in one undo step: renumbers and renames its sheets, makes its new
-/// sheets (in the current stage's set, at the project's sheet size), sets the placeholders
-/// to its placeholder rows and keeps its order. Sheets left out of `rows` stay as they are.
-pub fn set_rows(doc: &mut Document, rows: &[IndexRow]) -> CoreResult<()> {
+/// sheets (at the project's sheet size), sets the placeholders to its placeholder rows and
+/// keeps its order. With a `stage` (ADR-116), its sheets are that stage's set: the listed
+/// sheets join it and the others leave it (with no stages assigned yet, every sheet is first
+/// put in every stage, as it was shown). Without one, new sheets go in the current stage's
+/// set and the rest stay as they are.
+pub fn set_rows(doc: &mut Document, rows: &[IndexRow], stage: Option<ElementId>) -> CoreResult<()> {
     let info = ops::project_info(doc)
         .ok_or_else(|| CoreError::Invalid("project information is missing".into()))?;
     let rows: Vec<IndexRow> = rows
@@ -140,11 +147,23 @@ pub fn set_rows(doc: &mut Document, rows: &[IndexRow]) -> CoreResult<()> {
             return Err(CoreError::Invalid(format!("sheet {number} already exists")));
         }
     }
-    let stage = current_stage(doc);
-    let staged = stage.filter(|s| {
-        doc.of(studio_core::Category::Sheet)
-            .any(|e| matches!(&e.data, ElementData::Sheet { stages, .. } if stages.contains(s)))
-    });
+    let all_stages: Vec<ElementId> = ops::stages(doc).into_iter().map(|s| s.0).collect();
+    let any_assigned = doc
+        .of(studio_core::Category::Sheet)
+        .any(|e| matches!(&e.data, ElementData::Sheet { stages, .. } if !stages.is_empty()));
+    let sheet_ids: Vec<ElementId> = ops::sheets(doc).into_iter().map(|s| s.0).collect();
+    // A new sheet's stages: the chosen stage, else the current one when the sets use stages.
+    let staged: Vec<ElementId> = match stage {
+        Some(s) => vec![s],
+        None => current_stage(doc)
+            .filter(|s| {
+                doc.of(studio_core::Category::Sheet).any(
+                    |e| matches!(&e.data, ElementData::Sheet { stages, .. } if stages.contains(s)),
+                )
+            })
+            .into_iter()
+            .collect(),
+    };
     let size = doc
         .of(studio_core::Category::Sheet)
         .find_map(|e| match &e.data {
@@ -176,9 +195,26 @@ pub fn set_rows(doc: &mut Document, rows: &[IndexRow]) -> CoreResult<()> {
                             number: r.number.clone(),
                             name: r.name.clone(),
                             size,
-                            stages: staged.into_iter().collect(),
+                            stages: staged.clone(),
                         });
                     }
+                }
+            }
+            // The stage's set is the listed sheets.
+            if let Some(s) = stage {
+                for id in &sheet_ids {
+                    let listed = listed.contains(id);
+                    tx.modify(*id, |e| {
+                        if let ElementData::Sheet { stages, .. } = e {
+                            if !any_assigned {
+                                *stages = all_stages.clone();
+                            }
+                            stages.retain(|x| *x != s);
+                            if listed {
+                                stages.push(s);
+                            }
+                        }
+                    })?;
                 }
             }
             tx.set_param(info, ORDER_KEY, order_value.clone())
@@ -202,6 +238,108 @@ pub fn set_rows(doc: &mut Document, rows: &[IndexRow]) -> CoreResult<()> {
     }
     doc.merge_undo(mark, "Edit Sheet Index");
     Ok(())
+}
+
+/// An issue the index can show the sheet list of (ADR-116): a phase's deliverable, with the
+/// stage whose set it is. The CD phase issues at 50%, 90% and 100% and for permit, all from
+/// the CD stage's set.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct IndexIssue {
+    pub key: String,
+    pub label: String,
+    /// The stage's abbreviation (SD, DD, CD…).
+    pub phase: String,
+    pub stage: ElementId,
+}
+
+/// The project's issues, in stage order.
+pub fn issues(doc: &Document) -> Vec<IndexIssue> {
+    let mut out = vec![];
+    for (stage, name, abbr) in ops::stages(doc) {
+        let labels: Vec<String> = match abbr.as_str() {
+            "CD" => [
+                "50% Construction Documents",
+                "90% Construction Documents",
+                "100% Construction Documents",
+                "Permit Set",
+            ]
+            .map(String::from)
+            .to_vec(),
+            a => {
+                let d = crate::sets::deliverables_of(a);
+                if d.is_empty() {
+                    vec![name.clone()]
+                } else {
+                    d.iter().map(|x| x.1.to_string()).collect()
+                }
+            }
+        };
+        for (i, label) in labels.into_iter().enumerate() {
+            out.push(IndexIssue {
+                key: format!("{abbr}:{i}"),
+                label,
+                phase: abbr.clone(),
+                stage,
+            });
+        }
+    }
+    out
+}
+
+/// A stage's typical sheet list: the sheets in its set, and the sheets the Sheet Sets would
+/// give that phase for `building` (ADR-032) that it doesn't have yet: a sheet already in the
+/// project as itself, else as a new row. In index order.
+pub fn typical(
+    doc: &Document,
+    stage: ElementId,
+    building: crate::sets::BuildingType,
+) -> Vec<IndexRow> {
+    let mut rows = rows_for(doc, Some(stage));
+    let Some(abbr) = ops::stages(doc)
+        .into_iter()
+        .find(|s| s.0 == stage)
+        .map(|s| s.2)
+    else {
+        return rows;
+    };
+    let size = doc
+        .of(studio_core::Category::Sheet)
+        .find_map(|e| match &e.data {
+            ElementData::Sheet { size, .. } => Some(*size),
+            _ => None,
+        })
+        .unwrap_or(SheetSize::ArchD);
+    let plan = crate::sets::plan(
+        doc,
+        &crate::sets::SetOptions {
+            building_type: building,
+            phases: vec![abbr.clone()],
+            size,
+            jurisdiction: None,
+            consultants: false,
+        },
+    );
+    let sheets = ops::sheets(doc);
+    for p in plan.sheets.iter().filter(|p| p.phases.contains(&abbr)) {
+        if rows.iter().any(|r| r.number == p.number) {
+            continue;
+        }
+        let have = sheets.iter().find(|s| s.1 == p.number);
+        rows.push(IndexRow {
+            sheet: have.map(|s| s.0),
+            number: p.number.clone(),
+            name: have.map_or_else(|| p.name.clone(), |s| s.2.clone()),
+            placeholder: false,
+        });
+    }
+    let mut numbers: Vec<String> = rows.iter().map(|r| r.number.clone()).collect();
+    arrange(&mut numbers, &order(doc));
+    numbers
+        .iter()
+        .filter_map(|n| rows.iter().find(|r| &r.number == n).cloned())
+        .collect()
 }
 
 /// The next sheet number after `after` in its series (A-101 → A-102), not yet taken by any
@@ -263,7 +401,7 @@ mod tests {
             placeholder: true,
         });
         let depth = doc.undo_depth();
-        set_rows(&mut doc, &r).unwrap();
+        set_rows(&mut doc, &r, None).unwrap();
         assert_eq!(doc.undo_depth(), depth + 1);
         assert_eq!(numbers(&doc), ["G-001", "G-002", "A-201", "A-101", "S-101"]);
         assert_eq!(rows(&doc)[3].name, "First Floor Plan");
@@ -313,13 +451,60 @@ mod tests {
     }
 
     #[test]
+    fn each_phase_has_its_own_sheet_list_and_typical_sheets() {
+        let mut doc = doc_with(&["G-001", "A-101", "A-501"]);
+        let stage =
+            |doc: &Document, a: &str| ops::stages(doc).into_iter().find(|s| s.2 == a).unwrap().0;
+        let (sd, dd, cd) = (stage(&doc, "SD"), stage(&doc, "DD"), stage(&doc, "CD"));
+        let list = issues(&doc);
+        let cd90 = list
+            .iter()
+            .find(|i| i.label == "90% Construction Documents")
+            .unwrap();
+        assert_eq!((cd90.phase.as_str(), cd90.stage), ("CD", cd));
+        assert!(list.iter().any(|i| i.phase == "SD"));
+        // SD drops the details sheet: it leaves SD's set, the other phases keep it.
+        let sd_rows: Vec<IndexRow> = rows_for(&doc, Some(sd))
+            .into_iter()
+            .filter(|r| r.number != "A-501")
+            .collect();
+        set_rows(&mut doc, &sd_rows, Some(sd)).unwrap();
+        let nums = |rows: Vec<IndexRow>| rows.into_iter().map(|r| r.number).collect::<Vec<_>>();
+        assert_eq!(nums(rows_for(&doc, Some(sd))), ["G-001", "A-101"]);
+        assert_eq!(nums(rows_for(&doc, Some(dd))), ["G-001", "A-101", "A-501"]);
+        // A sheet added to DD's list is in DD's set only.
+        let mut dd_rows = rows_for(&doc, Some(dd));
+        dd_rows.push(IndexRow {
+            sheet: None,
+            number: "A-201".into(),
+            name: "Exterior Elevations".into(),
+            placeholder: false,
+        });
+        set_rows(&mut doc, &dd_rows, Some(dd)).unwrap();
+        assert!(nums(rows_for(&doc, Some(dd))).contains(&"A-201".to_string()));
+        assert!(!nums(rows_for(&doc, Some(cd))).contains(&"A-201".to_string()));
+        // The CD phase's typical list: its sheets once each, the ones it lacks as new rows.
+        let t = typical(&doc, cd, crate::sets::BuildingType::SingleFamily);
+        let n = nums(t.clone());
+        let unique: std::collections::BTreeSet<&String> = n.iter().collect();
+        assert_eq!(unique.len(), n.len(), "{n:?}");
+        for have in ["G-001", "A-101", "A-501"] {
+            assert!(
+                t.iter().any(|r| r.number == have && r.sheet.is_some()),
+                "{n:?}"
+            );
+        }
+        assert!(t.iter().any(|r| r.sheet.is_none()), "{n:?}");
+    }
+
+    #[test]
     fn numbers_must_be_given_and_unique() {
         let mut doc = doc_with(&["A-101", "A-102"]);
         let mut r = rows(&doc);
         r[1].number = "A-101".into();
-        assert!(set_rows(&mut doc, &r).is_err());
+        assert!(set_rows(&mut doc, &r, None).is_err());
         r[1].number = " ".into();
-        assert!(set_rows(&mut doc, &r).is_err());
+        assert!(set_rows(&mut doc, &r, None).is_err());
         // Left out, A-102 keeps its number, which a new row can't take.
         let r = vec![
             rows(&doc)[0].clone(),
@@ -330,7 +515,7 @@ mod tests {
                 placeholder: false,
             },
         ];
-        assert!(set_rows(&mut doc, &r).is_err());
+        assert!(set_rows(&mut doc, &r, None).is_err());
         assert_eq!(next_number("A-101", &["A-102".into()]), "A-103");
     }
 }

@@ -4290,3 +4290,22 @@ coursing along a line".
   - Near the top or bottom of the list, the list scrolls.
   - Releasing moves the row into the gap, and Esc-style pointer cancel leaves it.
   - File drops into the app are unchanged.
+
+## ADR-116 A phase dropdown on the Sheet Index; the arrows go — Accepted (2026-10-04)
+- **The ask:** put the typical sheet list for each phase (SD, DD, 90% CD…) in a dropdown at the top of the Sheet Index dialog, and drop the up/down arrows.
+- **The phases** (studio-sheets `sheet_index::issues`, `IndexIssue`):
+  - The PHASE / ISSUE dropdown in the header lists each stage's deliverables: PD Program & Site Analysis; SD 100%; DD 100%; CD 50%, 90%, 100% and Permit Set; BN Bid Set; CA Issued for Construction. A custom stage shows by its name.
+  - The CD issues share the CD stage's set: sheets don't change between 50% and 100%, their content does.
+  - The dialog opens on the current stage (CD at 100%), with its sheets as they are.
+- **Typical sheets** (`sheet_index::typical`):
+  - Picking a phase shows its set plus the sheets the Sheet Sets planner (ADR-032) gives that phase, for the building type the Sheet Sets dialog last used, that the set lacks.
+  - A sheet already in the project joins as itself; one that isn't comes in as a NEW SHEET row to keep or remove.
+- **Per-phase sets** (`set_rows(doc, rows, stage)`):
+  - Saving a phase's list makes it that stage's set: listed sheets join, and unlisted ones leave (they stay in the project).
+  - When no sheet had stages yet (every set was every sheet), every sheet is first put in every stage, so the other phases are unchanged.
+  - New sheets go in that stage only.
+  - REMOVE (and right-click **Remove from SD**…) now takes a sheet out of the phase's set.
+  - The footer counts new sheets, those joining or leaving the set, and other phases with edits.
+  - OK saves the phase shown and any phase whose list was edited. A phase only looked at isn't saved, so browsing the dropdown never makes sheets.
+  - Placeholders and the order stay project-wide.
+- **The ▲ ▼ buttons are gone:** order by dragging ⋮⋮ (ADR-115) or right-click Move.

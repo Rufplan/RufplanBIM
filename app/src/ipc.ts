@@ -41,6 +41,7 @@ import type { ImageryFrame } from "./bindings/ImageryFrame";
 import type { CameraPose } from "./bindings/CameraPose";
 import type { Preset } from "./bindings/Preset";
 import type { BuildingTypeOption } from "./bindings/BuildingTypeOption";
+import type { BuildingType } from "./bindings/BuildingType";
 import type { SetOptions } from "./bindings/SetOptions";
 import type { SetPlan } from "./bindings/SetPlan";
 import type { SetsCreated } from "./bindings/SetsCreated";
@@ -64,6 +65,7 @@ import type { TitleBlockFields } from "./bindings/TitleBlockFields";
 import type { TextFont } from "./bindings/TextFont";
 import type { PlaceholderSheet } from "./bindings/PlaceholderSheet";
 import type { IndexRow } from "./bindings/IndexRow";
+import type { IndexIssue } from "./bindings/IndexIssue";
 import type { NotesOptions } from "./bindings/NotesOptions";
 import type { Jurisdiction } from "./bindings/Jurisdiction";
 import type { NotesBuilding } from "./bindings/NotesBuilding";
@@ -494,9 +496,13 @@ export const ipc = {
     invoke<AppState | null>("set_title_block_fields", { sheet, fields }),
   titleBlockAt: (sheet: ElementId, at: Pt) => invoke<boolean>("title_block_at", { sheet, at }),
   // The sheet index's rows (ADR-113), and view titles on or off.
-  sheetIndexRows: () => invoke<IndexRow[]>("sheet_index_rows"),
-  setSheetIndexRows: (rows: IndexRow[]) =>
-    invoke<AppState | null>("set_sheet_index_rows", { rows }),
+  sheetIndexRows: (stage: ElementId | null = null) =>
+    invoke<IndexRow[]>("sheet_index_rows", { stage }),
+  sheetIndexIssues: () => invoke<[IndexIssue[], ElementId | null]>("sheet_index_issues"),
+  sheetIndexTypical: (stage: ElementId, building: BuildingType) =>
+    invoke<IndexRow[]>("sheet_index_typical", { stage, building }),
+  setSheetIndexRows: (rows: IndexRow[], stage: ElementId | null = null) =>
+    invoke<AppState | null>("set_sheet_index_rows", { rows, stage }),
   nextIndexNumber: (after: string, taken: string[]) =>
     invoke<string>("next_index_number", { after, taken }),
   viewportTitleShown: (viewport: ElementId) =>

@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Sheet index phases (ADR-116): studio-sheets `sheet_index::{issues, IndexIssue, typical, rows_for}`, `set_rows(.., stage)` (per-stage
+  sets); app `sheet_index_issues`/`sheet_index_typical`; SheetIndexDialog PHASE / ISSUE dropdown, per-phase lists, no arrows.
 - Sheet index drag (ADR-115): SheetIndexDialog pointer-event handle drag (`dragTo`/`endDrag`), sheetIndex.ts `dropGap`/`dropTo`.
 - Sheet Index dialog (ADR-114): components/SheetIndexDialog.tsx to the design handoff (1240×860 fitted canvas, `.sid-*` styles),
   sheetIndex.ts `indexProblems`; ScheduleDialog opens it for the sheet index.

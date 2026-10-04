@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import type { IndexIssue } from "../bindings/IndexIssue";
 import type { IndexRow } from "../bindings/IndexRow";
+import type { BuildingType } from "../bindings/BuildingType";
 import type { ScheduleStyle } from "../bindings/ScheduleStyle";
 import type { TextFont } from "../bindings/TextFont";
 import { apply } from "../fileActions";
@@ -58,6 +60,32 @@ function nearest(mm: number, opts: number[]): number {
   return opts.reduce((a, b) => (Math.abs(b * IN - mm) < Math.abs(a * IN - mm) ? b : a));
 }
 
+/** A phase's sheet list as edited: `had` is the sheets in its set when it was loaded. */
+interface PhaseList {
+  rows: IndexRow[];
+  dirty: boolean;
+  had: string[];
+}
+
+const sheetsOf = (rows: IndexRow[]) => rows.flatMap((r) => (r.sheet ? [r.sheet] : []));
+
+/** The issue to open on: the current stage's (CD at 100%), else the first. */
+function defaultIssue(issues: IndexIssue[], current: string | null): string {
+  const mine = issues.filter((i) => i.stage === current);
+  return (mine.find((i) => i.label.startsWith("100%")) ?? mine[0] ?? issues[0])?.key ?? "";
+}
+
+/** The building type the Sheet Sets dialog last used (its typical sheets follow it). */
+function buildingType(): BuildingType {
+  try {
+    return (
+      (localStorage.getItem("rufplan.sheetSets.type") as BuildingType | null) ?? "SingleFamily"
+    );
+  } catch {
+    return "SingleFamily";
+  }
+}
+
 export function SheetIndexDialog({
   view,
   title,
@@ -69,7 +97,10 @@ export function SheetIndexDialog({
 }) {
   const app = useAppStore((s) => s.app);
   const activeView = useAppStore((s) => s.activeView);
-  const [rows, setRows] = useState<IndexRow[] | null>(null);
+  // The phases' issues (ADR-116), the one shown, and each phase's list as edited.
+  const [issues, setIssues] = useState<IndexIssue[]>([]);
+  const [issue, setIssue] = useState("");
+  const [lists, setLists] = useState<Record<string, PhaseList>>({});
   const [style, setStyle] = useState<ScheduleStyle | null>(null);
   const [fonts, setFonts] = useState<[TextFont, string][]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -89,20 +120,52 @@ export function SheetIndexDialog({
   }, []);
   useEffect(() => {
     let live = true;
-    void Promise.all([ipc.scheduleStyle(view), ipc.textFonts(), ipc.sheetIndexRows()]).then(
-      ([s, f, r]) => {
+    void Promise.all([ipc.scheduleStyle(view), ipc.textFonts(), ipc.sheetIndexIssues()])
+      .then(async ([s, f, [iss, current]]) => {
         if (!live) return;
         setStyle(s);
         setFonts(f);
-        setRows(r);
+        setIssues(iss);
+        // The current phase's sheets as they are (its typical list on picking a phase).
+        const key = defaultIssue(iss, current);
+        const stage = iss.find((i) => i.key === key)?.stage ?? null;
+        const r = await ipc.sheetIndexRows(stage);
+        if (!live) return;
+        setIssue(key);
+        setLists({ [stage ?? ""]: { rows: r, dirty: false, had: sheetsOf(r) } });
         setSelected(r.length ? 0 : null);
-      },
-      (e) => setError(errorMessage(e)),
-    );
+      })
+      .catch((e) => setError(errorMessage(e)));
     return () => {
       live = false;
     };
   }, [view]);
+
+  // The phase shown, and its list.
+  const shown = issues.find((i) => i.key === issue) ?? null;
+  const stage = shown?.stage ?? null;
+  const slot = stage ?? "";
+  const rows = lists[slot]?.rows ?? null;
+  const setRows = (r: IndexRow[]) =>
+    setLists((l) => ({ ...l, [slot]: { ...(l[slot] ?? { had: [] }), rows: r, dirty: true } }));
+  /** Shows another phase: its list as edited, else its typical sheet list. */
+  const pickIssue = async (key: string) => {
+    setIssue(key);
+    setSelected(null);
+    const st = issues.find((i) => i.key === key)?.stage ?? null;
+    if (!st || lists[st]) return;
+    try {
+      const [now, typical] = await Promise.all([
+        ipc.sheetIndexRows(st),
+        ipc.sheetIndexTypical(st, buildingType()),
+      ]);
+      setLists((l) =>
+        l[st] ? l : { ...l, [st]: { rows: typical, dirty: false, had: sheetsOf(now) } },
+      );
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
 
   // The sheet it's on: the open sheet, else the first it's placed on.
   const views = app?.views ?? [];
@@ -131,7 +194,7 @@ export function SheetIndexDialog({
     setSelected(to);
   };
   const remove = (i: number) => {
-    if (!list[i] || !removable(list[i]!)) return;
+    if (!list[i] || !removable(list[i]!, stage !== null)) return;
     setRows(list.filter((_, k) => k !== i));
     setSelected(list.length > 1 ? Math.min(i, list.length - 2) : null);
   };
@@ -143,10 +206,14 @@ export function SheetIndexDialog({
       row: Math.max(3, Math.ceil(style.body * 4) / 2, Math.min(15, Math.round(mm * 2) / 2)),
     });
 
+  // OK saves the type, the phase shown, and any other phase whose list was edited.
+  const toSave = Object.entries(lists).filter(([k, l]) => k === slot || l.dirty);
+  const blocked = toSave.some(([, l]) => indexProblems(l.rows).length > 0);
   const save = async () => {
-    if (!style || !rows || problems.length) return;
+    if (!style || !rows || blocked) return;
     if (!(await apply(() => ipc.setScheduleStyle(view, style)))) return;
-    if (!(await apply(() => ipc.setSheetIndexRows(rows)))) return;
+    for (const [k, l] of toSave)
+      if (!(await apply(() => ipc.setSheetIndexRows(l.rows, k || null)))) return;
     onClose();
   };
 
@@ -202,8 +269,8 @@ export function SheetIndexDialog({
           ]
         : []),
       {
-        label: "Remove",
-        disabled: !removable(r),
+        label: r.sheet && !r.placeholder && shown ? `Remove from ${shown.phase}` : "Remove",
+        disabled: !removable(r, stage !== null),
         onClick: () => remove(i),
         separator: r.sheet !== null,
       },
@@ -212,9 +279,18 @@ export function SheetIndexDialog({
 
   const nNew = list.filter((r) => r.sheet === null && !r.placeholder).length;
   const nPh = list.filter((r) => r.placeholder).length;
+  // Sheets joining or leaving the phase's set.
+  const had = lists[slot]?.had ?? [];
+  const listed = sheetsOf(list);
+  const joins = listed.filter((id) => !had.includes(id)).length;
+  const leaves = stage ? had.filter((id) => !listed.includes(id)).length : 0;
+  const others = toSave.filter(([k]) => k !== slot).length;
   const foot =
     (nNew ? `${nNew} new sheet${nNew > 1 ? "s" : ""} will be created` : "No new sheets") +
-    (nPh ? ` · ${nPh} placeholder${nPh > 1 ? "s" : ""}` : "");
+    (joins && shown ? ` · ${joins} join${joins > 1 ? "" : "s"} the ${shown.phase} set` : "") +
+    (leaves && shown ? ` · ${leaves} leave${leaves > 1 ? "" : "s"} the ${shown.phase} set` : "") +
+    (nPh ? ` · ${nPh} placeholder${nPh > 1 ? "s" : ""}` : "") +
+    (others ? ` · edits in ${others} other phase${others > 1 ? "s" : ""}` : "");
   const sel = selected !== null ? list[selected] : undefined;
   const sizes: [string, keyof ScheduleStyle, number[]][] = [
     ["TITLE", "title", TITLE],
@@ -230,6 +306,22 @@ export function SheetIndexDialog({
             <div className="sid-eyebrow">SCHEDULE{sheetNumber ? ` · ${sheetNumber}` : ""}</div>
             <h2 className="sid-title">{title || "SHEET INDEX"}</h2>
           </div>
+          {issues.length > 0 && (
+            <label className="sid-field sid-phase">
+              <span>PHASE / ISSUE</span>
+              <select
+                aria-label="Phase"
+                value={issue}
+                onChange={(e) => void pickIssue(e.target.value)}
+              >
+                {issues.map((i) => (
+                  <option key={i.key} value={i.key}>
+                    {i.phase} · {i.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <div className="sid-count">
             <span>{list.length} SHEETS</span>
             <button className="sid-close" aria-label="Close" onClick={onClose}>
@@ -241,39 +333,21 @@ export function SheetIndexDialog({
         <div className="sid-body">
           <section className="sid-left">
             <div className="sid-toolbar">
-              <h3>Sheets</h3>
-              <div className="sid-joined">
-                <button
-                  className="sid-sq"
-                  title="Move up"
-                  aria-label="Move up"
-                  disabled={selected === null || selected === 0}
-                  onClick={() => selected !== null && move(selected, selected - 1)}
-                >
-                  ▲
-                </button>
-                <button
-                  className="sid-sq"
-                  title="Move down"
-                  aria-label="Move down"
-                  disabled={selected === null || selected === list.length - 1}
-                  onClick={() => selected !== null && move(selected, selected + 1)}
-                >
-                  ▼
-                </button>
-                <button
-                  className="sid-remove"
-                  title={
-                    sel && !removable(sel)
-                      ? "A sheet in the project is deleted in the project browser"
+              <h3>Sheets{shown ? ` · ${shown.label}` : ""}</h3>
+              <button
+                className="sid-remove"
+                title={
+                  sel && !removable(sel, stage !== null)
+                    ? "A sheet in the project is deleted in the project browser"
+                    : sel?.sheet && !sel.placeholder && shown
+                      ? `Take it out of the ${shown.phase} set (the sheet stays in the project)`
                       : "Remove"
-                  }
-                  disabled={!sel || !removable(sel)}
-                  onClick={() => selected !== null && remove(selected)}
-                >
-                  REMOVE
-                </button>
-              </div>
+                }
+                disabled={!sel || !removable(sel, stage !== null)}
+                onClick={() => selected !== null && remove(selected)}
+              >
+                REMOVE
+              </button>
             </div>
             <div className="sid-cols">
               <span />
@@ -356,8 +430,9 @@ export function SheetIndexDialog({
                 </button>
               </div>
               <p className="sid-hint">
-                Drag ⋮⋮ to reorder, or right-click a row. New sheets are created when you click OK;
-                placeholders only appear in the index.
+                Pick a phase above for its typical sheet list. Drag ⋮⋮ to reorder, or right-click a
+                row. New sheets are created when you click OK; placeholders only appear in the
+                index.
               </p>
             </div>
           </section>
@@ -478,7 +553,7 @@ export function SheetIndexDialog({
             </button>
             <button
               className="sid-ok"
-              disabled={!style || !rows || problems.length > 0}
+              disabled={!style || !rows || blocked}
               onClick={() => void save()}
             >
               OK

@@ -6979,3 +6979,12 @@ button:disabled {
 .sid-handle:active {
   cursor: grabbing;
 }
+.sid-head .sid-phase {
+  margin-left: auto;
+  min-width: 300px;
+}
+.sid-toolbar h3 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

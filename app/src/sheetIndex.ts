@@ -18,10 +18,10 @@ export function moveRow(rows: IndexRow[], from: number, to: number): IndexRow[] 
   return out;
 }
 
-/** Rows the index can drop: new sheets and placeholders (a sheet is deleted in the
- * project browser). */
-export function removable(r: IndexRow): boolean {
-  return r.sheet === null || r.placeholder;
+/** Rows the index can drop: new sheets and placeholders, and, when the list is a phase's
+ * set (ADR-116), a sheet, which leaves that set (sheets are deleted in the project browser). */
+export function removable(r: IndexRow, phased = false): boolean {
+  return r.sheet === null || r.placeholder || phased;
 }
 
 /** What a row is, for its badge. */

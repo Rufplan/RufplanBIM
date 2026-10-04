@@ -86,6 +86,7 @@ export interface FakeBackend {
   placeholders?: { number: string; name: string }[];
   indexRows?: { sheet: string | null; number: string; name: string; placeholder: boolean }[];
   titleShown?: boolean;
+  savedStages?: (string | null)[];
   titleBlock?: Record<string, unknown>;
   scheduleStyle?: unknown;
   generated: unknown;
@@ -1886,8 +1887,24 @@ export function installFakeBackend(): FakeBackend {
               { sheet: "s1", number: "A-101", name: "Floor Plan", placeholder: false },
             ]
           );
+        case "sheet_index_issues":
+          return [
+            [
+              { key: "SD:0", label: "100% Schematic Design", phase: "SD", stage: "sd" },
+              { key: "CD:1", label: "90% Construction Documents", phase: "CD", stage: "cd" },
+            ],
+            "sd",
+          ];
+        case "sheet_index_typical":
+          return [
+            ...(fake.indexRows ?? [
+              { sheet: "s1", number: "A-101", name: "Floor Plan", placeholder: false },
+            ]),
+            { sheet: null, number: "A-501", name: "Details", placeholder: false },
+          ];
         case "set_sheet_index_rows":
           fake.indexRows = a.rows as typeof fake.indexRows;
+          fake.savedStages = [...(fake.savedStages ?? []), (a.stage as string | null) ?? null];
           return fake.state;
         case "next_index_number":
           return "A-102";

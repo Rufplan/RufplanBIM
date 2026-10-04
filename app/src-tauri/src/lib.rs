@@ -228,6 +228,8 @@ pub fn run() -> anyhow::Result<()> {
             titleblock_cmds::set_title_block_fields,
             titleblock_cmds::title_block_at,
             sheet_index_cmds::sheet_index_rows,
+            sheet_index_cmds::sheet_index_issues,
+            sheet_index_cmds::sheet_index_typical,
             sheet_index_cmds::set_sheet_index_rows,
             sheet_index_cmds::next_index_number,
             sheet_index_cmds::viewport_title_shown,

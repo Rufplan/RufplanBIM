@@ -42,11 +42,12 @@ describe("sheet index dialog", () => {
     await userEvent.type(within(dialog).getByLabelText("Row 2 name"), "Foundation Plan");
     fireEvent.contextMenu(within(dialog).getByRole("listitem", { name: "S-101 Foundation Plan" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Move Up" }));
-    // A sheet in the project can't be removed here.
+    // A sheet in the project can leave the phase's set (it isn't deleted).
     await userEvent.click(within(dialog).getByRole("listitem", { name: "A-101 First Floor Plan" }));
-    expect(
-      (within(dialog).getByRole("button", { name: "REMOVE" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+    expect(within(dialog).getByRole("button", { name: "REMOVE" }).getAttribute("title")).toBe(
+      "Take it out of the SD set (the sheet stays in the project)",
+    );
+    expect(within(dialog).queryByRole("button", { name: "Move up" })).toBeNull();
     await userEvent.click(within(dialog).getByRole("button", { name: "OK" }));
     expect(calls("set_schedule_style")[0]).toMatchObject({
       view: "index",
@@ -56,6 +57,24 @@ describe("sheet index dialog", () => {
       { sheet: null, number: "S-101", name: "Foundation Plan", placeholder: true },
       { sheet: "s1", number: "A-101", name: "First Floor Plan", placeholder: false },
     ]);
+    expect(fake.savedStages).toEqual(["sd"]);
+  }, 20000);
+
+  it("shows each phase's typical sheet list from the dropdown", async () => {
+    const fake = installFakeBackend();
+    render(<ScheduleDialog view="index" onClose={() => {}} />);
+    const dialog = await screen.findByRole("dialog", { name: "Sheet Index" });
+    await within(dialog).findByText("1 SHEETS");
+    const phase = within(dialog).getByLabelText("Phase") as HTMLSelectElement;
+    expect(phase.value).toBe("SD:0");
+    await userEvent.selectOptions(phase, "CD:1");
+    expect(await within(dialog).findByText("2 SHEETS")).toBeTruthy();
+    expect(within(dialog).getByText("NEW SHEET")).toBeTruthy();
+    expect(within(dialog).getByText("1 new sheet will be created")).toBeTruthy();
+    await userEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    // Only the phase shown is saved: SD was looked at, not edited.
+    expect(fake.savedStages).toEqual(["cd"]);
+    expect(fake.indexRows?.map((r) => r.number)).toEqual(["A-101", "A-501"]);
   }, 20000);
 
   it("drags a row by its handle to a new place", async () => {
@@ -97,7 +116,8 @@ describe("sheet index dialog", () => {
     expect(insertRow([a, c], 1, b)).toEqual([a, b, c]);
     expect(moveRow([a, b, c], 2, 0)).toEqual([c, a, b]);
     expect(moveRow([a, b, c], 0, 9)).toEqual([b, c, a]);
-    expect([a, b, c].map(removable)).toEqual([false, true, true]);
+    expect([a, b, c].map((r) => removable(r))).toEqual([false, true, true]);
+    expect(removable(a, true)).toBe(true);
     // Rows centred at 20, 60, 100: dropping at 70 goes in the gap before the third.
     expect(dropGap([20, 60, 100], 70)).toBe(2);
     expect(dropGap([20, 60, 100], 500)).toBe(3);
