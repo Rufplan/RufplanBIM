@@ -190,6 +190,9 @@ struct Area {
     y0: f64,
     x1: f64,
     y1: f64,
+    /// Views laid out from the top right, leftward then down, as sheets of elevations,
+    /// sections, details and schedules are (ADR-106); plans are centred.
+    right: bool,
 }
 
 fn area(size: SheetSize) -> Area {
@@ -200,10 +203,18 @@ fn area(size: SheetSize) -> Area {
         y0: other + 6.0,
         x1: w - other - title_block_width(size) - 6.0,
         y1: h - other - 6.0,
+        right: false,
     }
 }
 
 impl Area {
+    /// The same area, laid out from the right.
+    fn right_aligned(self) -> Area {
+        Area {
+            right: true,
+            ..self
+        }
+    }
     fn center(&self) -> Pt {
         Pt::new((self.x0 + self.x1) / 2.0, (self.y0 + self.y1) / 2.0)
     }
@@ -218,7 +229,8 @@ const ARCH_SCALES: &[u32] = &[24, 32, 48, 64, 96, 192];
 /// Site plans: 1/8", then engineering scales.
 const SITE_SCALES: &[u32] = &[96, 120, 192, 240, 360, 480, 600];
 
-/// Packs boxes (paper w, h) in rows, centred in the area; their centres, or None.
+/// Packs boxes (paper w, h) in rows, centred in the area, or from its top right leftward
+/// (`Area::right`); their centres, or None.
 fn pack(boxes: &[(f64, f64)], a: &Area) -> Option<Vec<Pt>> {
     let (aw, ah) = (a.x1 - a.x0, a.y1 - a.y0);
     let mut rows: Vec<Vec<usize>> = vec![];
@@ -247,14 +259,27 @@ fn pack(boxes: &[(f64, f64)], a: &Area) -> Option<Vec<Pt>> {
         return None;
     }
     let mut out = vec![Pt::default(); boxes.len()];
-    let mut y = a.y1 - (ah - total) / 2.0;
+    let mut y = if a.right {
+        a.y1
+    } else {
+        a.y1 - (ah - total) / 2.0
+    };
     for (r, h) in rows.iter().zip(&heights) {
         let rw = r.iter().map(|i| boxes[*i].0).sum::<f64>() + GAP * (r.len() - 1) as f64;
-        let mut x = a.x0 + (aw - rw) / 2.0;
-        for i in r {
-            let (w, bh) = boxes[*i];
-            out[*i] = Pt::new(x + w / 2.0, y - bh / 2.0);
-            x += w + GAP;
+        if a.right {
+            let mut x = a.x1;
+            for i in r {
+                let (w, bh) = boxes[*i];
+                out[*i] = Pt::new(x - w / 2.0, y - bh / 2.0);
+                x -= w + GAP;
+            }
+        } else {
+            let mut x = a.x0 + (aw - rw) / 2.0;
+            for i in r {
+                let (w, bh) = boxes[*i];
+                out[*i] = Pt::new(x + w / 2.0, y - bh / 2.0);
+                x += w + GAP;
+            }
         }
         y -= h + GAP;
     }
@@ -392,6 +417,19 @@ fn view_of(doc: &Document, want: impl Fn(&ViewKind, &ElementData) -> bool) -> Op
         .map(|e| e.id)
 }
 
+/// An interior detail (stairs, casework, partitions, base and trim, floor transitions) by
+/// the library category of the detail a drafting view is named for; others are exterior.
+fn interior_detail(view_name: &str) -> bool {
+    const EXTERIOR: &[&str] = &["Foundations", "Walls", "Openings", "Roofs"];
+    const EXTERIOR_IDS: &[&str] = &["rim-joist", "deck-guard"];
+    studio_core::details::catalog()
+        .into_iter()
+        .filter(|d| view_name.starts_with(&d.name))
+        .max_by_key(|d| d.name.len())
+        .is_some_and(|d| {
+            !EXTERIOR.contains(&d.category.as_str()) && !EXTERIOR_IDS.contains(&d.id.as_str())
+        })
+}
 /// The rendering the cover shows: the project's first.
 fn cover_rendering(doc: &Document) -> Option<ElementId> {
     view_of(doc, |k, _| matches!(k, ViewKind::Rendering { .. }))
@@ -493,6 +531,7 @@ fn drafts(
     warnings: &mut Vec<String>,
 ) -> Vec<Draft> {
     let a = area(size);
+    let ar = a.right_aligned();
     let mut v: Vec<Draft> = vec![];
     let mut add =
         |number: String, name: &str, content: Content, phases: &'static [&'static str]| {
@@ -627,7 +666,7 @@ fn drafts(
     // Architectural.
     if let Some(rooms) = schedule(doc, ScheduleKind::Rooms) {
         let p = table_size(doc, rooms)
-            .and_then(|b| pack(&[b], &a))
+            .and_then(|b| pack(&[b], &ar))
             .unwrap_or_else(|| vec![a.center()]);
         add(
             num("A", 1),
@@ -722,7 +761,7 @@ fn drafts(
         _ => 4,
     };
     elevations.sort_by_key(|v| order(v.0));
-    for (i, p) in flow(&elevations, pref, ARCH_SCALES, &a)
+    for (i, p) in flow(&elevations, pref, ARCH_SCALES, &ar)
         .into_iter()
         .enumerate()
     {
@@ -736,7 +775,7 @@ fn drafts(
     let sections = sized(&|k, d| {
         plain(d) && matches!(k, ViewKind::Section { .. }) && !crate::drawings::is_wall_section(d)
     });
-    for (i, p) in flow(&sections, pref, ARCH_SCALES, &a)
+    for (i, p) in flow(&sections, pref, ARCH_SCALES, &ar)
         .into_iter()
         .enumerate()
     {
@@ -754,7 +793,7 @@ fn drafts(
         add(num("A", 311), "Wall Sections", placeholder("the architect", "Each wall type cut from footing to roof at 3/4\" = 1'-0\": layers, flashing, insulation."), DD_ON);
     } else {
         let ws = crate::drawings::WALL_SECTION_SCALE;
-        for (i, p) in flow(&walls, ws, &[ws, 24, 32], &a).into_iter().enumerate() {
+        for (i, p) in flow(&walls, ws, &[ws, 24, 32], &ar).into_iter().enumerate() {
             add(num("A", 311 + i), "Wall Sections", Content::Views(p), DD_ON);
         }
     }
@@ -790,7 +829,10 @@ fn drafts(
             DD_ON,
         );
     } else {
-        for (i, p) in flow(&callouts, 24, ARCH_SCALES, &a).into_iter().enumerate() {
+        for (i, p) in flow(&callouts, 24, ARCH_SCALES, &ar)
+            .into_iter()
+            .enumerate()
+        {
             add(num("A", 401 + i), enlarged, Content::Views(p), DD_ON);
         }
     }
@@ -805,7 +847,7 @@ fn drafts(
             CD_ON,
         );
     }
-    let interior: Vec<(ElementId, (f64, f64))> = doc
+    let mut interior: Vec<(ElementId, (f64, f64))> = doc
         .of(Category::View)
         .filter(|e| match &e.data {
             ElementData::View {
@@ -819,6 +861,16 @@ fn drafts(
         })
         .filter_map(|e| model_size(doc, e.id).map(|z| (e.id, z)))
         .collect();
+    // Room by room, each looking north, east, south, then west.
+    interior.sort_by_key(|v| {
+        let name = view_name(doc, v.0);
+        let (room, side) = name.rsplit_once(" - ").unwrap_or((name.as_str(), ""));
+        let turn = ["North", "East", "South", "West"]
+            .iter()
+            .position(|s| *s == side)
+            .unwrap_or(4);
+        (room.to_owned(), turn)
+    });
     if interior.is_empty() {
         add(
             num("A", 451),
@@ -830,7 +882,10 @@ fn drafts(
             CD_ON,
         );
     } else {
-        for (i, p) in flow(&interior, 48, ARCH_SCALES, &a).into_iter().enumerate() {
+        for (i, p) in flow(&interior, 48, ARCH_SCALES, &ar)
+            .into_iter()
+            .enumerate()
+        {
             add(
                 num("A", 451 + i),
                 "Interior Elevations",
@@ -840,17 +895,19 @@ fn drafts(
         }
     }
     // Details (drafting views), each at its own scale, packed together on as few sheets
-    // as hold them, tallest first.
-    let mut details: Vec<(ElementId, (f64, f64))> = doc
+    // as hold them, tallest first: exterior (envelope) details from A-501, interior details
+    // from A-551 (ADR-106), as offices split the details series.
+    let mut details: Vec<(ElementId, (f64, f64), bool)> = doc
         .of(Category::View)
         .filter_map(|e| match &e.data {
             ElementData::View {
                 kind: ViewKind::Drafting,
                 scale,
+                name,
                 ..
             } => model_size(doc, e.id).map(|(w, h)| {
                 let s = f64::from((*scale).max(1));
-                (e.id, (w / s, h / s))
+                (e.id, (w / s, h / s), interior_detail(name))
             }),
             _ => None,
         })
@@ -859,21 +916,26 @@ fn drafts(
     if details.is_empty() {
         add(
             num("A", 501),
-            "Architectural Details",
+            "Exterior Details",
             placeholder(
                 "the architect",
-                "Envelope, opening, roof and interior details.",
+                "Foundation, wall, opening and roof details.",
             ),
             CD_ON,
         );
     } else {
-        for (i, group) in flow_schedules(&details, &a).into_iter().enumerate() {
-            add(
-                num("A", 501 + i),
-                "Architectural Details",
-                Content::Schedules(group),
-                CD_ON,
-            );
+        for (start, interior, name) in [
+            (501, false, "Exterior Details"),
+            (551, true, "Interior Details"),
+        ] {
+            let group: Vec<(ElementId, (f64, f64))> = details
+                .iter()
+                .filter(|d| d.2 == interior)
+                .map(|d| (d.0, d.1))
+                .collect();
+            for (i, g) in flow_schedules(&group, &ar).into_iter().enumerate() {
+                add(num("A", start + i), name, Content::Schedules(g), CD_ON);
+            }
         }
     }
     let tables = |kinds: &[ScheduleKind]| -> Vec<(ElementId, (f64, f64))> {
@@ -884,7 +946,7 @@ fn drafts(
             .collect()
     };
     let mut n = 601;
-    for group in flow_schedules(&tables(&[ScheduleKind::Doors, ScheduleKind::Windows]), &a) {
+    for group in flow_schedules(&tables(&[ScheduleKind::Doors, ScheduleKind::Windows]), &ar) {
         add(
             num("A", n),
             "Door & Window Schedules",
@@ -893,7 +955,7 @@ fn drafts(
         );
         n += 1;
     }
-    for group in flow_schedules(&tables(&[ScheduleKind::Rooms]), &a) {
+    for group in flow_schedules(&tables(&[ScheduleKind::Rooms]), &ar) {
         add(
             num("A", n),
             "Room Finish Schedule",
@@ -902,7 +964,8 @@ fn drafts(
         );
         n += 1;
     }
-    // Renderings other than the cover's, a sheet each as printed.
+    // Renderings other than the cover's, a sheet each as printed, in the G series with the
+    // cover (ADR-106): NCS type 9, 3D views.
     let renders: Vec<(ElementId, (f64, f64))> = doc
         .of(Category::View)
         .filter(|e| {
@@ -920,7 +983,7 @@ fn drafts(
         .collect();
     if renders.is_empty() {
         add(
-            num("A", 901),
+            num("G", 901),
             "3D Views & Renderings",
             placeholder(
                 "the architect",
@@ -929,12 +992,12 @@ fn drafts(
             SD_ONLY,
         );
     } else {
-        for (i, p) in flow(&renders, 1, &[1], &a).into_iter().enumerate() {
+        for (i, p) in flow(&renders, 1, &[1], &ar).into_iter().enumerate() {
             add(
-                num("A", 901 + i),
+                num("G", 901 + i),
                 "3D Views & Renderings",
                 Content::Views(p),
-                SD_ONLY,
+                SD_ON,
             );
         }
     }
@@ -1716,6 +1779,7 @@ mod tests {
             y0: 0.0,
             x1: 400.0,
             y1: 300.0,
+            right: false,
         };
         let c = pack(&[(100.0, 50.0), (100.0, 50.0)], &a).unwrap();
         // One row 218 wide, centred: starts at 91; 66 tall with its title, centred at 150.
@@ -1725,6 +1789,16 @@ mod tests {
         // Three 180-wide boxes: two rows.
         let c = pack(&[(180.0, 50.0); 3], &a).unwrap();
         assert!(c[2].y < c[0].y && (c[0].y - c[1].y).abs() < 1e-9);
+        // From the right (ADR-106): the first box against the right edge at the top, the
+        // next to its left, the third below the first.
+        let r = a.right_aligned();
+        let c = pack(&[(180.0, 50.0); 3], &r).unwrap();
+        assert!(
+            (c[0].x - 310.0).abs() < 1e-9 && (c[0].y - 275.0).abs() < 1e-9,
+            "{c:?}"
+        );
+        assert!((c[1].x - 112.0).abs() < 1e-9 && (c[1].y - 275.0).abs() < 1e-9);
+        assert!((c[2].x - 310.0).abs() < 1e-9 && c[2].y < c[0].y);
         // A 40' plan on ARCH D: 1/4" fits (120 mm wide), a 400' one needs 1/16".
         let d = area(SheetSize::ArchD);
         let ft = MM_PER_FT;
@@ -1751,7 +1825,7 @@ mod tests {
         assert_eq!(numbers[0], "G-001");
         let pos = |n: &str| numbers.iter().position(|x| *x == n).unwrap();
         assert!(pos("G-005") < pos("C-101") && pos("C-101") < pos("S-001"));
-        assert!(pos("S-501") < pos("A-001") && pos("A-901") < pos("P-101"));
+        assert!(pos("S-501") < pos("A-001") && pos("G-901") < pos("C-101"));
         assert!(pos("P-101") < pos("M-101") && pos("M-101") < pos("E-101"));
         // Two floor plans, a roof plan isn't there (no level above Level 2), RCPs from 151.
         let name = |n: &str| p.sheets.iter().find(|s| s.number == n).unwrap();
@@ -1778,7 +1852,7 @@ mod tests {
         assert_eq!(name("A-101").phases, ["SD", "DD", "CD", "BN", "CA"]);
         assert_eq!(name("A-151").phases, ["DD", "CD", "BN", "CA"]);
         assert_eq!(name("A-501").phases, ["CD", "BN", "CA"]);
-        assert_eq!(name("A-901").phases, ["SD"]);
+        assert_eq!(name("G-901").phases, ["SD"]);
         assert_eq!(name("G-001").phases, PHASES);
         // Deliverables: CD issues both 100% CDs and the permit set.
         let ids: Vec<&str> = p.deliverables.iter().map(|d| d.id.as_str()).collect();
@@ -1819,7 +1893,7 @@ mod tests {
         assert!(!p
             .sheets
             .iter()
-            .any(|s| s.number == "A-001" || s.number == "A-901"));
+            .any(|s| s.number == "A-001" || s.number == "G-901"));
         assert!(p.sheets.iter().all(|s| s.phases == ["CD"]));
         // 1/8" plans for larger buildings.
         let a101 = p.sheets.iter().find(|s| s.number == "A-101").unwrap();
@@ -1919,7 +1993,7 @@ mod tests {
         let a501 = sheet("A-501").unwrap();
         assert!(sd_set.contains(&a101) && !sd_set.contains(&a501));
         assert!(cd_set.contains(&a101) && cd_set.contains(&a501));
-        assert!(!cd_set.contains(&sheet("A-901").unwrap()));
+        assert!(!cd_set.contains(&sheet("G-901").unwrap()));
         // Running again updates rather than duplicates.
         let count = doc.count(Category::Sheet);
         let r2 = create(&mut doc, &opts(BuildingType::SingleFamily, &["SD", "CD"])).unwrap();

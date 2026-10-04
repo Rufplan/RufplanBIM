@@ -1969,6 +1969,14 @@ impl ElementData {
 
     /// A new view with no crop region.
     pub fn view(name: impl Into<String>, kind: ViewKind, scale: u32) -> Self {
+        // Room separation lines never print on plans by default (ADR-106); Visibility/
+        // Graphics shows them.
+        let hidden_categories = match kind {
+            ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. } => {
+                vec![Category::RoomSeparator]
+            }
+            _ => vec![],
+        };
         ElementData::View {
             name: name.into(),
             kind,
@@ -1980,7 +1988,7 @@ impl ElementData {
             mark_type: None,
             site: false,
             hidden: vec![],
-            hidden_categories: vec![],
+            hidden_categories,
             camera: None,
             level_ends: vec![],
             detail_level: None,

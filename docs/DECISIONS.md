@@ -4022,3 +4022,35 @@ coursing along a line".
     local amendments and reach codes are to be verified with the city.
   - Wall section notes are generic to the layer names. Structural items (footing,
     anchors, nailing) defer to the structural drawings.
+
+## ADR-106 Sheet layout from the right, wall-only interior elevations, enlarged-plan markers, detail series, 3D in G — Accepted (2026-10-04)
+- **The owner's rules:**
+  - Sheets fill from the right and work left, except plans.
+  - Interior elevations show only the wall looked at.
+  - View title lines run the full width of the view.
+  - Room separation lines stay off plans.
+  - Enlarged plans show their rooms' interior elevation marks; floor plans show the marks of rooms without enlarged plans.
+  - Exterior and interior details go in separate series.
+  - 3D views and renderings belong in the G series.
+  - Zoomed-out plans on sheets shouldn't look empty.
+- **Research:**
+  - Revit crops an interior elevation to the room's walls, floor and ceiling, and offices print that crop as the elevation's heavy profile line ([Noble Desktop](https://blog.nobledesktop.com/learn/revit/setting-up-interior-elevations-in-revit), [AUGI](https://forums.augi.com/showthread.php?p=960535)).
+  - NCS puts details in sheet type 5 and 3D views in type 9 ([Archtoolbox](https://www.archtoolbox.com/construction-document-sheet-numbers/)). Offices commonly split exterior/envelope details (A-500s) from interior details (A-510 or a separate range) ([Archinect](https://archinect.com/forum/thread/26220/drawing-numbering-system)).
+- **Layout** (studio-sheets `sets`, `Area::right`):
+  - Elevations, sections, wall sections, enlarged plans, interior elevations, details, schedules and 3D views pack from the top right corner of the drawing area, leftward, then down a row; the first view is the rightmost.
+  - Plans (site, floor, roof, ceiling) stay centred.
+  - Interior elevations go room by room, north, east, south, west.
+- **View titles:** the rule spans the view's full width by default (`sheet::full_width`). Stretching it by its grips still sets its own length.
+- **Interior elevations** (studio-views `interior_cut`):
+  - Cropped to the room's interior wall faces, from the finish floor to the ceiling (else the floor above, else the next level).
+  - The crop is drawn as a heavy (pen 5) profile line that prints.
+- **Room separation lines:** new plan and ceiling-plan views hide the category (`ElementData::view`). The sets hide it in existing plans and the site plan. Visibility/Graphics shows it.
+- **Interior elevation marks** (`drawings::ensure_interior_markers`):
+  - Every room an enlarged plan shows gets a mark looking at all four walls, when it has none.
+  - Floor plans hide the marks (and their pointers) that enlarged plans show.
+  - The site plan hides all interior marks.
+- **Details:** exterior (foundations, walls, openings, roofs, rim, deck guard) on A-501 and up; interior (stairs, casework, partitions, base and trim, transitions) on A-551 and up. They're sorted by the library category of the detail each drafting view is named for; unknown details count as exterior.
+- **3D views and renderings:** G-901 and up (NCS type 9 within General), in every set from SD on. The empty placeholder appears only in SD.
+- **Zoomed-out sheets** (app canvas `render.ts`):
+  - Text too small to read draws as gray bars ("greeking", as Revit does) instead of vanishing below 4 px.
+  - The thinnest pens draw at about one pixel.

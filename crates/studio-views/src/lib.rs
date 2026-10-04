@@ -415,6 +415,8 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     reference_marks(doc, &mut b, view);
     camera_markers(doc, &mut b, view);
     let crop_margin = b.paper(8.0);
+    // An interior elevation's own crop is drawn as its heavy profile line (ADR-106).
+    let profile = crop.is_none() && auto_crop.is_some();
     let crop = crop.or(auto_crop);
     // Hide in View (ADR-024).
     let vdata = doc.data(view).ok()?.clone();
@@ -431,6 +433,23 @@ fn render(doc: &Document, view: ElementId) -> Option<DisplayList> {
     let (items, bounds) = match &crop {
         Some(c) => {
             let mut items = crop_items(b.items, c);
+            if profile {
+                let r = [
+                    c.min,
+                    Pt::new(c.max.x, c.min.y),
+                    c.max,
+                    Pt::new(c.min.x, c.max.y),
+                ];
+                items.push(Item {
+                    el: None,
+                    prim: Prim::Line {
+                        pts: ring(&r),
+                        closed: true,
+                        w: 5,
+                        dash: Dash::Solid,
+                    },
+                });
+            }
             if *show_crop {
                 let r = [
                     c.min,
@@ -1570,10 +1589,40 @@ fn interior_cut(
         .map(|l| l.elevation)
         .filter(|z| *z > elev + 1.0)
         .fold(f64::INFINITY, f64::min);
-    let top = if top.is_finite() {
+    // The room's finish floor to its ceiling (else the floor above, else 9'), and its
+    // walls' interior faces (ADR-106): only the wall looked at shows, its outline the crop.
+    let inside = at;
+    let floor_top = model
+        .floors
+        .iter()
+        .filter(|f| f.level == level && f.base.contains(inside))
+        .map(|f| f.z1)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let floor_top = if floor_top.is_finite() {
+        floor_top
+    } else {
+        elev
+    };
+    let ceiling = model
+        .ceilings
+        .iter()
+        .filter(|c| c.level == level && c.base.contains(inside))
+        .map(|c| c.z0)
+        .fold(f64::INFINITY, f64::min);
+    let above = model
+        .floors
+        .iter()
+        .filter(|f| f.z0 > floor_top + 1.0 && f.base.contains(inside))
+        .map(|f| f.z0)
+        .fold(f64::INFINITY, f64::min);
+    let top = if ceiling.is_finite() {
+        ceiling
+    } else if above.is_finite() {
+        above
+    } else if top.is_finite() {
         top
     } else {
-        elev + 10.0 * ft
+        floor_top + 9.0 * ft
     };
     (
         Cut {
@@ -1582,8 +1631,8 @@ fn interior_cut(
             depth: dmax + side,
         },
         CropBox {
-            min: Pt::new(0.0, elev - side),
-            max: Pt::new(length, top + side),
+            min: Pt::new(side, floor_top),
+            max: Pt::new(length - side, top),
         },
     )
 }
@@ -6652,13 +6701,24 @@ mod tests {
             .items
             .iter()
             .any(|i| i.el == Some(col) && matches!(&i.prim, Prim::Line { w: 4, .. })));
+        // Room separation lines don't show on plans by default (ADR-106), only when the
+        // category is turned on.
+        assert!(!dl.items.iter().any(|i| i.el == Some(sep)));
+        studio_core::visibility::set_category_visible(
+            &mut doc,
+            plan,
+            &[Category::RoomSeparator],
+            true,
+        )
+        .unwrap();
+        let dl = display_list(&doc, plan).unwrap();
         assert!(dl
             .items
             .iter()
             .any(|i| i.el == Some(sep) && matches!(&i.prim, Prim::Line { w: 1, .. })));
     }
     #[test]
-    fn interior_elevation_markers_crop_to_the_room_and_show_cut_side_walls() {
+    fn interior_elevation_markers_crop_to_the_wall_looked_at() {
         let (mut doc, l1, _, _) = roofed_house();
         let ft = studio_core::units::MM_PER_FT;
         let room = ops::create_room(&mut doc, l1, Pt::new(20.0 * ft, 15.0 * ft)).unwrap();
@@ -6673,32 +6733,22 @@ mod tests {
         assert_eq!(doc.data(v).unwrap().name(), "Great Room - North");
         let dl = display_list(&doc, v).unwrap();
         assert_eq!(dl.view_type, ViewType::Elevation);
-        // Cropped to the room plus a foot each side, floor to the level above.
-        let width = 40.0 * ft - 8.0 * MM_PER_IN + 2.0 * ft;
+        // Cropped to the wall looked at (ADR-106): the room's interior faces, floor to the
+        // level above, with no structure round it, outlined by a heavy profile line.
+        let width = 40.0 * ft - 8.0 * MM_PER_IN;
         let m8 = 48.0 * 8.0;
         assert!(
             (dl.bounds[2] - dl.bounds[0] - (width + 2.0 * m8)).abs() < 1.0,
             "{:?}",
             dl.bounds
         );
-        assert!((dl.bounds[3] - (11.0 * ft + m8)).abs() < 1.0);
-        // The east and west walls are cut at the edges.
-        let walls: Vec<ElementId> = doc.of(Category::Wall).map(|e| e.id).collect();
-        let cut = dl
-            .items
-            .iter()
-            .filter(|i| i.el.is_some_and(|e| walls.contains(&e)))
-            .filter(|i| {
-                matches!(
-                    &i.prim,
-                    Prim::Fill {
-                        fill: FillKind::Poche | FillKind::PocheLight,
-                        ..
-                    }
-                )
-            })
-            .count();
-        assert!(cut >= 2, "{cut}");
+        assert!(dl.bounds[3] <= 10.0 * ft + m8 + 1.0, "{:?}", dl.bounds);
+        assert!((dl.bounds[1] + m8).abs() < 1.0, "{:?}", dl.bounds);
+        let profile = dl.items.iter().any(|i| {
+            i.el.is_none()
+                && matches!(&i.prim, Prim::Line { w: 5, closed: true, pts, .. } if pts.len() == 4)
+        });
+        assert!(profile);
         // The marker in plan: its body and a pointer that is the view.
         let plan = view_where(
             &doc,

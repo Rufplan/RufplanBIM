@@ -218,6 +218,7 @@ pub fn sheet_display_list(doc: &Document, sheet: ElementId, date: &str) -> Optio
             continue;
         };
         let at = title_at(&items, center, *size, offset);
+        let length = length.or_else(|| full_width(&items, center, *size, offset));
         b.items.extend(items);
         if !title.is_empty() {
             view_title(&mut b, Some(vp), i + 1, &title, &scale, at, length);
@@ -417,13 +418,22 @@ fn title_at(items: &[Item], center: Pt, size: SheetSize, offset: Option<Pt>) -> 
     offset.map_or(at, |o| at.add(o))
 }
 
+/// A title rule's default length (ADR-106): across the full width of its view, from the
+/// end of the number bubble to the view's right edge. None for a view too narrow to need it.
+fn full_width(items: &[Item], center: Pt, size: SheetSize, offset: Option<Pt>) -> Option<f64> {
+    let (_, hi) = extents(items)?;
+    let at = title_at(items, center, size, offset);
+    let x0 = at.x + 2.0 * TITLE_BUBBLE + 2.0;
+    let len = hi.x - x0;
+    (len > MIN_TITLE_LENGTH).then_some(len)
+}
 /// Radius of the view title's number bubble, paper mm.
 const TITLE_BUBBLE: f64 = 4.0;
 /// The shortest a title's rule can be stretched to, paper mm.
 pub const MIN_TITLE_LENGTH: f64 = 12.0;
 
-/// The ends of a title's rule for a title at `at`: fitted to the name and scale, or
-/// `length` long when stretched.
+/// The ends of a title's rule for a title at `at`: across the full width of the view
+/// (ADR-106), at least as long as the name and scale, or `length` long when stretched.
 fn title_rule(at: Pt, name: &str, scale: &str, length: Option<f64>) -> (Pt, Pt) {
     let c = at.add(Pt::new(TITLE_BUBBLE, -TITLE_BUBBLE));
     let x0 = c.x + TITLE_BUBBLE + 2.0;
@@ -456,7 +466,7 @@ pub fn title_line(doc: &Document, viewport: ElementId) -> Option<(Pt, Pt)> {
         title_at(&items, *center, *size, *title_offset),
         &title,
         &scale,
-        *title_length,
+        title_length.or_else(|| full_width(&items, *center, *size, *title_offset)),
     ))
 }
 

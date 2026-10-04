@@ -37,7 +37,7 @@ const FILL: Record<FillKind, string> = {
 };
 
 /** Pen weights 1–6 in screen pixels. */
-const PEN = [0, 0.5, 0.8, 1.1, 1.6, 2.4, 3.4];
+const PEN = [0, 0.8, 1.0, 1.2, 1.6, 2.4, 3.4];
 
 const DASH: Record<Dash, number[]> = {
   Solid: [],
@@ -214,8 +214,17 @@ export function draw(
       }
       case "Text": {
         const px = p.size * cam.zoom;
-        if (px < 4) break;
+        if (px < 0.4) break;
         const [sx, sy] = S(p.at[0], p.at[1]);
+        if (px < 3 && !p.angle) {
+          // Too small to read: a gray bar the text's length, as Revit greeks text when
+          // zoomed out (ADR-106), so a sheet's plans keep their rooms, tags and notes.
+          const tw = p.text.length * px * 0.5;
+          const x0 = p.anchor === "Left" ? sx : p.anchor === "Right" ? sx - tw : sx - tw / 2;
+          ctx.fillStyle = isSel ? THEME.cyan : "rgba(10, 10, 10, 0.45)";
+          ctx.fillRect(x0, sy - px * 0.35, tw, Math.max(px * 0.7, 0.6));
+          break;
+        }
         ctx.font = `600 ${px}px "Barlow Condensed", "Barlow", sans-serif`;
         ctx.textAlign = p.anchor === "Left" ? "left" : p.anchor === "Right" ? "right" : "center";
         ctx.textBaseline = "middle";

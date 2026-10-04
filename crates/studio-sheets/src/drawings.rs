@@ -106,12 +106,23 @@ pub fn prepare(doc: &mut Document, construction: bool) -> CoreResult<Prepared> {
         })
         .map(|e| e.id)
         .collect();
+    // Plans also leave out room separation lines (ADR-106).
+    let off = |kind: &ViewKind| -> Vec<Category> {
+        let mut cats = LANDSCAPE.to_vec();
+        if matches!(
+            kind,
+            ViewKind::FloorPlan { .. } | ViewKind::CeilingPlan { .. }
+        ) {
+            cats.push(Category::RoomSeparator);
+        }
+        cats
+    };
     let bare: Vec<ElementId> = drawings
         .iter()
         .copied()
         .filter(|v| {
-            matches!(doc.data(*v), Ok(ElementData::View { hidden_categories, .. })
-                if LANDSCAPE.iter().any(|c| !hidden_categories.contains(c)))
+            matches!(doc.data(*v), Ok(ElementData::View { hidden_categories, kind, .. })
+                if off(kind).iter().any(|c| !hidden_categories.contains(c)))
         })
         .collect();
     if !bare.is_empty() {
@@ -119,10 +130,12 @@ pub fn prepare(doc: &mut Document, construction: bool) -> CoreResult<Prepared> {
             for v in &bare {
                 tx.modify(*v, |d| {
                     if let ElementData::View {
-                        hidden_categories, ..
+                        hidden_categories,
+                        kind,
+                        ..
                     } = d
                     {
-                        for c in LANDSCAPE {
+                        for c in off(kind) {
                             if !hidden_categories.contains(&c) {
                                 hidden_categories.push(c);
                             }
@@ -182,14 +195,56 @@ pub fn prepare(doc: &mut Document, construction: bool) -> CoreResult<Prepared> {
             out.cropped += 1;
         }
     }
-    if let Some((site, c)) = site_crop(doc) {
-        crop(doc, site, c)?;
-        out.cropped += 1;
-    }
     if construction {
         out.wall_sections = ensure_wall_sections(doc)?;
         out.enlarged = ensure_enlarged_plans(doc)?;
+        ensure_interior_markers(doc)?;
         out.details = ensure_details(doc)?;
+    }
+    // The site plan leaves out room separation lines and interior elevation marks.
+    let interior_marks: Vec<ElementId> = doc
+        .of(Category::ElevationMarker)
+        .filter(|e| matches!(&e.data, ElementData::ElevationMarker { interior: true, .. }))
+        .flat_map(|e| {
+            std::iter::once(e.id).chain(
+                studio_core::detail::marker_views(doc, e.id)
+                    .into_iter()
+                    .map(|v| v.1),
+            )
+        })
+        .collect();
+    let sites: Vec<ElementId> = doc
+        .of(Category::View)
+        .filter(|e| matches!(&e.data, ElementData::View { site: true, .. }))
+        .map(|e| e.id)
+        .collect();
+    if !sites.is_empty() {
+        doc.transact("Site plan graphics", |tx| {
+            for v in &sites {
+                tx.modify(*v, |d| {
+                    if let ElementData::View {
+                        hidden,
+                        hidden_categories,
+                        ..
+                    } = d
+                    {
+                        if !hidden_categories.contains(&Category::RoomSeparator) {
+                            hidden_categories.push(Category::RoomSeparator);
+                        }
+                        for m in &interior_marks {
+                            if !hidden.contains(m) {
+                                hidden.push(*m);
+                            }
+                        }
+                    }
+                })?;
+            }
+            Ok(())
+        })?;
+    }
+    if let Some((site, c)) = site_crop(doc) {
+        crop(doc, site, c)?;
+        out.cropped += 1;
     }
     Ok(out)
 }
@@ -1273,6 +1328,121 @@ pub fn ensure_enlarged_plans(doc: &mut Document) -> CoreResult<usize> {
     Ok(made)
 }
 
+/// Plan callouts (enlarged plans): (view, level, crop).
+fn enlarged_plans(doc: &Document) -> Vec<(ElementId, ElementId, CropBox)> {
+    doc.of(Category::View)
+        .filter_map(|e| match &e.data {
+            ElementData::View {
+                kind: ViewKind::FloorPlan { level },
+                callout_of: Some(_),
+                crop: Some(c),
+                ..
+            } => Some((e.id, *level, *c)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Interior elevation markers (ADR-106): every room with an enlarged plan gets one, looking
+/// at all four walls, when it has none; the enlarged plan shows it, and the floor plans
+/// hide it (they show the markers of rooms without enlarged plans). Returns how many were
+/// placed.
+pub fn ensure_interior_markers(doc: &mut Document) -> CoreResult<usize> {
+    let model = studio_regen::regenerate(doc);
+    let callouts = enlarged_plans(doc);
+    let markers = |doc: &Document| -> Vec<(ElementId, ElementId, Pt)> {
+        doc.of(Category::ElevationMarker)
+            .filter_map(|e| match &e.data {
+                ElementData::ElevationMarker {
+                    level,
+                    at,
+                    interior: true,
+                    ..
+                } => Some((e.id, *level, *at)),
+                _ => None,
+            })
+            .collect()
+    };
+    let existing = markers(doc);
+    let mut made = 0;
+    for (_, level, c) in &callouts {
+        for r in model.rooms.iter().filter(|r| r.level == *level) {
+            let Some(ring) = &r.boundary else { continue };
+            if !c.contains(r.point) {
+                continue;
+            }
+            let has = existing
+                .iter()
+                .any(|m| m.1 == *level && studio_geom::point_in_ring(m.2, ring));
+            if has {
+                continue;
+            }
+            let Some((lo, hi)) = studio_geom::bounds_of(ring) else {
+                continue;
+            };
+            let mid = Pt::new((lo.x + hi.x) / 2.0, (lo.y + hi.y) / 2.0);
+            let at = if studio_geom::point_in_ring(mid, ring) {
+                mid
+            } else {
+                r.point
+            };
+            let m = studio_regen::derived::create_elevation_marker(doc, *level, at, true)?;
+            for dir in ["North", "East", "South", "West"] {
+                studio_regen::derived::set_property(doc, m, &format!("view_{dir}"), "yes")?;
+            }
+            made += 1;
+        }
+    }
+    // Floor plans leave the markers to the enlarged plans that show them.
+    let shown: Vec<ElementId> = markers(doc)
+        .into_iter()
+        .filter(|m| {
+            callouts
+                .iter()
+                .any(|(_, l, c)| *l == m.1 && c.contains(m.2))
+        })
+        // The mark and its pointers, which are its views.
+        .flat_map(|m| {
+            std::iter::once(m.0).chain(
+                studio_core::detail::marker_views(doc, m.0)
+                    .into_iter()
+                    .map(|v| v.1),
+            )
+        })
+        .collect();
+    let plans: Vec<ElementId> = doc
+        .of(Category::View)
+        .filter(|e| {
+            matches!(
+                &e.data,
+                ElementData::View {
+                    kind: ViewKind::FloorPlan { .. },
+                    callout_of: None,
+                    site: false,
+                    ..
+                }
+            )
+        })
+        .map(|e| e.id)
+        .collect();
+    if !shown.is_empty() {
+        doc.transact("Interior elevation marks on enlarged plans", |tx| {
+            for v in &plans {
+                tx.modify(*v, |d| {
+                    if let ElementData::View { hidden, .. } = d {
+                        for m in &shown {
+                            if !hidden.contains(m) {
+                                hidden.push(*m);
+                            }
+                        }
+                    }
+                })?;
+            }
+            Ok(())
+        })?;
+    }
+    Ok(made)
+}
 /// Typical details from the library for what the model has (foundation, openings, roof
 /// edge, floor line, stair, casework), when the project has no drafting views. Returns how
 /// many were inserted.

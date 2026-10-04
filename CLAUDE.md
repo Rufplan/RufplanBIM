@@ -165,6 +165,9 @@ Read these before writing code:
 - Sky Library and turf (ADR-101): studio-core `skies` (31 Poly Haven pure skies), app sky_library/sky_file, render/backgrounds.ts
   (hdrSun, matchSunRotation, fillGround); grass.ts arched lawn blades + far LOD; plants.rs mopheads, outward leaf winding;
   ffe.rs `canopy` umbrella (`Part::Tris`); pathtrace `interiorGlow`.
+- Sheet layout and interiors (ADR-106): sets `Area::right` (from the top right, plans centred), sheet `full_width` title rules,
+  studio-views `interior_cut` (wall-only crop + heavy profile), `ElementData::view` hides RoomSeparator in plans,
+  drawings `ensure_interior_markers`, details A-501 exterior / A-551 interior, renderings G-901; canvas greeked text.
 - California permit sets (ADR-105): studio-sheets `drawings` (prepare: landscape hidden, crops, site plan; wall sections,
   enlarged plans, details), `cover` (cover_data, layout, text_sheet boxes and figures), `california` (G-002–G-005, T-001,
   areas); `SetOptions.consultants` (off: G/A/T only); ProjectBrowser groups sheets by discipline. Sample is a Palo Alto
