@@ -39,6 +39,38 @@ const VIEW_GROUPS: [ViewType, string][] = [
   ["Schedule", "Schedules"],
 ];
 
+/** Revit's sheet groups (ADR-105): by discipline, in the US National CAD Standard's order,
+ * from the sheet number's designator (G-001, A1.0…). */
+export const SHEET_DISCIPLINES: [string, string][] = [
+  ["G", "General"],
+  ["H", "Hazardous Materials"],
+  ["V", "Survey / Mapping"],
+  ["B", "Geotechnical"],
+  ["W", "Civil Works"],
+  ["C", "Civil"],
+  ["L", "Landscape"],
+  ["S", "Structural"],
+  ["A", "Architectural"],
+  ["I", "Interiors"],
+  ["Q", "Equipment"],
+  ["F", "Fire Protection"],
+  ["P", "Plumbing"],
+  ["D", "Process"],
+  ["M", "Mechanical"],
+  ["E", "Electrical"],
+  ["T", "Telecommunications / Energy"],
+  ["R", "Resource"],
+  ["X", "Other Disciplines"],
+  ["Z", "Contractor / Shop Drawings"],
+  ["O", "Operations"],
+];
+
+/** A sheet's discipline designator: the number's leading letter ("G-001", "A1.0"). */
+export function disciplineOf(sheetName: string): string {
+  const c = sheetName.trim().charAt(0).toUpperCase();
+  return SHEET_DISCIPLINES.some(([d]) => d === c) ? c : "X";
+}
+
 export function ProjectBrowser() {
   const app = useAppStore((s) => s.app);
   const activeView = useAppStore((s) => s.activeView);
@@ -181,7 +213,17 @@ export function ProjectBrowser() {
               </option>
             ))}
           </select>
-          {sheets.map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
+          {SHEET_DISCIPLINES.map(([d, label]) => {
+            const group = sheets
+              .filter((v) => disciplineOf(v.name) === d)
+              .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+            if (group.length === 0) return null;
+            return (
+              <Section key={d} title={`${label} (${d})`}>
+                {group.map((v) => item(v.id, v.name, () => openView(v.id), v.id === activeView))}
+              </Section>
+            );
+          })}
           {sheets.length === 0 && (
             <div className="pb-empty">
               {stageFilter === "all"
