@@ -1227,7 +1227,8 @@ fn documents(b: &mut B<'_>, l1: ElementId) -> anyhow::Result<()> {
         size: SheetSize::ArchD,
     };
     // The title blocks and the cover carry the project's name.
-    if let Some(info) = b.doc.of(Category::ProjectInfo).next().map(|e| e.id) {
+    let info = b.doc.of(Category::ProjectInfo).next().map(|e| e.id);
+    if let Some(info) = info {
         b.doc.transact("Name project", |tx| {
             tx.modify(info, |d| {
                 if let ElementData::ProjectInfo { name, .. } = d {
