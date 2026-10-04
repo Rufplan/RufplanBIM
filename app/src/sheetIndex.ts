@@ -29,3 +29,16 @@ export function rowKind(r: IndexRow): string {
   if (r.placeholder) return "Placeholder";
   return r.sheet === null ? "New sheet" : "Sheet";
 }
+
+/** What's wrong with the rows before OK: a row without a number, or a number listed twice. */
+export function indexProblems(rows: IndexRow[]): { row: number; message: string }[] {
+  const out: { row: number; message: string }[] = [];
+  const seen = new Map<string, number>();
+  rows.forEach((r, i) => {
+    const n = r.number.trim();
+    if (!n) out.push({ row: i, message: `Row ${i + 1} needs a sheet number` });
+    else if (seen.has(n)) out.push({ row: i, message: `Sheet ${n} is listed twice` });
+    else seen.set(n, i);
+  });
+  return out;
+}

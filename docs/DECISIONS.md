@@ -4254,3 +4254,29 @@ coursing along a line".
 - **The sheet index's order** (`sheet_index::arrange`):
   - Follows the user's order.
   - A sheet made since goes after the last number of its own series that comes before it (A-102 after A-101), else after the nearest earlier number.
+
+## ADR-114 The Sheet Index dialog, to the design handoff — Accepted (2026-10-04)
+- **The ask:** rebuild the sheet index pop-up to the owner's high-fidelity handoff ("Handoff: Sheet Index Dialog": README, prototype HTML).
+- **Built** (app `components/SheetIndexDialog.tsx`, `.sid-*` in styles.css; ScheduleDialog opens it for the sheet index, other schedules keep theirs):
+  - **The canvas:** the 1240 × 860 px canvas fitted to the window (`zoom` = clamp(min((vw−32)/1240, (vh−32)/860), 0.4, 1.6), recomputed on resize), with a 5 px cyan top rule and 2 px ink rules. Barlow / Barlow Condensed (bundled), no radius.
+  - **Header:** "SCHEDULE · {the sheet it's on}", SHEET INDEX, "{n} SHEETS", ✕.
+  - **Left column:**
+    - The Sheets toolbar: ▲ ▼ REMOVE.
+    - NUMBER / NAME / TYPE columns. Each row has a ⋮⋮ handle, number and name inputs (cyan focus ring) and a SHEET / NEW SHEET / PLACEHOLDER tag in grey / cyan / amber.
+    - Selection tint; a dragged row at 40%; a cyan drop line, with the row inserted before the one dropped on.
+    - + ADD SHEET / + ADD PLACEHOLDER, which append and select. The hint underneath.
+  - **Right column:**
+    - FONT; ROW (MM) stepper (0.5 steps, 3–15).
+    - TITLE / HEADERS / BODY segmented heights.
+    - The caption with TABLE HEIGHT ≈ (rows + 1) × row mm.
+    - The 1:1 preview at 128 px per inch on grid paper, placeholder names grey.
+  - **Footer:** "{n} new sheet(s) will be created · {m} placeholder(s)", CANCEL, OK.
+- **Kept from ADR-113, beyond the prototype:**
+  - Right-click menus on rows and on the list.
+  - Numbers come from `next_number` (the next free number in the series), not just the last row + 1, so they never collide.
+  - REMOVE works on new rows and placeholders only. A sheet in the project is deleted in the project browser, and the button's tip says so.
+- **The handoff's suggested validation:** an empty or repeated number turns its input red, shows in the footer and holds OK back (`sheetIndex.ts` `indexProblems`).
+- **Deviations from the handoff:**
+  - **Font list:** the three fonts the PDF embeds (drafting Barlow Condensed, Carlito, Tinos) instead of Barlow / IBM Plex Mono, so the sheet prints what the preview shows.
+  - **BODY sizes:** 3/32", 1/8", 5/32", 3/16". The 1/16" and 5/64" options are left out under the office's 3/32" floor (ADR-109).
+  - **Row height:** never under twice the body text, as Rust keeps it.
