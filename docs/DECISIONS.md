@@ -4149,3 +4149,28 @@ coursing along a line".
   - Key plan and north arrow.
   - Sheet title and number.
 - **The cover** no longer carries the stamp and agency boxes (they're on every sheet now); its project name is 3/4", building type 1/4", address 1/8".
+
+## ADR-110 Schedules on sheets: open and format, split into parts, placeholder sheets — Accepted (2026-10-04)
+- **The owner's ask:**
+  - Double-click the sheet index on a sheet to open it and edit it: text, fonts.
+  - Break the index into several columns on the sheet, as Revit does, each moved by dragging.
+  - Add "dummy" sheets that list in the index but aren't sheets in the file.
+- **Opening a schedule** (app `ScheduleDialog`, store `scheduleEdit`):
+  - Double-clicking a schedule on a sheet, Modify > Schedule > Edit, or a schedule tab's Edit Appearance… opens it in a dialog.
+  - **Font:** the drafting font, Carlito (sans, metric-compatible with Calibri) or Tinos (serif, like Times). Each is an OFL font the PDF embeds (studio-specs' bundled fonts).
+  - **Sizes:** title, header and body heights from 3/32" to 1/2", and the row height, with a live preview.
+- **Schedule style** (studio-sheets `schedule::ScheduleStyle`):
+  - Kept as the schedule view's `rufplan.schedule.style` parameter (no file-format change).
+  - Defaults to the office's text types (ADR-109); text is never under 3/32".
+  - Text items carry an optional `font` (`Prim::Text.font`, studio-core `text::TextFont`), drawn by the canvas and the PDF in that font.
+- **Split Schedule Table** (`schedule::split_schedule`, `join_schedule`, `move_part`, `schedule_parts`):
+  - Modify > Schedule > Split halves the schedule's longest part. The new part goes right of the rightmost, tops level, and the first part keeps its top.
+  - Each later part repeats the column headers (the title stays on the first) and keeps the whole table's column widths.
+  - Each part drags on its own (`part:i` drag areas on the sheet); the first moves the viewport.
+  - Join puts it back together.
+  - Kept as the viewport's `rufplan.schedule.split` parameter (row breaks and part centres).
+- **Placeholder sheets** (`schedule::PlaceholderSheet`, `placeholders`, `set_placeholders`):
+  - Revit's placeholder sheets: a number and a name, listed in every sheet index in sheet order. They don't appear in the project browser, the sets or exports.
+  - Edited in the sheet index's dialog.
+  - Kept as Project Info's `rufplan.placeholder_sheets` parameter.
+  - A number can't repeat or be a real sheet's.

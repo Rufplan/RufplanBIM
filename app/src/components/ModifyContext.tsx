@@ -532,6 +532,58 @@ export function ContextPanels({ cats }: { cats: Category[] }) {
           )}
         </Group>
       )}
+      {one && has("Viewport") && viewType === "Sheet" && selection[0] && (
+        <ScheduleGroup viewport={selection[0]} />
+      )}
     </>
+  );
+}
+
+/** A schedule on a sheet (ADR-110): edit its appearance, split it into parts that move on
+ * their own (Revit's Split Schedule Table), or join it back. */
+function ScheduleGroup({ viewport }: { viewport: ElementId }) {
+  const revision = useAppStore((s) => s.app?.revision ?? 0);
+  const [schedule, setSchedule] = useState<string | null>(null);
+  const [parts, setParts] = useState(1);
+  useEffect(() => {
+    let live = true;
+    void ipc
+      .viewportInfo(viewport)
+      .then(async (vp) => {
+        const v = useAppStore.getState().app?.views.find((x) => x.id === vp?.view);
+        if (!live) return;
+        if (v?.viewType !== "Schedule") return setSchedule(null);
+        setSchedule(v.id);
+        const n = await ipc.scheduleParts(viewport);
+        if (live) setParts(n);
+      })
+      .catch(() => live && setSchedule(null));
+    return () => {
+      live = false;
+    };
+  }, [viewport, revision]);
+  if (!schedule) return null;
+  return (
+    <Group title="Schedule">
+      <Btn
+        label="Edit"
+        icon={Icons.sheet}
+        title="Edit the schedule's appearance (or double-click it); placeholder sheets for the sheet index"
+        onClick={() => useAppStore.getState().setScheduleEdit(schedule)}
+      />
+      <Btn
+        label="Split"
+        icon={Icons.split}
+        title="Split Schedule Table: halve its longest part; drag each part where you want it"
+        onClick={() => void apply(() => ipc.splitSchedule(viewport))}
+      />
+      <Btn
+        label="Join"
+        icon={Icons.align}
+        title="Join the split schedule back into one"
+        disabled={parts < 2}
+        onClick={() => void apply(() => ipc.joinSchedule(viewport))}
+      />
+    </Group>
   );
 }

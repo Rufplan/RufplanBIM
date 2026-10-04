@@ -82,6 +82,9 @@ export interface FakeBackend {
   /** Whether a Claude key is saved, and the last generate inputs. */
   claudeKey: boolean;
   placedNotes?: unknown;
+  /** Placeholder sheets and schedule styles set (ADR-110). */
+  placeholders?: { number: string; name: string }[];
+  scheduleStyle?: unknown;
   generated: unknown;
   /** The last Plans to 3D inputs. */
   plans: unknown;
@@ -1838,6 +1841,42 @@ export function installFakeBackend(): FakeBackend {
         case "place_general_notes":
           fake.placedNotes = a;
           return fake.state;
+        case "schedule_table":
+          return {
+            title: "SHEET INDEX",
+            columns: ["Sheet Number", "Sheet Name"],
+            rows: [
+              ["G-001", "Cover Sheet"],
+              ...(fake.placeholders ?? []).map((p) => [p.number, p.name]),
+            ],
+            ids: ["s1"],
+          };
+        case "schedule_style":
+          return (
+            fake.scheduleStyle ?? {
+              font: "Drafting",
+              title: 4.7625,
+              header: 3.175,
+              body: 2.38125,
+              row: 6,
+            }
+          );
+        case "set_schedule_style":
+          fake.scheduleStyle = a.style;
+          return fake.state;
+        case "text_fonts":
+          return [
+            ["Drafting", "Barlow Condensed (drafting)"],
+            ["Sans", "Carlito (sans, like Calibri)"],
+            ["Serif", "Tinos (serif, like Times)"],
+          ];
+        case "placeholder_sheets":
+          return fake.placeholders ?? [];
+        case "set_placeholder_sheets":
+          fake.placeholders = a.sheets as { number: string; name: string }[];
+          return fake.state;
+        case "schedule_parts":
+          return 1;
         case "sky_library":
           return [
             {

@@ -13,6 +13,35 @@ use studio_views::{Anchor, Dash, DisplayList, FillKind, Prim};
 use crate::sheet::sheet_display_list;
 
 static FONT: &[u8] = include_bytes!("../fonts/BarlowCondensed-SemiBold.ttf");
+// The schedules' other fonts (ADR-110), the OFL ones the project manual bundles.
+static SANS: &[u8] = include_bytes!("../../studio-specs/fonts/Carlito-Regular.ttf");
+static SERIF: &[u8] = include_bytes!("../../studio-specs/fonts/Tinos-Regular.ttf");
+
+/// The embedded fonts and their metrics, by [`TextFont`](studio_core::text::TextFont).
+struct Fonts {
+    list: Vec<(Font, ttf_parser::Face<'static>)>,
+}
+
+impl Fonts {
+    fn load() -> Result<Fonts, PdfError> {
+        let mut list = vec![];
+        for bytes in [FONT, SANS, SERIF] {
+            let font = Font::new(bytes.to_vec().into(), 0).ok_or(PdfError::Font)?;
+            let face = ttf_parser::Face::parse(bytes, 0).map_err(|_| PdfError::Font)?;
+            list.push((font, face));
+        }
+        Ok(Fonts { list })
+    }
+    fn get(&self, f: Option<studio_core::text::TextFont>) -> &(Font, ttf_parser::Face<'static>) {
+        use studio_core::text::TextFont;
+        let i = match f.unwrap_or_default() {
+            TextFont::Drafting => 0,
+            TextFont::Sans => 1,
+            TextFont::Serif => 2,
+        };
+        &self.list[i]
+    }
+}
 
 /// PDF points per paper millimetre.
 pub const PT_PER_MM: f64 = 72.0 / 25.4;
@@ -72,15 +101,14 @@ pub fn export_pdf_with(
     date: &str,
     maps: &Maps,
 ) -> Result<Vec<u8>, PdfError> {
-    let font = Font::new(FONT.to_vec().into(), 0).ok_or(PdfError::Font)?;
-    let face = ttf_parser::Face::parse(FONT, 0).map_err(|_| PdfError::Font)?;
+    let fonts = Fonts::load()?;
     let mut pdf = Pdf::new();
     for &sheet in sheets {
         if !matches!(doc.data(sheet), Ok(ElementData::Sheet { .. })) {
             return Err(PdfError::NotASheet(sheet));
         }
         let dl = sheet_display_list(doc, sheet, date).ok_or(PdfError::NotASheet(sheet))?;
-        draw_page(&mut pdf, doc, &dl, &font, &face, maps)?;
+        draw_page(&mut pdf, doc, &dl, &fonts, maps)?;
     }
     pdf.finish().map_err(|e| PdfError::Write(format!("{e:?}")))
 }
@@ -89,8 +117,7 @@ fn draw_page(
     pdf: &mut Pdf,
     doc: &Document,
     dl: &DisplayList,
-    font: &Font,
-    face: &ttf_parser::Face<'_>,
+    fonts: &Fonts,
     maps: &Maps,
 ) -> Result<(), PdfError> {
     let [_, _, w, h] = dl.bounds;
@@ -256,10 +283,12 @@ fn draw_page(
                 size,
                 anchor,
                 angle,
+                font,
             } => {
                 if text.is_empty() {
                     continue;
                 }
+                let (font, face) = fonts.get(*font);
                 let em = size * PT_PER_MM;
                 let width = text_width_em(face, text) * em;
                 let dx = match anchor {

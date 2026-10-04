@@ -410,6 +410,9 @@ interface UiState {
   /** A text note is being typed (ADR-107): the ribbon shows Modify | Edit Text. */
   textEditing: boolean;
   setTextEditing: (on: boolean) => void;
+  /** The schedule whose appearance and placeholder sheets are being edited (ADR-110). */
+  scheduleEdit: string | null;
+  setScheduleEdit: (view: string | null) => void;
   /** Collaborate > Gray Inactive Workset Graphics (ADR-079). */
   grayInactive: boolean;
   setGrayInactive: (on: boolean) => void;
@@ -554,6 +557,8 @@ export const useAppStore = create<UiState>((set, get) => ({
   setRibbonTab: (ribbonTab) => set({ ribbonTab }),
   textEditing: false,
   setTextEditing: (textEditing) => set({ textEditing }),
+  scheduleEdit: null,
+  setScheduleEdit: (scheduleEdit) => set({ scheduleEdit }),
   grayInactive: false,
   setGrayInactive: (grayInactive) => set({ grayInactive }),
   structuralOverlay: false,

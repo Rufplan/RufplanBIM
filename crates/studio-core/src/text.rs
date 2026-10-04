@@ -106,6 +106,39 @@ pub mod sizes {
     /// Body: 3/32".
     pub const NOTES_BODY: f64 = MIN;
 }
+
+/// The fonts a set prints in (ADR-110): the drafting font everything uses, and two the
+/// schedules and notes can switch to, each bundled so the PDF embeds it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum TextFont {
+    /// Barlow Condensed SemiBold, the drafting font.
+    #[default]
+    Drafting,
+    /// Carlito (metric-compatible with Calibri): a plain sans.
+    Sans,
+    /// Tinos (metric-compatible with Times New Roman): a serif.
+    Serif,
+}
+
+impl TextFont {
+    pub const ALL: [TextFont; 3] = [TextFont::Drafting, TextFont::Sans, TextFont::Serif];
+    pub fn label(self) -> &'static str {
+        match self {
+            TextFont::Drafting => "Barlow Condensed (drafting)",
+            TextFont::Sans => "Carlito (sans, like Calibri)",
+            TextFont::Serif => "Tinos (serif, like Times)",
+        }
+    }
+    /// A character's average advance, as a share of the text height.
+    pub fn advance(self) -> f64 {
+        match self {
+            TextFont::Drafting => 0.43,
+            TextFont::Sans => 0.5,
+            TextFont::Serif => 0.5,
+        }
+    }
+}
 /// A character's advance, as a share of the text height (the drafting font is condensed).
 pub const CHAR_W: f64 = 0.5;
 /// Line spacing, as a multiple of the text height.

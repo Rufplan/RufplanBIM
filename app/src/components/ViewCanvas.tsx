@@ -2167,7 +2167,9 @@ export function ViewCanvas({ view, onSheet }: { view: ViewInfo; onSheet?: Active
       const vp = await ipc.viewportInfo(id).catch(() => null);
       if (vp) {
         const inner = s.app.views.find((v) => v.id === vp.view);
-        if (inner && ACTIVATABLE.includes(inner.viewType))
+        // A schedule opens in place to edit its appearance (ADR-110), as in Revit.
+        if (inner?.viewType === "Schedule") s.setScheduleEdit(inner.id);
+        else if (inner && ACTIVATABLE.includes(inner.viewType))
           s.activateViewport({ sheet: view.id, viewport: id, view: vp.view, center: vp.center });
         else if (inner) s.openView(inner.id);
         return;

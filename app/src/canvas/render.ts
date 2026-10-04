@@ -225,7 +225,13 @@ export function draw(
           ctx.fillRect(x0, sy - px * 0.35, tw, Math.max(px * 0.7, 0.6));
           break;
         }
-        ctx.font = `600 ${px}px "Barlow Condensed", "Barlow", sans-serif`;
+        // The drafting font, or a schedule's chosen one (ADR-110).
+        ctx.font =
+          p.font === "Sans"
+            ? `400 ${px}px Carlito, Calibri, Arial, sans-serif`
+            : p.font === "Serif"
+              ? `400 ${px}px Tinos, "Times New Roman", serif`
+              : `600 ${px}px "Barlow Condensed", "Barlow", sans-serif`;
         ctx.textAlign = p.anchor === "Left" ? "left" : p.anchor === "Right" ? "right" : "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = isSel ? THEME.cyan : THEME.ink;

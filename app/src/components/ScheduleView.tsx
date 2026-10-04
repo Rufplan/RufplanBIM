@@ -26,7 +26,16 @@ export function ScheduleView({ view }: { view: ViewInfo }) {
   if (!table) return <div className="view-empty">Loading schedule…</div>;
   return (
     <div className="schedule">
-      <div className="schedule-title">{table.title}</div>
+      <div className="schedule-title">
+        {table.title}
+        <button
+          className="btn-outline schedule-edit"
+          onClick={() => useAppStore.getState().setScheduleEdit(view.id)}
+          title="Font, text sizes and row height; placeholder sheets for the sheet index (ADR-110)"
+        >
+          Edit Appearance…
+        </button>
+      </div>
       <table>
         <thead>
           <tr>

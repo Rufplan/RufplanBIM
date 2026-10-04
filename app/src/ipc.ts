@@ -59,6 +59,9 @@ import type { GenerateInputs } from "./bindings/GenerateInputs";
 import type { GenerateProgress } from "./bindings/GenerateProgress";
 import type { Precedent } from "./bindings/Precedent";
 import type { SkyPreset } from "./bindings/SkyPreset";
+import type { ScheduleStyle } from "./bindings/ScheduleStyle";
+import type { TextFont } from "./bindings/TextFont";
+import type { PlaceholderSheet } from "./bindings/PlaceholderSheet";
 import type { NotesOptions } from "./bindings/NotesOptions";
 import type { Jurisdiction } from "./bindings/Jurisdiction";
 import type { NotesBuilding } from "./bindings/NotesBuilding";
@@ -472,6 +475,17 @@ export const ipc = {
   keynoteLegend: () => invoke<[ElementId, AppState | null]>("keynote_legend"),
   /** General Notes (ADR-103): the choices for a view, the presets, and placing them. */
   generalNotesOptions: (view: ElementId) => invoke<NotesOptions>("general_notes_options", { view }),
+  // Schedules on sheets (ADR-110).
+  scheduleStyle: (view: ElementId) => invoke<ScheduleStyle>("schedule_style", { view }),
+  setScheduleStyle: (view: ElementId, style: ScheduleStyle) =>
+    invoke<AppState | null>("set_schedule_style", { view, style }),
+  textFonts: () => invoke<[TextFont, string][]>("text_fonts"),
+  scheduleParts: (viewport: ElementId) => invoke<number>("schedule_parts", { viewport }),
+  splitSchedule: (viewport: ElementId) => invoke<AppState | null>("split_schedule", { viewport }),
+  joinSchedule: (viewport: ElementId) => invoke<AppState | null>("join_schedule", { viewport }),
+  placeholderSheets: () => invoke<PlaceholderSheet[]>("placeholder_sheets"),
+  setPlaceholderSheets: (sheets: PlaceholderSheet[]) =>
+    invoke<AppState | null>("set_placeholder_sheets", { sheets }),
   generalNotesPreset: (building: NotesBuilding, drawing: NotesDrawing, code: string) =>
     invoke<[string, string[]]>("general_notes_preset", { building, drawing, code }),
   placeGeneralNotes: (view: ElementId, heading: string, notes: string[], width: number): S =>

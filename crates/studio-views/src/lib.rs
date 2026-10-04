@@ -108,6 +108,10 @@ pub enum Prim {
         size: f64,
         anchor: Anchor,
         angle: f64,
+        /// Its font, when not the drafting font (ADR-110).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[ts(optional)]
+        font: Option<studio_core::text::TextFont>,
     },
     Circle {
         c: [f64; 2],
@@ -222,7 +226,22 @@ impl Builder {
         anchor: Anchor,
         angle: f64,
     ) {
+        self.text_font(el, at, text, paper_mm, anchor, angle, None);
+    }
+    /// Text in a chosen font (ADR-110), sized in paper mm, never under 3/32".
+    #[allow(clippy::too_many_arguments)]
+    pub fn text_font(
+        &mut self,
+        el: Option<ElementId>,
+        at: Pt,
+        text: String,
+        paper_mm: f64,
+        anchor: Anchor,
+        angle: f64,
+        font: Option<studio_core::text::TextFont>,
+    ) {
         let paper_mm = paper_mm.max(MIN_TEXT_MM);
+        let font = font.filter(|f| *f != studio_core::text::TextFont::Drafting);
         self.push(
             el,
             Prim::Text {
@@ -231,6 +250,7 @@ impl Builder {
                 size: paper_mm * self.scale,
                 anchor,
                 angle,
+                font,
             },
         );
     }

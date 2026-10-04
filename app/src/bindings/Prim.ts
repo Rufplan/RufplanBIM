@@ -3,5 +3,10 @@ import type { Anchor } from "./Anchor";
 import type { Dash } from "./Dash";
 import type { ElementId } from "./ElementId";
 import type { FillKind } from "./FillKind";
+import type { TextFont } from "./TextFont";
 
-export type Prim = { "t": "Line", pts: Array<[number, number]>, closed: boolean, w: number, dash: Dash, } | { "t": "Fill", rings: Array<Array<[number, number]>>, fill: FillKind, } | { "t": "Text", at: [number, number], text: string, size: number, anchor: Anchor, angle: number, } | { "t": "Circle", c: [number, number], r: number, w: number, filled: boolean, } | { "t": "Image", image: ElementId, min: [number, number], max: [number, number], };
+export type Prim = { "t": "Line", pts: Array<[number, number]>, closed: boolean, w: number, dash: Dash, } | { "t": "Fill", rings: Array<Array<[number, number]>>, fill: FillKind, } | { "t": "Text", at: [number, number], text: string, size: number, anchor: Anchor, angle: number, 
+/**
+ * Its font, when not the drafting font (ADR-110).
+ */
+font?: TextFont, } | { "t": "Circle", c: [number, number], r: number, w: number, filled: boolean, } | { "t": "Image", image: ElementId, min: [number, number], max: [number, number], };

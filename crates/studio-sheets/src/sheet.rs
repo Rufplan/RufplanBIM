@@ -6,7 +6,7 @@ use studio_core::{ops, Category, Document, ElementData, ElementId, SheetSize, Vi
 use studio_geom::Pt;
 use studio_views::{Anchor, Builder, Dash, DisplayList, FillKind, Item, Prim, ViewType};
 
-use crate::schedule::{approx_width, table_items};
+use crate::schedule::approx_width;
 
 /// Border margins in paper mm: (left binding edge, other edges).
 pub fn margins(size: SheetSize) -> (f64, f64) {
@@ -58,12 +58,14 @@ fn transform(items: Vec<Item>, f: impl Fn(Pt) -> Pt, k: f64, el: Option<ElementI
                     size,
                     anchor,
                     angle,
+                    font,
                 } => Prim::Text {
                     at: map(at),
                     text,
                     size: size * k,
                     anchor,
                     angle,
+                    font,
                 },
                 Prim::Circle { c, r, w, filled } => Prim::Circle {
                     c: map(c),
@@ -103,17 +105,12 @@ pub fn viewport_items(
         return None;
     };
     if matches!(kind, ViewKind::Schedule { .. }) {
-        let on = match doc.data(viewport) {
-            Ok(ElementData::Viewport { sheet, .. }) => Some(*sheet),
-            _ => None,
-        };
-        let table = crate::schedule::schedule_on(doc, view, on)?;
-        let (_, w, h) = table_items(&table, Some(viewport), Pt::default());
-        let (items, _, _) = table_items(
-            &table,
-            Some(viewport),
-            Pt::new(center.x - w / 2.0, center.y + h / 2.0),
-        );
+        // In its style, split into parts where it's split (ADR-110).
+        let parts = crate::schedule::schedule_parts(doc, viewport, view, center)?;
+        let (w, h) = parts
+            .first()
+            .map_or((0.0, 0.0), |p| (p.2.x - p.1.x, p.2.y - p.1.y));
+        let items = parts.into_iter().flat_map(|p| p.0).collect();
         return Some((items, w, h, String::new(), String::new()));
     }
     let dl = studio_views::display_list(doc, view)?;
@@ -584,6 +581,29 @@ pub fn sheet_handles(
     // Selected views first, so one on top of another is the one that drags.
     vps.sort_by_key(|(id, _, _)| !ids.contains(id));
     for (id, view, center) in vps {
+        // A split schedule's later parts drag on their own (ADR-110); the first moves the
+        // viewport.
+        if let Some(parts) = crate::schedule::schedule_parts(doc, id, view, center) {
+            for (i, (_, lo, hi)) in parts.iter().enumerate().skip(1) {
+                out.areas.push(studio_views::handles::DragArea {
+                    id,
+                    key: format!("part:{i}"),
+                    min: *lo,
+                    max: *hi,
+                    at: lo.lerp(*hi, 0.5),
+                });
+            }
+            if let Some((_, lo, hi)) = parts.first() {
+                out.areas.push(studio_views::handles::DragArea {
+                    id,
+                    key: "view_move".into(),
+                    min: *lo,
+                    max: *hi,
+                    at: center,
+                });
+            }
+            continue;
+        }
         // The box of what's drawn (the title sits under it).
         let Some((lo, hi)) =
             viewport_items(doc, id, view, center).and_then(|(items, ..)| extents(&items))

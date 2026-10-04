@@ -1,3 +1,4 @@
+import { ScheduleDialog } from "./ScheduleDialog";
 import { GeneralNotesDialog } from "./GeneralNotesDialog";
 import { useEffect, useMemo, useState } from "react";
 import type { Category } from "../bindings/Category";
@@ -37,7 +38,15 @@ import { ArtificialLightsDialog, SunSettingsDialog } from "./LightingDialogs";
 export function ViewDialogs() {
   const which = useAppStore((s) => s.viewDialog);
   const close = () => useAppStore.getState().setUi({ viewDialog: null });
+  const scheduleEdit = useAppStore((s) => s.scheduleEdit);
   const picker = useAppStore((s) => s.picker);
+  if (scheduleEdit)
+    return (
+      <ScheduleDialog
+        view={scheduleEdit}
+        onClose={() => useAppStore.getState().setScheduleEdit(null)}
+      />
+    );
   if (picker?.category === "Plant")
     return (
       <AssetLibrary

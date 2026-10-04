@@ -25,6 +25,7 @@ mod project_cmds;
 mod qa_cmds;
 mod render_cmds;
 mod samples;
+mod schedule_cmds;
 mod session;
 mod sheetset_cmds;
 mod shortcut_cmds;
@@ -213,6 +214,14 @@ pub fn run() -> anyhow::Result<()> {
             notes_cmds::general_notes_options,
             notes_cmds::general_notes_preset,
             notes_cmds::place_general_notes,
+            schedule_cmds::schedule_style,
+            schedule_cmds::set_schedule_style,
+            schedule_cmds::text_fonts,
+            schedule_cmds::schedule_parts,
+            schedule_cmds::split_schedule,
+            schedule_cmds::join_schedule,
+            schedule_cmds::placeholder_sheets,
+            schedule_cmds::set_placeholder_sheets,
             material_cmds::material_library,
             material_cmds::add_library_material,
             material_cmds::apply_material,

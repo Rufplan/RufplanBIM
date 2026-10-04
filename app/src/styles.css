@@ -6447,3 +6447,44 @@ button:disabled {
   gap: 8px;
   align-items: flex-start;
 }
+
+/* The schedule dialog (ADR-110): appearance controls, a preview, placeholder sheets. */
+.schedule-dialog {
+  width: min(860px, 92vw);
+  max-height: 88vh;
+  overflow: auto;
+}
+.schedule-preview {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--line, #d8d8d8);
+  background: #fff;
+  max-height: 320px;
+  overflow: auto;
+}
+.schedule-preview .sp-title {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.schedule-preview table {
+  border-collapse: collapse;
+  width: auto;
+}
+.schedule-preview th,
+.schedule-preview td {
+  border: 1px solid #0a0a0a;
+  padding: 0 6px;
+  text-align: left;
+}
+.schedule-preview th {
+  background: #efefeb;
+}
+.placeholder-sheets .row {
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.schedule-edit {
+  margin-left: 12px;
+  font-size: 12px;
+}
