@@ -101,31 +101,45 @@ pub struct Block {
     pub title: String,
     pub lines: Vec<String>,
     pub numbered: bool,
+    /// A diagram drawn under the lines (ADR-105): an area or lot coverage plan.
+    pub figure: Option<Figure>,
 }
 
-fn block(title: &str, lines: Vec<String>) -> Block {
+/// Outlines in model mm, drawn to fit a block: (ring, dashed), fitted to `frame` so
+/// diagrams of one building share a scale.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Figure {
+    pub rings: Vec<(Vec<studio_geom::Pt>, bool)>,
+    pub frame: (studio_geom::Pt, studio_geom::Pt),
+}
+
+pub(crate) fn block(title: &str, lines: Vec<String>) -> Block {
     Block {
         title: title.into(),
         lines,
         numbered: false,
+        figure: None,
     }
 }
 
-fn numbered(title: &str, lines: Vec<String>) -> Block {
+pub(crate) fn numbered(title: &str, lines: Vec<String>) -> Block {
     Block {
         title: title.into(),
         lines,
         numbered: true,
+        figure: None,
     }
 }
 
-fn s(v: &[&str]) -> Vec<String> {
+pub(crate) fn s(v: &[&str]) -> Vec<String> {
     v.iter().map(|x| (*x).to_string()).collect()
 }
 
 /// A general sheet: number within G, name, blocks, and the phases whose sets include it.
 pub struct GeneralSheet {
     pub number: usize,
+    /// "G", or "T" for California's Title 24 energy sheets.
+    pub discipline: &'static str,
     pub name: String,
     pub blocks: Vec<Block>,
     pub phases: &'static [&'static str],
@@ -137,7 +151,7 @@ const CD_ON: &[&str] = &["CD", "BN", "CA"];
 
 /// The code family, by building type and jurisdiction: (building code, residential? , the
 /// applicable codes list).
-fn codes(t: BuildingType, j: Jurisdiction) -> Vec<String> {
+pub(crate) fn codes(t: BuildingType, j: Jurisdiction) -> Vec<String> {
     let irc = t.irc();
     let mut v: Vec<String> = match j {
         Jurisdiction::ModelCodes => vec![
@@ -150,17 +164,12 @@ fn codes(t: BuildingType, j: Jurisdiction) -> Vec<String> {
             "2020 National Electrical Code (NFPA 70)".into(),
             "2021 International Fire Code (IFC)".into(),
         ],
-        Jurisdiction::California => vec![
-            "2022 California Building Standards Code, Title 24, CCR:".into(),
-            if irc { "  Part 2.5 — California Residential Code (CRC)" } else { "  Part 2 — California Building Code (CBC), Vols. 1 and 2" }.into(),
-            "  Part 3 — California Electrical Code (CEC)".into(),
-            "  Part 4 — California Mechanical Code (CMC)".into(),
-            "  Part 5 — California Plumbing Code (CPC)".into(),
-            "  Part 6 — California Energy Code".into(),
-            "  Part 9 — California Fire Code (CFC)".into(),
-            "  Part 11 — California Green Building Standards Code (CALGreen)".into(),
-            "Local amendments and ordinances of the city or county".into(),
-        ],
+        Jurisdiction::California => {
+            // The verify line is added below, with the accessibility codes.
+            let mut c = crate::california::codes(irc, "");
+            c.pop();
+            c
+        }
         Jurisdiction::NewYorkCity => vec![
             "2022 New York City Building Code (NYC BC)".into(),
             "2020 New York City Energy Conservation Code (NYCECC)".into(),
@@ -242,7 +251,7 @@ fn codes(t: BuildingType, j: Jurisdiction) -> Vec<String> {
 }
 
 /// Occupancy and construction type defaults by building type (Project Info overrides).
-fn occupancy(t: BuildingType) -> (&'static str, &'static str, &'static str) {
+pub(crate) fn occupancy(t: BuildingType) -> (&'static str, &'static str, &'static str) {
     match t {
         BuildingType::SingleFamily => (
             "R-3 (IRC one-family dwelling)",
@@ -545,6 +554,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
     deferred.push("Deferred submittals shall be reviewed by the architect and approved by the building official before installation.".into());
     out.push(GeneralSheet {
         number: 2,
+        discipline: "G",
         name: "Project Information".into(),
         blocks: vec![
             block("PROJECT DIRECTORY", directory),
@@ -613,6 +623,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
     });
     out.push(GeneralSheet {
         number: 3,
+        discipline: "G",
         name: "General Notes".into(),
         blocks: vec![numbered("GENERAL NOTES", general)],
         phases: CD_ON,
@@ -621,6 +632,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
     // ------------------------------------------------ G-004 Abbreviations & Symbols
     out.push(GeneralSheet {
         number: 4,
+        discipline: "G",
         name: "Abbreviations, Symbols & Legends".into(),
         blocks: vec![
             block("ABBREVIATIONS", s(ABBREVIATIONS)),
@@ -637,6 +649,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
     if irc {
         out.push(GeneralSheet {
             number: 5,
+            discipline: "G",
             name: "Code Summary".into(),
             blocks: vec![
                 block("CODE SUMMARY", vec![
@@ -693,6 +706,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
         let load = 200.0;
         out.push(GeneralSheet {
             number: 5,
+            discipline: "G",
             name: "Code Analysis".into(),
             blocks: vec![
                 block("BUILDING DATA", vec![
@@ -734,6 +748,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
         // ------------------------------------------------ G-006 Life Safety Plans
         out.push(GeneralSheet {
             number: 6,
+            discipline: "G",
             name: "Life Safety Plans".into(),
             blocks: vec![block(
                 "LIFE SAFETY LEGEND",
@@ -784,6 +799,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
         }
         out.push(GeneralSheet {
             number: 7,
+            discipline: "G",
             name: "Accessibility Notes & Details".into(),
             blocks: vec![
                 numbered("ACCESSIBILITY NOTES", acc),
@@ -837,6 +853,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
     };
     out.push(GeneralSheet {
         number: 8,
+        discipline: "G",
         name: "Energy Code Compliance".into(),
         blocks: vec![
             numbered("ENERGY COMPLIANCE", energy),
@@ -859,6 +876,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
     if j == Jurisdiction::California {
         out.push(GeneralSheet {
             number: 9,
+            discipline: "G",
             name: "CALGreen Checklist".into(),
             blocks: vec![numbered("CALIFORNIA GREEN BUILDING STANDARDS (CALGREEN)", if irc { s(&[
                 "4.106.2 Storm water drainage and retention during construction.",
@@ -907,6 +925,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
         ]));
         out.push(GeneralSheet {
             number: 10,
+            discipline: "G",
             name: "Statement of Special Inspections".into(),
             blocks: vec![numbered("SPECIAL INSPECTIONS", si)],
             phases: CD_ON,
@@ -918,6 +937,7 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
         let hvhz = j.hvhz(&d);
         out.push(GeneralSheet {
             number: 11,
+            discipline: "G",
             name: "Product Approval Schedule".into(),
             blocks: vec![
                 block("PRODUCT APPROVALS", vec![
@@ -939,6 +959,18 @@ pub fn general_sheets(doc: &Document, t: BuildingType, j: Jurisdiction) -> Vec<G
             ],
             phases: CD_ON,
         });
+    }
+    if j == Jurisdiction::California {
+        let facts = crate::california::Facts {
+            name: ident.name.clone(),
+            details: d.clone(),
+            occupancy: occ,
+            construction: ct,
+            sprinklers: spr,
+            stories,
+            gross_sf,
+        };
+        return crate::california::sheets(doc, t, &facts, out);
     }
     out
 }
@@ -973,8 +1005,30 @@ mod tests {
             nums(BuildingType::MidRiseApartments, Jurisdiction::ModelCodes),
             [2, 3, 4, 5, 6, 7, 8, 10]
         );
-        // California adds CALGreen; Florida product approvals.
-        assert!(nums(BuildingType::SingleFamily, Jurisdiction::California).contains(&9));
+        // California (ADR-105): project data and code analysis, notes, CALGreen, BMPs and
+        // T-001 energy; CBC buildings add life safety, accessibility and inspections.
+        let ca = |t| {
+            general_sheets(&d, t, Jurisdiction::California)
+                .iter()
+                .map(|g| format!("{}-{:03} {}", g.discipline, g.number, g.name))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            ca(BuildingType::SingleFamily),
+            [
+                "G-002 Project Data & Code Analysis",
+                "G-003 General Notes, Abbreviations & Symbols",
+                "G-004 CALGreen Mandatory Measures",
+                "G-005 Construction Best Management Practices",
+                "T-001 Title 24 Energy Compliance",
+            ]
+        );
+        let hotel = ca(BuildingType::Hotel);
+        assert!(hotel.iter().any(|s| s.starts_with("G-007 Accessibility")));
+        assert!(hotel
+            .iter()
+            .any(|s| s.starts_with("G-008 Statement of Special")));
+        // Florida adds product approvals.
         assert!(nums(BuildingType::Hotel, Jurisdiction::Florida).contains(&11));
         let text = |t, j| {
             general_sheets(&d, t, j)

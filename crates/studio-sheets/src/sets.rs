@@ -2,8 +2,9 @@
 //! phase, by building type. Sheets are numbered to the US National CAD Standard (G-001,
 //! A-101…), tagged with the design stages whose sets include them, and filled from the model:
 //! plans, reflected ceiling plans, elevations, sections, callouts, interior elevations and
-//! schedules are placed and scaled to fit. Drawings the model doesn't make yet (details, wall
-//! sections) and consultants' sheets are titled placeholders, so each set's index is complete.
+//! schedules are placed and scaled to fit. The drawings are readied first (ADR-105): cropped to
+//! the building, landscape hidden, wall sections, enlarged plans and details made where the
+//! project has none. Consultants' sheets, when asked for, are titled placeholders.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -106,7 +107,11 @@ const DISCIPLINES: &[(&str, &str)] = &[
     ("P", "Plumbing"),
     ("M", "Mechanical"),
     ("E", "Electrical"),
+    ("T", "Energy (Title 24)"),
 ];
+
+/// The disciplines the architect's sets hold until consultants' sheets come in (ADR-105).
+const OWN: &[&str] = &["G", "A", "T"];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -121,6 +126,10 @@ pub struct SetOptions {
     #[serde(default)]
     #[ts(optional)]
     pub jurisdiction: Option<crate::general::Jurisdiction>,
+    /// Include consultants' placeholder sheets (civil, landscape, structural, MEP…).
+    /// Off by default (ADR-105): they don't come from Rufplan yet.
+    #[serde(default)]
+    pub consultants: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, TS)]
@@ -349,6 +358,7 @@ fn flow_schedules(tables: &[(ElementId, (f64, f64))], a: &Area) -> Vec<Vec<(Elem
 enum Content {
     Cover {
         index: Option<ElementId>,
+        data: Box<crate::cover::CoverData>,
     },
     Views(Placed),
     Schedules(Vec<(ElementId, Pt)>),
@@ -380,6 +390,11 @@ fn view_of(doc: &Document, want: impl Fn(&ViewKind, &ElementData) -> bool) -> Op
             _ => false,
         })
         .map(|e| e.id)
+}
+
+/// The rendering the cover shows: the project's first.
+fn cover_rendering(doc: &Document) -> Option<ElementId> {
+    view_of(doc, |k, _| matches!(k, ViewKind::Rendering { .. }))
 }
 
 fn plain(data: &ElementData) -> bool {
@@ -469,84 +484,6 @@ fn placeholder(by: &str, note: &str) -> Content {
     }
 }
 
-/// Lays titled blocks out in columns across a sheet's drawing area (ADR-104): each a
-/// heading over its (numbered) lines, flowing down a column and on to the next; a block
-/// too long for what's left continues in the next column. (top-left, text, size, width).
-fn text_layout(blocks: &[crate::general::Block], a: &Area) -> Vec<(Pt, String, f64, f64)> {
-    const HEAD: f64 = 4.0;
-    const BODY: f64 = 2.4;
-    const GAP: f64 = 12.0;
-    let line = studio_core::text::LINE;
-    let aw = a.x1 - a.x0 - 20.0;
-    let cols = ((aw + GAP) / (150.0 + GAP)).floor().max(1.0);
-    let cw = (aw - GAP * (cols - 1.0)) / cols;
-    let top = a.y1 - 14.0;
-    let bottom = a.y0 + 10.0;
-    let mut out = vec![];
-    let (mut col, mut y) = (0.0, top);
-    let x_of = |c: f64| a.x0 + 10.0 + c * (cw + GAP);
-    for b in blocks {
-        let items: Vec<String> = b
-            .lines
-            .iter()
-            .enumerate()
-            .map(|(i, l)| {
-                if b.numbered {
-                    format!("{}. {l}", i + 1)
-                } else {
-                    l.clone()
-                }
-            })
-            .collect();
-        let tall = |ls: &[String]| -> f64 {
-            ls.iter()
-                .map(|l| studio_core::text::wrap(l, BODY, Some(cw)).len().max(1) as f64)
-                .sum::<f64>()
-                * BODY
-                * line
-        };
-        let mut rest: &[String] = &items;
-        let mut first = true;
-        while !rest.is_empty() {
-            // Room for the heading and at least a couple of lines, else the next column.
-            if y - HEAD * line - BODY * line * 2.0 < bottom && y < top {
-                col += 1.0;
-                y = top;
-            }
-            let room = y - HEAD * line - 2.0 - bottom;
-            let mut n = 0;
-            while n < rest.len() && tall(&rest[..=n]) <= room {
-                n += 1;
-            }
-            let n = n.max(1);
-            let title = if first {
-                b.title.clone()
-            } else {
-                format!("{} (CONT.)", b.title)
-            };
-            out.push((Pt::new(x_of(col), y), title, HEAD, cw));
-            let body_y = y - HEAD * line - 2.0;
-            out.push((
-                Pt::new(x_of(col), body_y),
-                rest[..n].join(
-                    "
-",
-                ),
-                BODY,
-                cw,
-            ));
-            y = body_y - tall(&rest[..n]) - 8.0;
-            rest = &rest[n..];
-            first = false;
-            if !rest.is_empty() {
-                col += 1.0;
-                y = top;
-            }
-        }
-    }
-    out
-}
-
 /// Every sheet the building type's sets can hold, before choosing phases.
 fn drafts(
     doc: &Document,
@@ -577,14 +514,15 @@ fn drafts(
         "Cover Sheet & Sheet Index",
         Content::Cover {
             index: schedule(doc, ScheduleKind::Sheets),
+            data: Box::new(crate::cover::cover_data(doc, t, jurisdiction)),
         },
         ALL,
     );
     // The rest of the general sheets (ADR-104): preset text by building type, phase and
-    // jurisdiction.
+    // jurisdiction (California's T-001 among them, ADR-105).
     for gs in crate::general::general_sheets(doc, t, jurisdiction) {
         add(
-            num("G", gs.number),
+            num(gs.discipline, gs.number),
             &gs.name,
             Content::Text(gs.blocks),
             gs.phases,
@@ -795,7 +733,9 @@ fn drafts(
             SD_ON,
         );
     }
-    let sections = sized(&|k, d| plain(d) && matches!(k, ViewKind::Section { .. }));
+    let sections = sized(&|k, d| {
+        plain(d) && matches!(k, ViewKind::Section { .. }) && !crate::drawings::is_wall_section(d)
+    });
     for (i, p) in flow(&sections, pref, ARCH_SCALES, &a)
         .into_iter()
         .enumerate()
@@ -807,7 +747,17 @@ fn drafts(
             SD_ON,
         );
     }
-    add(num("A", 311), "Wall Sections", placeholder("the architect", "Each wall type cut from footing to roof at 3/4\" = 1'-0\": layers, flashing, insulation."), DD_ON);
+    // Wall sections (ADR-105) at 3/4" = 1'-0", in their order.
+    let mut walls = sized(&|_, d| crate::drawings::is_wall_section(d));
+    walls.sort_by_key(|v| view_name(doc, v.0));
+    if walls.is_empty() {
+        add(num("A", 311), "Wall Sections", placeholder("the architect", "Each wall type cut from footing to roof at 3/4\" = 1'-0\": layers, flashing, insulation."), DD_ON);
+    } else {
+        let ws = crate::drawings::WALL_SECTION_SCALE;
+        for (i, p) in flow(&walls, ws, &[ws, 24, 32], &a).into_iter().enumerate() {
+            add(num("A", 311 + i), "Wall Sections", Content::Views(p), DD_ON);
+        }
+    }
     let enlarged = match t {
         BuildingType::SingleFamily | BuildingType::Duplex => "Enlarged Kitchen & Bath Plans",
         BuildingType::Townhouses => "Enlarged Unit Plans",
@@ -889,15 +839,43 @@ fn drafts(
             );
         }
     }
-    add(
-        num("A", 501),
-        "Architectural Details",
-        placeholder(
-            "the architect",
-            "Envelope, opening, roof and interior details.",
-        ),
-        CD_ON,
-    );
+    // Details (drafting views), each at its own scale, packed together on as few sheets
+    // as hold them, tallest first.
+    let mut details: Vec<(ElementId, (f64, f64))> = doc
+        .of(Category::View)
+        .filter_map(|e| match &e.data {
+            ElementData::View {
+                kind: ViewKind::Drafting,
+                scale,
+                ..
+            } => model_size(doc, e.id).map(|(w, h)| {
+                let s = f64::from((*scale).max(1));
+                (e.id, (w / s, h / s))
+            }),
+            _ => None,
+        })
+        .collect();
+    details.sort_by(|a, b| b.1 .1.total_cmp(&a.1 .1));
+    if details.is_empty() {
+        add(
+            num("A", 501),
+            "Architectural Details",
+            placeholder(
+                "the architect",
+                "Envelope, opening, roof and interior details.",
+            ),
+            CD_ON,
+        );
+    } else {
+        for (i, group) in flow_schedules(&details, &a).into_iter().enumerate() {
+            add(
+                num("A", 501 + i),
+                "Architectural Details",
+                Content::Schedules(group),
+                CD_ON,
+            );
+        }
+    }
     let tables = |kinds: &[ScheduleKind]| -> Vec<(ElementId, (f64, f64))> {
         kinds
             .iter()
@@ -924,15 +902,42 @@ fn drafts(
         );
         n += 1;
     }
-    add(
-        num("A", 901),
-        "3D Views & Renderings",
-        placeholder(
-            "the architect",
-            "Render camera views on the Rendering tab for the presentation.",
-        ),
-        SD_ONLY,
-    );
+    // Renderings other than the cover's, a sheet each as printed.
+    let renders: Vec<(ElementId, (f64, f64))> = doc
+        .of(Category::View)
+        .filter(|e| {
+            matches!(
+                &e.data,
+                ElementData::View {
+                    kind: ViewKind::Rendering { .. },
+                    ..
+                }
+            )
+        })
+        .map(|e| e.id)
+        .filter(|v| Some(*v) != cover_rendering(doc))
+        .filter_map(|v| model_size(doc, v).map(|z| (v, z)))
+        .collect();
+    if renders.is_empty() {
+        add(
+            num("A", 901),
+            "3D Views & Renderings",
+            placeholder(
+                "the architect",
+                "Render camera views on the Rendering tab for the presentation.",
+            ),
+            SD_ONLY,
+        );
+    } else {
+        for (i, p) in flow(&renders, 1, &[1], &a).into_iter().enumerate() {
+            add(
+                num("A", 901 + i),
+                "3D Views & Renderings",
+                Content::Views(p),
+                SD_ONLY,
+            );
+        }
+    }
 
     // Interiors, for hotels.
     if t == BuildingType::Hotel {
@@ -1057,7 +1062,8 @@ fn chosen(doc: &Document, o: &SetOptions, warnings: &mut Vec<String>) -> Vec<Dra
         .into_iter()
         .filter_map(|mut d| {
             d.phases.retain(|p| phases.contains(p));
-            (!d.phases.is_empty()).then_some(d)
+            let own = OWN.contains(&d.number.split_once('-').map_or("", |x| x.0));
+            (!d.phases.is_empty() && (o.consultants || own)).then_some(d)
         })
         .collect();
     out.sort_by(|a, b| ops::sheet_cmp(&a.number, &b.number));
@@ -1110,6 +1116,13 @@ fn discipline_of(number: &str) -> String {
         .into()
 }
 
+/// Sets from design development on get wall sections, enlarged plans and details.
+fn construction(o: &SetOptions) -> bool {
+    o.phases
+        .iter()
+        .any(|p| matches!(p.as_str(), "DD" | "CD" | "BN" | "CA"))
+}
+
 fn existing_sheets(doc: &Document) -> BTreeMap<String, ElementId> {
     ops::sheets(doc).into_iter().map(|s| (s.1, s.0)).collect()
 }
@@ -1121,6 +1134,9 @@ pub fn plan(doc: &Document, o: &SetOptions) -> SetPlan {
     let mut warnings = vec![];
     if let Err(e) = ensure_sections(&mut preview) {
         warnings.push(format!("Building sections: {e}"));
+    }
+    if let Err(e) = crate::drawings::prepare(&mut preview, construction(o)) {
+        warnings.push(format!("Drawings: {e}"));
     }
     let doc = &preview;
     let drafts = chosen(doc, o, &mut warnings);
@@ -1183,7 +1199,7 @@ fn ensure_sections(doc: &mut Document) -> CoreResult<usize> {
                 callout_of: None,
                 ..
             }
-        )
+        ) && !crate::drawings::is_wall_section(&e.data)
     });
     if has {
         return Ok(0);
@@ -1248,6 +1264,7 @@ pub fn create(doc: &mut Document, o: &SetOptions) -> CoreResult<SetReport> {
 
 fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> CoreResult<()> {
     report.sections = ensure_sections(doc)?;
+    report.sections += crate::drawings::prepare(doc, construction(o))?.wall_sections;
     let drafts = chosen(doc, o, &mut report.warnings);
     let stages = stage_map(doc);
     let existing = existing_sheets(doc);
@@ -1279,14 +1296,10 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
             _ => None,
         })
         .collect();
-    let (project, address) = match ops::project_info(doc).and_then(|i| doc.data(i).ok()) {
-        Some(ElementData::ProjectInfo { name, address, .. }) => (name.clone(), address.clone()),
-        _ => (String::new(), String::new()),
-    };
     let mut cover_index: Option<ElementId> = None;
+    let mut cover: Option<(ElementId, crate::cover::CoverData)> = None;
     let a = area(o.size);
     let size = o.size;
-    let t = o.building_type;
 
     doc.transact("Create sheet sets", |tx| {
         for d in &drafts {
@@ -1335,21 +1348,10 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                 });
             };
             match &d.content {
-                Content::Cover { index } => {
-                    let title = if project.trim().is_empty() {
-                        "PROJECT".to_owned()
-                    } else {
-                        project.to_uppercase()
-                    };
-                    note(tx, Pt::new(a.x0 + 20.0, a.y1 - 60.0), title, 12.7);
-                    let sub = [t.label().to_uppercase(), address.to_uppercase()]
-                        .into_iter()
-                        .filter(|s| !s.is_empty())
-                        .collect::<Vec<_>>()
-                        .join("  ·  ");
-                    note(tx, Pt::new(a.x0 + 21.0, a.y1 - 80.0), sub, 4.8);
+                Content::Cover { index, data } => {
+                    // Laid out once every sheet exists and the index's size is known (below).
+                    cover = Some((sheet, (**data).clone()));
                     if let Some(index) = index {
-                        // Positioned once every sheet exists (below).
                         cover_index = Some(tx.insert(ElementData::Viewport {
                             sheet,
                             view: *index,
@@ -1415,15 +1417,27 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
                     }
                 }
                 Content::Text(blocks) => {
-                    for (at, text, size, width) in text_layout(blocks, &a) {
+                    let plan = crate::cover::text_sheet(blocks, (a.x0, a.y0, a.x1, a.y1));
+                    for (at, text, size, width, align) in plan.notes {
                         tx.insert(ElementData::TextNote {
                             view: sheet,
                             at,
                             text,
                             size,
                             leaders: vec![],
-                            align: Default::default(),
-                            width: Some(width),
+                            align,
+                            width,
+                        });
+                    }
+                    for (p, q, style) in plan.lines {
+                        tx.insert(ElementData::DetailLine {
+                            view: sheet,
+                            curve: studio_core::sketch::SketchCurve::Line {
+                                a: p,
+                                b: q,
+                                wall: None,
+                            },
+                            style,
                         });
                     }
                 }
@@ -1452,24 +1466,111 @@ fn create_steps(doc: &mut Document, o: &SetOptions, report: &mut SetReport) -> C
         Ok(())
     })?;
 
-    // The sheet index lists the printing stage's set: top-align it for the largest one.
-    if let (Some(vp), Some(index)) = (cover_index, schedule(doc, ScheduleKind::Sheets)) {
-        let mut size = (0.0f64, 0.0f64);
-        for s in &selected {
-            if let Some((w, h)) = as_of_stage(doc, *s)
-                .ok()
-                .and_then(|c| table_size(&c, index))
-            {
-                size = (size.0.max(w), size.1.max(h));
+    // The cover (ADR-105), laid out round the sheet index, sized for the largest set's.
+    if let Some((sheet, data)) = cover {
+        let index = schedule(doc, ScheduleKind::Sheets);
+        let mut size: Option<(f64, f64)> = None;
+        if let (Some(_), Some(index)) = (cover_index, index) {
+            for s in &selected {
+                if let Some((w, h)) = as_of_stage(doc, *s)
+                    .ok()
+                    .and_then(|c| table_size(&c, index))
+                {
+                    let (pw, ph) = size.unwrap_or((0.0, 0.0));
+                    size = Some((pw.max(w), ph.max(h)));
+                }
             }
         }
-        let center = Pt::new(a.x1 - size.0 / 2.0 - 10.0, a.y1 - size.1 / 2.0 - 10.0);
-        doc.transact("Place the sheet index", |tx| {
-            tx.modify(vp, |d| {
-                if let ElementData::Viewport { center: c, .. } = d {
-                    *c = center;
-                }
+        // The rendering, unless it's on another sheet already.
+        let rendering = cover_rendering(doc).filter(|r| {
+            !doc.of(Category::Viewport).any(|e| {
+                matches!(&e.data, ElementData::Viewport { view, sheet: s, .. } if view == r && *s != sheet)
             })
+        });
+        let image = rendering.and_then(|r| match doc.data(r) {
+            Ok(ElementData::View {
+                kind: ViewKind::Rendering { image },
+                ..
+            }) => Some(*image),
+            _ => None,
+        });
+        let aspect = rendering
+            .and_then(|r| studio_core::renderings::image_of(doc, r))
+            .map(|(_, _, w, h, _)| f64::from(w) / f64::from(h.max(1)));
+        let plan = crate::cover::layout(&data, (a.x0, a.y0, a.x1, a.y1), size, aspect);
+        let on_sheet = |doc: &Document, view: ElementId| {
+            doc.of(Category::Viewport)
+                .find(|e| matches!(&e.data, ElementData::Viewport { view: v, sheet: s, .. } if *v == view && *s == sheet))
+                .map(|e| e.id)
+        };
+        let placed_render = rendering.and_then(|r| on_sheet(doc, r));
+        doc.transact("Lay out the cover", |tx| {
+            for (at, text, size, width, align) in &plan.notes {
+                tx.insert(ElementData::TextNote {
+                    view: sheet,
+                    at: *at,
+                    text: text.clone(),
+                    size: *size,
+                    leaders: vec![],
+                    align: *align,
+                    width: *width,
+                });
+            }
+            for (p, q, style) in &plan.lines {
+                tx.insert(ElementData::DetailLine {
+                    view: sheet,
+                    curve: studio_core::sketch::SketchCurve::Line {
+                        a: *p,
+                        b: *q,
+                        wall: None,
+                    },
+                    style: *style,
+                });
+            }
+            for (ring, pattern) in &plan.regions {
+                tx.insert(ElementData::FilledRegion {
+                    view: sheet,
+                    boundary: vec![ring.clone()],
+                    pattern: *pattern,
+                    outline: None,
+                });
+            }
+            if let Some(at) = plan.north {
+                tx.insert(ElementData::NorthArrow { view: sheet, at });
+            }
+            if let (Some(vp), Some(center)) = (cover_index, plan.index) {
+                tx.modify(vp, |d| {
+                    if let ElementData::Viewport { center: c, .. } = d {
+                        *c = center;
+                    }
+                })?;
+            }
+            if let (Some(r), Some(image), Some((center, width))) =
+                (rendering, image, plan.rendering)
+            {
+                tx.modify(image, |d| {
+                    if let ElementData::RenderImage { paper_width, .. } = d {
+                        *paper_width = width;
+                    }
+                })?;
+                match placed_render {
+                    Some(vp) => tx.modify(vp, |d| {
+                        if let ElementData::Viewport { center: c, .. } = d {
+                            *c = center;
+                        }
+                    })?,
+                    None => {
+                        tx.insert(ElementData::Viewport {
+                            sheet,
+                            view: r,
+                            center,
+                            title_length: None,
+                            title_offset: None,
+                        });
+                    }
+                }
+            }
+            Ok(())
         })?;
     }
     // Older sheets left empty by the move leave the chosen phases' sets.
@@ -1604,6 +1705,7 @@ mod tests {
             phases: phases.iter().map(|p| (*p).to_owned()).collect(),
             size: SheetSize::ArchD,
             jurisdiction: None,
+            consultants: true,
         }
     }
 
@@ -1657,9 +1759,13 @@ mod tests {
         assert_eq!(name("A-102").name, "Level 2 Floor Plan");
         assert!(name("A-101").contents.contains("1/4\" = 1'-0\""));
         assert_eq!(name("A-151").name, "Level 1 Reflected Ceiling Plan");
-        // A 40' x 30' house at 1/4": south and north on A-201, east and west on A-202.
-        assert_eq!(name("A-201").contents, "South, North at 1/4\" = 1'-0\"");
-        assert_eq!(name("A-202").contents, "East, West at 1/4\" = 1'-0\"");
+        // A 40' x 30' house at 1/4", cropped to the building (ADR-105): three elevations
+        // on A-201, the fourth on A-202.
+        assert_eq!(
+            name("A-201").contents,
+            "South, North, East at 1/4\" = 1'-0\""
+        );
+        assert_eq!(name("A-202").contents, "West at 1/4\" = 1'-0\"");
         assert!(name("A-301")
             .contents
             .contains("Building Section 1, Building Section 2"));
@@ -1721,12 +1827,71 @@ mod tests {
     }
 
     #[test]
+    fn sets_hold_the_architects_sheets_cropped_without_landscape_with_wall_sections() {
+        let mut doc = house(2);
+        let mut o = opts(BuildingType::SingleFamily, &["SD", "CD"]);
+        o.consultants = false;
+        // Without consultants: general, architectural and energy sheets only (ADR-105).
+        let p = plan(&doc, &o);
+        assert!(p
+            .sheets
+            .iter()
+            .all(|s| OWN.contains(&s.number.split('-').next().unwrap())));
+        assert!(p
+            .sheets
+            .iter()
+            .any(|s| s.number == "A-311" && !s.placeholder));
+        create(&mut doc, &o).unwrap();
+        // Plans, elevations and sections are cropped to the building, landscape hidden.
+        let mut drawings = 0;
+        for e in doc.of(Category::View) {
+            if let ElementData::View {
+                kind:
+                    ViewKind::FloorPlan { .. } | ViewKind::Elevation { .. } | ViewKind::Section { .. },
+                crop,
+                hidden_categories,
+                site: false,
+                callout_of: None,
+                ..
+            } = &e.data
+            {
+                assert!(crop.is_some(), "{}", e.data.name());
+                assert!(hidden_categories.contains(&Category::Planting));
+                drawings += 1;
+            }
+        }
+        assert!(drawings >= 8, "{drawings}");
+        // The wall section is on A-311 at 3/4" = 1'-0", noted.
+        let a311 = ops::sheets(&doc)
+            .into_iter()
+            .find(|s| s.1 == "A-311")
+            .unwrap()
+            .0;
+        let ws = doc
+            .of(Category::Viewport)
+            .find_map(|e| match &e.data {
+                ElementData::Viewport { sheet, view, .. } if *sheet == a311 => Some(*view),
+                _ => None,
+            })
+            .unwrap();
+        assert!(matches!(
+            doc.data(ws),
+            Ok(ElementData::View { scale: 16, name, .. }) if name.starts_with("Wall Section 1")
+        ));
+        let notes = doc
+            .of(Category::TextNote)
+            .filter(|e| matches!(&e.data, ElementData::TextNote { view, leaders, .. } if *view == ws && !leaders.is_empty()))
+            .count();
+        assert!(notes >= 6, "{notes}");
+    }
+    #[test]
     fn creating_places_views_tags_stages_and_undoes_as_one() {
         let mut doc = house(2);
         let before = doc.undo_depth();
         let r = create(&mut doc, &opts(BuildingType::SingleFamily, &["SD", "CD"])).unwrap();
         assert_eq!(doc.undo_depth(), before + 1);
-        assert_eq!(r.sections, 2);
+        // Two building sections and a wall section (one wall type, two stories).
+        assert_eq!(r.sections, 3);
         assert_eq!(r.updated, 0);
         assert!(r.created >= 20, "{}", r.created);
         assert!(r.placeholders >= 8);

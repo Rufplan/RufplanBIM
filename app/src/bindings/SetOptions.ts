@@ -12,4 +12,9 @@ phases: Array<string>, size: SheetSize,
  * Where it's permitted (ADR-104): shapes the general sheets. Project Info's location
  * when absent.
  */
-jurisdiction?: Jurisdiction, };
+jurisdiction?: Jurisdiction, 
+/**
+ * Include consultants' placeholder sheets (civil, landscape, structural, MEP…).
+ * Off by default (ADR-105): they don't come from Rufplan yet.
+ */
+consultants: boolean, };

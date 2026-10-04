@@ -914,8 +914,9 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
         1.0,
     )?;
     // Rolling ground beyond the garden (ADR-095): the lot flat round the house, rising
-    // into gentle lawn berms, as a landscape architect grades a modern site. The site
-    // keeps the default location (the sun is unchanged) and has no address or parcel.
+    // into gentle lawn berms, as a landscape architect grades a modern site. The lot
+    // (ADR-105) is a 140' x 110' parcel in Palo Alto, California, fronting the street
+    // on the west where the driveway meets it.
     {
         let center = (33.0, 18.0);
         let mounds: [(f64, f64, f64, f64); 5] = [
@@ -946,11 +947,20 @@ pub fn build_modern(doc: &mut Document) -> anyhow::Result<()> {
             .collect();
         b.doc.transact("Grade the site", |tx| {
             Ok(tx.insert(ElementData::Site {
-                address: String::new(),
-                lat: 39.8,
-                lon: -98.6,
-                boundary: vec![],
-                parcel: studio_core::site::ParcelInfo::default(),
+                address: ADDRESS.into(),
+                lat: 37.42,
+                lon: -122.13,
+                boundary: [(-32.0, -45.0), (108.0, -45.0), (108.0, 65.0), (-32.0, 65.0)]
+                    .iter()
+                    .map(|(x, y)| ft(*x, *y))
+                    .collect(),
+                parcel: studio_core::site::ParcelInfo {
+                    apn: APN.into(),
+                    owner: String::new(),
+                    address: ADDRESS.into(),
+                    acres: 140.0 * 110.0 / 43_560.0,
+                    source: "Sample".into(),
+                },
                 offset: Pt::default(),
                 rotation: 0.0,
                 base_elevation: 0.0,
@@ -1215,9 +1225,41 @@ fn documents(b: &mut B<'_>, l1: ElementId) -> anyhow::Result<()> {
     // A longitudinal and a cross section (the sets use these rather than their own).
     ops::create_section(b.doc, ft(49.0, -22.0), ft(49.0, 48.0))?;
     ops::create_section(b.doc, ft(-6.0, 22.0), ft(72.0, 22.0))?;
-    let p = Pt::new;
+    // The project as a California permit set describes it (ADR-105): address, parcel,
+    // zoning, codes and the design team, so the general sheets and the cover fill in.
+    project_info(b.doc)?;
+    // A wood-framed flat roof: TPO over tapered insulation on plywood and I-joists, in the
+    // 12" the roofs are drawn at.
+    let flat = b.named(Category::RoofType, "Flat Membrane")?;
+    b.doc.transact("Wood-framed flat roof", |tx| {
+        tx.modify(flat, |d| {
+            if let ElementData::RoofType { layers, .. } = d {
+                *layers = vec![
+                    layer("TPO Roof Membrane", 0.25, LayerFunction::Membrane),
+                    layer("Cover Board", 0.5, LayerFunction::Substrate),
+                    layer("Tapered Rigid Insulation", 2.5, LayerFunction::Insulation),
+                    layer("Plywood Sheathing", 0.75, LayerFunction::Substrate),
+                    layer("Wood I-Joists", 8.0, LayerFunction::Structure),
+                ];
+            }
+        })
+    })?;
+    // The hero rendering (ADR-095), saved before the sets so the cover shows it.
+    {
+        use base64::Engine;
+        let data = base64::engine::general_purpose::STANDARD.encode(HERO_RENDERING);
+        studio_core::renderings::save(
+            b.doc,
+            "Hero View - Southeast - Rendering",
+            "image/jpeg",
+            data,
+            1600,
+            900,
+        )?;
+    }
     // Every phase's drawing set, as View > Sheet Sets builds them (ADR-103): PD through CA,
-    // NCS-numbered, each sheet tagged with the stages whose sets include it.
+    // NCS-numbered, each sheet tagged with the stages whose sets include it. The sets
+    // crop the drawings, cut the wall sections and lay out the cover (ADR-105).
     let o = studio_sheets::sets::SetOptions {
         building_type: studio_sheets::sets::BuildingType::SingleFamily,
         phases: studio_sheets::sets::PHASES
@@ -1226,46 +1268,108 @@ fn documents(b: &mut B<'_>, l1: ElementId) -> anyhow::Result<()> {
             .collect(),
         size: SheetSize::ArchD,
         jurisdiction: None,
+        consultants: false,
     };
-    // The title blocks and the cover carry the project's name.
-    let info = b.doc.of(Category::ProjectInfo).next().map(|e| e.id);
-    if let Some(info) = info {
-        b.doc.transact("Name project", |tx| {
-            tx.modify(info, |d| {
-                if let ElementData::ProjectInfo { name, .. } = d {
-                    *name = "The Modern House".into();
-                }
-            })
-        })?;
-    }
     studio_sheets::sets::create(b.doc, &o)?;
-    // The hero rendering (ADR-095) across the cover, the sheet index beside it.
-    let cover = ops::sheets(b.doc)
-        .into_iter()
-        .find(|s| s.1 == "G-001")
-        .map(|s| s.0)
-        .context("no cover sheet in the sets")?;
-    {
-        use base64::Engine;
-        let data = base64::engine::general_purpose::STANDARD.encode(HERO_RENDERING);
-        let hero = studio_core::renderings::save(
-            b.doc,
-            "Hero View - Southeast - Rendering",
-            "image/jpeg",
-            data,
-            1600,
-            900,
-        )?;
-        ops::place_view(b.doc, cover, hero, p(330.0, 330.0))?;
-    }
-    let index = b
-        .doc
-        .of(Category::Viewport)
-        .find(|e| matches!(&e.data, ElementData::Viewport { sheet, view, .. } if *sheet == cover && b.doc.data(*view).is_ok_and(|v| matches!(v, ElementData::View { kind: ViewKind::Schedule { .. }, .. }))))
-        .map(|e| e.id);
-    if let Some(index) = index {
-        studio_sheets::move_viewport(b.doc, index, p(735.0, 330.0))?;
-    }
+    Ok(())
+}
+
+const ADDRESS: &str = "2150 Arbor Ridge Lane, Palo Alto, CA 94306";
+const APN: &str = "000-00-000";
+
+/// Project Info for the Modern House (ADR-105): a sample project in Palo Alto, California.
+/// The address, parcel and firms are made up; the zoning numbers are typical of an R-1
+/// lot there, for the sheets to show (verify any real project's with its city).
+fn project_info(doc: &mut Document) -> anyhow::Result<()> {
+    use studio_core::project::{Codes, Contact, Location, Overview, TeamMember};
+    let (ident, mut d) = studio_core::project::get(doc)?;
+    d.overview = Overview {
+        project_type: "Single-Family Residence".into(),
+        work_type: "New Construction".into(),
+        description: "A new two-story modern residence on a vacant lot: a white stucco ground floor holds the open living, dining and kitchen wing on a bluestone terrace, an attached two-car garage, a guest suite and an office; a cedar-clad upper volume with the primary suite and two bedrooms cantilevers 4'-0\" over the terrace on two steel columns, under flat roofs with deep white fascia bands.".into(),
+        ..d.overview
+    };
+    d.location = Location {
+        street: "2150 Arbor Ridge Lane".into(),
+        city: "Palo Alto".into(),
+        state: "CA".into(),
+        zip: "94306".into(),
+        county: "Santa Clara".into(),
+        country: "USA".into(),
+        apn: APN.into(),
+        legal: "Lot 12, Arbor Ridge Tract (sample)".into(),
+        jurisdiction: "City of Palo Alto".into(),
+    };
+    d.client = Contact {
+        company: "Private Owner".into(),
+        ..Contact::default()
+    };
+    let firm = |discipline: &str, company: &str, phone: &str| TeamMember {
+        discipline: discipline.into(),
+        contact: Contact {
+            company: company.into(),
+            phone: phone.into(),
+            ..Contact::default()
+        },
+        ..TeamMember::default()
+    };
+    d.team = vec![
+        firm("Architect", "Rufplan Architects", "(650) 555-0100"),
+        firm(
+            "Structural Engineer",
+            "Bayside Structural Engineers",
+            "(650) 555-0130",
+        ),
+        firm(
+            "Civil Engineer",
+            "Peninsula Civil Engineering",
+            "(650) 555-0140",
+        ),
+        firm("MEP Engineer", "Coastline MEP Engineers", "(650) 555-0150"),
+        firm(
+            "Landscape Architect",
+            "Oak & Stone Landscape Architecture",
+            "(650) 555-0160",
+        ),
+        firm(
+            "Title 24 Consultant",
+            "Golden State Energy Consultants",
+            "(650) 555-0170",
+        ),
+        firm("Surveyor", "Santa Clara Land Surveying", "(650) 555-0180"),
+        firm(
+            "Geotechnical Engineer",
+            "Bedrock Geotechnical",
+            "(650) 555-0190",
+        ),
+    ];
+    d.codes = Codes {
+        building_code: "2025 California Residential Code".into(),
+        energy_code: "2025 California Energy Code".into(),
+        occupancy: "R-3 / U".into(),
+        construction_type: "V-B".into(),
+        sprinklered: "NFPA 13D".into(),
+        zoning_district: "R-1 (Single-Family Residential)".into(),
+        lot_area: "15,400 sf".into(),
+        far: "0.45 x first 5,000 sf + 0.30 x balance = 5,370 sf".into(),
+        max_height: "30'-0\"".into(),
+        setbacks: "Front 20'-0\", sides 6'-0\" min., rear 20'-0\"".into(),
+        lot_coverage: "35% (5,390 sf)".into(),
+        parking: "2 spaces, 1 covered".into(),
+        notes: [
+            "General plan: Single Family Residential",
+            "Overlay: none",
+            "Fire hazard: not in a Very High FHSZ (verify on the CAL FIRE map)",
+            "Flood zone: X, outside the 1% annual chance floodplain (verify on the FEMA FIRM)",
+            "Soils: geotechnical report by Bedrock Geotechnical (sample)",
+            "Seismic: D",
+            "Climate zone: 4",
+            "Decks: none; terrace at grade",
+            "ADU: none proposed",
+        ]
+        .join("\n"),
+    };
+    studio_core::project::set(doc, "The Modern House", &ident.number, d)?;
     Ok(())
 }
 
@@ -1390,6 +1494,30 @@ mod preview {
                 .filter(|e| matches!(&e.data, ElementData::TextNote { view, .. } if view == g))
                 .count();
             assert!(notes >= 2, "{notes}");
+        }
+        // Dev aid: SHEETS_PDF=dir writes a PDF of each series of sheets (A-0, A-1… T-0)
+        // there, as the CD set prints them.
+        if let Ok(dir) = std::env::var("SHEETS_PDF") {
+            let cd = ops::stages(&doc)
+                .into_iter()
+                .find(|s| s.2 == "CD")
+                .map(|s| s.0)
+                .unwrap();
+            let doc = studio_sheets::sets::as_of_stage(&doc, cd).unwrap();
+            let mut series: std::collections::BTreeMap<String, Vec<ElementId>> = Default::default();
+            for (id, number, _) in ops::sheets(&doc) {
+                let in_cd = matches!(doc.data(id), Ok(ElementData::Sheet { stages, .. }) if stages.contains(&cd));
+                if in_cd {
+                    series
+                        .entry(number.chars().take(3).collect())
+                        .or_default()
+                        .push(id);
+                }
+            }
+            for (s, ids) in series {
+                let pdf = studio_sheets::export_pdf(&doc, &ids, "2026-10-04").unwrap();
+                std::fs::write(format!("{dir}/{s}.pdf"), pdf).unwrap();
+            }
         }
         if let Ok(out) = std::env::var("GENERAL_PDF") {
             std::fs::write(

@@ -1872,7 +1872,7 @@ export function installFakeBackend(): FakeBackend {
             { id: "Hotel", label: "Hotel" },
           ];
         case "sheet_set_plan": {
-          const o = a.options as { buildingType: string; phases: string[] };
+          const o = a.options as { buildingType: string; phases: string[]; consultants?: boolean };
           const sheet = (number: string, name: string, phases: string[], placeholder = false) => ({
             number,
             name,
@@ -1893,7 +1893,7 @@ export function installFakeBackend(): FakeBackend {
               ["DD", "CD", "BN", "CA"],
               true,
             ),
-          ].filter((s) => s.phases.length);
+          ].filter((s) => s.phases.length && (o.consultants || !s.number.startsWith("S-")));
           const names: Record<string, [string, string][]> = {
             SD: [["sd100", "100% Schematic Design"]],
             CD: [

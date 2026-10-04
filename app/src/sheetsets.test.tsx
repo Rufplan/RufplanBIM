@@ -45,17 +45,19 @@ describe("Sheet Sets (ADR-032)", () => {
     expect(within(list).queryByText("Permit Set")).toBeNull();
     expect(within(table).queryByText("Foundation Plan")).toBeNull();
     expect(calls("sheet_set_plan").at(-1)).toMatchObject({
-      options: { buildingType: "SingleFamily", phases: ["SD"], size: "ArchD" },
+      options: { buildingType: "SingleFamily", phases: ["SD"], size: "ArchD", consultants: false },
     });
-    // Hotels get their own sheets.
+    // Consultants' sheets only when asked for (ADR-105); hotels get their own.
     await userEvent.click(within(dialog).getByRole("checkbox", { name: /^CD / }));
+    expect(within(table).queryByText("Foundation Plan")).toBeNull();
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /consultants/ }));
     await userEvent.selectOptions(within(dialog).getByLabelText("Building type"), "Hotel");
     expect(await within(table).findByText("Hotel Foundation Plan")).toBeTruthy();
     // Create, then export into a folder, recorded as issued.
     await userEvent.click(within(dialog).getByRole("button", { name: "Create Sheets" }));
     expect(await within(dialog).findByText(/3 sheets created · 1 views placed/)).toBeTruthy();
     expect(calls("create_sheet_sets")[0]).toMatchObject({
-      options: { buildingType: "Hotel", phases: ["SD", "CD"] },
+      options: { buildingType: "Hotel", phases: ["SD", "CD"], consultants: true },
     });
     fake.openPath = "C:/Sets";
     await userEvent.click(within(dialog).getByLabelText("Record as issued"));

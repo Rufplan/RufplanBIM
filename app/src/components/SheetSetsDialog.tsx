@@ -32,6 +32,8 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
   const [places, setPlaces] = useState<[Jurisdiction, string][]>([]);
   const [implied, setImplied] = useState<Jurisdiction | null>(null);
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction | "auto">("auto");
+  // Consultants' placeholder sheets stay out until they come from Rufplan (ADR-105).
+  const [consultants, setConsultants] = useState(false);
   const [plan, setPlan] = useState<SetPlan | null>(null);
   const [shown, setShown] = useState<string | null>(null);
   const [record, setRecord] = useState(false);
@@ -62,6 +64,7 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
     buildingType,
     phases: PHASES.filter((p) => phases.has(p)),
     size,
+    consultants,
     ...(jurisdiction === "auto" ? {} : { jurisdiction }),
   };
   const optionsKey = JSON.stringify(options);
@@ -202,6 +205,15 @@ export function SheetSetsDialog({ onClose }: { onClose: () => void }) {
                 {s === "ArchD" ? 'ARCH D 36" x 24"' : 'Tabloid 17" x 11"'}
               </label>
             ))}
+            <h3>Consultants</h3>
+            <label className="ob-check">
+              <input
+                type="checkbox"
+                checked={consultants}
+                onChange={(e) => setConsultants(e.target.checked)}
+              />
+              Include consultants' placeholder sheets (civil, structural, MEP…)
+            </label>
             <div className="ss-actions">
               <button
                 className="btn-cyan"

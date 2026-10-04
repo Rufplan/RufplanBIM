@@ -531,6 +531,7 @@ pub fn build_with_set(
             phases: vec!["CD".into()],
             size: studio_core::SheetSize::ArchD,
             jurisdiction: None,
+            consultants: false,
         };
         // Elevations and sections show the building, not the trees in front of it: hidden
         // before the set is laid out (the sections it cuts too, then laid out again), so

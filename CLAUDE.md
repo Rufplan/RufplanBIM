@@ -165,6 +165,10 @@ Read these before writing code:
 - Sky Library and turf (ADR-101): studio-core `skies` (31 Poly Haven pure skies), app sky_library/sky_file, render/backgrounds.ts
   (hdrSun, matchSunRotation, fillGround); grass.ts arched lawn blades + far LOD; plants.rs mopheads, outward leaf winding;
   ffe.rs `canopy` umbrella (`Part::Tris`); pathtrace `interiorGlow`.
+- California permit sets (ADR-105): studio-sheets `drawings` (prepare: landscape hidden, crops, site plan; wall sections,
+  enlarged plans, details), `cover` (cover_data, layout, text_sheet boxes and figures), `california` (G-002–G-005, T-001,
+  areas); `SetOptions.consultants` (off: G/A/T only); ProjectBrowser groups sheets by discipline. Sample is a Palo Alto
+  project; `SHEETS_PDF=dir` on the_cover_sheet_carries_the_hero_rendering prints the CD set by series.
 - Designed Generate (ADR-099): studio-core `generate/` (mod: outdoor rooms, glazing, story cladding/roofs; design: roofs per
   story, clad types, supports, face_out; site: landscape, furnish; annotate: plan dimensions, crops); app `precedents`
   (31 architects/works), generate_cmds `build_with_set` (CD set), live_generate / build_saved_plan dev aids.
@@ -311,4 +315,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-10-01
+- Last updated: 2026-10-04

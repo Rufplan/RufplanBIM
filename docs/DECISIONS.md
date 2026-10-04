@@ -3934,3 +3934,91 @@ coursing along a line".
     advice. It's text notes, edited like any other note.
 - The old G-002 to G-005 placeholders are gone. Life Safety moved from G-003 to G-006,
   and Accessibility from G-004 to G-007.
+
+## ADR-105 California permit sets: grouped sheets, the cover, G/T sheets, cropped drawings and wall sections — Accepted (2026-10-04)
+- **The owner's ask:**
+  - Group sheets in the project browser by discipline, as Revit does, with General above
+    Architectural.
+  - Leave consultants' sheets out of the preset sets until they come from Rufplan.
+  - Research what California's general and architectural sheets hold, format the cover as
+    permit covers are formatted, and crop and lay out the drawings without landscaping.
+  - Research wall sections and draw them for the Modern House.
+- **Project browser:** sheets grouped under their discipline, in NCS order (General,
+  Survey, Civil, Landscape, Structural, Architectural, … Energy), numerically within each.
+- **Consultants:** `SetOptions.consultants` (default off). Without it the sets hold only
+  G, A and T sheets; View > Sheet Sets has a checkbox to include them as placeholders.
+- **The cover** (studio-sheets `cover`), laid out after the Millbrae, California plan
+  template and its peers, each part a ruled, titled box:
+  - Across the top: the project title, building type and address.
+  - Left column: the rendering (the project's first saved rendering, sized to fit), the
+    project description and scope with a schematic vicinity map and north arrow, then
+    deferred submittals and separate permits.
+  - Middle column: the project directory (Project Info's team plus the roles a California
+    permit set lists), project data (APN, zoning, occupancy, type, sprinklers, height,
+    lot, area per level, FAR, lot coverage, setbacks, parking, climate, fire and flood
+    zones) and the applicable codes.
+  - Right column: the sheet index, the architect's stamp and the agency approval box.
+- **California sheets** (studio-sheets `california`), from the 2025 California Building
+  Standards Code (Title 24, effective January 1, 2026, based on the 2024 I-Codes):
+  - **G-002 Project Data & Code Analysis:** the codes, zoning required against provided
+    (the setbacks measured from the lot), building data, an area tabulation from the
+    model (conditioned area by level, garage), parking, site hazards, floor area and lot
+    coverage diagrams. CBC buildings keep the IBC code analysis blocks.
+  - **G-003 General Notes, Abbreviations & Symbols:** includes smoke and CO alarms,
+    escape openings, address numbers, fire department access, Knox box, special
+    inspections and 811.
+  - **G-004 CALGreen Mandatory Measures:** Chapter 4 by division for housing, Chapter 5
+    for others.
+  - **G-005 Construction Best Management Practices** and post-construction stormwater.
+  - **CBC buildings:** G-006 life safety, G-007 accessibility (11A / 11B) and G-008
+    special inspections.
+  - **T-001 Title 24 Energy Compliance:** the CF1R, mandatory measures, PV, battery-ready
+    and electric-ready provisions, HERS items and the envelope summary.
+  - Values Project Info's code notes give as "Key: value" lines (flood zone, climate
+    zone, seismic…) fill the bracketed blanks.
+- **General sheets' layout:** blocks are ruled boxes in balanced columns; "KEY: value"
+  blocks print as two-column tables. This replaces the plain text columns of ADR-104.
+- **Drawings readied for the sets** (studio-sheets `drawings::prepare`, run by
+  `sets::create` and the preview):
+  - Planting, ground regions and grass are hidden in plans, ceiling plans, elevations and
+    sections; the site plan keeps them. Outdoor furniture is hidden in plans.
+  - Uncropped views are cropped to the building: plans 8' clear, elevations and sections
+    6' each side and 4' above and below, grown to take dimensions, datums and marks
+    within 24'.
+  - A site plan is made when the lot is drawn, cropped to the lot plus 12'.
+  - Sets from DD on also get:
+    - Wall sections.
+    - Enlarged plans: callouts at 1/2" = 1'-0" of the kitchen and baths, when there are
+      none.
+    - Typical library details for what the model has, when there are no drafting views.
+      Details pack together at their own scales on A-501 and up.
+  - Renderings other than the cover's go on A-901.
+- **Wall sections** (`drawings::ensure_wall_sections`), as US practice draws them:
+  - One per exterior wall condition: wall type, the walls stacked above it, a cantilever.
+    The most stories come first, up to four.
+  - Each is cut where it's clear of openings, corners, crossing walls and columns,
+    through the full stack where there is one.
+  - Drawn at 3/4" = 1'-0", Fine detail, from footing to roof, with landscape and site
+    earth hidden.
+  - The footing, thickened slab edge, rock base, earth and finish grade are drawn in.
+  - Notes with leaders call out each wall layer outside to inside, the floor, ceiling and
+    roof assemblies in the rooms' clear space, the fascia and roof slope, sill plate and
+    anchor bolts, footing, finish grade, fireblocking, and the floor over exterior space
+    at a cantilever. Each note cites its code section (CRC R703, R302, R403, R401.3,
+    R905; CALGreen 4.505.2).
+  - They flow onto A-311 and up.
+- **Sample:** the Modern House is a Palo Alto, California project:
+  - Address, APN, zoning, codes and team in Project Info; a 140' x 110' lot; a
+    wood-framed flat roof assembly.
+  - Its hero rendering is saved before the sets, so the cover shows it.
+  - Its CD set prints 26 sheets (G-001–G-005, A-100–A-602, T-001).
+  - Its address, parcel and firms are made up; its zoning numbers are typical for the
+    sheets to show.
+- **Dev aid:** `SHEETS_PDF=dir cargo test --release -p rufplan-studio
+  the_cover_sheet_carries_the_hero_rendering` writes each series of the CD set (G-0,
+  A-1…, T-0) as a PDF.
+- **Caveats:**
+  - The code text is typical California practice for the architect to review; editions,
+    local amendments and reach codes are to be verified with the city.
+  - Wall section notes are generic to the layer names. Structural items (footing,
+    anchors, nailing) defer to the structural drawings.

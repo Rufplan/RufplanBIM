@@ -1144,6 +1144,7 @@ mod tests {
                         phases: phases.clone(),
                         size: studio_core::SheetSize::ArchD,
                         jurisdiction: None,
+                        consultants: false,
                     },
                 )
             })
