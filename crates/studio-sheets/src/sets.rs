@@ -424,17 +424,38 @@ fn view_of(doc: &Document, want: impl Fn(&ViewKind, &ElementData) -> bool) -> Op
         .map(|e| e.id)
 }
 
-/// An interior detail (stairs, casework, partitions, base and trim, floor transitions) by
-/// the library category of the detail a drafting view is named for; others are exterior.
-fn interior_detail(view_name: &str) -> bool {
-    const EXTERIOR: &[&str] = &["Foundations", "Walls", "Openings", "Roofs"];
-    const EXTERIOR_IDS: &[&str] = &["rim-joist", "deck-guard"];
+/// A drafting view to place: its printed size, family and library place, and name.
+type DetailEntry = (ElementId, (f64, f64), (usize, usize), String);
+
+/// The details series' families, each on sheets of its own (ADR-117), as offices split it.
+const DETAIL_FAMILIES: [&str; 4] = [
+    "Foundation & Wall Details",
+    "Door & Window Details",
+    "Roof Details",
+    "Interior Details",
+];
+const INTERIOR_FAMILY: usize = 3;
+
+/// A drafting view's family and its place in the library, by the library detail it is named
+/// for: foundations and walls (and the rim and deck guard), openings, roofs, then interiors
+/// (stairs, casework, partitions, base and trim, floor transitions). One that isn't from the
+/// library goes with the foundation and wall details, after them.
+fn detail_family(view_name: &str) -> (usize, usize) {
+    const ENVELOPE_IDS: &[&str] = &["rim-joist", "deck-guard"];
     studio_core::details::catalog()
         .into_iter()
-        .filter(|d| view_name.starts_with(&d.name))
-        .max_by_key(|d| d.name.len())
-        .is_some_and(|d| {
-            !EXTERIOR.contains(&d.category.as_str()) && !EXTERIOR_IDS.contains(&d.id.as_str())
+        .enumerate()
+        .filter(|(_, d)| view_name.starts_with(&d.name))
+        .max_by_key(|(_, d)| d.name.len())
+        .map_or((0, usize::MAX), |(i, d)| {
+            let family = match d.category.as_str() {
+                "Foundations" | "Walls" => 0,
+                "Openings" => 1,
+                "Roofs" => 2,
+                _ if ENVELOPE_IDS.contains(&d.id.as_str()) => 0,
+                _ => INTERIOR_FAMILY,
+            };
+            (family, i)
         })
 }
 
@@ -1011,7 +1032,9 @@ fn drafts(
     // Details (drafting views), each at its own scale, packed together on as few sheets
     // as hold them, tallest first: exterior (envelope) details from A-501, interior details
     // from A-551 (ADR-106), as offices split the details series.
-    let mut details: Vec<(ElementId, (f64, f64), bool)> = doc
+    // By family, in library order (ADR-117): a window's head, sill and jamb are details 1,
+    // 2 and 3 side by side, and the roof's edges, walls and chimney their own sheet.
+    let mut details: Vec<DetailEntry> = doc
         .of(Category::View)
         .filter_map(|e| match &e.data {
             ElementData::View {
@@ -1021,12 +1044,12 @@ fn drafts(
                 ..
             } => model_size(doc, e.id).map(|(w, h)| {
                 let s = f64::from((*scale).max(1));
-                (e.id, (w / s, h / s), interior_detail(name))
+                (e.id, (w / s, h / s), detail_family(name), name.clone())
             }),
             _ => None,
         })
         .collect();
-    details.sort_by(|a, b| b.1 .1.total_cmp(&a.1 .1));
+    details.sort_by(|a, b| a.2.cmp(&b.2).then_with(|| a.3.cmp(&b.3)));
     if details.is_empty() {
         add(
             num("A", 501),
@@ -1038,17 +1061,22 @@ fn drafts(
             CD_ON,
         );
     } else {
-        for (start, interior, name) in [
-            (501, false, "Exterior Details"),
-            (551, true, "Interior Details"),
-        ] {
+        // Each family on sheets of its own: the envelope's from A-501, interiors from A-551.
+        let (mut ext, mut int) = (501, 551);
+        for (family, name) in DETAIL_FAMILIES.iter().enumerate() {
             let group: Vec<(ElementId, (f64, f64))> = details
                 .iter()
-                .filter(|d| d.2 == interior)
+                .filter(|d| d.2 .0 == family)
                 .map(|d| (d.0, d.1))
                 .collect();
-            for (i, g) in flow_schedules(&group, &ar).into_iter().enumerate() {
-                add(num("A", start + i), name, Content::Schedules(g), CD_ON);
+            let n = if family == INTERIOR_FAMILY {
+                &mut int
+            } else {
+                &mut ext
+            };
+            for g in flow_schedules(&group, &ar) {
+                add(num("A", *n), name, Content::Schedules(g), CD_ON);
+                *n += 1;
             }
         }
     }
@@ -2239,6 +2267,86 @@ mod tests {
             copy.data(ops::project_info(&copy).unwrap()),
             Ok(ElementData::ProjectInfo { current_stage: Some(s), .. }) if *s == sd
         ));
+    }
+
+    #[test]
+    fn details_go_by_family_and_the_roof_plan_refers_to_its_edges() {
+        let mut doc = house(1);
+        // A hip roof bearing on Level 2, whose plan is the roof plan.
+        let rt = ops::first_of(&doc, Category::RoofType).unwrap();
+        let l2 = doc.levels()[1].0;
+        let (w, h) = (40.0 * MM_PER_FT, 30.0 * MM_PER_FT);
+        let ring = vec![
+            Pt::new(-600.0, -600.0),
+            Pt::new(w + 600.0, -600.0),
+            Pt::new(w + 600.0, h + 600.0),
+            Pt::new(-600.0, h + 600.0),
+        ];
+        studio_core::build::create_roof(&mut doc, rt, l2, 0.0, ring, 0.5).unwrap();
+        // Details in no particular order: the sets put them by family, in library order.
+        for id in [
+            "window-jamb",
+            "eave",
+            "slab-edge",
+            "window-head",
+            "stair-tread",
+            "window-sill",
+        ] {
+            studio_core::details::insert(&mut doc, id).unwrap();
+        }
+        create(&mut doc, &opts(BuildingType::SingleFamily, &["CD"])).unwrap();
+        let on = |name: &str| -> Vec<(String, Vec<String>)> {
+            ops::sheets(&doc)
+                .into_iter()
+                .filter(|s| s.2 == name)
+                .map(|s| {
+                    let mut vps: Vec<(ElementId, ElementId)> = doc
+                        .of(Category::Viewport)
+                        .filter_map(|e| match &e.data {
+                            ElementData::Viewport { sheet, view, .. } if *sheet == s.0 => {
+                                Some((e.id, *view))
+                            }
+                            _ => None,
+                        })
+                        .collect();
+                    vps.sort();
+                    (s.1, vps.iter().map(|v| view_name(&doc, v.1)).collect())
+                })
+                .collect()
+        };
+        let walls = on("Foundation & Wall Details");
+        let openings = on("Door & Window Details");
+        let roofs = on("Roof Details");
+        assert_eq!(walls[0].0, "A-501");
+        assert_eq!(openings[0].0, "A-502");
+        assert_eq!(roofs[0].0, "A-503");
+        // Head, sill and jamb: details 1, 2 and 3 of one sheet.
+        let names = &openings[0].1;
+        assert_eq!(names.len(), 3, "{names:?}");
+        for (n, part) in names.iter().zip(["Head", "Sill", "Jamb"]) {
+            assert!(n.contains(part), "{names:?}");
+        }
+        assert!(roofs[0].1[0].starts_with("Eave"));
+        assert_eq!(on("Interior Details")[0].0, "A-551");
+        // The roof plan: no wall section marks; the eave detail called out on its edge.
+        let model = studio_regen::regenerate(&doc);
+        let plans = crate::drawings::roof_plans(&doc, &model);
+        assert_eq!(plans.len(), 1);
+        let sections: Vec<ElementId> = doc
+            .of(Category::View)
+            .filter(|e| crate::drawings::is_wall_section(&e.data))
+            .map(|e| e.id)
+            .collect();
+        assert!(!sections.is_empty());
+        let Ok(ElementData::View { hidden, .. }) = doc.data(plans[0]) else {
+            panic!()
+        };
+        assert!(sections.iter().all(|s| hidden.contains(s)));
+        let eave = crate::drawings::detail_view(&doc, "eave").unwrap();
+        assert!(doc.iter().any(|e| matches!(
+            &e.data,
+            ElementData::ViewReference { view, target, .. } if *view == plans[0] && *target == eave
+        )));
     }
 
     #[test]

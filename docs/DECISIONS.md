@@ -4309,3 +4309,26 @@ coursing along a line".
   - OK saves the phase shown and any phase whose list was edited. A phase only looked at isn't saved, so browsing the dropdown never makes sheets.
   - Placeholders and the order stay project-wide.
 - **The ▲ ▼ buttons are gone:** order by dragging ⋮⋮ (ADR-115) or right-click Move.
+
+## ADR-117 Details by family; roof details called out on the roof plan — Accepted (2026-10-04)
+- **The owner's ask:**
+  - A window's head, sill and jamb details go together, as details 1, 2 and 3.
+  - Wall sections don't belong on the roof plan. The roof plan should refer to roof details: the eave or rake at the roof's edge, and the roofing where it meets a chimney.
+- **Details by family** (studio-sheets `sets::detail_family`, `DETAIL_FAMILIES`):
+  - Drafting views are placed by family, then library order, not tallest first.
+  - Each family goes on sheets of its own: Foundation & Wall Details (foundations, walls, rim, deck guard), Door & Window Details, and Roof Details from A-501, then Interior Details from A-551.
+  - On the Door & Window sheet, the window head, sill and jamb are 1, 2 and 3 side by side.
+  - Details not from the library follow the foundation and wall details.
+- **Three new library details** (studio-core `details::library`, Roofs, 1 1/2" = 1'-0"):
+  - **Low-Slope Roof Edge with Metal Fascia** (`roof-edge`): membrane over tapered insulation to a P.T. nailer; a prefinished metal fascia/gravel stop with drip on a continuous cleat; vented soffit. This is the edge a modern flat roof without a parapet has, as the Modern House's does.
+  - **Low Roof at Wall** (`roof-wall`): joists on a ledger; membrane up a cant 8" min. to a termination bar; metal counterflashing lapped by the WRB, siding above.
+  - **Roofing at Chimney** (`chimney-flashing`): shingle roof up to a masonry chimney; framed cricket; base flashing 6" up the chimney; reglet counterflashing; framing 2" clear.
+- **Which roof details a set gets** (`drawings::ensure_details`):
+  - A flat roof with a fascia gets the metal edge; one without gets the parapet.
+  - A flat roof more than 1 m below the top roof gets the low roof at wall.
+  - A sloped roof gets the eave and rake, and the chimney when an element or type is named for a chimney or fireplace (no chimney element yet).
+- **The roof plan** (`drawings::roof_plans`, `ensure_roof_plan_marks`, `detail_view`):
+  - Plans of a level above every walled level hide the wall section views.
+  - They get a 4'-0" callout (ADR-076 reference) to each edge detail, a third of the way along the top roofs' longest edge (clear of a section line through the middle): the eave (an edge a sloped face rises from) and the rake (another edge), or the fascia edge or parapet of a flat roof.
+  - A low flat roof is called out in its own level's plan, where it shows, at the edge that meets a wall rising past it.
+  - A plan already referring to a detail isn't given a second callout to it.

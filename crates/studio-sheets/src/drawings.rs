@@ -201,6 +201,7 @@ pub fn prepare(doc: &mut Document, construction: bool) -> CoreResult<Prepared> {
         out.enlarged = ensure_enlarged_plans(doc)?;
         ensure_interior_markers(doc)?;
         out.details = ensure_details(doc)?;
+        ensure_roof_plan_marks(doc)?;
     }
     // The site plan leaves out room separation lines and interior elevation marks.
     let interior_marks: Vec<ElementId> = doc
@@ -1512,12 +1513,33 @@ pub fn ensure_details(doc: &mut Document) -> CoreResult<usize> {
     if has(Category::Door) {
         ids.push("door-threshold");
     }
-    if !model.roofs.is_empty() {
-        if model.roofs.iter().all(|r| r.faces.is_empty()) {
-            ids.push("parapet");
-        } else {
-            ids.extend(["eave", "rake"]);
+    // Roof details (ADR-117): what the roof does at its edges, where a low roof meets a
+    // taller wall, and at a chimney.
+    let flat: Vec<&studio_regen::roof::RoofSolid> =
+        model.roofs.iter().filter(|r| r.faces.is_empty()).collect();
+    if !flat.is_empty() {
+        // A flat roof trimmed with a fascia ends at metal edge; one without, at a parapet.
+        if flat.iter().any(|r| r.fascia.is_some()) {
+            ids.push("roof-edge");
         }
+        if flat.iter().any(|r| r.fascia.is_none()) {
+            ids.push("parapet");
+        }
+    }
+    if model.roofs.iter().any(|r| !r.faces.is_empty()) {
+        ids.extend(["eave", "rake"]);
+        if has_chimney(doc) {
+            ids.push("chimney-flashing");
+        }
+    }
+    // A flat roof below another roof meets the taller walls rising past it.
+    let top = model
+        .roofs
+        .iter()
+        .map(|r| r.base)
+        .fold(f64::NEG_INFINITY, f64::max);
+    if flat.iter().any(|r| r.base < top - 1000.0) {
+        ids.push("roof-wall");
     }
     if model.levels.len() > 2 || doc.of(Category::Floor).count() > 1 {
         ids.push("rim-joist");
@@ -1532,6 +1554,186 @@ pub fn ensure_details(doc: &mut Document) -> CoreResult<usize> {
         studio_core::details::insert(doc, id)?;
     }
     Ok(ids.len())
+}
+
+/// The project has a chimney or a fireplace: an element or type named for one.
+fn has_chimney(doc: &Document) -> bool {
+    doc.iter().any(|e| {
+        let n = e.data.name().to_lowercase();
+        (n.contains("chimney") && !n.contains("hood")) || n.contains("fireplace")
+    })
+}
+
+/// The drafting view a library detail was inserted as (named for it, ADR-069).
+pub fn detail_view(doc: &Document, id: &str) -> Option<ElementId> {
+    let name = studio_core::details::catalog()
+        .into_iter()
+        .find(|d| d.id == id)?
+        .name;
+    doc.of(Category::View)
+        .find(|e| {
+            matches!(&e.data, ElementData::View { kind: ViewKind::Drafting, name: n, .. } if n.starts_with(&name))
+        })
+        .map(|e| e.id)
+}
+
+/// The roof plans: plan views of a level above every level with walls.
+pub fn roof_plans(doc: &Document, model: &studio_regen::Model) -> Vec<ElementId> {
+    let levels = doc.levels();
+    let at = |l: ElementId| levels.iter().find(|x| x.0 == l).map(|x| x.2);
+    let walled = model
+        .walls
+        .iter()
+        .filter_map(|w| at(w.level))
+        .fold(f64::NEG_INFINITY, f64::max);
+    doc.of(Category::View)
+        .filter(|e| match &e.data {
+            ElementData::View {
+                kind: ViewKind::FloorPlan { level },
+                site: false,
+                ..
+            } => at(*level).is_some_and(|z| z > walled + 1.0),
+            _ => false,
+        })
+        .map(|e| e.id)
+        .collect()
+}
+
+/// The roof plan's references (ADR-117): wall sections aren't marked on it (they cut the
+/// walls, not the roof); its roof's edge details are, by callouts at the roof's edges: the
+/// eave and the rake of a sloped roof, the metal fascia or parapet of a flat one. Once.
+pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
+    let model = studio_regen::regenerate(doc);
+    let plans = roof_plans(doc, &model);
+    if plans.is_empty() || model.roofs.is_empty() {
+        return Ok(0);
+    }
+    let wall_sections: Vec<ElementId> = doc
+        .of(Category::View)
+        .filter(|e| is_wall_section(&e.data))
+        .map(|e| e.id)
+        .collect();
+    doc.transact("Roof plan marks", |tx| {
+        for v in &plans {
+            tx.modify(*v, |d| {
+                if let ElementData::View { hidden, .. } = d {
+                    for w in &wall_sections {
+                        if !hidden.contains(w) {
+                            hidden.push(*w);
+                        }
+                    }
+                }
+            })?;
+        }
+        Ok(())
+    })?;
+    // The highest roofs are the ones the roof plan shows.
+    let top = model
+        .roofs
+        .iter()
+        .map(|r| r.base)
+        .fold(f64::NEG_INFINITY, f64::max);
+    // Each mark: the plan it goes in, the detail, and where on the roof's edge.
+    let mut marks: Vec<(ElementId, &str, Pt)> = vec![];
+    let edges_of = |r: &studio_regen::RoofSolid| -> Vec<(Pt, Pt)> {
+        let n = r.boundary.len();
+        (0..n)
+            .map(|i| (r.boundary[i], r.boundary[(i + 1) % n]))
+            .collect()
+    };
+    // A third of the way along, clear of the section line usually through the middle.
+    let along = |(p, q): &(Pt, Pt)| p.lerp(*q, 0.33);
+    let longest = |edges: &[(Pt, Pt)], pick: &dyn Fn(&(Pt, Pt)) -> bool| {
+        edges
+            .iter()
+            .filter(|e| pick(e))
+            .max_by(|a, b| a.0.dist(a.1).total_cmp(&b.0.dist(b.1)))
+            .map(along)
+    };
+    for r in model.roofs.iter().filter(|r| r.base > top - 1000.0) {
+        let edges = edges_of(r);
+        let eave = |(p, q): &(Pt, Pt)| {
+            let dir = q.sub(*p).norm();
+            r.faces.iter().any(|f| {
+                let t = f.a.sub(*p).dot(dir).clamp(0.0, p.dist(*q));
+                p.add(dir.scale(t)).dist(f.a) < 50.0 && f.n.dot(dir).abs() < 0.2
+            })
+        };
+        let mut at = |id: &'static str, m: Option<Pt>| {
+            if let Some(m) = m {
+                marks.extend(plans.iter().map(|v| (*v, id, m)));
+            }
+        };
+        if r.faces.is_empty() {
+            let id = if r.fascia.is_some() {
+                "roof-edge"
+            } else {
+                "parapet"
+            };
+            at(id, longest(&edges, &|_| true));
+        } else {
+            at("eave", longest(&edges, &eave));
+            at("rake", longest(&edges, &|e| !eave(e)));
+        }
+    }
+    // A low flat roof shows in the plan of its level: mark where it meets a taller wall.
+    for r in model
+        .roofs
+        .iter()
+        .filter(|r| r.faces.is_empty() && r.base < top - 1000.0)
+    {
+        let roof_top = r.base + r.thickness;
+        let meets = |(p, q): &(Pt, Pt)| {
+            let m = p.lerp(*q, 0.5);
+            model.walls.iter().any(|w| {
+                w.z1 > roof_top + 600.0
+                    && studio_geom::project_to_segment(m, w.start, w.end).1 < w.thickness + 300.0
+            })
+        };
+        let Some(m) = longest(&edges_of(r), &meets) else {
+            continue;
+        };
+        for e in doc.of(Category::View) {
+            if let ElementData::View {
+                kind: ViewKind::FloorPlan { level },
+                site: false,
+                ..
+            } = &e.data
+            {
+                if *level == r.level {
+                    marks.push((e.id, "roof-wall", m));
+                }
+            }
+        }
+    }
+    // One callout per detail in each plan, 4'-0" square on the edge; none where the plan
+    // already refers to that detail.
+    let half = 2.0 * MM_PER_FT;
+    let mut made = 0;
+    let mut done: Vec<(ElementId, ElementId)> = vec![];
+    for (v, id, at) in &marks {
+        let Some(target) = detail_view(doc, id) else {
+            continue;
+        };
+        let has = doc.iter().any(|e| {
+            matches!(&e.data, ElementData::ViewReference { view, target: t, .. } if view == v && *t == target)
+        });
+        if has || done.contains(&(*v, target)) {
+            continue;
+        }
+        done.push((*v, target));
+        studio_core::references::create(
+            doc,
+            *v,
+            studio_core::references::RefShape::Callout {
+                min: Pt::new(at.x - half, at.y - half),
+                max: Pt::new(at.x + half, at.y + half),
+            },
+            Some(target),
+        )?;
+        made += 1;
+    }
+    Ok(made)
 }
 
 #[cfg(test)]

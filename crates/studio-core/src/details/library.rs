@@ -2,7 +2,7 @@
 //! or up (plans). Light-frame US residential construction, as a starting point to edit.
 
 use super::FillPattern::{
-    Concrete, Diagonal, Gravel, Gray, RigidInsulation, Sand, Solid, Steel, Wood,
+    Concrete, Diagonal, Gravel, Gray, Masonry, RigidInsulation, Sand, Solid, Steel, Wood,
 };
 use super::D;
 use crate::lines::LineStyle::{Beyond, Hidden, Medium, Thin, Wide};
@@ -146,6 +146,30 @@ pub(super) static DETAILS: &[Entry] = &[
         scale: 8,
         description: "Low-slope membrane roof turned up a framed parapet under metal coping.",
         draw: parapet,
+    },
+    Entry {
+        id: "roof-edge",
+        name: "Low-Slope Roof Edge with Metal Fascia",
+        category: ROOFS,
+        scale: 8,
+        description: "Membrane roof over tapered insulation to a P.T. nailer and a prefinished metal fascia with drip, no parapet.",
+        draw: roof_edge,
+    },
+    Entry {
+        id: "roof-wall",
+        name: "Low Roof at Wall",
+        category: ROOFS,
+        scale: 8,
+        description: "Membrane turned up a taller wall on a cant, termination bar and metal counterflashing; joists on a ledger.",
+        draw: roof_wall,
+    },
+    Entry {
+        id: "chimney-flashing",
+        name: "Roofing at Chimney",
+        category: ROOFS,
+        scale: 8,
+        description: "Shingle roof into a masonry chimney: framed cricket, base and reglet counterflashing, 2\" clearance to framing.",
+        draw: chimney_flashing,
     },
     Entry {
         id: "ridge-vent",
@@ -1076,6 +1100,205 @@ fn parapet() -> D {
     d.note((22.0, -6.0), "ROOF JOISTS PER STRUCT.");
     d.note((2.75, 10.0), "2x6 PARAPET FRAMING W/ BATTS");
     d.note((-1.0, 6.0), "SIDING OVER WRB");
+    d
+}
+
+/// A low-slope membrane roof ending at a prefinished metal fascia (ADR-117), the edge a
+/// modern flat roof without a parapet has.
+fn roof_edge() -> D {
+    let mut d = D::new();
+    // The wall below, its top plates, and joists over it to a 6" overhang.
+    wall_2x6(&mut d, -18.0, 0.0, -18.0);
+    d.sheet(-0.5, 0.0, 0.0, 2.5);
+    d.lumber(0.0, 0.0, 5.5, 1.5);
+    d.lumber(0.0, 1.5, 5.5, 3.0);
+    d.board(-6.0, 3.0, 40.0, 12.25);
+    // Sub-fascia, deck, the edge nailer and the tapered insulation.
+    d.lumber(-7.5, 3.0, -6.0, 12.25);
+    d.sheet(-7.5, 12.25, 40.0, 13.0);
+    d.lumber(-7.5, 13.0, -4.0, 15.0);
+    d.cut(
+        &[(-4.0, 13.0), (40.0, 13.0), (40.0, 16.0), (-4.0, 15.0)],
+        RigidInsulation,
+    );
+    d.poly(
+        &[(-7.5, 15.0), (40.0, 16.0), (40.0, 16.5), (-7.5, 15.5)],
+        Medium,
+    );
+    // The membrane over the edge metal's flange, stripped in.
+    d.line(&[(40.0, 16.6), (-7.5, 15.6), (-8.4, 15.6)], Wide);
+    // Fascia board, the metal fascia with its drip, the cleat it hooks on.
+    d.sheet(-8.25, 4.0, -7.5, 15.0);
+    d.flashing(&[(-3.0, 15.65), (-8.7, 15.75), (-8.7, 3.6), (-8.1, 3.1)]);
+    d.line(&[(-8.45, 6.0), (-8.45, 3.7), (-8.0, 3.7)], Medium);
+    // Vented soffit, the ceiling and insulation in the bays.
+    d.rect(-7.5, 2.5, -0.6, 3.0, Medium);
+    d.gyp(5.5, 2.5, 40.0, 3.0);
+    d.region(&[(6.0, 3.0), (40.0, 3.0), (40.0, 11.0), (6.0, 11.0)], Sand);
+    d.brk((40.0, 0.0), (40.0, 18.0));
+    d.brk((-3.0, -18.0), (8.0, -18.0));
+    d.note(
+        (-8.7, 10.0),
+        "PREFINISHED METAL FASCIA / GRAVEL STOP W/ DRIP",
+    );
+    d.note((-8.45, 4.5), "CONT. GALV. CLEAT");
+    d.note((-5.5, 14.0), "P.T. WOOD NAILER, SAME HT. AS INSUL.");
+    d.note((-4.0, 2.75), "VENTED SOFFIT");
+    d.note((-0.6, -6.0), "SIDING OVER WRB");
+    d.note(
+        (24.0, 16.2),
+        "MEMBRANE ROOFING, CLASS A, STRIPPED IN OVER EDGE FLANGE",
+    );
+    d.note((34.0, 16.3), "1/2\" COVER BOARD");
+    d.note((26.0, 14.8), "TAPERED RIGID INSULATION, 1/4\" PER FT.");
+    d.note((20.0, 12.6), "3/4\" PLYWOOD ROOF DECK");
+    d.note((22.0, 7.0), "ROOF JOISTS PER STRUCT.");
+    d.note((30.0, 10.0), "INSULATION PER ENERGY CODE");
+    d.note((20.0, 2.75), "5/8\" GYP. BD. CEILING");
+    d
+}
+
+/// A low roof meeting a taller wall (ADR-117): the membrane turned up the wall under a
+/// counterflashing, the joists on a ledger. The roof is outside, to the left.
+fn roof_wall() -> D {
+    let mut d = D::new();
+    // The wall rising past the roof.
+    d.sheet(-0.5, -12.0, 0.0, 40.0);
+    d.batt((2.75, -12.0), (2.75, 40.0), 5.5);
+    d.line(&[(0.0, -12.0), (0.0, 40.0)], Beyond);
+    d.line(&[(5.5, -12.0), (5.5, 40.0)], Beyond);
+    d.gyp(5.5, -12.0, 6.0, 40.0);
+    // Ledger, joists, deck, tapered insulation (thicker toward the wall), cover board.
+    d.lumber(-2.0, -9.25, -0.5, 0.0);
+    d.board(-40.0, -9.25, -2.0, 0.0);
+    d.sheet(-40.0, 0.0, -0.5, 0.75);
+    d.cut(
+        &[(-40.0, 0.75), (-4.0, 0.75), (-4.0, 3.75), (-40.0, 2.75)],
+        RigidInsulation,
+    );
+    d.poly(
+        &[(-40.0, 2.75), (-4.0, 3.75), (-4.0, 4.25), (-40.0, 3.25)],
+        Medium,
+    );
+    // Cant strip, then the membrane up the wall 12" and its termination bar.
+    d.poly(&[(-4.0, 4.25), (-0.6, 7.65), (-0.6, 4.25)], Medium);
+    d.line(
+        &[(-40.0, 3.35), (-4.0, 4.35), (-0.7, 7.65), (-0.7, 16.0)],
+        Wide,
+    );
+    d.line(&[(-0.95, 15.0), (-0.95, 16.2)], Wide);
+    // Counterflashing from behind the WRB over the base flashing; siding above it.
+    d.flashing(&[
+        (-0.55, 21.0),
+        (-0.55, 19.0),
+        (-1.4, 18.4),
+        (-1.4, 14.2),
+        (-1.8, 13.7),
+    ]);
+    d.line(&[(-0.6, 19.0), (-0.6, 40.0)], Hidden);
+    siding(&mut d, -0.6, 21.0, 40.0);
+    d.brk((-3.0, 40.0), (8.0, 40.0));
+    d.brk((-3.0, -12.0), (8.0, -12.0));
+    d.brk((-40.0, -10.0), (-40.0, 5.0));
+    d.note((-0.6, 30.0), "SIDING OVER WRB");
+    d.note(
+        (-1.4, 17.0),
+        "PREFINISHED METAL COUNTERFLASHING, WRB LAPPED OVER",
+    );
+    d.note((-0.95, 15.5), "TERMINATION BAR, SEALED");
+    d.note((-0.7, 11.0), "MEMBRANE BASE FLASHING, 8\" MIN. ABOVE ROOF");
+    d.note((-2.5, 6.0), "WOOD CANT STRIP");
+    d.note((-20.0, 3.4), "MEMBRANE ROOFING OVER 1/2\" COVER BOARD");
+    d.note((-28.0, 1.9), "TAPERED RIGID INSULATION, 1/4\" PER FT.");
+    d.note((-34.0, 0.4), "3/4\" PLYWOOD ROOF DECK");
+    d.note((-22.0, -5.0), "ROOF JOISTS IN HANGERS PER STRUCT.");
+    d.note((-1.25, -6.0), "2x10 LEDGER, BOLTED PER STRUCT.");
+    d.note((2.75, 30.0), "2x6 STUDS W/ BATTS");
+    d.note((5.75, -6.0), "5/8\" GYP. BD.");
+    d
+}
+
+/// Roofing at a chimney (ADR-117): a section up the slope into the chimney's high side,
+/// the framed cricket, base and counterflashing, framing held 2" off the masonry.
+fn chimney_flashing() -> D {
+    let mut d = D::new();
+    // 6:12 rafters rising to the chimney at x 0: top edge at `up`, sheathing over.
+    let up = |x: f64| 8.0 + x * 0.5;
+    let s = |x: f64| up(x) + 0.56;
+    let (x0, x1) = (-40.0, -2.0);
+    d.poly(
+        &[
+            (x0, up(x0)),
+            (x1, up(x1)),
+            (x1, up(x1) - 8.1),
+            (x0, up(x0) - 8.1),
+        ],
+        Medium,
+    );
+    d.poly(
+        &[(x0, up(x0)), (x1, up(x1)), (x1, s(x1)), (x0, s(x0))],
+        Medium,
+    );
+    // The cricket against the chimney, its sheathing, and the shingles over both.
+    let c = -16.0;
+    let top = s(-0.5) + 6.0;
+    d.poly(&[(c, s(c)), (-0.5, s(-0.5)), (-0.5, top)], Medium);
+    d.line(
+        &[(x0, s(x0) + 0.2), (c, s(c) + 0.2), (-0.6, top + 0.2)],
+        Hidden,
+    );
+    d.line(
+        &[(x0, s(x0) + 0.5), (c, s(c) + 0.5), (-0.6, top + 0.5)],
+        Wide,
+    );
+    // Base flashing up the chimney 6"; counterflashing let into a mortar joint over it.
+    // On the cricket's face from 6" out, then up the chimney.
+    let cy = |x: f64| s(c) + (x - c) * (top - s(c)) / (-0.5 - c);
+    d.flashing(&[
+        (-6.0, cy(-6.0) + 0.7),
+        (-0.35, top + 0.6),
+        (-0.35, top + 6.6),
+    ]);
+    let joint = top + 9.0;
+    d.flashing(&[
+        (1.5, joint),
+        (-0.2, joint),
+        (-0.2, joint - 4.0),
+        (-0.8, joint - 4.5),
+    ]);
+    d.circle(0.0, joint + 0.4, 0.3, Medium);
+    // The masonry chimney cut through, its flue liner, and the 2" clearance.
+    d.cut_rect(0.0, -14.0, 4.0, 42.0, Masonry);
+    d.cut_rect(12.0, -14.0, 16.0, 42.0, Masonry);
+    d.rect(4.0, -14.0, 12.0, 42.0, Medium);
+    d.rect(4.6, -14.0, 11.4, 42.0, Thin);
+    d.line(&[(-2.0, up(-2.0) - 8.1), (-2.0, up(-2.0) + 0.56)], Medium);
+    d.brk((-2.0, 42.0), (18.0, 42.0));
+    d.brk((-2.0, -14.0), (18.0, -14.0));
+    d.brk((x0, up(x0) - 9.0), (x0, s(x0) + 2.0));
+    d.note((14.0, 30.0), "MASONRY CHIMNEY W/ FLUE LINER");
+    d.note(
+        (-0.2, joint - 2.0),
+        "PREFINISHED METAL COUNTERFLASHING IN REGLET, SEALED",
+    );
+    d.note(
+        (-0.35, top + 4.0),
+        "BASE / CRICKET FLASHING, 6\" MIN. UP CHIMNEY",
+    );
+    d.note(
+        (-6.0, s(-6.0) + 4.0),
+        "FRAMED CRICKET, SHEATHED (CHIMNEY OVER 30\" WIDE)",
+    );
+    d.note(
+        (-26.0, s(-26.0) + 0.5),
+        "ASPHALT SHINGLES ON UNDERLAYMENT, ICE BARRIER AT CHIMNEY",
+    );
+    d.note((-32.0, s(-32.0) - 0.3), "1/2\" PLYWOOD ROOF SHEATHING");
+    d.note((-24.0, up(-24.0) - 4.0), "2x8 RAFTERS PER STRUCT.");
+    d.note(
+        (-1.0, up(-1.0) - 4.0),
+        "2\" CLR. TO COMBUSTIBLES, NONCOMBUSTIBLE FIRESTOP",
+    );
     d
 }
 
