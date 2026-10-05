@@ -1600,8 +1600,10 @@ pub fn roof_plans(doc: &Document, model: &studio_regen::Model) -> Vec<ElementId>
 }
 
 /// The roof plan's references (ADR-117): wall sections aren't marked on it (they cut the
-/// walls, not the roof); its roof's edge details are, by callouts at the roof's edges: the
-/// eave and the rake of a sloped roof, the metal fascia or parapet of a flat one. Once.
+/// walls, not the roof); its roof's edge details are, by section marks cut across the roof's
+/// edges as a wall section's mark is drawn in plan (they're sections through the edge, not
+/// enlarged plans): the eave and the rake of a sloped roof, the metal fascia or parapet of a
+/// flat one. Once.
 pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
     let model = studio_regen::regenerate(doc);
     let plans = roof_plans(doc, &model);
@@ -1633,22 +1635,33 @@ pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
         .iter()
         .map(|r| r.base)
         .fold(f64::NEG_INFINITY, f64::max);
-    // Each mark: the plan it goes in, the detail, and where on the roof's edge.
-    let mut marks: Vec<(ElementId, &str, Pt)> = vec![];
+    // Each mark: the plan it goes in, the detail, where on the roof's edge, and the edge's
+    // outward normal.
+    let mut marks: Vec<(ElementId, &str, Pt, Pt)> = vec![];
     let edges_of = |r: &studio_regen::RoofSolid| -> Vec<(Pt, Pt)> {
         let n = r.boundary.len();
         (0..n)
             .map(|i| (r.boundary[i], r.boundary[(i + 1) % n]))
             .collect()
     };
-    // A third of the way along, clear of the section line usually through the middle.
-    let along = |(p, q): &(Pt, Pt)| p.lerp(*q, 0.33);
-    let longest = |edges: &[(Pt, Pt)], pick: &dyn Fn(&(Pt, Pt)) -> bool| {
+    // A third of the way along, clear of the section line usually through the middle, with
+    // the normal pointing out of the roof.
+    let along = |(p, q): &(Pt, Pt), ring: &[Pt]| {
+        let m = p.lerp(*q, 0.33);
+        let n = q.sub(*p).norm().perp();
+        let out = if studio_geom::point_in_ring(m.add(n.scale(100.0)), ring) {
+            n.scale(-1.0)
+        } else {
+            n
+        };
+        (m, out)
+    };
+    let longest = |edges: &[(Pt, Pt)], ring: &[Pt], pick: &dyn Fn(&(Pt, Pt)) -> bool| {
         edges
             .iter()
             .filter(|e| pick(e))
             .max_by(|a, b| a.0.dist(a.1).total_cmp(&b.0.dist(b.1)))
-            .map(along)
+            .map(|e| along(e, ring))
     };
     for r in model.roofs.iter().filter(|r| r.base > top - 1000.0) {
         let edges = edges_of(r);
@@ -1659,9 +1672,10 @@ pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
                 p.add(dir.scale(t)).dist(f.a) < 50.0 && f.n.dot(dir).abs() < 0.2
             })
         };
-        let mut at = |id: &'static str, m: Option<Pt>| {
-            if let Some(m) = m {
-                marks.extend(plans.iter().map(|v| (*v, id, m)));
+        let ring = &r.boundary;
+        let mut at = |id: &'static str, m: Option<(Pt, Pt)>| {
+            if let Some((m, out)) = m {
+                marks.extend(plans.iter().map(|v| (*v, id, m, out)));
             }
         };
         if r.faces.is_empty() {
@@ -1670,10 +1684,10 @@ pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
             } else {
                 "parapet"
             };
-            at(id, longest(&edges, &|_| true));
+            at(id, longest(&edges, ring, &|_| true));
         } else {
-            at("eave", longest(&edges, &eave));
-            at("rake", longest(&edges, &|e| !eave(e)));
+            at("eave", longest(&edges, ring, &eave));
+            at("rake", longest(&edges, ring, &|e| !eave(e)));
         }
     }
     // A low flat roof shows in the plan of its level: mark where it meets a taller wall.
@@ -1690,7 +1704,7 @@ pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
                     && studio_geom::project_to_segment(m, w.start, w.end).1 < w.thickness + 300.0
             })
         };
-        let Some(m) = longest(&edges_of(r), &meets) else {
+        let Some((m, out)) = longest(&edges_of(r), &r.boundary, &meets) else {
             continue;
         };
         for e in doc.of(Category::View) {
@@ -1701,37 +1715,63 @@ pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
             } = &e.data
             {
                 if *level == r.level {
-                    marks.push((e.id, "roof-wall", m));
+                    marks.push((e.id, "roof-wall", m, out));
                 }
             }
         }
     }
-    // One callout per detail in each plan, 4'-0" square on the edge; none where the plan
-    // already refers to that detail.
-    let half = 2.0 * MM_PER_FT;
+    // One section mark per detail in each plan, cut across the edge as a wall section is cut
+    // across its wall (5'-0" outside, 3'-6" in); none where the plan already refers to that
+    // detail. A callout box an earlier version drew there becomes the section mark.
+    use studio_core::references::RefShape;
     let mut made = 0;
     let mut done: Vec<(ElementId, ElementId)> = vec![];
-    for (v, id, at) in &marks {
+    for (v, id, at, out) in &marks {
         let Some(target) = detail_view(doc, id) else {
             continue;
         };
-        let has = doc.iter().any(|e| {
-            matches!(&e.data, ElementData::ViewReference { view, target: t, .. } if view == v && *t == target)
-        });
-        if has || done.contains(&(*v, target)) {
+        if done.contains(&(*v, target)) {
             continue;
         }
         done.push((*v, target));
-        studio_core::references::create(
-            doc,
-            *v,
-            studio_core::references::RefShape::Callout {
-                min: Pt::new(at.x - half, at.y - half),
-                max: Pt::new(at.x + half, at.y + half),
-            },
-            Some(target),
-        )?;
-        made += 1;
+        let (start, end) = section_line(*at, *out, 0.0, inside_reach(false));
+        let has: Vec<(ElementId, bool)> = doc
+            .iter()
+            .filter_map(|e| match &e.data {
+                ElementData::ViewReference {
+                    view,
+                    target: t,
+                    shape,
+                } if view == v && *t == target => {
+                    Some((e.id, matches!(shape, RefShape::Callout { .. })))
+                }
+                _ => None,
+            })
+            .collect();
+        if has.is_empty() {
+            studio_core::references::create(
+                doc,
+                *v,
+                RefShape::Section { start, end },
+                Some(target),
+            )?;
+            made += 1;
+            continue;
+        }
+        let boxes: Vec<ElementId> = has.iter().filter(|h| h.1).map(|h| h.0).collect();
+        if !boxes.is_empty() {
+            doc.transact("Roof plan marks", |tx| {
+                for b in &boxes {
+                    tx.modify(*b, |d| {
+                        if let ElementData::ViewReference { shape, .. } = d {
+                            *shape = RefShape::Section { start, end };
+                        }
+                    })?;
+                }
+                Ok(())
+            })?;
+            made += boxes.len();
+        }
     }
     Ok(made)
 }

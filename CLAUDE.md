@@ -157,7 +157,7 @@ Read these before writing code:
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
 - Details by family, roof references (ADR-117): sets `detail_family` (Foundation & Wall / Door & Window / Roof / Interior sheets); library
-  `roof-edge`, `roof-wall`, `chimney-flashing`; drawings `ensure_roof_plan_marks` (wall sections hidden, roof edge callouts), `roof_plans`.
+  `roof-edge`, `roof-wall`, `chimney-flashing`; drawings `ensure_roof_plan_marks` (wall sections hidden, roof edge section marks drawn like wall section marks; old callout boxes converted), `roof_plans`.
 - Sheet index phases (ADR-116): studio-sheets `sheet_index::{issues, IndexIssue, typical, rows_for}`, `set_rows(.., stage)` (per-stage
   sets); app `sheet_index_issues`/`sheet_index_typical`; SheetIndexDialog PHASE / ISSUE dropdown, per-phase lists, no arrows.
 - Sheet index drag (ADR-115): SheetIndexDialog pointer-event handle drag (`dragTo`/`endDrag`), sheetIndex.ts `dropGap`/`dropTo`.

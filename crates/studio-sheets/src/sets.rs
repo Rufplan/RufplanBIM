@@ -2328,7 +2328,8 @@ mod tests {
         }
         assert!(roofs[0].1[0].starts_with("Eave"));
         assert_eq!(on("Interior Details")[0].0, "A-551");
-        // The roof plan: no wall section marks; the eave detail called out on its edge.
+        // The roof plan: no wall section marks; the eave detail marked by a section cut
+        // across its edge, drawn as a wall section's mark is in plan.
         let model = studio_regen::regenerate(&doc);
         let plans = crate::drawings::roof_plans(&doc, &model);
         assert_eq!(plans.len(), 1);
@@ -2343,10 +2344,48 @@ mod tests {
         };
         assert!(sections.iter().all(|s| hidden.contains(s)));
         let eave = crate::drawings::detail_view(&doc, "eave").unwrap();
-        assert!(doc.iter().any(|e| matches!(
-            &e.data,
-            ElementData::ViewReference { view, target, .. } if *view == plans[0] && *target == eave
-        )));
+        let marks: Vec<_> = doc
+            .iter()
+            .filter_map(|e| match &e.data {
+                ElementData::ViewReference {
+                    view,
+                    target,
+                    shape,
+                } if *view == plans[0] && *target == eave => Some(*shape),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(marks.len(), 1);
+        let studio_core::references::RefShape::Section { start, end } = marks[0] else {
+            panic!("the eave is marked by a section, not a callout box: {marks:?}")
+        };
+        // 5'-0" outside the edge to 3'-6" in, as a wall section's line.
+        assert!((start.dist(end) - 8.5 * studio_core::units::MM_PER_FT).abs() < 1.0);
+        // A callout box from an earlier version becomes the section mark.
+        let mark = doc
+            .iter()
+            .find(|e| matches!(&e.data, ElementData::ViewReference { view, target, .. } if *view == plans[0] && *target == eave))
+            .map(|e| e.id)
+            .unwrap();
+        doc.transact("Old box", |tx| {
+            tx.modify(mark, |d| {
+                if let ElementData::ViewReference { shape, .. } = d {
+                    *shape = studio_core::references::RefShape::Callout {
+                        min: start,
+                        max: start.add(studio_geom::Pt::new(1000.0, 1000.0)),
+                    };
+                }
+            })
+        })
+        .unwrap();
+        crate::drawings::ensure_roof_plan_marks(&mut doc).unwrap();
+        assert!(matches!(
+            doc.data(mark),
+            Ok(ElementData::ViewReference {
+                shape: studio_core::references::RefShape::Section { .. },
+                ..
+            })
+        ));
     }
 
     #[test]
