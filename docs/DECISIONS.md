@@ -4331,6 +4331,6 @@ coursing along a line".
   - Plans of a level above every walled level hide the wall section views.
   - They get a section mark (ADR-076 reference section) to each edge detail, cut across the edge a third of the way along the top roofs' longest edge (clear of a section line through the middle): the eave (an edge a sloped face rises from) and the rake (another edge), or the fascia edge or parapet of a flat roof.
   - The mark is drawn as a wall section's mark is in plan, not as a callout box: an edge detail is a section through the edge, not an enlarged plan. Its line runs 5'-0" outside the edge to 3'-6" in, perpendicular to it, like a wall section's (amended 2026-10-04 at the owner's request).
-  - A callout box an earlier version drew to a roof detail becomes the section mark the next time the drawings are prepared.
+  - A callout box an earlier version drew to a roof detail becomes the section mark the next time the drawings are prepared. The roof plan marks run for every phase (an SD-only set too), and opening a saved project that still has such a box converts it then, with no undo step or unsaved change (`drawings::has_roof_callout_boxes`, session `open`).
   - A low flat roof is marked in its own level's plan, where it shows, at the edge that meets a wall rising past it.
   - A plan already referring to a detail isn't given a second mark to it.

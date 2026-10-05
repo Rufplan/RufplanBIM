@@ -201,8 +201,10 @@ pub fn prepare(doc: &mut Document, construction: bool) -> CoreResult<Prepared> {
         out.enlarged = ensure_enlarged_plans(doc)?;
         ensure_interior_markers(doc)?;
         out.details = ensure_details(doc)?;
-        ensure_roof_plan_marks(doc)?;
     }
+    // Every phase (ADR-117): the roof plan never shows wall sections, and its roof edge
+    // details (made in DD and later) are marked by sections.
+    ensure_roof_plan_marks(doc)?;
     // The site plan leaves out room separation lines and interior elevation marks.
     let interior_marks: Vec<ElementId> = doc
         .of(Category::ElevationMarker)
@@ -1774,6 +1776,29 @@ pub fn ensure_roof_plan_marks(doc: &mut Document) -> CoreResult<usize> {
         }
     }
     Ok(made)
+}
+
+/// The roof edge details a roof plan marks (ADR-117).
+const ROOF_EDGE_DETAILS: &[&str] = &["roof-edge", "parapet", "eave", "rake", "roof-wall"];
+
+/// A callout box marks a roof edge detail: what earlier versions drew, before roof edge
+/// details were marked by sections. Opening such a project converts them.
+pub fn has_roof_callout_boxes(doc: &Document) -> bool {
+    let targets: Vec<ElementId> = ROOF_EDGE_DETAILS
+        .iter()
+        .filter_map(|id| detail_view(doc, id))
+        .collect();
+    !targets.is_empty()
+        && doc.iter().any(|e| {
+            matches!(
+                &e.data,
+                ElementData::ViewReference {
+                    target,
+                    shape: studio_core::references::RefShape::Callout { .. },
+                    ..
+                } if targets.contains(target)
+            )
+        })
 }
 
 #[cfg(test)]

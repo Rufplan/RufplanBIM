@@ -644,6 +644,16 @@ impl Session {
                 }
             }
         }
+        // Roof edge details marked by callout boxes (before ADR-117's section marks) become
+        // sections, whatever phases the sets were last made for; no undo step.
+        if studio_sheets::drawings::has_roof_callout_boxes(&project.doc) {
+            let dirty = project.doc.is_dirty();
+            studio_sheets::drawings::ensure_roof_plan_marks(&mut project.doc)?;
+            project.doc.clear_history();
+            if !dirty {
+                project.doc.mark_saved();
+            }
+        }
         // Worksharing (ADR-079): older projects get Revit's standard worksets, without an
         // undo step or unsaved changes.
         if project.doc.count(Category::Workset) == 0 {

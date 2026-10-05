@@ -2378,6 +2378,10 @@ mod tests {
             })
         })
         .unwrap();
+        assert!(crate::drawings::has_roof_callout_boxes(&doc));
+        // Making the sets again converts it, an SD-only set too (opening the project does).
+        create(&mut doc, &opts(BuildingType::SingleFamily, &["SD"])).unwrap();
+        assert!(!crate::drawings::has_roof_callout_boxes(&doc));
         crate::drawings::ensure_roof_plan_marks(&mut doc).unwrap();
         assert!(matches!(
             doc.data(mark),
