@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { NavBar, SunPanel } from "./components/View3DPanels";
 import { useAppStore } from "./store";
 import { appState, installFakeBackend, type FakeBackend } from "./test/fakeBackend";
-import { glareWeight } from "./render/pathtrace";
 
 let fake: FakeBackend;
 beforeEach(() => {
@@ -55,14 +54,5 @@ describe("Enscape's Orbit, Walk and Fly (ADR-063)", () => {
     expect(screen.getByText(/W A S D move/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("radio", { name: "Fly" }));
     expect(screen.getByText(/Q E down\/up/)).toBeInTheDocument();
-  });
-});
-
-describe("render lens effects (ADR-063)", () => {
-  it("glare blooms only from the brightest pixels", () => {
-    expect(glareWeight(128, 128, 128)).toBe(0);
-    expect(glareWeight(255, 255, 255)).toBeCloseTo(1, 9);
-    expect(glareWeight(230, 230, 230)).toBeGreaterThan(0);
-    expect(glareWeight(230, 230, 230)).toBeLessThan(1);
   });
 });

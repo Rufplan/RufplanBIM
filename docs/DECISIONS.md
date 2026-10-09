@@ -4334,3 +4334,45 @@ coursing along a line".
   - A callout box an earlier version drew to a roof detail becomes the section mark the next time the drawings are prepared. The roof plan marks run for every phase (an SD-only set too), and opening a saved project that still has such a box converts it then, with no undo step or unsaved change (`drawings::has_roof_callout_boxes`, session `open`).
   - A low flat roof is marked in its own level's plan, where it shows, at the edge that meets a wall rising past it.
   - A plan already referring to a detail isn't given a second mark to it.
+
+## ADR-118 A render engine round: light transport, sun, HDR finishing, two-point perspective — Accepted (2026-10-09)
+- **The owner's ask:** research how the premier architectural renderers (V-Ray, Corona, Enscape, D5, Lumion, Twinmotion; Cycles, PBRT, Mitsuba, Filament as references) work, and use it to improve Rufplan's renderer. Three research passes (engines; the installed three-gpu-pathtracer 0.0.24 and our pipeline; in-browser denoisers) found what follows. Baselines were rendered first (the Modern House hero view and a living-room interior at 128 spp): the interior was full of speckle and had grass growing up through the floor.
+- **Light transport** (app `render/ptPatch.ts`, edits to the tracing shader's text when a job starts; each must match exactly or none is applied and the stock tracer renders; `ptPatch.test.ts` checks them against the installed library):
+  - **Light selection:** the sky (which carries our sun) gets a fixed half of the light samples (`envPick`), not 1 / (lights + 1). Then each fixture is chosen by its power over its distance squared from the point being lit (a 300 mm floor), and forward MIS recomputes the same probability where a bounce hits an area light. With thirty fixtures, the sun's shadows had had 3% of the samples, and each lamp 1/60.
+  - **Indirect clamp:** indirect light is clamped at ten times display white (`clampIndirect` = 10 / exposure), as Cycles' Clamp Indirect, Corona's Max Sample Intensity and V-Ray's Max Ray Intensity. Light seen directly isn't clamped.
+  - **Bounces:** 8 outside, 12 inside (Russian roulette makes the extra ones cheap where they don't matter); 24 transmissive for dense crowns.
+- **The sun at its size:** the tracer stores the environment in half floats (65,504 at most). A sun of real size is brighter, so it had been painted 1° wide, and our logs warned of values out of range. `halfSafe` hands the tracer a scaled copy and scales the intensity back up, so the sun is 0.4° (1.5 times real, V-Ray's size multiplier) by default (`sunRadius`), with crisp, slightly softened shadows.
+- **Topography under slabs:** renders set topography 20 mm low (`SITE_DROP`, and its grass with it). A slab on grade flush with the ground had shown the ground through the floor. Separately, grass's cover mask now counts only upward-facing surfaces, the lowest per cell (any face where none is wound up), so a slab's underside no longer lets the lawn grow through it.
+- **HDR finishing** (`render/post.ts` `finish`, in `RenderJob.finish`), replacing CSS filters on the 8-bit picture (`lensEffects`, `d5Grade`, `warmGrade` are gone), in Corona's and V-Ray's frame buffer order on the linear image:
+  1. Exposure, and white balance as a camera's (Kelvin through a black body; above 6500 K warms; the old "warm" setting maps to it).
+  2. Bloom (Jimenez's 13-tap downsample chain with a Karis average and tent upsample), mixed in linear at a few percent with no threshold.
+  3. The tone curve (Neutral, AgX or ACES).
+  4. The backdrop composited under by coverage, the bloom's glare over it.
+  5. A cos⁴ vignette, saturation and contrast in display space (D5's look as before), sRGB, dither.
+  The transparent cut-out runs it again without the backdrop.
+- **Denoising** (`render/denoise.ts`), kept dependency-free:
+  - The albedo guide is the average of 8 Halton-jittered passes, each drawn whole and then added, so it is antialiased as the trace is and demodulating leaves no fringes (adding while drawing summed the hidden surfaces too; that ghosting was caught in testing).
+  - A variance pass (SVGF's idea) keeps each pixel's local log-brightness spread in the lighting's alpha, and the à-trous brightness test widens with it, falling each pass: noisy flat walls smooth, converged edges stay.
+  - The result is linear, for the finishing pass.
+- **Fixtures:** spots get the fixture's radius (half its smaller size, 15–150 mm) for soft shadows and highlights. Spherical lamps become two back-to-back hemispherical spots, since the tracer's point lights have no size.
+- **Two-point perspective** (`cameraFor(.., twoPoint)`, on by default, a Render dialog switch): a camera tilted under 30° is levelled and its lens shifted to frame the same view (`setViewOffset`, which the tracer and the G-buffer follow; the denoiser's jitter adds to it), so verticals stay vertical as in architectural photographs.
+- **Interiors:** the lawn's budget is a third (it shows through the windows only); the test interior traced in a third of the time.
+- **Not done, for the owner to decide:** Intel Open Image Denoise in the browser (`oidn-web`, MIT, Intel's Apache-2.0 weights about 2 MB, WebGPU) is the best denoiser available and the next step for interiors; it's a new dependency (CLAUDE.md rule 8). Also later: Hosek-Wilkie or a physical-atmosphere sky, a 0.0.27 / WebGPU tracer upgrade (its own ADR), portals over windows, adaptive sampling.
+
+## ADR-119 Vegetation round: translucent leaves and grass, crowns with gaps and colour — Accepted (2026-10-09)
+- **The owner's ask:** look at how Enscape, D5, Lumion, Twinmotion and V-Ray/Corona workflows (Forest Pack, Laubwerk, SpeedTree, Megaplants) build and render vegetation, and use that to make Rufplan's more realistic.
+- **What the research found:**
+  - Their trees look real through translucent two-sided leaves that glow backlit, separate front and back shading, per-tree, per-cluster and per-leaf colour variation, and crowns with clumps and gaps where branches show.
+  - Ours were alpha-cut cards with `transmission 0.2` at thickness 0, which in this tracer made leaves partly see-through to the sky, not lit through. Their albedo was boosted 3×, a sign the light model was wrong.
+- **Diffuse transmission** (ADR-118's shader edits; `ptPatch.ts` `translucent`):
+  - A material with `castShadow = 2` reflects its albedo and scatters `transmission` of it again out of its back, cosine-weighted, tinted (1.1, 1.0, 0.55): a leaf transmits yellower than it reflects, per Jacquemoud & Ustin's leaf measurements.
+  - The sun and sky reach it through its back (next-event estimation from the far side).
+  - It is opaque to shadow rays.
+  - Leaves: transmission 0.6, roughness 0.45, so the sun glints on them; their render gain drops from 3.0 to 1.25.
+  - Render grass: transmission 0.4, its albedo × 0.7 (what it transmits lights the lawn too).
+  - Calibrated by measurement: with translucency off, the new renderer matched the old exactly (mean 0.438 against 0.435). At first values (0.85 / 0.7) it lifted the hero view by a stop, a lawn far brighter than one reads under high sun.
+- **Crowns** (studio-views `plants.rs`):
+  - Broadleaf trees wider than 0.9 m get 2–4 hollows (18–30% of the crown's radius) where no attraction points are, so sky shows through and the scaffold limbs read.
+  - Leaves vary by branch cluster (±3% between yellow-green and blue-green). The crown's top third grows up to 12% lighter and warmer. 5% are odd leaves, yellowed up high and blue-green in the shade. This is on top of each tree's own shade (ADR-095).
+- **The live view:** Barré-Brisebois's fast translucency (`translucentShading`) on leaves and swaying grass: looking toward the sun through a crown or a lawn, its light comes through, tinted, as in the render.
+- **Considered, later:** individual leaf meshes on near trees (MPC's Jungle Book approach), octahedral impostors for far trees (MIT three.js library), hierarchical wind, Ghost of Tsushima grass (Bézier blades, clumps), crisp bed edges and mulch. Not shippable: SpeedTree, Laubwerk, Globe Plants, Maxtree, Megascans, Enscape's and D5's assets; Blender's Sapling code is GPL (its Weber–Penn paper is free to implement).

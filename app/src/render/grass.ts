@@ -14,7 +14,8 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { GrassKind } from "../bindings/GrassKind";
-import { rgba, wind } from "./plants";
+import { rgba, translucentShading, wind } from "./plants";
+import { translucent } from "./ptPatch";
 
 export interface GrassSettings {
   height: number;
@@ -516,6 +517,8 @@ function grassMaterial(swaying: boolean) {
   });
   if (swaying) {
     m.onBeforeCompile = (shader) => {
+      // Lit through when the sun is behind it (ADR-119).
+      shader.fragmentShader = translucentShading(shader.fragmentShader, 0.6);
       shader.uniforms.uWind = wind.time;
       shader.vertexShader = shader.vertexShader
         .replace("#include <common>", "#include <common>\nuniform float uWind;")
@@ -535,6 +538,24 @@ function grassMaterial(swaying: boolean) {
   return m;
 }
 
+/** Render grass albedo against the live view's, now that blades are translucent. */
+export const RENDER_GRASS_GAIN = 0.7;
+
+/** Blades in the path tracer (ADR-119): translucent as leaves are, so a lawn glows where
+ * the sun is behind it, and a little glossy. */
+function renderGrassMaterial() {
+  // Its colour a little darker than the live view's: what it transmits lights the lawn too.
+  return translucent(
+    new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(RENDER_GRASS_GAIN, RENDER_GRASS_GAIN, RENDER_GRASS_GAIN),
+      vertexColors: true,
+      roughness: 0.45,
+      side: THREE.DoubleSide,
+    }),
+    0.4,
+  );
+}
+
 /** Where other surfaces cover the ground (paving, slabs, decks): a 250 mm grid of the
  * lowest upward-facing surface over each cell. A clump is covered when something lies
  * from just under it to 1.5 m over it. */
@@ -543,16 +564,21 @@ export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, 
   const n = Math.ceil((2 * far) / cell);
   const x0 = center.x - far;
   const y0 = center.y - far;
+  // The lowest upward-facing surface (by its winding): a slab's top, not its underside, so
+  // grass doesn't grow up through a slab on grade (ADR-118). Cells with only faces wound
+  // the other way fall back to the lowest face of any.
   const low = new Float32Array(n * n).fill(Infinity);
+  const lowAny = new Float32Array(n * n).fill(Infinity);
   for (const p of blockers) {
     for (let i = 0; i + 8 < p.length; i += 9) {
       const [ax, ay, az, bx, by, bz, cx, cy, cz] = [0, 1, 2, 3, 4, 5, 6, 7, 8].map(
         (k) => p[i + k]!,
       );
-      // Upward-facing only (floors and paving, not walls).
+      // Horizontal only (floors and paving, not walls).
       const nz = (bx! - ax!) * (cy! - ay!) - (by! - ay!) * (cx! - ax!);
       const area = Math.abs(nz);
       if (area < 1) continue;
+      const up = nz > 0;
       const z = (az! + bz! + cz!) / 3;
       const i0 = Math.max(0, Math.floor((Math.min(ax!, bx!, cx!) - x0) / cell));
       const i1 = Math.min(n - 1, Math.floor((Math.max(ax!, bx!, cx!) - x0) / cell));
@@ -567,13 +593,17 @@ export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, 
           const w1 = (cx! - px) * (ay! - py) - (cy! - py) * (ax! - px);
           const w2 = (ax! - px) * (by! - py) - (ay! - py) * (bx! - px);
           const inside = (w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0);
-          if (inside && z < low[jj * n + ii]!) low[jj * n + ii] = z;
+          if (!inside) continue;
+          const k = jj * n + ii;
+          if (up && z < low[k]!) low[k] = z;
+          if (z < lowAny[k]!) lowAny[k] = z;
         }
     }
   }
   const at = (i: number, j: number, z: number) => {
     if (i < 0 || j < 0 || i >= n || j >= n) return false;
-    const b = low[j * n + i]!;
+    const k = j * n + i;
+    const b = Number.isFinite(low[k]!) ? low[k]! : lowAny[k]!;
     return b > z - 100 && b < z + 1500;
   };
   return (x: number, y: number, z: number) => {
@@ -950,7 +980,7 @@ export function grassMeshesYUp(
         : null;
       const g = bake(geo, ms, tints, far);
       far?.geo.dispose();
-      if (g) out.push(new THREE.Mesh(g, grassMaterial(false)));
+      if (g) out.push(new THREE.Mesh(g, renderGrassMaterial()));
     }
     const c = bake(coneGeometry(), conePlacements(list, center, radius));
     if (c)

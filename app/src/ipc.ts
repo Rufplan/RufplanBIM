@@ -205,6 +205,18 @@ export interface AutoRender {
   fov?: number;
   /** A warm finishing grade (0 none, 0.08 typical). */
   warm?: number;
+  /** The camera's white balance in kelvin (6500 neutral; overrides `warm`, ADR-118). */
+  kelvin?: number;
+  /** Glare: the share of the image that is bloom (default 0.04). */
+  bloom?: number;
+  /** A level camera with a shifted lens, so verticals stay vertical (default on). */
+  twoPoint?: boolean;
+  /** Translucent leaves and grass (default on; off to compare). */
+  translucent?: boolean;
+  /** The path tracer's bounces (default 8 outside, 12 inside). */
+  bounces?: number;
+  /** The sun disk's radius in degrees (default 0.4; the real sun is 0.27). */
+  sunRadius?: number;
   /** The most artificial lights to render (the nearest the camera's target). */
   maxLights?: number;
   /** The physical sky's haze (2 clear … 6 hazy) and cloud cover (0–0.9). */

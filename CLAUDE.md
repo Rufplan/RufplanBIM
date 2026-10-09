@@ -156,6 +156,11 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Render engine round (ADR-118): app render/ptPatch.ts (shader edits: sky share + power/distance light picking, indirect clamp,
+  diffuse transmission flag castShadow=2), post.ts `finish` (HDR: white balance, bloom, tone, backdrop, cos⁴ vignette, grade),
+  pathtrace `halfSafe` (0.4° sun), `SITE_DROP`, `cameraFor(.., twoPoint)`, sized fixtures; denoise.ts jittered albedo + variance pass.
+- Vegetation round (ADR-119): translucent leaves and grass (ptPatch `translucent`), plants.rs crown hollows and cluster/top colour,
+  plants.ts `translucentShading` (live view).
 - Details by family, roof references (ADR-117): sets `detail_family` (Foundation & Wall / Door & Window / Roof / Interior sheets); library
   `roof-edge`, `roof-wall`, `chimney-flashing`; drawings `ensure_roof_plan_marks` (wall sections hidden, roof edge section marks drawn like wall section marks; old callout boxes converted), `roof_plans`.
 - Sheet index phases (ADR-116): studio-sheets `sheet_index::{issues, IndexIssue, typical, rows_for}`, `set_rows(.., stage)` (per-stage

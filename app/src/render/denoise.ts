@@ -53,6 +53,7 @@ const GBUFFER_FRAG = /* glsl */ `
   uniform bool useMap;
   uniform float alphaTest;
   uniform int mode;
+  uniform float weight;
   varying vec2 vUv;
   varying vec3 vNormal;
   varying float vDepth;
@@ -67,7 +68,7 @@ const GBUFFER_FRAG = /* glsl */ `
     #endif
     if (c.a < alphaTest) discard;
     if (mode == 0) {
-      gl_FragColor = vec4(c.rgb, 1.0);
+      gl_FragColor = vec4(c.rgb, 1.0) * weight;
     } else {
       vec3 n = normalize(vNormal);
       // Facing the camera, so two-sided cards agree with themselves.
@@ -82,11 +83,15 @@ const ATROUS_FRAG = /* glsl */ `
   uniform sampler2D normalTex;
   uniform float stepPx;
   uniform float sigmaL;
+  uniform float noiseScale;
   varying vec2 vUv;
   float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
   void main() {
     ivec2 p = ivec2(gl_FragCoord.xy);
     vec4 c0 = texelFetch(lightTex, p, 0);
+    // The lighting's own noise here (VARIANCE_FRAG, in alpha) widens the brightness test:
+    // noise is smoothed, real edges (converged, so quiet) are kept (SVGF, ADR-118).
+    float sl = sigmaL + 1.5 * noiseScale * c0.a;
     vec4 g0 = texelFetch(normalTex, p, 0);
     // Background (sky): nothing to filter.
     if (g0.w <= 0.0) { gl_FragColor = c0; return; }
@@ -104,13 +109,43 @@ const ATROUS_FRAG = /* glsl */ `
         float wn = pow(max(0.0, dot(g0.xyz, g.xyz)), 64.0);
         // Depth: relative, so far and near surfaces stop alike.
         float wz = exp(-abs(g.w - g0.w) / (0.012 * g0.w * (1.0 + 0.25 * stepPx)));
-        float wl = exp(-abs(log(lum(c.rgb) + 1e-3) - l0) / sigmaL);
+        float wl = exp(-abs(log(lum(c.rgb) + 1e-3) - l0) / sl);
         float w = k[abs(i)] * k[abs(j)] * wn * wz * wl;
         sum += c * w;
         wsum += w;
       }
     }
     gl_FragColor = wsum > 0.0 ? sum / wsum : c0;
+  }
+`;
+
+// The lighting's noise: the spread of its log brightness over 5×5 pixels of the same
+// surface (normal and depth alike), kept in alpha for the filter (ADR-118).
+const VARIANCE_FRAG = /* glsl */ `
+  uniform sampler2D lightTex;
+  uniform sampler2D normalTex;
+  varying vec2 vUv;
+  float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+  void main() {
+    ivec2 p = ivec2(gl_FragCoord.xy);
+    ivec2 size = textureSize(lightTex, 0);
+    vec4 c0 = texelFetch(lightTex, p, 0);
+    vec4 g0 = texelFetch(normalTex, p, 0);
+    if (g0.w <= 0.0) { gl_FragColor = vec4(c0.rgb, 0.0); return; }
+    float n = 0.0, m1 = 0.0, m2 = 0.0;
+    for (int j = -2; j <= 2; j++)
+      for (int i = -2; i <= 2; i++) {
+        ivec2 q = clamp(p + ivec2(i, j), ivec2(0), size - 1);
+        vec4 g = texelFetch(normalTex, q, 0);
+        if (g.w <= 0.0 || dot(g.xyz, g0.xyz) < 0.9 || abs(g.w - g0.w) > 0.03 * g0.w) continue;
+        float l = log(lum(texelFetch(lightTex, q, 0).rgb) + 1e-3);
+        n += 1.0;
+        m1 += l;
+        m2 += l * l;
+      }
+    float mean = m1 / max(n, 1.0);
+    float sd = sqrt(max(m2 / max(n, 1.0) - mean * mean, 0.0));
+    gl_FragColor = vec4(c0.rgb, n > 3.0 ? sd : 0.0);
   }
 `;
 
@@ -176,6 +211,17 @@ const QUAD_VERT = /* glsl */ `
   void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
 `;
 
+/** The Halton sequence's `i`th value in `base`. */
+export function halton(i: number, base: number): number {
+  let f = 1;
+  let r = 0;
+  for (let n = i; n > 0; n = Math.floor(n / base)) {
+    f /= base;
+    r += f * (n % base);
+  }
+  return r;
+}
+
 /** The G-buffer material for one of the scene's materials. */
 function gMaterial(src: THREE.Material, useColor: boolean, mode: number): THREE.ShaderMaterial {
   const m = src as THREE.MeshPhysicalMaterial;
@@ -190,10 +236,15 @@ function gMaterial(src: THREE.Material, useColor: boolean, mode: number): THREE.
       useMap: { value: !!map },
       alphaTest: { value: m.alphaTest ?? 0 },
       mode: { value: mode },
+      weight: { value: 1 },
     },
     side: THREE.DoubleSide,
   });
 }
+
+/** Jittered albedo passes: the guide antialiased as the trace is, so demodulating doesn't
+ * leave fringes at edges (ADR-118). */
+const ALBEDO_PASSES = 8;
 
 const target = (w: number, h: number) =>
   new THREE.WebGLRenderTarget(w, h, {
@@ -212,6 +263,8 @@ export function guidedDenoise(
   scene: THREE.Scene,
   camera: THREE.Camera,
   o: DenoiseSettings = DEFAULT_DENOISE,
+  /** Where the result goes: linear, for the finishing pass (ADR-118), or the canvas. */
+  out: THREE.WebGLRenderTarget | null = null,
 ) {
   const { width: w, height: h } = color.image as { width: number; height: number };
   const albedo = target(w, h);
@@ -260,7 +313,56 @@ export function guidedDenoise(
       }
       renderer.setRenderTarget(rt);
       renderer.clear();
-      renderer.render(scene, camera);
+      const cam = camera as THREE.PerspectiveCamera;
+      if (mode === 0 && cam.isPerspectiveCamera) {
+        // Halton (2, 3) offsets within the pixel. Each pass drawn whole (nearest surface only), then added into the average: blending
+        // while drawing would sum every surface behind the nearest too.
+        const one = target(w, h);
+        const add = new THREE.ShaderMaterial({
+          vertexShader: QUAD_VERT,
+          fragmentShader:
+            "uniform sampler2D src; uniform float k; varying vec2 vUv; void main() { gl_FragColor = texture2D(src, vUv) * k; }",
+          uniforms: { src: { value: one.texture }, k: { value: 1 / ALBEDO_PASSES } },
+          depthTest: false,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+        });
+        const addQuad = new FullScreenQuad(add);
+        made.push(add);
+        quads.push(addQuad);
+        const autoClear = renderer.autoClear;
+        renderer.autoClear = false;
+        // On top of the camera's own lens shift (two-point perspective), if it has one.
+        const v = cam.view && cam.view.enabled ? { ...cam.view } : null;
+        const fw = v?.fullWidth ?? w;
+        const fh = v?.fullHeight ?? h;
+        for (let s = 0; s < ALBEDO_PASSES; s++) {
+          // A pixel is the visible window over the image's width.
+          const jx = ((halton(s + 1, 2) - 0.5) * (v?.width ?? fw)) / w;
+          const jy = ((halton(s + 1, 3) - 0.5) * (v?.height ?? fh)) / h;
+          cam.setViewOffset(
+            fw,
+            fh,
+            (v?.offsetX ?? 0) + jx,
+            (v?.offsetY ?? 0) + jy,
+            v?.width ?? fw,
+            v?.height ?? fh,
+          );
+          renderer.setRenderTarget(one);
+          renderer.clear();
+          renderer.render(scene, cam);
+          renderer.setRenderTarget(rt);
+          addQuad.render(renderer);
+        }
+        one.dispose();
+        renderer.autoClear = autoClear;
+        if (v)
+          cam.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height);
+        else cam.clearViewOffset();
+      } else {
+        renderer.render(scene, camera);
+      }
     }
     for (const [mesh, m] of saved) mesh.material = m;
     saved.clear();
@@ -296,8 +398,13 @@ export function guidedDenoise(
       ping,
     );
     pass(FIREFLY_FRAG, { lightTex: { value: ping.texture } }, pong);
-    let src = pong;
-    let dst = ping;
+    pass(
+      VARIANCE_FRAG,
+      { lightTex: { value: pong.texture }, normalTex: { value: normal.texture } },
+      ping,
+    );
+    let src = ping;
+    let dst = pong;
     for (let i = 0; i < o.passes; i++) {
       pass(
         ATROUS_FRAG,
@@ -307,6 +414,8 @@ export function guidedDenoise(
           stepPx: { value: 1 << i },
           // Tighter each pass, as SVGF's variance falls.
           sigmaL: { value: (0.9 * o.strength) / Math.pow(1.6, i) },
+          // The noise falls as the passes average it.
+          noiseScale: { value: o.strength / Math.pow(1.5, i) },
         },
         dst,
       );
@@ -330,7 +439,7 @@ export function guidedDenoise(
         hazeDistance: { value: o.hazeDistance ?? 0 },
         hazeColor: { value: new THREE.Vector3(...(o.hazeColor ?? [0, 0, 0])) },
       },
-      null,
+      out,
     );
   } finally {
     for (const [mesh, m] of saved) mesh.material = m;

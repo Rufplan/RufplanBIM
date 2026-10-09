@@ -194,33 +194,39 @@ describe("Lighting tab (ADR-057)", () => {
 
 describe("fixture lights in renders (ADR-057)", () => {
   const k = 1e6 / LUX_PER_UNIT;
-  it("a spherical source is a point light of its candela", () => {
-    const p = fixtureLight(light({})) as THREE.PointLight;
-    expect(p).toBeInstanceOf(THREE.PointLight);
-    expect(p.intensity).toBeCloseTo((1000 / (4 * Math.PI)) * k, 6);
-    expect(p.decay).toBe(2);
-    // z-up model to y-up.
-    expect([p.position.x, p.position.y, p.position.z]).toEqual([0, 2700, -0]);
+  it("a spherical source is two hemispheres of its candela, with its size (ADR-118)", () => {
+    const [up, down] = fixtureLight(light({})) as THREE.SpotLight[];
+    for (const p of [up!, down!]) {
+      expect(p).toBeInstanceOf(THREE.SpotLight);
+      expect(p.intensity).toBeCloseTo((1000 / (4 * Math.PI)) * k, 6);
+      expect(p.decay).toBe(2);
+      expect(p.angle).toBeCloseTo(Math.PI / 2, 2);
+      expect((p as unknown as { radius: number }).radius).toBeGreaterThanOrEqual(15);
+      // z-up model to y-up.
+      expect([p.position.x, p.position.y, p.position.z]).toEqual([0, 2700, -0]);
+    }
+    expect(up!.target.position.y).toBeGreaterThan(2700);
+    expect(down!.target.position.y).toBeLessThan(2700);
   });
 
   it("a spot is a cone of its beam; a hemisphere a cosine spot", () => {
-    const s = fixtureLight(light({ distribution: "Spot", beam: 60 })) as THREE.SpotLight;
-    expect(s.angle).toBeCloseTo(Math.PI / 6, 9);
-    expect(s.intensity).toBeCloseTo((1000 / (2 * Math.PI * (1 - Math.cos(Math.PI / 6)))) * k, 6);
-    expect(s.target.position.y).toBeCloseTo(1700, 9);
-    const h = fixtureLight(light({ distribution: "Hemispherical" })) as THREE.SpotLight;
-    expect(h.intensity).toBeCloseTo((1000 / Math.PI) * k, 6);
-    expect(h.penumbra).toBe(1);
+    const [s] = fixtureLight(light({ distribution: "Spot", beam: 60 })) as THREE.SpotLight[];
+    expect(s!.angle).toBeCloseTo(Math.PI / 6, 9);
+    expect(s!.intensity).toBeCloseTo((1000 / (2 * Math.PI * (1 - Math.cos(Math.PI / 6)))) * k, 6);
+    expect(s!.target.position.y).toBeCloseTo(1700, 9);
+    const [h] = fixtureLight(light({ distribution: "Hemispherical" })) as THREE.SpotLight[];
+    expect(h!.intensity).toBeCloseTo((1000 / Math.PI) * k, 6);
+    expect(h!.penumbra).toBe(1);
   });
 
   it("a troffer is an area light of its size, facing down", () => {
-    const a = fixtureLight(
+    const [a] = fixtureLight(
       light({ shape: "Rectangle", size: [609.6, 1219.2], lumens: 4000 }),
-    ) as THREE.RectAreaLight;
-    expect(a).toBeInstanceOf(THREE.RectAreaLight);
-    expect([a.width, a.height]).toEqual([609.6, 1219.2]);
-    expect(a.intensity).toBeCloseTo(4000 / (Math.PI * 0.6096 * 1.2192) / LUX_PER_UNIT, 9);
-    const facing = new THREE.Vector3(0, 0, -1).applyQuaternion(a.quaternion);
+    ) as THREE.RectAreaLight[];
+    expect(a!).toBeInstanceOf(THREE.RectAreaLight);
+    expect([a!.width, a!.height]).toEqual([609.6, 1219.2]);
+    expect(a!.intensity).toBeCloseTo(4000 / (Math.PI * 0.6096 * 1.2192) / LUX_PER_UNIT, 9);
+    const facing = new THREE.Vector3(0, 0, -1).applyQuaternion(a!.quaternion);
     expect(facing.y).toBeCloseTo(-1, 9);
   });
 

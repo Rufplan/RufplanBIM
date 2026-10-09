@@ -107,6 +107,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   // D5's colour: a touch more saturation and contrast (ADR-065).
   const [d5, setD5] = useState(auto?.d5 ?? true);
   const [denoise, setDenoise] = useState(auto?.denoise ?? true);
+  // Verticals vertical (ADR-118): a level camera with its lens shifted, as architectural
+  // photographs are taken.
+  const [twoPoint, setTwoPoint] = useState(auto?.twoPoint ?? true);
   const [withBackground, setWithBackground] = useState(true);
   const [sun, setSun] = useState<SunPosition | null>(null);
   const [status, setStatus] = useState("");
@@ -246,6 +249,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         import("../render/sky"),
         import("../render/backgrounds"),
       ]);
+      // A development aid: translucent foliage off, to compare.
+      (await import("../render/ptPatch")).foliage.translucent = auto?.translucent ?? true;
       const {
         buildScene,
         cameraFor,
@@ -282,6 +287,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
           turbidity: auto?.turbidity,
           // Sunlit to skylit (ADR-095): lower lifts the shadows, as a hazier sky does.
           sunToSky: auto?.sunToSky,
+          // 1.5 times the real sun (V-Ray's size multiplier): crisp shadows with a little
+          // softening, now that the sun fits the tracer's range (ADR-118).
+          sunRadius: auto?.sunRadius ?? 0.4,
           width: 2048,
           height: 1024,
         });
@@ -312,7 +320,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       } else {
         env = physical();
       }
-      const camera = cameraFor(pose, w / h);
+      const camera = cameraFor(pose, w / h, twoPoint);
       const photo = bg.photo ? await bgs.backgroundPhoto(bg.id) : null;
       const light = horizontalIrradiance(env) * intensity;
       setStatus("Preparing materials…");
@@ -364,6 +372,11 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const v = new THREE.Vector3();
       let hasSite = false;
       const surfaces: import("../render/grass").GrassSurface[] = [];
+      // Topography renders a little low (ADR-118); its grass grows from where it is drawn.
+      const grown = (m: Mesh) =>
+        m.category === "Site"
+          ? m.positions.map((v, i) => (i % 3 === 2 ? v - pt.SITE_DROP : v))
+          : m.positions;
       for (const m of meshes) {
         if (m.category === "Site") hasSite = true;
         else
@@ -372,7 +385,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         const painted = patchSpec.get(m.el);
         if (painted) {
           surfaces.push({
-            positions: m.positions,
+            positions: grown(m),
             grass: { height: painted.height, variation: painted.variation },
             color: painted.color,
             kind: painted.kind,
@@ -384,7 +397,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         const cones = mat?.appearance.texture === "gen:pine-straw";
         if (mat && (mat.appearance.grass || cones))
           surfaces.push({
-            positions: m.positions,
+            positions: grown(m),
             grass: mat.appearance.grass ?? null,
             color: mat.color,
             cones,
@@ -432,7 +445,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
           const l = Math.hypot(dx, dy) || 1;
           return { x: dx / l, y: dy / l };
         })(),
-        auto?.grass ?? 120_000,
+        // Inside, the lawn shows only through the windows (ADR-118).
+        auto?.grass ?? (scheme.startsWith("Interior") ? 40_000 : 120_000),
       )) {
         if (auto)
           console.warn(
@@ -465,6 +479,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         samples,
         exposure: ev,
         tone,
+        interior: scheme.startsWith("Interior"),
+        bounces: auto?.bounces,
       });
       job.current = j;
       const shown = document.createElement("canvas");
@@ -474,8 +490,23 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       stage.current?.replaceChildren(shown);
       setView3({ z: 1, x: 0, y: 0 });
       let last = 0;
-      const show = () => composite(shown, backdrop.current, j.canvas);
-      cut.current = () => pt.cutout(j.canvas, scene, camera);
+      // The finished image already holds its backdrop.
+      let finished = false;
+      const show = () => composite(shown, finished ? null : backdrop.current, j.canvas);
+      const finishing = {
+        exposure: ev,
+        tone,
+        bloom: glare ? (auto?.bloom ?? 0.025) : 0,
+        vignette: vignette ? 0.35 : 0,
+        // Warmth as a camera's white balance, not a sepia filter (ADR-118).
+        kelvin: auto?.kelvin ?? 6500 + 6000 * (auto?.warm ?? 0),
+        saturation: d5 ? 1.14 : 1,
+        contrast: d5 ? 1.06 : 1,
+      };
+      cut.current = () => {
+        j.finish(null, finishing);
+        return pt.cutout(j.canvas, scene, camera);
+      };
       finish.current = () => {
         // The guided denoiser (ADR-102); "blur" is the old bilateral one, for comparison.
         if (denoise) {
@@ -491,13 +522,12 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 number,
               ],
             });
-          else j.denoise();
         }
+        // The finishing pass on the linear image (ADR-118): Corona's and V-Ray's frame buffer
+        // order, rather than CSS filters on the 8-bit picture.
+        j.finish(backdrop.current, finishing);
+        finished = true;
         show();
-        if (glare || vignette)
-          pt.lensEffects(shown, { glare: glare ? 0.35 : 0, vignette: vignette ? 0.22 : 0 });
-        if (d5) pt.d5Grade(shown);
-        if (auto?.warm) pt.warmGrade(shown, auto.warm);
       };
       await j.start(scene, camera, samples, (n, secs, phase) => {
         setProgress(n / samples);
@@ -819,6 +849,18 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 <option value="contrast">Contrast (punchy, V-Ray style)</option>
                 <option value="filmic">Filmic (soft highlights)</option>
               </select>
+            </label>
+            <label
+              className="ob-check"
+              title="Keep verticals vertical, as an architectural photographer's shift lens does"
+            >
+              <input
+                type="checkbox"
+                checked={twoPoint}
+                onChange={(e) => setTwoPoint(e.target.checked)}
+                disabled={running}
+              />
+              Two-point perspective
             </label>
             <label className="ob-check">
               <input

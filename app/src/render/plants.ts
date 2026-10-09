@@ -11,6 +11,7 @@ import type { PlantModel } from "../bindings/PlantModel";
 import type { PlantPart } from "../bindings/PlantPart";
 import type { PlantSource } from "../bindings/PlantSource";
 import { imageTexture } from "./materials";
+import { translucent } from "./ptPatch";
 
 export interface PlantLoader {
   model: (source: PlantSource, variant: number) => Promise<PlantModel>;
@@ -64,14 +65,32 @@ export function partGeometry(p: PlantPart, srgb = false): THREE.BufferGeometry |
   return g;
 }
 
+/** Backlit foliage in the live view (ADR-119), Barré-Brisebois's fast translucency (GDC
+ * 2011): looking toward the sun through a crown or a lawn, the sun's light comes through,
+ * tinted yellow-green, as the path tracer's diffuse transmission gives it. Added to the
+ * sun's diffuse light after the lighting. */
+export function translucentShading(fragmentShader: string, strength = 0.8): string {
+  return fragmentShader.replace(
+    "#include <lights_fragment_end>",
+    `#include <lights_fragment_end>
+    #if NUM_DIR_LIGHTS > 0
+    {
+      vec3 tL = directionalLights[ 0 ].direction;
+      float tb = pow( saturate( dot( geometryViewDir, - normalize( tL + normal * 0.3 ) ) ), 4.0 );
+      reflectedLight.directDiffuse += directionalLights[ 0 ].color * diffuseColor.rgb
+        * vec3( 1.1, 1.0, 0.55 ) * tb * ${strength.toFixed(2)};
+    }
+    #endif`,
+  );
+}
+
 /** Leaves keep their crown normal on their back faces too (three flips it for
  * double-sided materials), so a crown is lit as one soft volume. */
 function unflipBackFaces(m: THREE.Material) {
   m.onBeforeCompile = (shader) => {
     const chunk = THREE.ShaderChunk.normal_fragment_begin.replace("normal *= faceDirection;", "");
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <normal_fragment_begin>",
-      chunk,
+    shader.fragmentShader = translucentShading(
+      shader.fragmentShader.replace("#include <normal_fragment_begin>", chunk),
     );
   };
   m.customProgramCacheKey = () => "plant-leaves";
@@ -300,6 +319,39 @@ export function plantGroup(
   return g;
 }
 
+/** A geometry's triangles split by their texture's v: those with every corner below `v`,
+ * and the rest (none for an empty side). */
+export function splitByUv(
+  geo: THREE.BufferGeometry,
+  v: number,
+): [THREE.BufferGeometry | null, THREE.BufferGeometry | null] {
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  const uv = g.getAttribute("uv");
+  if (!uv) return [geo, null];
+  const n = g.getAttribute("position").count / 3;
+  const low: number[] = [];
+  const high: number[] = [];
+  for (let t = 0; t < n; t++) {
+    const up = uv.getY(t * 3) >= v || uv.getY(t * 3 + 1) >= v || uv.getY(t * 3 + 2) >= v;
+    (up ? high : low).push(t);
+  }
+  const pick = (tris: number[]) => {
+    if (!tris.length) return null;
+    const out = new THREE.BufferGeometry();
+    for (const [name, attr] of Object.entries(g.attributes)) {
+      const a = attr as THREE.BufferAttribute;
+      const k = a.itemSize;
+      const data = new (a.array.constructor as Float32ArrayConstructor)(tris.length * 3 * k);
+      tris.forEach((t, i) => data.set(a.array.subarray(t * 3 * k, (t + 1) * 3 * k), i * 3 * k));
+      out.setAttribute(name, new THREE.BufferAttribute(data, k, a.normalized));
+    }
+    return out;
+  };
+  const parts: [THREE.BufferGeometry | null, THREE.BufferGeometry | null] = [pick(low), pick(high)];
+  if (g !== geo) g.dispose();
+  return parts;
+}
+
 /** Plants for the path tracer: each species' parts with every instance baked in and
  * merged, turned into the render's y-up world. */
 export function plantMeshesYUp(
@@ -361,18 +413,29 @@ export function plantMeshesYUp(
             }
       }
       if (mat === a.materials.leaves) {
-        // Thin leaves let light through (the backlit glow of a sunlit crown): the path
-        // tracer has no translucency, so a little thin transmission stands in for it.
-        const leaves = (mat as THREE.MeshPhysicalMaterial).clone();
+        // Thin leaves let light through (ADR-119): what a leaf reflects it transmits again,
+        // yellower, out of its back, so a crown glows with the sun behind it; waxy, so the
+        // sun glints on it (roughness 0.45, F0 about 0.03).
+        const leaves = translucent((mat as THREE.MeshPhysicalMaterial).clone(), 0.6);
         leaves.color.setScalar(RENDER_LEAF_GAIN);
-        Object.assign(leaves, {
-          transmission: 0.2,
-          thickness: 0,
-          ior: 1.33,
-          roughness: 0.6,
-          specularIntensity: 0.35,
-        });
+        Object.assign(leaves, { roughness: 0.45, specularIntensity: 0.6 });
         m = leaves;
+        // Flowers (the atlas's upper cells) transmit their own colour, not a leaf's yellow-
+        // green, or lavender washes pink-white: their own material, a neutral tint.
+        const [leafGeo, flowerGeo] = splitByUv(merged, 0.5);
+        if (flowerGeo) {
+          const petals = translucent(leaves.clone(), 0.3, [0.9, 0.9, 0.9]);
+          const fm = new THREE.Mesh(flowerGeo, petals);
+          fm.userData.plant = true;
+          out.push(fm);
+        }
+        if (leafGeo) {
+          const lm = new THREE.Mesh(leafGeo, m);
+          lm.userData.plant = true;
+          out.push(lm);
+        }
+        merged.dispose();
+        continue;
       }
       const mesh = new THREE.Mesh(merged, m);
       mesh.userData.plant = true;
@@ -383,8 +446,8 @@ export function plantMeshesYUp(
 }
 
 /** Foliage albedo in renders relative to the live view: path-traced crowns shade
- * themselves darker than raster ones. */
-export const RENDER_LEAF_GAIN = 3.0;
+ * themselves darker than raster ones (3.0 before leaves were translucent, ADR-119). */
+export const RENDER_LEAF_GAIN = 1.25;
 /** Flowers' own gain in renders (ADR-101). */
 export const FLOWER_GAIN = 1.5;
 

@@ -12,6 +12,8 @@ import { uvAt, type Imagery } from "../imagery";
 import { meshColor } from "../components/View3D";
 import { GROUND_ALBEDO } from "./sky";
 import { guidedDenoise, type DenoiseSettings } from "./denoise";
+import { patchTracer } from "./ptPatch";
+import { finish, type FinishSettings } from "./post";
 import { boxUv, physicalMaterial, texturesFor, type TextureLoader } from "./materials";
 import type { RenderMaterial } from "../bindings/RenderMaterial";
 import type { LightInfo } from "../bindings/LightInfo";
@@ -24,6 +26,10 @@ export interface RenderSettings {
   exposure: number;
   /** Tone curve: punchier contrast (ACES, the default) or soft filmic (AgX). */
   tone?: Tone;
+  /** An interior: more bounces, as light reaches rooms after several (ADR-118). */
+  interior?: boolean;
+  /** Overrides the bounces (a development aid). */
+  bounces?: number;
 }
 
 /** Model space is z-up; three.js (and the path tracer's sky) is y-up. */
@@ -171,7 +177,7 @@ export const LUX_PER_UNIT = 6000;
 /** A fixture's light in the render scene (mm, y-up), in the sky's units: Revit's light
  * source shapes and distributions as three.js lights. Rectangle and line sources are area
  * lights; spherical ones point lights; spots and hemispherical ones spot lights. */
-export function fixtureLight(l: LightInfo): THREE.Light {
+export function fixtureLight(l: LightInfo): THREE.Light[] {
   const color = new THREE.Color().setRGB(
     l.color[0] / 255,
     l.color[1] / 255,
@@ -191,12 +197,20 @@ export function fixtureLight(l: LightInfo): THREE.Light {
     a.position.copy(at);
     a.up.copy(toYUp([l.axis[0], l.axis[1], 0]).normalize());
     a.lookAt(at.clone().add(dir));
-    return a;
+    return [a];
   }
+  // A lamp's size (ADR-118): soft shadows and highlights, not a pinpoint's, and less noise.
+  const radius = Math.min(Math.max(Math.min(l.size[0], l.size[1]) / 2, 15), 150);
   if (l.distribution === "Spherical") {
-    const p = new THREE.PointLight(color, (l.lumens / (4 * Math.PI)) * k, 0, 2);
-    p.position.copy(at);
-    return p;
+    // The tracer's point lights have no size: two hemispheres, up and down, as spots.
+    const cd = (l.lumens / (4 * Math.PI)) * k;
+    return [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0)].map((d) => {
+      const s = new THREE.SpotLight(color, cd, 0, (Math.PI / 2) * 0.999, 0, 2);
+      Object.assign(s, { radius });
+      s.position.copy(at);
+      s.target.position.copy(at.clone().addScaledVector(d, 1000));
+      return s;
+    });
   }
   const spot = l.distribution === "Spot";
   const half = spot
@@ -205,9 +219,10 @@ export function fixtureLight(l: LightInfo): THREE.Light {
   // A uniform cone of the beam, or a cosine (Lambertian) hemisphere.
   const cd = spot ? l.lumens / (2 * Math.PI * (1 - Math.cos(half))) : l.lumens / Math.PI;
   const s = new THREE.SpotLight(color, cd * k, 0, half, spot ? 0.35 : 1, 2);
+  Object.assign(s, { radius });
   s.position.copy(at);
   s.target.position.copy(at.clone().addScaledVector(dir, 1000));
-  return s;
+  return [s];
 }
 
 /** Light falling on a horizontal surface from an equirectangular environment map
@@ -311,6 +326,31 @@ export function projectedGround(
   return geo;
 }
 
+/** An environment map that fits half floats, and the factor it was divided by. */
+export function halfSafe(t: THREE.Texture): { texture: THREE.Texture; scale: number } {
+  const img = t.image as { data?: ArrayLike<number>; width: number; height: number } | undefined;
+  const data = img?.data;
+  if (!img || !data || !(data instanceof Float32Array)) return { texture: t, scale: 1 };
+  let max = 0;
+  for (let i = 0; i < data.length; i++) if (data[i]! > max) max = data[i]!;
+  if (max <= 30_000) return { texture: t, scale: 1 };
+  const scale = Math.ceil(max / 30_000);
+  const copy = new Float32Array(data.length);
+  for (let i = 0; i < data.length; i++) copy[i] = (i & 3) === 3 ? data[i]! : data[i]! / scale;
+  const tex = new THREE.DataTexture(copy, img.width, img.height, THREE.RGBAFormat, THREE.FloatType);
+  tex.mapping = t.mapping;
+  tex.minFilter = t.minFilter;
+  tex.magFilter = t.magFilter;
+  tex.generateMipmaps = false;
+  tex.flipY = t.flipY;
+  tex.colorSpace = t.colorSpace;
+  tex.needsUpdate = true;
+  return { texture: tex, scale };
+}
+
+/** How far renders set topography below its modelled height (mm), under slabs on grade. */
+export const SITE_DROP = 20;
+
 /** The render scene: the model in y-up, the ground and the environment light. */
 /** A ceiling's material glowing a warm interior white (ADR-101); a copy when shared. */
 function interiorGlow(mat: THREE.Material, k: number): THREE.Material {
@@ -337,9 +377,13 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
       continue;
     const p = m.positions;
     const out = new Float32Array(p.length);
+    // Topography graded flush with a slab on grade would show through the floor (the two
+    // surfaces coincide; ADR-118): it sits just under, inside the slab, as a building pad
+    // lowers it. Walls and paving reach down past it.
+    const drop = m.category === "Site" ? SITE_DROP : 0;
     for (let i = 0; i < p.length; i += 3) {
       out[i] = p[i]!;
-      out[i + 1] = p[i + 2]!;
+      out[i + 1] = p[i + 2]! - drop;
       out[i + 2] = -p[i + 1]!;
     }
     const geo = new THREE.BufferGeometry();
@@ -483,13 +527,17 @@ export function buildScene(meshes: Mesh[], o: SceneOptions): THREE.Scene {
     ground.userData.ground = true;
     scene.add(ground);
   }
-  for (const l of o.lights ?? []) {
-    const light = fixtureLight(l);
-    scene.add(light);
-    if (light instanceof THREE.SpotLight) scene.add(light.target);
-  }
-  scene.environment = o.environment;
-  scene.environmentIntensity = o.environmentIntensity ?? 1;
+  for (const l of o.lights ?? [])
+    for (const light of fixtureLight(l)) {
+      scene.add(light);
+      if (light instanceof THREE.SpotLight) scene.add(light.target);
+    }
+  // The tracer stores the environment in half floats (65,504 at most): a sun of its real
+  // size is brighter than that. A scaled copy goes in, the intensity scaled back up
+  // (ADR-118), so the sun keeps all its light and its sharp shadows.
+  const { texture: env, scale } = halfSafe(o.environment);
+  scene.environment = env;
+  scene.environmentIntensity = (o.environmentIntensity ?? 1) * scale;
   scene.environmentRotation.set(0, o.rotation, 0);
   // Transparent where rays leave the model: the backdrop goes behind.
   scene.background = null;
@@ -511,11 +559,30 @@ export function textureSizeFor(scene: THREE.Scene): number {
   return 1024;
 }
 
-export function cameraFor(pose: CameraPose, aspect: number): THREE.PerspectiveCamera {
+/** The render camera. `twoPoint` (ADR-118): a camera tilted less than 30° is levelled and
+ * its lens shifted up or down to frame the same view, so verticals stay vertical, as an
+ * architectural photographer's shift lens (V-Ray's vertical tilt, Corona's shift). */
+export function cameraFor(
+  pose: CameraPose,
+  aspect: number,
+  twoPoint = false,
+): THREE.PerspectiveCamera {
   const cam = new THREE.PerspectiveCamera(pose.fov, aspect, 50, 2e7);
-  cam.position.copy(toYUp(pose.eye));
+  const eye = toYUp(pose.eye);
+  const target = toYUp(pose.target);
+  cam.position.copy(eye);
   cam.up.set(0, 1, 0);
-  cam.lookAt(toYUp(pose.target));
+  const d = target.clone().sub(eye);
+  const level = Math.hypot(d.x, d.z);
+  const pitch = Math.atan2(d.y, level);
+  if (twoPoint && level > 0 && Math.abs(pitch) < (30 * Math.PI) / 180) {
+    cam.lookAt(eye.x + d.x, eye.y, eye.z + d.z);
+    // The target's height on a level frame, in half-heights: the window moves by that.
+    const shift = Math.tan(pitch) / Math.tan((pose.fov * Math.PI) / 360);
+    cam.setViewOffset(1000 * aspect, 1000, 0, -shift * 500, 1000 * aspect, 1000);
+  } else {
+    cam.lookAt(target);
+  }
   cam.updateProjectionMatrix();
   return cam;
 }
@@ -598,11 +665,19 @@ export class RenderJob {
       console.warn("Render: the GPU reset (WebGL context lost)"),
     );
     this.tracer = new WebGLPathTracer(this.renderer);
-    // Global illumination as V-Ray's brute force: many diffuse bounces, deep glass.
-    // Exteriors: five bounces carry nearly all the light; more only cost time (ADR-095).
-    this.tracer.bounces = 5;
-    // Leaf cards (alpha-cut and thinly transmissive) each spend one.
-    this.tracer.transmissiveBounces = 16;
+    // Light transport as Corona's and Cycles' (ADR-118): the sky's fixed share of light
+    // samples, clamped indirect light (ten times display white), translucent leaves.
+    patchTracer(
+      (this.tracer as unknown as { _pathTracer: { material: THREE.ShaderMaterial } })._pathTracer
+        .material,
+      { envPick: 0.5, clampIndirect: 10 / Math.max(settings.exposure, 1e-3) },
+    );
+    // Global illumination as V-Ray's brute force: Russian roulette ends paths that carry
+    // little after the third bounce, so more bounces cost little where they don't matter
+    // and fill rooms where they do (ADR-118).
+    this.tracer.bounces = settings.bounces ?? (settings.interior ? 12 : 8);
+    // Leaf cards (alpha-cut) and glass each spend one; a dense crown needs many.
+    this.tracer.transmissiveBounces = 24;
     this.tracer.filterGlossyFactor = 0.5;
     this.tracer.multipleImportanceSampling = true;
     this.tracer.minSamples = 1;
@@ -678,11 +753,30 @@ export class RenderJob {
     cancelAnimationFrame(this.raf);
   }
 
+  /** The denoised image (linear), once denoised. */
+  private denoised: THREE.WebGLRenderTarget | null = null;
+
   /** The guided denoiser (ADR-102): albedo, normal and depth from the scene steer an
-   * à-trous filter of the lighting, so texture keeps its detail. */
+   * à-trous filter of the lighting, so texture keeps its detail. Kept linear for [`finish`]. */
   guidedDenoise(o?: DenoiseSettings) {
-    if (!this.scene || !this.camera) return this.denoise();
-    guidedDenoise(this.renderer, this.tracer.target.texture, this.scene, this.camera, o);
+    if (!this.scene || !this.camera) return;
+    const t = this.tracer.target;
+    this.denoised?.dispose();
+    this.denoised = new THREE.WebGLRenderTarget(t.width, t.height, {
+      type: THREE.FloatType,
+      format: THREE.RGBAFormat,
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+    });
+    guidedDenoise(this.renderer, t.texture, this.scene, this.camera, o, this.denoised);
+  }
+
+  /** The finished image on the canvas (ADR-118): exposure, white balance, bloom, the tone
+   * curve, the backdrop (none for a transparent cut-out), vignette and grade, from the
+   * linear trace (denoised if it was). */
+  finish(backdrop: HTMLCanvasElement | null, o: FinishSettings) {
+    finish(this.renderer, (this.denoised ?? this.tracer.target).texture, backdrop, o);
   }
 
   /** Smooths the remaining noise, edge-aware, as V-Ray's denoiser does at the end. */
@@ -706,99 +800,10 @@ export class RenderJob {
 
   dispose() {
     this.stop();
+    this.denoised?.dispose();
     this.tracer.dispose();
     this.renderer.dispose();
   }
-}
-
-/** The glare's bright pass: how much of a pixel's colour (0–255, sRGB) blooms, from 0 below
- * `threshold` of full brightness to 1 at full. */
-export function glareWeight(r: number, g: number, b: number, threshold = 0.8): number {
-  const l = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return Math.max(0, Math.min(1, (l - threshold) / (1 - threshold)));
-}
-
-/** V-Ray's and Corona's lens effects on a finished render (ADR-063): glare blooming from the
- * brightest light (sun glints, lit fixtures, the sky through glass), tight and wide, and a
- * soft vignette. `glare` and `vignette` are 0–1. */
-export function lensEffects(canvas: HTMLCanvasElement, o: { glare: number; vignette: number }) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const { width: w, height: h } = canvas;
-  if (o.glare > 0) {
-    const s = document.createElement("canvas");
-    s.width = Math.max(1, w >> 2);
-    s.height = Math.max(1, h >> 2);
-    const sc = s.getContext("2d");
-    if (sc) {
-      sc.drawImage(canvas, 0, 0, s.width, s.height);
-      const img = sc.getImageData(0, 0, s.width, s.height);
-      const d = img.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const k = glareWeight(d[i]!, d[i + 1]!, d[i + 2]!);
-        d[i] = d[i]! * k;
-        d[i + 1] = d[i + 1]! * k;
-        d[i + 2] = d[i + 2]! * k;
-      }
-      sc.putImageData(img, 0, 0);
-      ctx.save();
-      ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = o.glare;
-      ctx.filter = `blur(${Math.max(2, Math.round(w / 160))}px)`;
-      ctx.drawImage(s, 0, 0, w, h);
-      ctx.globalAlpha = o.glare * 0.6;
-      ctx.filter = `blur(${Math.max(6, Math.round(w / 45))}px)`;
-      ctx.drawImage(s, 0, 0, w, h);
-      ctx.restore();
-    }
-  }
-  if (o.vignette > 0) {
-    const g = ctx.createRadialGradient(
-      w / 2,
-      h / 2,
-      Math.min(w, h) * 0.4,
-      w / 2,
-      h / 2,
-      Math.hypot(w, h) / 2,
-    );
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, `rgba(0,0,0,${o.vignette})`);
-    ctx.save();
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    ctx.restore();
-  }
-}
-
-/** D5's colour on a finished render (ADR-065): a touch more saturation and contrast. */
-export function d5Grade(canvas: HTMLCanvasElement, saturation = 1.14, contrast = 1.06) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const copy = document.createElement("canvas");
-  copy.width = canvas.width;
-  copy.height = canvas.height;
-  copy.getContext("2d")?.drawImage(canvas, 0, 0);
-  ctx.save();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.filter = `saturate(${saturation}) contrast(${contrast})`;
-  ctx.drawImage(copy, 0, 0);
-  ctx.restore();
-}
-
-/** A warm, airy finishing grade (ADR-095): a touch of warmth, lifted mids, gentle
- * contrast, as an architectural photographer grades a late-afternoon exterior. */
-export function warmGrade(canvas: HTMLCanvasElement, warmth = 0.08) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const copy = document.createElement("canvas");
-  copy.width = canvas.width;
-  copy.height = canvas.height;
-  copy.getContext("2d")?.drawImage(canvas, 0, 0);
-  ctx.save();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.filter = `sepia(${warmth}) brightness(1.04) contrast(1.04) saturate(0.98)`;
-  ctx.drawImage(copy, 0, 0);
-  ctx.restore();
 }
 
 /** Draws the render over its backdrop. */

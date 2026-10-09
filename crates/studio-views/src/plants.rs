@@ -349,6 +349,28 @@ fn colonize(spec: &PlantSpec, env: &Envelope, rng: &mut Rng) -> Skeleton {
             points.push(p);
         }
     }
+    // Hollows in a broadleaf crown (ADR-119): where no branch grows, sky shows through and
+    // the scaffold limbs read, as a real crown's clumps and gaps do (Laubwerk's and
+    // SpeedTree's trees; a crown filled evenly reads as a green ball).
+    let conifer = matches!(spec.foliage, Foliage::Needle | Foliage::Scale);
+    if spec.group.is_tree() && !conifer && env.r > 900.0 {
+        let c = env.center();
+        let crown_h = env.z1 - env.z0;
+        let n = 2 + (rng.f() * 3.0) as usize;
+        let hollows: Vec<(V, f64)> = (0..n)
+            .map(|_| {
+                let a = rng.f() * std::f64::consts::TAU;
+                let d = env.r * rng.range(0.4, 0.8);
+                let at = [
+                    c[0] + a.cos() * d,
+                    c[1] + a.sin() * d,
+                    c[2] + crown_h * rng.range(-0.2, 0.3),
+                ];
+                (at, env.r * rng.range(0.18, 0.3))
+            })
+            .collect();
+        points.retain(|p| hollows.iter().all(|(h, r)| length(sub(*p, *h)) > *r));
+    }
     let mut sk = Skeleton::default();
     // Trunks: one, or several leaning apart (multi-stem).
     let stems = spec.stems.max(1) as usize;
@@ -869,6 +891,34 @@ fn leaf_cards(
                 (ao * v).min(1.15),
                 (ao * v * (1.0 - warm)).min(1.15),
             ];
+            // Variety as SpeedTree's and Forest Pack's trees have it (ADR-119): each branch's
+            // cluster its own shade (yellow-green to blue-green), the sunlit top of the crown
+            // lighter and warmer, and a few odd leaves, yellowed up high, blue-green in the shade.
+            let c = if conifer {
+                c
+            } else {
+                let hk = ((i as u64).wrapping_mul(2_654_435_761) % 1000) as f64 / 1000.0 - 0.5;
+                let top = ((t - 0.66) / 0.34).clamp(0.0, 1.0);
+                let lift = 1.0 + 0.12 * top;
+                let mut k = [
+                    lift * (1.0 + hk * 0.06 + 0.04 * top),
+                    lift,
+                    lift * (1.0 - hk * 0.06 - 0.06 * top),
+                ];
+                let odd = rng.f();
+                if odd < 0.05 {
+                    k = if t > 0.5 {
+                        [k[0] * 1.18, k[1] * 1.05, k[2] * 0.75]
+                    } else {
+                        [k[0] * 0.85, k[1], k[2] * 1.12]
+                    };
+                }
+                [
+                    (c[0] * k[0]).min(1.2),
+                    (c[1] * k[1]).min(1.2),
+                    (c[2] * k[2]).min(1.2),
+                ]
+            };
             let cell = if flowering_tree {
                 // In bloom: mostly flowers.
                 if rng.f() < 0.75 {
@@ -2798,6 +2848,33 @@ mod tests {
         }
         assert!(inner.1 > 0 && outer.1 > 0);
         assert!(inner.0 / f64::from(inner.1) < outer.0 / f64::from(outer.1) * 0.85);
+    }
+
+    #[test]
+    fn a_crowns_sunlit_top_is_lighter_and_warmer_and_its_clusters_vary() {
+        let spec = preset("Sugar Maple");
+        let m = model(&spec, 0);
+        let h = spec.height;
+        let (mut top, mut mid) = ((0.0, 0.0, 0), (0.0, 0.0, 0));
+        let mut warmth = vec![];
+        for (p, c) in m.leaves.positions.chunks(3).zip(m.leaves.colors.chunks(3)) {
+            let z = f64::from(p[2]);
+            let (r, g, b) = (f64::from(c[0]), f64::from(c[1]), f64::from(c[2]));
+            warmth.push(r / b.max(1e-6));
+            if z > 0.88 * h {
+                top = (top.0 + g, top.1 + r / b.max(1e-6), top.2 + 1);
+            } else if z > 0.45 * h && z < 0.6 * h {
+                mid = (mid.0 + g, mid.1 + r / b.max(1e-6), mid.2 + 1);
+            }
+        }
+        assert!(top.2 > 0 && mid.2 > 0);
+        let (tn, mn) = (f64::from(top.2), f64::from(mid.2));
+        assert!(top.0 / tn > mid.0 / mn, "lighter on top");
+        assert!(top.1 / tn > mid.1 / mn, "warmer on top");
+        // Branch clusters differ in hue: red against blue spreads by several percent.
+        warmth.sort_by(f64::total_cmp);
+        let q = |f: f64| warmth[((warmth.len() - 1) as f64 * f) as usize];
+        assert!(q(0.9) / q(0.1) > 1.06, "{} .. {}", q(0.1), q(0.9));
     }
 
     #[test]

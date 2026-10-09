@@ -233,6 +233,14 @@ describe("plants and grass in 3D (ADR-064)", () => {
     expect(covered(5000, 0, 0)).toBe(false);
     // Well above the slab (a roof over the lawn) doesn't cover it.
     expect(covered(0, 0, -3000)).toBe(false);
+    // A 6" slab on grade, its top wound up and its underside down, with a floor over it:
+    // its top covers the lawn graded flush with it, not its underside (ADR-118).
+    const top = [-s, -s, 0, s, -s, 0, s, s, 0, -s, -s, 0, s, s, 0, -s, s, 0];
+    const under = [-s, -s, -152, s, s, -152, s, -s, -152, -s, -s, -152, -s, s, -152, s, s, -152];
+    const upper = top.map((v, i) => (i % 3 === 2 ? 3048 : v));
+    const house = coverMask([top, under, upper], new THREE.Vector3(), 45_000);
+    expect(house(0, 0, -20)).toBe(true);
+    expect(house(0, 0, 0)).toBe(true);
     const field = new GrassField(
       [{ positions: lawn, grass: { height: 60, variation: 0.3 }, color: [90, 120, 60] }],
       new THREE.Vector3(),
