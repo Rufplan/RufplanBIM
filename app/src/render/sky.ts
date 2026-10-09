@@ -3,6 +3,7 @@
 // height) plus the sun as a small, very bright disk. Lighting from the disk through the path
 // tracer's importance sampling gives sun shadows with real, slightly soft edges.
 import * as THREE from "three";
+import { skyTable, sunTransmittance } from "./atmosphere";
 
 /** Perez's sky distribution: luminance or chromaticity at zenith angle `theta`, angle
  * `gamma` from the sun. */
@@ -67,14 +68,11 @@ export function xyYToRgb(x: number, y: number, Y: number): [number, number, numb
   ];
 }
 
-/** The sun's colour through the atmosphere: white overhead, orange near the horizon. */
+/** The sun's colour through the atmosphere: near white overhead, orange near the horizon
+ * (the physical sky's transmittance, ADR-118), its brightest channel 1. */
 export function sunColor(altitudeDeg: number): [number, number, number] {
-  const z = (90 - Math.max(altitudeDeg, 0.5)) * (Math.PI / 180);
-  // Kasten–Young air mass.
-  const m = 1 / (Math.cos(z) + 0.50572 * (96.07995 - (z * 180) / Math.PI) ** -1.6364);
-  const tau = [0.028, 0.06, 0.14]; // rough Rayleigh + aerosol optical depths per channel
-  const c = tau.map((t) => Math.exp(-t * m)) as [number, number, number];
-  const k = Math.max(...c);
+  const c = sunTransmittance(Math.max(altitudeDeg, 0.5));
+  const k = Math.max(c[0], c[1], c[2], 1e-9);
   return [c[0] / k, c[1] / k, c[2] / k];
 }
 
@@ -156,6 +154,29 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
   let hn = 0;
   const dir = new THREE.Vector3();
   let irradiance = 0;
+  // The clear sky's colour and shape from the physical atmosphere (ADR-118), scaled to the
+  // Preetham sky's light on the ground, so exposures and the sun's balance hold: blue
+  // overhead, white-gold toward a low sun, the haze bright around it.
+  const sunElev = Math.asin(Math.max(-0.12, Math.min(1, sun.y)));
+  const sunAz = Math.atan2(sun.z, sun.x);
+  const atmo = skyTable(sunElev);
+  const preethamY = (elev: number, gamma: number) =>
+    zY * perez(Math.PI / 2 - elev, gamma, co.Y) * scale;
+  let pIrr = 0;
+  let aIrr = 0;
+  for (let j = 0; j < 32; j++) {
+    const elev = ((j + 0.5) / 32) * (Math.PI / 2);
+    for (let i = 0; i < 64; i++) {
+      const phi = ((i + 0.5) / 64 - 0.5) * Math.PI * 2;
+      dir.set(Math.cos(elev) * Math.cos(phi), Math.sin(elev), Math.cos(elev) * Math.sin(phi));
+      const gamma = Math.acos(Math.max(-1, Math.min(1, dir.dot(sun))));
+      const w = Math.sin(elev) * Math.cos(elev);
+      pIrr += preethamY(elev, gamma) * w;
+      const a = atmo(elev, phi - sunAz);
+      aIrr += (0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2]) * w;
+    }
+  }
+  const atmoScale = aIrr > 0 ? pIrr / aIrr : 0;
   const cover = Math.min(0.9, Math.max(0, o.clouds ?? 0));
   const cloudLum = z.Y * scale * (2.4 + 1.6 * Math.max(0, sun.y));
   const tint = sunColor(Math.max(o.altitude, 1));
@@ -170,11 +191,16 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
       if (elev < 0) continue;
       const theta = Math.PI / 2 - elev;
       const gamma = Math.acos(Math.max(-1, Math.min(1, dir.dot(sun))));
-      const Y = zY * perez(theta, gamma, co.Y) * scale;
-      const x = zx * perez(theta, gamma, co.x);
-      const y = zy * perez(theta, gamma, co.y);
-      let [r, g, b] = xyYToRgb(x, y, Y);
-      let lum = Y;
+      let r: number;
+      let g: number;
+      let b: number;
+      if (atmoScale > 0) {
+        [r, g, b] = atmo(elev, phi - sunAz).map((v) => v * atmoScale) as [number, number, number];
+      } else {
+        const Y = zY * perez(theta, gamma, co.Y) * scale;
+        [r, g, b] = xyYToRgb(zx * perez(theta, gamma, co.x), zy * perez(theta, gamma, co.y), Y);
+      }
+      let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       if (cover > 0 && dir.y > 0.01) {
         // A cloud deck overhead, seen in perspective: features shrink toward the horizon.
         const kk = 1 / Math.max(dir.y, 0.04);

@@ -13,7 +13,8 @@ import { meshColor } from "../components/View3D";
 import { GROUND_ALBEDO } from "./sky";
 import { guidedDenoise, type DenoiseSettings } from "./denoise";
 import { patchTracer } from "./ptPatch";
-import { finish, type FinishSettings } from "./post";
+import { finish, sceneKey, type FinishSettings } from "./post";
+export { autoExposure } from "./post";
 import { boxUv, physicalMaterial, texturesFor, type TextureLoader } from "./materials";
 import type { RenderMaterial } from "../bindings/RenderMaterial";
 import type { LightInfo } from "../bindings/LightInfo";
@@ -770,6 +771,11 @@ export class RenderJob {
       depthBuffer: false,
     });
     guidedDenoise(this.renderer, t.texture, this.scene, this.camera, o, this.denoised);
+  }
+
+  /** The scene's key (its log-average luminance, unexposed), for auto exposure. */
+  key(): number {
+    return sceneKey(this.renderer, (this.denoised ?? this.tracer.target).texture);
   }
 
   /** The finished image on the canvas (ADR-118): exposure, white balance, bloom, the tone

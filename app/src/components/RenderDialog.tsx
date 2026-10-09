@@ -47,6 +47,10 @@ export function clock(hour: number): string {
 
 export type Lighting = "sunsky" | "dome";
 
+/** The key (log-average luminance after exposure) of a daylit exterior at the default
+ * exposure: auto exposure opens dimmer scenes up toward it (ADR-118). */
+export const AUTO_KEY = 0.15;
+
 /** Revit's Lighting Schemes, and the exposure each starts from: interiors and night
  * scenes need more than daylight exteriors (Revit's exposure control). */
 export const SCHEMES = [
@@ -110,6 +114,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   // Verticals vertical (ADR-118): a level camera with its lens shifted, as architectural
   // photographs are taken.
   const [twoPoint, setTwoPoint] = useState(auto?.twoPoint ?? true);
+  // Opens up dim scenes (dusk, deep shade) as D5's and Enscape's cameras do (ADR-118).
+  const [autoExposureOn, setAutoExposureOn] = useState(auto?.autoExposure ?? true);
   const [withBackground, setWithBackground] = useState(true);
   const [sun, setSun] = useState<SunPosition | null>(null);
   const [status, setStatus] = useState("");
@@ -454,24 +460,27 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
           );
         scene.add(m);
       }
-      backdrop.current = photo
-        ? renderBackdrop(w, h, camera, {
-            texture: photo,
-            rotation: rot,
-            exposure: ev * (auto?.skyExposure ?? 1),
-            tone,
-            // A library sky's photo is already toned: shown as photographed (ADR-101).
-            raw: !!bg.library,
-            gain: auto?.skyExposure ?? 1,
-          })
-        : bg.id === "physical"
+      // The backdrop at an exposure `k` times the render's (auto exposure redraws it).
+      const makeBackdrop = (k: number) =>
+        photo
           ? renderBackdrop(w, h, camera, {
-              texture: lightingUsed === "sunsky" ? env : physical(),
-              rotation: 0,
-              exposure: ev * (auto?.skyExposure ?? 1),
+              texture: photo,
+              rotation: rot,
+              exposure: ev * k * (auto?.skyExposure ?? 1),
               tone,
+              // A library sky's photo is already toned: shown as photographed (ADR-101).
+              raw: !!bg.library,
+              gain: k * (auto?.skyExposure ?? 1),
             })
-          : renderBackdrop(w, h, camera, null);
+          : bg.id === "physical"
+            ? renderBackdrop(w, h, camera, {
+                texture: lightingUsed === "sunsky" ? env : physical(),
+                rotation: 0,
+                exposure: ev * k * (auto?.skyExposure ?? 1),
+                tone,
+              })
+            : renderBackdrop(w, h, camera, null);
+      backdrop.current = makeBackdrop(1);
       // Supersampled: traced larger, drawn down to the image (ADR-102).
       const j = new RenderJob({
         width: Math.round(w * supersample),
@@ -523,6 +532,13 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
               ],
             });
         }
+        // Auto exposure (ADR-118): a dusk or dim scene is opened up toward a daylit one's key.
+        const key = j.key() * ev;
+        const lift = autoExposureOn ? pt.autoExposure(key, AUTO_KEY, 4) : 1;
+        if (auto)
+          console.warn(`Render: scene key ${key.toFixed(4)}, auto exposure ×${lift.toFixed(2)}`);
+        finishing.exposure = ev * lift;
+        if (lift !== 1) backdrop.current = makeBackdrop(lift);
         // The finishing pass on the linear image (ADR-118): Corona's and V-Ray's frame buffer
         // order, rather than CSS filters on the 8-bit picture.
         j.finish(backdrop.current, finishing);
@@ -849,6 +865,18 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 <option value="contrast">Contrast (punchy, V-Ray style)</option>
                 <option value="filmic">Filmic (soft highlights)</option>
               </select>
+            </label>
+            <label
+              className="ob-check"
+              title="Open up dusk and dim scenes, as D5's and Enscape's cameras do"
+            >
+              <input
+                type="checkbox"
+                checked={autoExposureOn}
+                onChange={(e) => setAutoExposureOn(e.target.checked)}
+                disabled={running}
+              />
+              Auto exposure
             </label>
             <label
               className="ob-check"

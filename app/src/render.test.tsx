@@ -119,15 +119,19 @@ describe("Rendering tab: cameras and renders (ADR-027)", () => {
     };
     const [zr, , zb] = at(127, 0);
     expect(zb).toBeGreaterThan(zr * 1.5);
+    // The ground (lit by the sky and sun, its albedo low) is darker than the sky above the
+    // horizon (a physical sky is brighter there than overhead, ADR-118).
     const [gr, gg, gb] = at(0, 0);
-    expect(gr + gg + gb).toBeLessThan(zr + zb + 1);
+    const [hr, hg, hb] = at(66, 0);
+    expect(gr + gg + gb).toBeLessThan(hr + hg + hb);
     let peak = 0;
     for (let k = 0; k < d.length; k += 4) peak = Math.max(peak, d[k + 1]!);
     expect(peak).toBeGreaterThan(100 * (zb + 0.01));
     // Low sun is orange; high sun white.
     const low = sunColor(3);
     expect(low[2]).toBeLessThan(0.6);
-    expect(sunColor(80)[2]).toBeGreaterThan(0.85);
+    // Overhead nearly white (the air yellows it a little, ADR-118).
+    expect(sunColor(80)[2]).toBeGreaterThan(0.75);
     // Irradiance counts only the sky half, whichever way the rows run.
     // A uniform sky of radiance 1 over a black ground gives π on a horizontal surface.
     const rows = 64;

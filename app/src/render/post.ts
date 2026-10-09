@@ -309,3 +309,73 @@ export function finish(
     for (const m of made) m.dispose();
   }
 }
+
+const KEY_FRAG = /* glsl */ `
+  uniform sampler2D hdr;
+  varying vec2 vUv;
+  void main() {
+    // A 4×4 box of the full image for each texel of the small target.
+    vec2 px = 1.0 / vec2(textureSize(hdr, 0));
+    vec3 s = vec3(0.0);
+    for (int j = 0; j < 4; j++)
+      for (int i = 0; i < 4; i++)
+        s += texture2D(hdr, vUv + (vec2(i, j) - 1.5) * px * 4.0).rgb;
+    gl_FragColor = vec4(s / 16.0, 1.0);
+  }
+`;
+
+/** The scene's key (ADR-118): the log-average luminance of the linear image, as a camera's
+ * meter reads it, over a small grid of it (the brightest 2% left out, as the sun is). */
+export function sceneKey(renderer: THREE.WebGLRenderer, hdr: THREE.Texture): number {
+  const w = 96;
+  const h = 54;
+  const t = new THREE.WebGLRenderTarget(w, h, {
+    type: THREE.FloatType,
+    format: THREE.RGBAFormat,
+    depthBuffer: false,
+  });
+  const m = new THREE.ShaderMaterial({
+    vertexShader: VERT,
+    fragmentShader: KEY_FRAG,
+    uniforms: { hdr: { value: hdr } },
+    depthTest: false,
+    depthWrite: false,
+    blending: THREE.NoBlending,
+    toneMapped: false,
+  });
+  const q = new FullScreenQuad(m);
+  const prev = renderer.getRenderTarget();
+  try {
+    renderer.setRenderTarget(t);
+    q.render(renderer);
+    const px = new Float32Array(w * h * 4);
+    renderer.readRenderTargetPixels(t, 0, 0, w, h, px);
+    const lum: number[] = [];
+    for (let i = 0; i < px.length; i += 4) {
+      const l = 0.2126 * px[i]! + 0.7152 * px[i + 1]! + 0.0722 * px[i + 2]!;
+      if (Number.isFinite(l)) lum.push(Math.max(l, 1e-5));
+    }
+    return logAverage(lum, 0.02);
+  } finally {
+    renderer.setRenderTarget(prev);
+    q.dispose();
+    m.dispose();
+    t.dispose();
+  }
+}
+
+/** The geometric mean of `values`, the brightest `trim` share left out. */
+export function logAverage(values: number[], trim = 0): number {
+  if (!values.length) return 0;
+  const v = [...values].sort((a, b) => a - b);
+  const keep = v.slice(0, Math.max(1, Math.ceil(v.length * (1 - trim))));
+  return Math.exp(keep.reduce((s, x) => s + Math.log(x), 0) / keep.length);
+}
+
+/** Auto exposure (ADR-118), as D5's, Enscape's and Lumion's: a scene darker than a daylit
+ * exterior (`target`, the key our exposures were calibrated on) is opened up toward it, at
+ * most `most` stops; brighter scenes are left as they are. Returns the multiplier. */
+export function autoExposure(key: number, target: number, most = 2.5): number {
+  if (!(key > 0) || key >= target) return 1;
+  return Math.min(Math.pow(2, most), target / key);
+}

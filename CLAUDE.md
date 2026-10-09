@@ -158,7 +158,7 @@ Read these before writing code:
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
 - Render engine round (ADR-118): app render/ptPatch.ts (shader edits: sky share + power/distance light picking, indirect clamp,
   diffuse transmission flag castShadow=2), post.ts `finish` (HDR: white balance, bloom, tone, backdrop, cos⁴ vignette, grade),
-  pathtrace `halfSafe` (0.4° sun), `SITE_DROP`, `cameraFor(.., twoPoint)`, sized fixtures; denoise.ts jittered albedo + variance pass.
+  atmosphere.ts (physical sky, sun colour), pathtrace `halfSafe` (0.4° sun), `SITE_DROP`, `cameraFor(.., twoPoint)`, sized fixtures; denoise.ts jittered albedo + variance pass.
 - Vegetation round (ADR-119): translucent leaves and grass (ptPatch `translucent`), plants.rs crown hollows and cluster/top colour,
   plants.ts `translucentShading` (live view).
 - Details by family, roof references (ADR-117): sets `detail_family` (Foundation & Wall / Door & Window / Roof / Interior sheets); library

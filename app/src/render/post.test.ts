@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blackbody, whiteBalance } from "./post";
+import { autoExposure, blackbody, logAverage, whiteBalance } from "./post";
 
 // The finishing pass's camera white balance (ADR-118), in kelvin as V-Ray's and Corona's.
 describe("white balance", () => {
@@ -27,5 +27,19 @@ describe("white balance", () => {
     expect(t[1]).toBeGreaterThan(t[2]);
     const sky = blackbody(12000);
     expect(sky[2]).toBeGreaterThan(sky[0]);
+  });
+});
+
+describe("auto exposure", () => {
+  it("meters the log average, leaving the brightest out", () => {
+    expect(logAverage([1, 4, 16])).toBeCloseTo(4, 9);
+    expect(logAverage([1, 1, 1, 1000], 0.25)).toBeCloseTo(1, 9);
+  });
+
+  it("opens dim scenes toward the daylit key, at most 2.5 stops, and never darkens", () => {
+    expect(autoExposure(0.2, 0.1)).toBe(1);
+    expect(autoExposure(0.05, 0.1)).toBeCloseTo(2, 9);
+    expect(autoExposure(0.001, 0.1)).toBeCloseTo(Math.pow(2, 2.5), 9);
+    expect(autoExposure(0, 0.1)).toBe(1);
   });
 });

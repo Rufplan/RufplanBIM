@@ -211,6 +211,8 @@ export interface AutoRender {
   bloom?: number;
   /** A level camera with a shifted lens, so verticals stay vertical (default on). */
   twoPoint?: boolean;
+  /** Auto exposure (default on): dim scenes opened up. */
+  autoExposure?: boolean;
   /** Translucent leaves and grass (default on; off to compare). */
   translucent?: boolean;
   /** The path tracer's bounces (default 8 outside, 12 inside). */
