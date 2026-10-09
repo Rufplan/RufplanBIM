@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { skyRadiance, skyTable, sunTransmittance } from "./atmosphere";
+import { multipleScattering, skyRadiance, skyTable, sunTransmittance } from "./atmosphere";
 
 // The physical sky (ADR-118): Rayleigh and Mie scattering and ozone in a curved atmosphere.
 describe("physical sky", () => {
@@ -29,8 +29,31 @@ describe("physical sky", () => {
 
   it("looks up the same values it traces", () => {
     const t = skyTable(40 * deg, 24, 32);
-    const direct = skyRadiance((Math.PI / 2) * (5 / 23) ** 2, 0, 40 * deg);
+    const direct = skyRadiance(
+      (Math.PI / 2) * (5 / 23) ** 2,
+      0,
+      40 * deg,
+      32,
+      multipleScattering(40 * deg),
+    );
     const looked = t((Math.PI / 2) * (5 / 23) ** 2, 0);
     for (let c = 0; c < 3; c++) expect(looked[c]).toBeCloseTo(direct[c]!, 6);
+  });
+
+  it("keeps twilight blue overhead and lights the earth's shadow (multiple scattering)", () => {
+    const sun = -4 * deg;
+    const ms = multipleScattering(sun);
+    const single = skyRadiance(89 * deg, 0, sun);
+    const both = skyRadiance(89 * deg, 0, sun, 32, ms);
+    // Single scattering alone leaves the zenith violet (red well up toward blue); the second
+    // bounce, blue first, makes it blue: red no more than half of blue.
+    expect(single[0] / single[2]).toBeGreaterThan(both[0] / both[2] + 0.1);
+    expect(both[0] / both[2]).toBeLessThan(0.5);
+    // Opposite the set sun, low down, is the earth's shadow: black with one bounce.
+    const shadow = skyRadiance(10 * deg, Math.PI, -6 * deg);
+    const lit = skyRadiance(10 * deg, Math.PI, -6 * deg, 32, multipleScattering(-6 * deg));
+    expect(Math.max(...shadow)).toBe(0);
+    expect(lit[2]).toBeGreaterThan(lit[0]);
+    expect(lit[2]).toBeGreaterThan(0);
   });
 });

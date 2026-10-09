@@ -4343,7 +4343,7 @@ coursing along a line".
   - **Bounces:** 8 outside, 12 inside (Russian roulette makes the extra ones cheap where they don't matter); 24 transmissive for dense crowns.
 - **The sun at its size:** the tracer stores the environment in half floats (65,504 at most). A sun of real size is brighter, so it had been painted 1° wide, and our logs warned of values out of range. `halfSafe` hands the tracer a scaled copy and scales the intensity back up, so the sun is 0.4° (1.5 times real, V-Ray's size multiplier) by default (`sunRadius`), with crisp, slightly softened shadows.
 - **A physical sky** (`render/atmosphere.ts`): the clear sky's colour and shape traced through a curved atmosphere (Nishita 1993 with Hillaire 2020's Rayleigh, Mie and ozone constants, as Blender's and Unreal's skies), single scattering with the earth's shadow, tabulated over height and angle from the sun (48 × 64) and looked up per pixel. Sky and sun colour come from one model (`sunColor` is its transmittance), so a low sun is orange and its sky blue to gold. Its horizontal irradiance is scaled to the Preetham sky's, so exposures and the sun-to-sky balance are unchanged; clouds and the ground below the horizon are as before. Preetham remains if the table fails.
-- **Auto exposure** (`post.ts` `sceneKey`, `autoExposure`; a Render dialog switch, on): the image's log-average luminance is metered over a 96 × 54 grid of it, the brightest 2% left out, as a camera meters. A scene darker than `AUTO_KEY` (0.15, just under our daylit exterior's 0.20 and interior's 0.16, so those are untouched) is opened up toward it, at most 4 stops, and its backdrop is redrawn to match, as D5's, Enscape's and Lumion's cameras do. A physical sky is genuinely dim away from a setting sun (the earth's shadow), and a fixed daylight exposure had made dusk renders black. Known limitation: with the sun at or below the horizon (Modern House, 19:30 in October) the single-scattering sky reads too magenta once opened up; multiple scattering (Hillaire's LUT) would add the missing blue twilight.
+- **Auto exposure** (`post.ts` `sceneKey`, `autoExposure`; a Render dialog switch, on): the image's log-average luminance is metered over a 96 × 54 grid of it, the brightest 2% left out, as a camera meters. A scene darker than `AUTO_KEY` (0.15, just under our daylit exterior's 0.20 and interior's 0.16, so those are untouched) is opened up toward it, at most 4 stops, and its backdrop is redrawn to match, as D5's, Enscape's and Lumion's cameras do. A physical sky is genuinely dim away from a setting sun (the earth's shadow), and a fixed daylight exposure had made dusk renders black. Known limitation: with the sun at or below the horizon the single-scattering sky read too magenta once opened up; fixed by ADR-120 (multiple scattering, ozone).
 - **Topography under slabs:** renders set topography 20 mm low (`SITE_DROP`, and its grass with it). A slab on grade flush with the ground had shown the ground through the floor. Separately, grass's cover mask now counts only upward-facing surfaces, the lowest per cell (any face where none is wound up), so a slab's underside no longer lets the lawn grow through it.
 - **HDR finishing** (`render/post.ts` `finish`, in `RenderJob.finish`), replacing CSS filters on the 8-bit picture (`lensEffects`, `d5Grade`, `warmGrade` are gone), in Corona's and V-Ray's frame buffer order on the linear image:
   1. Exposure, and white balance as a camera's (Kelvin through a black body; above 6500 K warms; the old "warm" setting maps to it).
@@ -4378,3 +4378,60 @@ coursing along a line".
   - Leaves vary by branch cluster (±3% between yellow-green and blue-green). The crown's top third grows up to 12% lighter and warmer. 5% are odd leaves, yellowed up high and blue-green in the shade. This is on top of each tree's own shade (ADR-095).
 - **The live view:** Barré-Brisebois's fast translucency (`translucentShading`) on leaves and swaying grass: looking toward the sun through a crown or a lawn, its light comes through, tinted, as in the render.
 - **Considered, later:** individual leaf meshes on near trees (MPC's Jungle Book approach), octahedral impostors for far trees (MIT three.js library), hierarchical wind, Ghost of Tsushima grass (Bézier blades, clumps), crisp bed edges and mulch. Not shippable: SpeedTree, Laubwerk, Globe Plants, Maxtree, Megascans, Enscape's and D5's assets; Blender's Sapling code is GPL (its Weber–Penn paper is free to implement).
+
+## ADR-120 Looks after the leading studios: atmosphere, overcast, depth of field, a colourist's grade — Accepted (2026-10-09)
+- **The owner's ask:** match the master visualization studios (MIR, The Boundary, Squint/Opera, Transparent House).
+- **What sets their images apart:** it isn't the engine (they use V-Ray and Corona, with Photoshop and Lightroom). It's light, air and grade:
+  - MIR: grey overcast skies, low mist, a desaturated palette with olive greens, lifted blacks, a painterly calm ("more like emotions than stories").
+  - The Boundary: Corona's highlight compression and contrast ("punchy, with a certain softness"), low golden sun through haze, and dusk exteriors with lit rooms.
+  - Squint/Opera: film stills, with a wide frame, depth in mist, teal/orange split toning, grain, lens fringing and shallow focus.
+  - Transparent House: crisp, bright, clean magazine photography.
+  - Their post-production is z-depth haze, split toning, grain, chromatic aberration and output sharpening, all of which we can do exactly on the linear image.
+- **Atmosphere** (`render/fog.ts`):
+  - Haze: Koschmieder, 3.912 / visibility.
+  - Mist: exponential in height, its optical depth along every ray in closed form (Quilez's height fog), so the low sky and the far lawn sink into it and the building rises out of it.
+  - A glow toward the sun: Henyey-Greenstein, g 0.4, in the sun's colour.
+  - Per pixel from a jittered (and, with depth of field, lens-sampled) depth raster of the scene, so edges antialias as the trace does.
+  - A start distance (`FogSettings.start`), as V-Ray's fog and the studios' z-depth curves have: the near ground stays clear and the depth builds behind it. Without it, every look was milky.
+  - Applied in the finishing pass, denoised or not. ADR-102's flat haze in the denoiser is retired: Natural keeps its 2.5 km.
+  - Inside, there is no mist and the haze is four times clearer.
+- **An overcast sky** (`sky.ts` `overcast`):
+  - The CIE standard overcast distribution (three times as bright overhead as at the horizon), with soft structure in the deck.
+  - The sun fades to a glow behind it (its disk × (1 − overcast)²).
+  - The light falls to `OVERCAST_LIGHT` (0.3) of a clear day's sun and sky; auto exposure follows.
+- **Multiple scattering** (`atmosphere.ts` `multipleScattering`, Hillaire 2020 simplified):
+  - The sky's mean single-scattered radiance, plus the ground's (albedo 0.3), scattered again isotropically by the air's Rayleigh and Mie coefficients.
+  - The twilight zenith turns from magenta (0.89, 0.52, 1.0) to blue, and the earth's shadow from black to blue-grey. The daytime sky changes little.
+  - Ozone's red absorption is 1.6e-6, not Hillaire's 0.65e-6. The Chappuis band peaks near 600 nm, inside the red primary's range; 0.65e-6 is its value at 680 nm alone. With both changes the twilight zenith is (0.47, 0.46, 1.0), and the daytime sky barely moves (zenith 0.21 → 0.20 red).
+  - This fixes ADR-118's known limitation.
+  - With the sun below the horizon (down to −12°), the sky is now drawn from where it really is.
+- **Depth of field** (`pathtrace.ts` `setDepthOfField`, `focusDistance`):
+  - The tracer's thin lens (PhysicalCamera). Its aperture is in metres-scene units (`bokehSize` × 1e-3), so ours, in mm, is set a thousand times larger.
+  - It is sized by the blur wanted at infinity as a share of the frame's width (Subtle 0.25%, Shallow 0.6%, Strong 1.2%), so it means the same at any scale.
+  - Focused by a ray through the middle of the frame (or a third down).
+  - The denoiser's albedo guide and the fog's depth are rendered across the same lens (`denoise.ts` `lensSample`, `renderJittered`), so a defocused trace isn't demodulated by a sharp guide.
+- **A colourist's grade** (`post.ts` `Grade`), in display space after the tone curve:
+  - greens' saturation, pushed toward olive below 1;
+  - split toning (tints added by (1 − y)² and y²);
+  - contrast as an S-curve about mid grey, which never clips;
+  - lifted blacks (`fade`);
+  - monochrome film grain, strongest in the mid-tones;
+  - lateral chromatic aberration (red out, blue in, `aberration` px at the corners);
+  - an unsharp mask on the linear image;
+  - a white-balance tint (`whiteBalance(kelvin, tint)`, Lightroom's green–magenta axis).
+  - The white balance now reaches the sky backdrop too. It had been composited after it, so no Kelvin setting ever warmed or cooled the sky.
+- **Looks** (`render/looks.ts`, the Render dialog's Look and Atmosphere sections):
+  - Natural (D5 colour, the default), Plain, Nordic Mist, Golden Hour, Blue Hour, Editorial and Cinematic (2.39:1 frames, added to Output size).
+  - Named for the look, not the studio.
+  - A look sets haze, mist, overcast, depth of field, tone and exposure. Golden Hour and Blue Hour move the sun to 7° up before sunset and 4° below after it (`hourAtAltitude`). Blue Hour turns the lights on and glows the rooms against the sky's light.
+  - Its grade has a strength (0 neutral, 1 as designed). Everything stays editable.
+  - The D5 colour checkbox is now the Natural look; `--autorender` `d5: false` still means Plain.
+- **Calibration** (the Modern House hero view, 960 × 540, 64 samples, about 2 minutes each on an RTX 3050):
+  - Natural: scene key 0.185 against 0.179 before, the same look.
+  - Nordic Mist: the first try (mist visibility 250 m from the lens, contrast 0.94, +⅓ EV, fade 0.035) veiled even the foreground. MIR keeps the near field deep. It settled at a 1.1 km haze and 410 m mist, 17 m deep, starting 12 m out, with contrast 1.02 and fade 0.02.
+  - Golden Hour: the teal shadow tint turned grass and shaded cedar cyan. Its green was taken out.
+  - Blue Hour: lavender until the ozone and backdrop fixes, then over-cooled at 4800 K. It settled at 5400 K with tint 0.02. The rooms glow at 6 × the sky's light on the ground (`interiorGlow = 6 × light`). Auto exposure opens 4 stops on top of the look's +1.5 EV.
+  - Editorial: sharpening 0.35 made residual noise in foliage gritty, so it is 0.2, at +⅙ EV.
+  - Cinematic: AgX was flat and its mist milky. It uses ACES ("contrast") with fog from 25 m.
+  - Interiors with any look: no mist, haze negligible.
+- **Considered, later:** volumetric light shafts (god rays) through the tracer itself; people and cars in scenes (the studios' storytelling); per-look sky photographs; LUT (.cube) import for a colourist's own grade; OIDN for the noise left in dim looks.

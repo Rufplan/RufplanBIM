@@ -255,6 +255,124 @@ const target = (w: number, h: number) =>
     depthBuffer: true,
   });
 
+/** A thin lens: its aperture's radius and the distance it's focused at (scene units). */
+export interface Lens {
+  radius: number;
+  focus: number;
+}
+
+/** The lens of a camera with depth of field (`userData.lens`, set with the tracer's
+ * PhysicalCamera), or null for a pinhole. */
+export function lensOf(cam: THREE.Camera): Lens | null {
+  const l = cam.userData.lens as Lens | undefined;
+  return l && l.radius > 0 && l.focus > 0 ? l : null;
+}
+
+/** Moves `cam` to the point (`ox`, `oy`) (scene units, along its right and up) on its
+ * lens's aperture, and shifts its frame so the focal plane at `focus` stays where it was:
+ * one ray bundle of a thin lens, for a rasterized guide (ADR-120). `base` is the camera's
+ * own position and view window, `jx`, `jy` a sub-pixel offset in view units. */
+export function lensSample(
+  cam: THREE.PerspectiveCamera,
+  base: { position: THREE.Vector3; view: THREE.PerspectiveCamera["view"]; w: number; h: number },
+  jx: number,
+  jy: number,
+  ox = 0,
+  oy = 0,
+  focus = 1,
+) {
+  const v = base.view && base.view.enabled ? base.view : null;
+  const fw = v?.fullWidth ?? base.w;
+  const fh = v?.fullHeight ?? base.h;
+  const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+  const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+  cam.position.copy(base.position).addScaledVector(right, ox).addScaledVector(up, oy);
+  cam.updateMatrixWorld();
+  // View units per scene unit on the focal plane.
+  const ppu = fh / (2 * focus * Math.tan((cam.fov * Math.PI) / 360));
+  cam.setViewOffset(
+    fw,
+    fh,
+    (v?.offsetX ?? 0) + jx - ox * ppu,
+    (v?.offsetY ?? 0) + jy + oy * ppu,
+    v?.width ?? fw,
+    v?.height ?? fh,
+  );
+}
+
+/** Renders `scene` (with whatever materials it has) into `rt` as the average of `passes`
+ * draws, each offset within the pixel (Halton 2, 3) and, with a `lens`, across its aperture
+ * (Halton 5, 7): a guide antialiased and defocused as the trace is (ADR-118, ADR-120). Each
+ * pass is drawn whole (nearest surface only), then added: blending while drawing would sum
+ * every surface behind the nearest too. */
+export function renderJittered(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  cam: THREE.PerspectiveCamera,
+  rt: THREE.WebGLRenderTarget,
+  passes: number,
+  lens: Lens | null = null,
+) {
+  const { width: w, height: h } = rt;
+  const one = target(w, h);
+  const add = new THREE.ShaderMaterial({
+    vertexShader: QUAD_VERT,
+    fragmentShader:
+      "uniform sampler2D src; uniform float k; varying vec2 vUv; void main() { gl_FragColor = texture2D(src, vUv) * k; }",
+    uniforms: { src: { value: one.texture }, k: { value: 1 / passes } },
+    depthTest: false,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+  });
+  const addQuad = new FullScreenQuad(add);
+  const autoClear = renderer.autoClear;
+  // On top of the camera's own lens shift (two-point perspective), if it has one.
+  const view = cam.view && cam.view.enabled ? { ...cam.view } : null;
+  const base = { position: cam.position.clone(), view, w, h };
+  try {
+    renderer.setRenderTarget(rt);
+    renderer.clear();
+    renderer.autoClear = false;
+    for (let s = 0; s < passes; s++) {
+      // A pixel is the visible window over the image's size.
+      const jx = ((halton(s + 1, 2) - 0.5) * (view?.width ?? w)) / w;
+      const jy = ((halton(s + 1, 3) - 0.5) * (view?.height ?? h)) / h;
+      let ox = 0;
+      let oy = 0;
+      if (lens) {
+        const r = lens.radius * Math.sqrt(halton(s + 1, 5));
+        const a = 2 * Math.PI * halton(s + 1, 7);
+        ox = r * Math.cos(a);
+        oy = r * Math.sin(a);
+      }
+      lensSample(cam, base, jx, jy, ox, oy, lens?.focus ?? 1);
+      renderer.setRenderTarget(one);
+      renderer.clear();
+      renderer.render(scene, cam);
+      renderer.setRenderTarget(rt);
+      addQuad.render(renderer);
+    }
+  } finally {
+    renderer.autoClear = autoClear;
+    cam.position.copy(base.position);
+    cam.updateMatrixWorld();
+    if (view)
+      cam.setViewOffset(
+        view.fullWidth,
+        view.fullHeight,
+        view.offsetX,
+        view.offsetY,
+        view.width,
+        view.height,
+      );
+    else cam.clearViewOffset();
+    one.dispose();
+    add.dispose();
+    addQuad.dispose();
+  }
+}
+
 /** Draws the denoised trace of `scene` from `camera` to the canvas, tone mapped as the
  * renderer is (ADR-102). `color` is the trace's linear target. */
 export function guidedDenoise(
@@ -315,51 +433,9 @@ export function guidedDenoise(
       renderer.clear();
       const cam = camera as THREE.PerspectiveCamera;
       if (mode === 0 && cam.isPerspectiveCamera) {
-        // Halton (2, 3) offsets within the pixel. Each pass drawn whole (nearest surface only), then added into the average: blending
-        // while drawing would sum every surface behind the nearest too.
-        const one = target(w, h);
-        const add = new THREE.ShaderMaterial({
-          vertexShader: QUAD_VERT,
-          fragmentShader:
-            "uniform sampler2D src; uniform float k; varying vec2 vUv; void main() { gl_FragColor = texture2D(src, vUv) * k; }",
-          uniforms: { src: { value: one.texture }, k: { value: 1 / ALBEDO_PASSES } },
-          depthTest: false,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-          transparent: true,
-        });
-        const addQuad = new FullScreenQuad(add);
-        made.push(add);
-        quads.push(addQuad);
-        const autoClear = renderer.autoClear;
-        renderer.autoClear = false;
-        // On top of the camera's own lens shift (two-point perspective), if it has one.
-        const v = cam.view && cam.view.enabled ? { ...cam.view } : null;
-        const fw = v?.fullWidth ?? w;
-        const fh = v?.fullHeight ?? h;
-        for (let s = 0; s < ALBEDO_PASSES; s++) {
-          // A pixel is the visible window over the image's width.
-          const jx = ((halton(s + 1, 2) - 0.5) * (v?.width ?? fw)) / w;
-          const jy = ((halton(s + 1, 3) - 0.5) * (v?.height ?? fh)) / h;
-          cam.setViewOffset(
-            fw,
-            fh,
-            (v?.offsetX ?? 0) + jx,
-            (v?.offsetY ?? 0) + jy,
-            v?.width ?? fw,
-            v?.height ?? fh,
-          );
-          renderer.setRenderTarget(one);
-          renderer.clear();
-          renderer.render(scene, cam);
-          renderer.setRenderTarget(rt);
-          addQuad.render(renderer);
-        }
-        one.dispose();
-        renderer.autoClear = autoClear;
-        if (v)
-          cam.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height);
-        else cam.clearViewOffset();
+        // A defocused trace needs a defocused guide, with more passes the wider the lens.
+        const lens = lensOf(cam);
+        renderJittered(renderer, scene, cam, rt, lens ? 16 : ALBEDO_PASSES, lens);
       } else {
         renderer.render(scene, camera);
       }

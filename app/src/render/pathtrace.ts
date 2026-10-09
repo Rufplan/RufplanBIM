@@ -5,15 +5,16 @@
 // behind it, so one rendering saves with or without the background.
 import * as THREE from "three";
 import { FullScreenQuad } from "three/examples/jsm/postprocessing/Pass.js";
-import { DenoiseMaterial, WebGLPathTracer } from "three-gpu-pathtracer";
+import { DenoiseMaterial, PhysicalCamera, WebGLPathTracer } from "three-gpu-pathtracer";
 import type { CameraPose } from "../bindings/CameraPose";
 import type { Mesh } from "../ipc";
 import { uvAt, type Imagery } from "../imagery";
 import { meshColor } from "../components/View3D";
 import { GROUND_ALBEDO } from "./sky";
 import { guidedDenoise, type DenoiseSettings } from "./denoise";
+import { fogPass, hasFog, type FogSettings } from "./fog";
 import { patchTracer } from "./ptPatch";
-import { finish, sceneKey, type FinishSettings } from "./post";
+import { finish, sceneKey, type FinishFog, type FinishSettings } from "./post";
 export { autoExposure } from "./post";
 import { boxUv, physicalMaterial, texturesFor, type TextureLoader } from "./materials";
 import type { RenderMaterial } from "../bindings/RenderMaterial";
@@ -568,7 +569,9 @@ export function cameraFor(
   aspect: number,
   twoPoint = false,
 ): THREE.PerspectiveCamera {
-  const cam = new THREE.PerspectiveCamera(pose.fov, aspect, 50, 2e7);
+  const cam = new PhysicalCamera(pose.fov, aspect, 50, 2e7);
+  // A pinhole until [`setDepthOfField`] opens the lens.
+  cam.bokehSize = 0;
   const eye = toYUp(pose.eye);
   const target = toYUp(pose.target);
   cam.position.copy(eye);
@@ -586,6 +589,51 @@ export function cameraFor(
   }
   cam.updateProjectionMatrix();
   return cam;
+}
+
+/** Depth of field (ADR-120), as architectural photographers and The Boundary's and
+ * Squint/Opera's images use it: a little, to put the eye on the building. `blur` is how
+ * far the far distance spreads, as a share of the image's width (0.003 subtle, 0.008
+ * shallow), so it means the same at any scale; `focus` the distance in focus (mm). Sets
+ * the tracer's thin lens, and `userData.lens` for the denoiser's and fog's guides. */
+export function setDepthOfField(cam: THREE.PerspectiveCamera, blur: number, focus: number) {
+  const pc = cam as PhysicalCamera;
+  if (!(blur > 0) || !(focus > 0)) {
+    pc.bokehSize = 0;
+    cam.userData.lens = null;
+    return;
+  }
+  // The frame's width at the focus distance; a far point blurs by the aperture there.
+  const fw = cam.view?.enabled ? cam.view.fullWidth : 1;
+  const ww = cam.view?.enabled ? cam.view.width : 1;
+  const width = 2 * focus * Math.tan((cam.fov * Math.PI) / 360) * cam.aspect * (ww / fw);
+  const aperture = blur * width;
+  // The tracer takes its scene in metres and the aperture in millimetres (bokehSize ×
+  // 1e-3 is its world size): ours is in millimetres, so a thousand times larger.
+  pc.bokehSize = aperture * 1000;
+  pc.focusDistance = focus;
+  pc.apertureBlades = 7;
+  cam.userData.lens = { radius: aperture / 2, focus };
+}
+
+/** Where the camera looks: the distance (mm) to the first surface through the middle of
+ * the frame, a third of the way down (where a building's entrance usually is), or null. */
+export function focusDistance(scene: THREE.Scene, cam: THREE.PerspectiveCamera): number | null {
+  const ray = new THREE.Raycaster();
+  cam.updateMatrixWorld();
+  let best: number | null = null;
+  for (const y of [-0.15, 0, -0.3]) {
+    ray.setFromCamera(new THREE.Vector2(0, y), cam);
+    const meshes = scene.children.filter(
+      (c): c is THREE.Mesh => c instanceof THREE.Mesh && !c.userData.ground && !c.userData.grass,
+    );
+    const hit = ray.intersectObjects(meshes, false)[0];
+    if (hit) {
+      best = hit.distance;
+      break;
+    }
+  }
+  return best;
 }
 
 /** The backdrop as the camera sees it: a panorama (a photo, or the physical sky
@@ -644,7 +692,9 @@ export class RenderJob {
   private started = 0;
   private logged = 0;
   private scene: THREE.Scene | null = null;
-  private camera: THREE.Camera | null = null;
+  private camera: THREE.PerspectiveCamera | null = null;
+  /** The atmosphere's share per pixel (ADR-120), once [`atmosphere`] has run. */
+  private fogged: { target: THREE.WebGLRenderTarget; settings: FogSettings } | null = null;
 
   constructor(settings: RenderSettings) {
     this.renderer = new THREE.WebGLRenderer({
@@ -782,7 +832,24 @@ export class RenderJob {
    * curve, the backdrop (none for a transparent cut-out), vignette and grade, from the
    * linear trace (denoised if it was). */
   finish(backdrop: HTMLCanvasElement | null, o: FinishSettings) {
-    finish(this.renderer, (this.denoised ?? this.tracer.target).texture, backdrop, o);
+    const fog: FinishFog | null =
+      this.fogged && this.camera
+        ? { settings: this.fogged.settings, share: this.fogged.target.texture, camera: this.camera }
+        : null;
+    finish(this.renderer, (this.denoised ?? this.tracer.target).texture, backdrop, o, fog);
+  }
+
+  /** Haze and mist (ADR-120) for [`finish`]: the fog's share of each pixel, from the
+   * scene's depth; none if `f` hides nothing. */
+  atmosphere(f: FogSettings | null) {
+    this.fogged?.target.dispose();
+    this.fogged = null;
+    if (!hasFog(f) || !this.scene || !this.camera) return;
+    const t = this.tracer.target;
+    this.fogged = {
+      target: fogPass(this.renderer, this.scene, this.camera, t.width, t.height, f),
+      settings: f,
+    };
   }
 
   /** Smooths the remaining noise, edge-aware, as V-Ray's denoiser does at the end. */
@@ -807,6 +874,7 @@ export class RenderJob {
   dispose() {
     this.stop();
     this.denoised?.dispose();
+    this.fogged?.target.dispose();
     this.tracer.dispose();
     this.renderer.dispose();
   }

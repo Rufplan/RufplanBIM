@@ -253,6 +253,16 @@ export interface AutoRender {
   glare?: boolean;
   vignette?: boolean;
   d5?: boolean;
+  /** A Look (ADR-120) and its strength (0–1); the settings below override its own. */
+  look?: "natural" | "plain" | "nordic" | "golden" | "blue" | "editorial" | "cinematic";
+  lookStrength?: number;
+  /** The Look's sliders (0–1): haze, ground mist, overcast; depth of field's blur (share
+   * of the width) and its focus distance (mm, else the frame's middle). */
+  hazeLevel?: number;
+  mist?: number;
+  overcast?: number;
+  dof?: number;
+  focus?: number;
   quit?: boolean;
 }
 

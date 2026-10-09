@@ -13,7 +13,10 @@ const MIE_SCATTER = 3.996e-6;
 const MIE_EXTINCT = 3.996e-6 + 4.4e-6;
 const MIE_H = 1200;
 const MIE_G = 0.8;
-const OZONE: [number, number, number] = [0.65e-6, 1.881e-6, 0.085e-6];
+// Ozone's Chappuis band peaks near 600 nm, inside what the eye reads as red: Hillaire's
+// 0.65e-6 is the absorption at 680 nm alone, which left twilight magenta (ADR-120); 1.6e-6
+// is the band over the red primary's range.
+const OZONE: [number, number, number] = [1.6e-6, 1.881e-6, 0.085e-6];
 const EARTH = 6_360_000;
 const TOP = 6_460_000;
 /** The viewer's height above the ground (m). */
@@ -80,7 +83,15 @@ export function sunTransmittance(altitudeDeg: number): RGB {
 /** Single-scattered sky radiance (relative to the sun's irradiance above the atmosphere)
  * seen at elevation `elev` (radians, ≥ 0) and azimuth `az` from the sun's, the sun at
  * elevation `sunElev`. */
-export function skyRadiance(elev: number, az: number, sunElev: number, steps = 32): RGB {
+export function skyRadiance(
+  elev: number,
+  az: number,
+  sunElev: number,
+  steps = 32,
+  /** The sky's own light scattered again (multiple scattering, isotropic): what turns
+   * twilight blue and lights the earth's shadow. */
+  ms: RGB = [0, 0, 0],
+): RGB {
   const r0 = EARTH + VIEWER;
   const mu = Math.sin(elev);
   const len = exitDistance(r0, mu, TOP);
@@ -116,21 +127,63 @@ export function skyRadiance(elev: number, az: number, sunElev: number, steps = 3
     const ts = transmittance(h, Math.max(-1, Math.min(1, muSun)), 6);
     for (let c = 0; c < 3; c++) {
       const tv = Math.exp(-(RAYLEIGH[c]! * dr + MIE_EXTINCT * dm + OZONE[c]! * dz));
-      out[c] = out[c]! + tv * ts[c]! * (RAYLEIGH[c]! * a * pr + MIE_SCATTER * m * pm) * ds;
+      const single = ts[c]! * (RAYLEIGH[c]! * a * pr + MIE_SCATTER * m * pm);
+      const multiple = (RAYLEIGH[c]! * a + MIE_SCATTER * m) * ms[c]!;
+      out[c] = out[c]! + tv * (single + multiple) * ds;
     }
   }
   return out;
 }
 
+/** The second and later orders together, relative to the first's mean. */
+const MS_GAIN = 2;
+
+/** Light scattered more than once (Hillaire 2020's multiple scattering, simplified): the
+ * sky's mean single-scattered radiance as an isotropic glow the air scatters again. Each
+ * further bounce goes through the air's blue-first Rayleigh coefficient, so what reaches
+ * the eye is bluer than the light that made it: twilight's deep blue zenith and the
+ * blue-grey earth's shadow, where single scattering alone leaves magenta and black. */
+export function multipleScattering(sunElev: number): RGB {
+  const mean: RGB = [0, 0, 0];
+  const irr: RGB = [0, 0, 0];
+  let wsum = 0;
+  const dE = (Math.PI / 2 / 8) * (Math.PI / 12) * 2;
+  for (let j = 0; j < 8; j++) {
+    const elev = ((j + 0.5) / 8) * (Math.PI / 2);
+    for (let i = 0; i < 12; i++) {
+      const az = ((i + 0.5) / 12) * Math.PI;
+      const L = skyRadiance(elev, az, sunElev, 16);
+      // Solid angle for the mean; times the cosine for the light on the ground.
+      const w = Math.cos(elev);
+      for (let c = 0; c < 3; c++) {
+        mean[c] = mean[c]! + L[c]! * w;
+        irr[c] = irr[c]! + L[c]! * w * Math.sin(elev) * dE;
+      }
+      wsum += w;
+    }
+  }
+  // The lower half of the glow is the ground (Hillaire's albedo 0.3), lit by the sun and
+  // the sky: in daylight it whitens the sky's second bounce; at twilight it adds little.
+  const sun = sunTransmittance((sunElev * 180) / Math.PI);
+  const sinS = Math.max(0, Math.sin(sunElev));
+  return mean.map((m, c) => {
+    const ground = (GROUND_ALBEDO * (sun[c]! * sinS + irr[c]!)) / Math.PI;
+    return MS_GAIN * (0.5 * (m / wsum) + 0.5 * ground);
+  }) as RGB;
+}
+
+const GROUND_ALBEDO = 0.3;
+
 /** A table of sky radiance over elevation (0–90°, `ne` rows, denser near the horizon) and
  * angle from the sun's azimuth (0–180°, `na` columns), for a sun at `sunElev` (radians). */
 export function skyTable(sunElev: number, ne = 48, na = 64) {
   const data = new Float32Array(ne * na * 3);
+  const ms = multipleScattering(sunElev);
   for (let j = 0; j < ne; j++) {
     const elev = (Math.PI / 2) * Math.pow(j / (ne - 1), 2);
     for (let i = 0; i < na; i++) {
       const az = (Math.PI * i) / (na - 1);
-      const L = skyRadiance(elev, az, sunElev);
+      const L = skyRadiance(elev, az, sunElev, 32, ms);
       data.set(L, (j * na + i) * 3);
     }
   }

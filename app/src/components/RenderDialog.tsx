@@ -15,8 +15,19 @@ import type { RenderJob } from "../render/pathtrace";
 import { activeViewInfo, useAppStore } from "../store";
 import { apply } from "../fileActions";
 import { D5_CLOUDS, liveCameras } from "./View3D";
+import type { FogSettings } from "../render/fog";
 import { plantLoader } from "./AssetLibrary";
 import type { Mesh } from "../bindings/Mesh";
+import {
+  distanceLabel,
+  gradeAt,
+  hazeVisibility,
+  hourAtAltitude,
+  lookOf,
+  LOOKS,
+  mistOf,
+  type LookId,
+} from "../render/looks";
 
 // Render (RR): a path-traced image of the active 3D or camera view (ADR-027, ADR-028).
 
@@ -25,6 +36,17 @@ const SIZES: [number, number][] = [
   [1920, 1080],
   [2560, 1440],
   [3840, 2160],
+  // A film frame, 2.39:1 (the Cinematic look, ADR-120).
+  [1920, 804],
+  [2560, 1072],
+  [3840, 1608],
+];
+/** Depth of field (ADR-120): the far distance's spread as a share of the image's width. */
+const DOF: [string, number][] = [
+  ["Off", 0],
+  ["Subtle", 0.0025],
+  ["Shallow", 0.006],
+  ["Strong", 0.012],
 ];
 /** (name, samples, supersampling): Final and Best trace larger and draw it down, so grass,
  * siding lines and window frames don't step (ADR-102). */
@@ -99,17 +121,32 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     };
   }, []);
   const [rotation, setRotation] = useState(auto?.rotation ?? 0);
+  // The Look (ADR-120): a studio's atmosphere, light, lens and grade in one choice.
+  const [lookId, setLookId] = useState<LookId>(
+    auto?.look ?? (auto?.d5 === false ? "plain" : "natural"),
+  );
+  const look = lookOf(lookId);
+  const [strength, setStrength] = useState(auto?.lookStrength ?? 1);
+  const [haze, setHaze] = useState(
+    auto?.hazeLevel ??
+      (auto?.haze !== undefined
+        ? auto.haze > 0
+          ? Math.log((auto.haze * 3.912) / 30_000) / Math.log(0.01)
+          : 0
+        : look.haze),
+  );
+  const [mist, setMist] = useState(auto?.mist ?? look.mist);
+  const [overcast, setOvercast] = useState(auto?.overcast ?? look.overcast);
+  const [dof, setDof] = useState(auto?.dof ?? look.dof);
   // A camera's exposure in stops (ADR-102); the multiplier is 2^EV.
   const [exposure, setExposure] = useState(
-    auto?.ev !== undefined ? Math.pow(2, auto.ev) : (auto?.exposure ?? 1),
+    auto?.ev !== undefined ? Math.pow(2, auto.ev) : (auto?.exposure ?? Math.pow(2, look.ev)),
   );
   const stops = Math.log2(exposure);
   // Corona's and V-Ray's look (ADR-063): filmic highlights, a touch of glare and vignette.
-  const [tone, setTone] = useState<"contrast" | "filmic" | "neutral">(auto?.tone ?? "neutral");
+  const [tone, setTone] = useState<"contrast" | "filmic" | "neutral">(auto?.tone ?? look.tone);
   const [glare, setGlare] = useState(auto?.glare ?? true);
   const [vignette, setVignette] = useState(auto?.vignette ?? true);
-  // D5's colour: a touch more saturation and contrast (ADR-065).
-  const [d5, setD5] = useState(auto?.d5 ?? true);
   const [denoise, setDenoise] = useState(auto?.denoise ?? true);
   // Verticals vertical (ADR-118): a level camera with its lens shifted, as architectural
   // photographs are taken.
@@ -231,6 +268,35 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
   const samples = auto?.samples ?? QUALITY[quality]![1];
   const supersample = auto?.supersample ?? QUALITY[quality]![2];
 
+  /** Applies a Look's settings (ADR-120); each can then be changed. The golden and blue
+   * hours move the sun to theirs for the chosen day. */
+  const chooseLook = (id: LookId) => {
+    const l = lookOf(id);
+    setLookId(id);
+    setHaze(l.haze);
+    setMist(l.mist);
+    setOvercast(l.overcast);
+    setDof(l.dof);
+    setTone(l.tone);
+    setExposure(Math.pow(2, l.ev));
+    if (l.artificial && !artificial)
+      setScheme(
+        scheme.startsWith("Interior")
+          ? "Interior: Sun and Artificial"
+          : "Exterior: Sun and Artificial",
+      );
+    const [sw] = SIZES[size]!;
+    const cinema = SIZES[size]![0] / SIZES[size]![1] > 2;
+    if (l.cinema && !cinema)
+      setSize(SIZES.findIndex(([a, b]) => a === Math.max(sw, 1920) && a / b > 2));
+    if (!l.cinema && cinema) setSize(SIZES.findIndex(([a, b]) => a === sw && a / b < 2));
+    if (l.time && !lightingMode)
+      void hourAtAltitude(
+        (h) => ipc.sunPosition(month, day, h).then((p) => p.altitude),
+        l.time === "golden" ? 7 : -4,
+      ).then((h) => h !== null && setHour(Math.min(21, Math.max(5, h))));
+  };
+
   const render = async () => {
     if (!view) return;
     const pose =
@@ -272,6 +338,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       let rot = (rotation * Math.PI) / 180;
       setStatus("Preparing the sky…");
       const sunUp = sunOn && sun && sun.altitude > 0 ? sun : null;
+      // Twilight (ADR-120): the sun just below the horizon still lights the sky from where it is.
+      const sunSky = sunOn && sun && sun.altitude > -12 ? sun : null;
       let lights = artificial
         ? (await ipc.lights(view.id)).filter((l) => l.on && l.lumens > 0)
         : [];
@@ -287,9 +355,10 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       const ev = exposure * baseExposure;
       const physical = () =>
         sky.physicalSky({
-          sunDir: sunUp ? toYUp(sunUp.dir) : toYUp([0, -1, -0.2]),
-          altitude: sunUp ? sunUp.altitude : -6,
+          sunDir: sunSky ? toYUp(sunSky.dir) : toYUp([0, -1, -0.2]),
+          altitude: sunSky ? sunSky.altitude : -6,
           clouds: sunUp ? (auto?.clouds ?? D5_CLOUDS) : 0,
+          overcast,
           turbidity: auto?.turbidity,
           // Sunlit to skylit (ADR-095): lower lifts the shadows, as a hazier sky does.
           sunToSky: auto?.sunToSky,
@@ -343,7 +412,11 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         environment: env,
         environmentIntensity: intensity,
         // Daylit exteriors: the rooms behind the glass read lit (ADR-101).
-        interiorGlow: sunOn && scheme.startsWith("Exterior") ? (auto?.interiorGlow ?? 1) : 0,
+        // A look's lit rooms (the blue hour) glow against the sky's own light (ADR-120).
+        interiorGlow:
+          sunOn && scheme.startsWith("Exterior")
+            ? (auto?.interiorGlow ?? (look.interiorGlow ? look.interiorGlow * light : 1))
+            : 0,
         rotation: lightingUsed === "dome" ? rot : 0,
         ground: bg.ground,
         projection:
@@ -373,6 +446,12 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         (await ipc.grassPatches(view.id).catch(() => [])).map((p) => [p.el, p.spec]),
       );
       for (const m of plantMeshesYUp(await loadPlantEntries(instances, plantLoader))) scene.add(m);
+      // Depth of field (ADR-120), focused where the frame's middle meets the model.
+      if (dof > 0) {
+        const focus = auto?.focus ?? pt.focusDistance(scene, camera);
+        if (focus) pt.setDepthOfField(camera, dof, focus);
+        if (auto) console.warn(`Render: depth of field ${dof}, focus ${focus?.toFixed(0)} mm`);
+      }
       const byId = new Map(materials.map((m) => [m.id, m]));
       const box = new THREE.Box3();
       const v = new THREE.Vector3();
@@ -454,6 +533,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         // Inside, the lawn shows only through the windows (ADR-118).
         auto?.grass ?? (scheme.startsWith("Interior") ? 40_000 : 120_000),
       )) {
+        m.userData.grass = true;
         if (auto)
           console.warn(
             `Render: grass mesh ${(m.geometry.index?.count ?? m.geometry.getAttribute("position").count) / 3} triangles; surfaces ${surfaces.map((x) => `${x.kind ?? "material"} ${x.grass?.height}mm ${x.positions.length / 9}`).join(", ")}`,
@@ -502,16 +582,39 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       // The finished image already holds its backdrop.
       let finished = false;
       const show = () => composite(shown, finished ? null : backdrop.current, j.canvas);
+      // The look's grade at its strength (ADR-120).
+      const graded = gradeAt(look, strength);
       const finishing = {
         exposure: ev,
         tone,
-        bloom: glare ? (auto?.bloom ?? 0.025) : 0,
-        vignette: vignette ? 0.35 : 0,
+        bloom: glare ? (auto?.bloom ?? look.bloom) : 0,
+        vignette: vignette ? look.vignette : 0,
         // Warmth as a camera's white balance, not a sepia filter (ADR-118).
-        kelvin: auto?.kelvin ?? 6500 + 6000 * (auto?.warm ?? 0),
-        saturation: d5 ? 1.14 : 1,
-        contrast: d5 ? 1.06 : 1,
+        kelvin: auto?.kelvin ?? graded.kelvin + 6000 * (auto?.warm ?? 0),
+        tint: graded.tint,
+        saturation: graded.saturation,
+        contrast: graded.contrast,
+        grade: graded.grade,
       };
+      // The atmosphere (ADR-120): haze and mist by distance, glowing toward the sun. Inside,
+      // no mist, and the haze four times as clear (a room's air, not the valley's).
+      const inside = scheme.startsWith("Interior");
+      const mistIs = inside ? { visibility: 0, height: 0 } : mistOf(mist);
+      const fogSettings: FogSettings = {
+        visibility: hazeVisibility(haze) * (inside ? 4 : 1),
+        start: inside ? 0 : (look.fogStart ?? 0),
+        mistVisibility: mistIs.visibility,
+        mistHeight: mistIs.height,
+        ground: Math.min(0, ...levels),
+        color: bgs.horizonColor(env).map((v) => v * intensity) as [number, number, number],
+        sunDir: sunUp ? (toYUp(sunUp.dir).normalize().toArray() as [number, number, number]) : null,
+        glow: look.glow * (1 - overcast),
+        sunColor: sky.sunColor(sunUp?.altitude ?? 5),
+      };
+      if (auto)
+        console.warn(
+          `Render: look ${look.id} at ${strength}; haze ${distanceLabel(fogSettings.visibility)}, mist ${distanceLabel(fogSettings.mistVisibility)} ${(fogSettings.mistHeight / 1000).toFixed(0)} m deep, overcast ${overcast}; light ${light.toFixed(3)}; sun ${sun?.altitude.toFixed(1)}° up`,
+        );
       cut.current = () => {
         j.finish(null, finishing);
         return pt.cutout(j.canvas, scene, camera);
@@ -523,15 +626,10 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
             j.guidedDenoise({
               strength: auto?.denoiseStrength ?? 1,
               passes: 5,
-              // Aerial perspective (ADR-102): distant trees and hills fade to the horizon.
-              hazeDistance: (auto?.haze ?? 2500) * 1000,
-              hazeColor: bgs.horizonColor(env).map((v) => v * intensity) as [
-                number,
-                number,
-                number,
-              ],
             });
         }
+        // Aerial perspective now comes with the atmosphere (ADR-120), denoised or not.
+        j.atmosphere(fogSettings);
         // Auto exposure (ADR-118): a dusk or dim scene is opened up toward a daylit one's key.
         const key = j.key() * ev;
         const lift = autoExposureOn ? pt.autoExposure(key, AUTO_KEY, 4) : 1;
@@ -659,8 +757,9 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                   disabled={running}
                 >
                   {SIZES.map(([a, b], i) => (
-                    <option key={a} value={i}>
+                    <option key={`${a}x${b}`} value={i}>
                       {a} × {b}
+                      {a / b > 2 ? " (2.39:1 film)" : ""}
                     </option>
                   ))}
                 </select>
@@ -682,6 +781,106 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 </select>
               </label>
             </div>
+            <h3>Look</h3>
+            <label className="field">
+              Look
+              <select
+                aria-label="Look"
+                value={lookId}
+                onChange={(e) => chooseLook(e.target.value as LookId)}
+                disabled={running}
+              >
+                {LOOKS.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="muted">
+              {look.note}
+              {look.time === "golden"
+                ? " (sets the time to the golden hour)"
+                : look.time === "blue"
+                  ? " (sets the time to just after sunset)"
+                  : ""}
+              .
+            </p>
+            <label className="field">
+              Grade strength: {Math.round(strength * 100)}%
+              <input
+                aria-label="Grade strength"
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={strength}
+                onChange={(e) => setStrength(Number(e.target.value))}
+                disabled={running}
+              />
+            </label>
+            <h3>Atmosphere</h3>
+            <label className="field">
+              Haze: {haze > 0 ? `${distanceLabel(hazeVisibility(haze))} visibility` : "none"}
+              <input
+                aria-label="Haze"
+                type="range"
+                min={0}
+                max={1}
+                step={0.02}
+                value={haze}
+                onChange={(e) => setHaze(Number(e.target.value))}
+                disabled={running}
+              />
+            </label>
+            <label className="field">
+              Ground mist:{" "}
+              {mist > 0
+                ? `${distanceLabel(mistOf(mist).visibility)} at the ground, ${Math.round(mistOf(mist).height / 1000)} m deep`
+                : "none"}
+              <input
+                aria-label="Ground mist"
+                type="range"
+                min={0}
+                max={1}
+                step={0.02}
+                value={mist}
+                onChange={(e) => setMist(Number(e.target.value))}
+                disabled={running}
+              />
+            </label>
+            <label className="field">
+              Overcast: {overcast > 0 ? `${Math.round(overcast * 100)}%` : "clear"}
+              <input
+                aria-label="Overcast"
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={overcast}
+                onChange={(e) => setOvercast(Number(e.target.value))}
+                disabled={running || lightingUsed === "dome"}
+              />
+            </label>
+            <label className="field">
+              Depth of field
+              <select
+                aria-label="Depth of field"
+                value={DOF.reduce(
+                  (b, [, v], i) => (Math.abs(v - dof) < Math.abs(DOF[b]![1] - dof) ? i : b),
+                  0,
+                )}
+                onChange={(e) => setDof(DOF[Number(e.target.value)]![1])}
+                disabled={running}
+              >
+                {DOF.map(([name], i) => (
+                  <option key={name} value={i}>
+                    {name}
+                    {i > 0 ? " (focused on the middle of the frame)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
             <h3>Background</h3>
             <label className="field">
               Background
@@ -907,15 +1106,6 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
                 disabled={running}
               />
               Lens glare
-            </label>
-            <label className="ob-check">
-              <input
-                type="checkbox"
-                checked={d5}
-                onChange={(e) => setD5(e.target.checked)}
-                disabled={running}
-              />
-              D5 colour
             </label>
             <label className="ob-check">
               <input

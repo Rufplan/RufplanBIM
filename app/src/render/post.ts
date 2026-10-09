@@ -10,6 +10,7 @@
 import * as THREE from "three";
 import { FullScreenQuad } from "three/examples/jsm/postprocessing/Pass.js";
 import type { Tone } from "./pathtrace";
+import { FOG_GLSL, fogUniforms, type FogSettings } from "./fog";
 
 export interface FinishSettings {
   /** Multiplies the scene's radiance (the camera's exposure). */
@@ -24,6 +25,45 @@ export interface FinishSettings {
   /** Display-space saturation and contrast (1 unchanged; D5's look is about 1.14, 1.06). */
   saturation: number;
   contrast: number;
+  /** White balance's green-magenta tint (0 none; ADR-120). */
+  tint?: number;
+  /** The look's grade (ADR-120); each is "none" when left out. */
+  grade?: Partial<Grade>;
+}
+
+/** A colourist's grade beyond saturation and contrast (ADR-120): what sets MIR's, The
+ * Boundary's or an editorial photographer's images apart. */
+export interface Grade {
+  /** Lifted blacks (a matte print): the darkest the image goes, 0–0.1. */
+  fade: number;
+  /** Tints added in the shadows and the highlights (display units, ±0.05). */
+  shadows: [number, number, number];
+  highlights: [number, number, number];
+  /** Greens' saturation (1 unchanged; MIR's olive foliage about 0.7). */
+  greens: number;
+  /** Film grain (0 none; 0.03 visible, 0.06 strong). */
+  grain: number;
+  /** Lateral chromatic aberration at the corners (px). */
+  aberration: number;
+  /** Output sharpening (an unsharp mask's amount, 0–0.6). */
+  sharpen: number;
+}
+
+export const NO_GRADE: Grade = {
+  fade: 0,
+  shadows: [0, 0, 0],
+  highlights: [0, 0, 0],
+  greens: 1,
+  grain: 0,
+  aberration: 0,
+  sharpen: 0,
+};
+
+/** The atmosphere for [`finish`]: the fog pass's target and the camera's matrices. */
+export interface FinishFog {
+  settings: FogSettings;
+  share: THREE.Texture;
+  camera: THREE.PerspectiveCamera;
 }
 
 export const DEFAULT_FINISH: FinishSettings = {
@@ -57,12 +97,13 @@ export function blackbody(k: number): [number, number, number] {
 /** The per-channel gain of a white balance: a camera balanced for `kelvin` sees 6500 K
  * light as this colour, so a setting above 6500 warms the image (V-Ray's and Corona's
  * convention). Luminance is kept. */
-export function whiteBalance(kelvin: number): [number, number, number] {
+export function whiteBalance(kelvin: number, tint = 0): [number, number, number] {
   const w = blackbody(kelvin);
   const d = blackbody(6500);
   // It expects light of its own temperature and neutralises that: 6500 K light, bluer than
-  // an 8000 K setting expects, comes out warmer.
-  const g: [number, number, number] = [d[0] / w[0], d[1] / w[1], d[2] / w[2]];
+  // an 8000 K setting expects, comes out warmer. The tint is a camera's green-magenta axis
+  // (Lightroom's Tint): above 0, greener (twilight's ozone magenta taken out).
+  const g: [number, number, number] = [d[0] / w[0], (d[1] / w[1]) * (1 + tint), d[2] / w[2]];
   const y = 0.2126 * g[0] + 0.7152 * g[1] + 0.0722 * g[2];
   return [g[0] / y, g[1] / y, g[2] / y];
 }
@@ -125,6 +166,7 @@ const UP_FRAG = /* glsl */ `
 
 const FINAL_FRAG = /* glsl */ `
   #include <tonemapping_pars_fragment>
+  ${FOG_GLSL}
   uniform sampler2D hdr;
   uniform sampler2D bloomTex;
   uniform sampler2D backdrop;
@@ -138,46 +180,128 @@ const FINAL_FRAG = /* glsl */ `
   uniform float saturation;
   uniform float contrast;
   uniform int tone;
+  // Atmosphere (fog.ts): the fog's share of the model per pixel, its colour, the sun glow.
+  uniform bool hasFog;
+  uniform sampler2D fogTex;
+  uniform vec3 fogColor;
+  uniform vec3 fogSun;
+  uniform vec3 sunDir;
+  uniform float glow;
+  uniform mat4 projInv;
+  uniform mat4 camWorld;
+  // The look (ADR-120).
+  uniform float sharpen;
+  uniform float aberration;
+  uniform float fade;
+  uniform vec3 shadows;
+  uniform vec3 highlights;
+  uniform float greens;
+  uniform float grain;
+  uniform vec2 size;
   varying vec2 vUv;
   float srgb(float c) { return c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1.0 / 2.4) - 0.055; }
   float lin(float c) { return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4); }
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+  float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
   vec3 tonemap(vec3 c) {
     return tone == 0 ? NeutralToneMapping(c) : tone == 1 ? AgXToneMapping(c) : ACESFilmicToneMapping(c);
   }
-  void main() {
-    vec4 c = texture2D(hdr, vUv);
+  // The world direction through a point of the image.
+  vec3 rayDir(vec2 uv) {
+    vec4 v = projInv * vec4(uv * 2.0 - 1.0, 1.0, 1.0);
+    return normalize((camWorld * vec4(v.xyz / v.w, 0.0)).xyz);
+  }
+  // The haze's colour along a direction: the horizon's, glowing toward the sun
+  // (Henyey-Greenstein, g 0.4, mean 1 over the sphere) in the sun's colour.
+  vec3 hazeColor(vec3 d) {
+    float c = dot(d, sunDir);
+    float hg = 0.84 / pow(1.16 - 0.8 * c, 1.5);
+    return fogColor * (1.0 - glow) + fogSun * glow * hg;
+  }
+  // The image at uv, toned and over its backdrop, in linear display light.
+  vec3 compose(vec2 uv, out float alpha) {
+    vec4 c = texture2D(hdr, uv);
     // The trace's colour is straight (the sky's own light where the model isn't), its
     // alpha the model's coverage.
-    vec3 col = c.rgb * exposure * balance;
+    vec3 col = c.rgb;
+    if (sharpen > 0.0) {
+      // An unsharp mask on the linear image, as a photographer's output sharpening.
+      vec2 px = 1.0 / vec2(textureSize(hdr, 0));
+      vec3 n = texture2D(hdr, uv + vec2(px.x, 0.0)).rgb + texture2D(hdr, uv - vec2(px.x, 0.0)).rgb
+        + texture2D(hdr, uv + vec2(0.0, px.y)).rgb + texture2D(hdr, uv - vec2(0.0, px.y)).rgb;
+      col = max(col + sharpen * (col - 0.25 * n), vec3(0.0));
+    }
+    col *= exposure * balance;
     float a = c.a;
+    vec3 d = rayDir(uv);
+    vec3 haze = hazeColor(d) * exposure * balance;
+    float skyFog = 0.0;
+    if (hasFog) {
+      vec4 f = texture2D(fogTex, uv);
+      col = mix(col, haze, f.a > 1e-3 ? clamp(f.r / f.a, 0.0, 1.0) : 0.0);
+      skyFog = fogShare(d, 0.0, true);
+    }
     // Bloom (its levels summed, divided back to an average) replaces a share of the image,
     // in linear light before the tone curve.
-    vec3 bl = texture2D(bloomTex, vUv).rgb * balance / levels;
+    vec3 bl = texture2D(bloomTex, uv).rgb * balance / levels;
     vec3 m = tonemap(mix(col, bl, bloom));
-    vec3 outc;
-    float outa;
     if (hasBackdrop) {
-      // The backdrop (already in display colour) under the model, with the glare over it.
-      vec3 bd = texture2D(backdrop, vUv).rgb;
+      // The backdrop (already in display colour) under the model, sunk into the mist, with
+      // the glare over it.
+      vec3 bd = texture2D(backdrop, uv).rgb;
       bd = vec3(lin(bd.r), lin(bd.g), lin(bd.b));
+      // The camera's white balance holds for the sky too (ADR-120).
+      bd *= balance;
+      bd = mix(bd, tonemap(haze), skyFog);
       bd = mix(bd, tonemap(bl), bloom);
-      outc = m * a + bd * (1.0 - a);
-      outa = 1.0;
-    } else {
-      outc = m;
-      outa = a;
+      alpha = 1.0;
+      return m * a + bd * (1.0 - a);
+    }
+    alpha = a;
+    return m;
+  }
+  void main() {
+    float outa;
+    vec3 outc = compose(vUv, outa);
+    if (aberration > 0.0) {
+      // Lateral chromatic aberration: red a little outward, blue inward, growing to
+      // \`aberration\` px at the corners, as a real lens fringes.
+      vec2 r = (vUv - 0.5);
+      vec2 off = r * aberration / (0.5 * length(size));
+      float ar, ab;
+      outc.r = compose(vUv + off, ar).r;
+      outc.b = compose(vUv - off, ab).b;
     }
     // A lens's natural fall-off (cos⁴ of the angle off axis), blended to its strength.
     vec2 d = (vUv - 0.5) * vec2(aspect, 1.0);
     float r2 = dot(d, d) / (0.25 * (aspect * aspect + 1.0));
     float cos2 = 1.0 / (1.0 + r2 * 0.6);
     outc *= mix(1.0, cos2 * cos2, vignette);
-    // Display-space grade, the screen's encoding, a dither against banding in skies.
-    vec3 s = vec3(srgb(outc.r), srgb(outc.g), srgb(outc.b));
-    float y = dot(s, vec3(0.2126, 0.7152, 0.0722));
+    // The grade, in display space as a colourist's: saturation, greens, split toning,
+    // an S-curve's contrast, lifted blacks, grain; then a dither against banding.
+    vec3 s = clamp(vec3(srgb(outc.r), srgb(outc.g), srgb(outc.b)), 0.0, 1.0);
+    float y = luma(s);
     s = mix(vec3(y), s, saturation);
-    s = (s - 0.5) * contrast + 0.5;
+    // Greens muted toward olive (MIR's foliage) below 1, richer above.
+    float gm = smoothstep(0.0, 0.06, s.g - max(s.r, s.b));
+    vec3 muted = mix(vec3(y), s, greens);
+    muted.r += (muted.g - muted.r) * max(0.0, 1.0 - greens) * 0.35;
+    s = mix(s, muted, gm);
+    // Split toning: tints added in the shadows and the highlights.
+    s += shadows * (1.0 - y) * (1.0 - y) + highlights * y * y;
+    s = clamp(s, 0.0, 1.0);
+    // Contrast as an S-curve about mid grey: never clips, unlike a straight stretch.
+    vec3 lo = 0.5 * pow(2.0 * s, vec3(contrast));
+    vec3 hi = 1.0 - 0.5 * pow(2.0 - 2.0 * s, vec3(contrast));
+    s = mix(lo, hi, step(0.5, s));
+    // A matte: blacks lifted to \`fade\`, white kept.
+    s = fade + s * (1.0 - fade);
+    if (grain > 0.0) {
+      // Film grain: monochrome, strongest in the mid-tones, about a pixel and a half.
+      vec2 g = floor(gl_FragCoord.xy / 1.5);
+      float n = hash(g) + hash(g + 17.31) + hash(g + 43.7) - 1.5;
+      s += grain * n * (0.35 + 2.6 * y * (1.0 - y));
+    }
     s += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
     gl_FragColor = vec4(clamp(s, 0.0, 1.0) * outa, outa);
   }
@@ -201,6 +325,8 @@ export function finish(
   hdr: THREE.Texture,
   backdrop: HTMLCanvasElement | null,
   o: FinishSettings,
+  /** Haze and mist (ADR-120), or none. */
+  fog: FinishFog | null = null,
 ) {
   const { width: w, height: h } = hdr.image as { width: number; height: number };
   const made: (THREE.Material | THREE.WebGLRenderTarget | THREE.Texture)[] = [];
@@ -280,7 +406,15 @@ export function finish(
       bd.flipY = true;
       made.push(bd);
     }
-    const wb = whiteBalance(o.kelvin);
+    const wb = whiteBalance(o.kelvin, o.tint ?? 0);
+    const g = { ...NO_GRADE, ...o.grade };
+    const f = fog?.settings;
+    const cam = fog?.camera;
+    const sun = f?.sunDir ?? [0, 1, 0];
+    // The glow's colour: the haze's brightness in the sun's colour.
+    const hl = f ? 0.2126 * f.color[0] + 0.7152 * f.color[1] + 0.0722 * f.color[2] : 0;
+    const sc = f?.sunColor ?? [1, 1, 1];
+    const sl = 0.2126 * sc[0] + 0.7152 * sc[1] + 0.0722 * sc[2] || 1;
     run(
       FINAL_FRAG,
       {
@@ -299,6 +433,35 @@ export function finish(
         contrast: { value: o.contrast },
         tone: { value: o.tone === "neutral" ? 0 : o.tone === "filmic" ? 1 : 2 },
         toneMappingExposure: { value: 1 },
+        ...fogUniforms(
+          f ?? {
+            visibility: 0,
+            mistVisibility: 0,
+            mistHeight: 0,
+            ground: 0,
+            color: [0, 0, 0],
+            sunDir: null,
+            glow: 0,
+            sunColor: [1, 1, 1],
+          },
+          cam?.position ?? new THREE.Vector3(),
+        ),
+        hasFog: { value: !!fog },
+        fogTex: { value: fog?.share ?? null },
+        fogColor: { value: new THREE.Vector3(...(f?.color ?? [0, 0, 0])) },
+        fogSun: { value: new THREE.Vector3(...sc.map((c) => (c / sl) * hl)) },
+        sunDir: { value: new THREE.Vector3(...sun).normalize() },
+        glow: { value: f?.sunDir ? f.glow : 0 },
+        projInv: { value: cam ? cam.projectionMatrixInverse.clone() : new THREE.Matrix4() },
+        camWorld: { value: cam ? cam.matrixWorld.clone() : new THREE.Matrix4() },
+        sharpen: { value: g.sharpen },
+        aberration: { value: g.aberration },
+        fade: { value: g.fade },
+        shadows: { value: new THREE.Vector3(...g.shadows) },
+        highlights: { value: new THREE.Vector3(...g.highlights) },
+        greens: { value: g.greens },
+        grain: { value: g.grain },
+        size: { value: new THREE.Vector2(w, h) },
       },
       null,
     );

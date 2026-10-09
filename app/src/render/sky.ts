@@ -94,7 +94,15 @@ export interface SkyOptions {
   /** D5's default sky (ADR-065): soft fair-weather cumulus covering this share of the sky
    * (0 clear, about 0.35 a D5 day), lit by the sun. */
   clouds?: number;
+  /** An overcast sky (ADR-120), MIR's grey Nordic light: 0 clear, 1 a full cloud deck.
+   * The sky turns to the CIE standard overcast sky (three times as bright overhead as at
+   * the horizon, the same all round), soft-structured; the sun dims into a glow behind the
+   * cloud; the light falls to about a third of a clear day's (the exposure follows). */
+  overcast?: number;
 }
+
+/** An overcast day's light on the ground, against a clear day's sun and sky together. */
+export const OVERCAST_LIGHT = 0.3;
 
 /** Periodic-free value noise for the clouds, 0-1. */
 function cloudNoise(x: number, y: number): number {
@@ -177,7 +185,13 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
     }
   }
   const atmoScale = aIrr > 0 ? pIrr / aIrr : 0;
-  const cover = Math.min(0.9, Math.max(0, o.clouds ?? 0));
+  const ov = Math.min(1, Math.max(0, o.overcast ?? 0));
+  const cover = Math.min(0.9, Math.max(0, o.clouds ?? 0)) * (1 - ov);
+  // The overcast sky's zenith: its light on the ground (7π/9 times the zenith's, for the
+  // CIE distribution) a share of the clear sun and sky's.
+  const skyE = pIrr * (Math.PI / 2 / 32) * ((2 * Math.PI) / 64);
+  const sunE = skyE * (o.sunToSky ?? 6) * Math.max(0, sun.y);
+  const ovZenith = (OVERCAST_LIGHT * (skyE + sunE)) / ((7 * Math.PI) / 9);
   const cloudLum = z.Y * scale * (2.4 + 1.6 * Math.max(0, sun.y));
   const tint = sunColor(Math.max(o.altitude, 1));
   for (let j = 0; j < h; j++) {
@@ -199,6 +213,24 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
       } else {
         const Y = zY * perez(theta, gamma, co.Y) * scale;
         [r, g, b] = xyYToRgb(zx * perez(theta, gamma, co.x), zy * perez(theta, gamma, co.y), Y);
+      }
+      if (ov > 0) {
+        // Soft, broad structure in the deck (thicker and thinner cloud), brighter where the
+        // sun is behind it.
+        const kk = 1 / Math.max(dir.y, 0.06);
+        const n = cloudNoise(dir.x * kk * 0.35 + 11, dir.z * kk * 0.35 + 7);
+        const behind =
+          Math.exp(-((gamma / 0.45) ** 2)) * Math.max(0, Math.min(1, (o.altitude + 2) / 6));
+        const L =
+          ovZenith *
+          ((1 + 2 * Math.max(0, dir.y)) / 3) *
+          (1 + 0.22 * (n - 0.5) * smooth(0.02, 0.2, dir.y)) *
+          (1 + (0.6 + 1.2 * (1 - ov)) * behind);
+        // A faintly cool grey, warmer toward a low sun.
+        const warmth = behind * 0.06;
+        r = r * (1 - ov) + L * (0.97 + warmth) * ov;
+        g = g * (1 - ov) + L * 1.0 * ov;
+        b = b * (1 - ov) + L * (1.04 - warmth) * ov;
       }
       let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       if (cover > 0 && dir.y > 0.01) {
@@ -259,7 +291,9 @@ export function physicalSky(o: SkyOptions): THREE.DataTexture {
     const radius = Math.max(((o.sunRadius ?? 1) * Math.PI) / 180, (1.5 * Math.PI) / h);
     const omega = Math.PI * radius * radius;
     const col = sunColor(o.altitude);
-    const ratio = (o.sunToSky ?? 6) * Math.min(1, Math.max(0.15, (o.altitude + 2) / 20));
+    // Behind an overcast deck the sun fades out entirely (its glow is in the sky above).
+    const ratio =
+      (o.sunToSky ?? 6) * Math.min(1, Math.max(0.15, (o.altitude + 2) / 20)) * (1 - ov) ** 2;
     const L = (ratio * irradiance) / omega;
     // Only the rows near the sun.
     const sunElev = Math.asin(sun.y);
