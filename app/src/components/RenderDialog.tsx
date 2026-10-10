@@ -260,7 +260,22 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
     };
   }, [month, day, hour, lightingMode]);
 
-  useEffect(() => () => job.current?.dispose(), []);
+  // The last render's scene: its geometry is the bulk of the page's memory (millions of
+  // grass triangles), freed before the next render is built and when the dialog closes.
+  const sceneRef = useRef<import("three").Scene | null>(null);
+  const release = () => {
+    job.current?.dispose();
+    job.current = null;
+    finish.current = () => {};
+    cut.current = () => null;
+    sceneRef.current?.traverse((o) => {
+      const g = (o as { geometry?: { dispose(): void } }).geometry;
+      g?.dispose();
+    });
+    sceneRef.current?.clear();
+    sceneRef.current = null;
+  };
+  useEffect(() => () => release(), []);
 
   const [w, h] = auto?.width
     ? [auto.width, auto.height ?? Math.round((auto.width * 9) / 16)]
@@ -299,6 +314,17 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
 
   const render = async () => {
     if (!view) return;
+    // Memory at each stage, in unattended renders (a development aid).
+    const heap = (stage: string) => {
+      const m = (
+        performance as unknown as { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }
+      ).memory;
+      if (auto && m)
+        console.warn(
+          `Render: heap ${stage} ${(m.usedJSHeapSize / 1e6).toFixed(0)} MB of ${(m.jsHeapSizeLimit / 1e6).toFixed(0)} MB`,
+        );
+    };
+    heap("start");
     const pose =
       auto?.eye && auto.target
         ? { eye: auto.eye, target: auto.target, fov: auto.fov ?? 50 }
@@ -307,8 +333,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       useAppStore.getState().setError("Orbit the 3D view once, or render a camera view.");
       return;
     }
-    job.current?.dispose();
-    job.current = null;
+    // Two scenes at once ran the page out of memory (V8 OOM): the old one goes first.
+    release();
     stage.current?.replaceChildren();
     setDone(false);
     setRunning(true);
@@ -333,6 +359,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         toYUp,
       } = pt;
       const meshes = await ipc.meshes(view.id);
+      heap("meshes");
       const imagery = satellite ? await siteImagery().catch(() => null) : null;
       const levels = useAppStore.getState().app?.levelElevations ?? [0];
       let rot = (rotation * Math.PI) / 180;
@@ -434,6 +461,8 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         lights,
         groundMaterial: groundId ? materialOf?.({ material: groundId } as Mesh) : null,
       });
+      heap("scene");
+      sceneRef.current = scene;
       // Plants and Enscape's grass (ADR-064).
       setStatus("Growing the plants…");
       const [{ loadPlantEntries, plantMeshesYUp }, { grassMeshesYUp }, THREE] = await Promise.all([
@@ -488,6 +517,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
             cones,
           });
       }
+      heap("plants");
       const center = box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
       const radius = box.isEmpty() ? 10_000 : box.getSize(new THREE.Vector3()).length() / 2;
       const base = groundId ? byId.get(groundId) : undefined;
@@ -540,6 +570,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
           );
         scene.add(m);
       }
+      heap("grass");
       // The backdrop at an exposure `k` times the render's (auto exposure redraws it).
       const makeBackdrop = (k: number) =>
         photo
@@ -579,6 +610,7 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
       stage.current?.replaceChildren(shown);
       setView3({ z: 1, x: 0, y: 0 });
       let last = 0;
+      let tracedLogged = false;
       // The finished image already holds its backdrop.
       let finished = false;
       const show = () => composite(shown, finished ? null : backdrop.current, j.canvas);
@@ -642,12 +674,16 @@ export function RenderDialog({ onClose }: { onClose: () => void }) {
         j.finish(backdrop.current, finishing);
         finished = true;
         show();
+        heap("finished");
       };
       await j.start(scene, camera, samples, (n, secs, phase) => {
         setProgress(n / samples);
         const t = `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, "0")}`;
         if (phase === "preparing") setStatus("Building the scene…");
-        else if (phase === "done") {
+        else if (!tracedLogged) {
+          tracedLogged = true;
+          heap("traced");
+        } else if (phase === "done") {
           finish.current();
           setStatus(`Done: ${n} samples in ${t}${denoise ? ", denoised" : ""} on ${j.gpu()}.`);
           console.warn(`Render: ${n} samples in ${t} on ${j.gpu()}`);

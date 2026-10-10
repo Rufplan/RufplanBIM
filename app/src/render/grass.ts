@@ -12,7 +12,6 @@
 //   the camera moves; the ground's texture carries on beyond. Renders take the field around
 //   their camera, merged.
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { GrassKind } from "../bindings/GrassKind";
 import { rgba, translucentShading, wind } from "./plants";
 import { translucent } from "./ptPatch";
@@ -907,6 +906,118 @@ export function grassGroup(
   return g;
 }
 
+/** The most grass triangles a render takes. The path tracer holds about 450 bytes per
+ * triangle (its merged copy, data textures and BVH), and the page has about 4 GB: 8.5
+ * million triangles of grass ran it out of memory (V8 OOM) on a second render or a larger
+ * lawn. */
+export const RENDER_GRASS_TRIANGLES = 3_500_000;
+
+const trianglesOf = (g: THREE.BufferGeometry) =>
+  (g.index ? g.index.count : g.getAttribute("position").count) / 3;
+
+/** The clumps (`ms`, `dist` from the camera, `tints`) baked straight into one geometry, in
+ * place: no copy per clump and no merge, so the peak is the result itself. Beyond `far.near`
+ * each takes the lighter clump; if that's still over [`RENDER_GRASS_TRIANGLES`], the light
+ * clump comes nearer, and then the farthest clumps go. */
+export function bakeClumps(
+  geo: THREE.BufferGeometry,
+  ms: THREE.Matrix4[],
+  dist: number[],
+  tints: THREE.Color[] | null,
+  far: { geo: THREE.BufferGeometry; near: number } | null,
+  pre: THREE.Matrix4 = new THREE.Matrix4(),
+  most = RENDER_GRASS_TRIANGLES,
+): THREE.BufferGeometry | null {
+  if (!ms.length) return null;
+  const tn = trianglesOf(geo);
+  const tf = far ? trianglesOf(far.geo) : tn;
+  const order = ms.map((_, i) => i).sort((a, b) => dist[a]! - dist[b]!);
+  // The nearest the light clump can start, keeping the full clump right by the camera.
+  let near = far?.near ?? Infinity;
+  const total = (n: number) => dist.reduce((s, d) => s + (d > n ? tf : tn), 0);
+  while (far && near > 4000 && total(near) > most) near *= 0.8;
+  // Still too many: the farthest go.
+  let kept = order.length;
+  let tris = total(near);
+  while (kept > 0 && tris > most) {
+    kept--;
+    tris -= dist[order[kept]!]! > near ? tf : tn;
+  }
+  const use = order.slice(0, kept);
+  const pick = (i: number) => (far && dist[i]! > near ? far.geo : geo);
+  const names = Object.keys(geo.attributes);
+  let verts = 0;
+  let idx = 0;
+  for (const i of use) {
+    const g = pick(i);
+    verts += g.getAttribute("position").count;
+    idx += g.index ? g.index.count : 0;
+  }
+  const out = new THREE.BufferGeometry();
+  const arrays: Record<string, Float32Array> = {};
+  for (const n of names) {
+    const a = geo.getAttribute(n);
+    arrays[n] = new Float32Array(verts * a.itemSize);
+  }
+  const index = geo.index ? new Uint32Array(idx) : null;
+  const m = new THREE.Matrix4();
+  const nm = new THREE.Matrix3();
+  const v = new THREE.Vector3();
+  let vo = 0;
+  let io = 0;
+  for (const i of use) {
+    const g = pick(i);
+    m.multiplyMatrices(pre, ms[i]!);
+    nm.getNormalMatrix(m);
+    const count = g.getAttribute("position").count;
+    const t = tints?.[i];
+    for (const n of names) {
+      const a = g.getAttribute(n) as THREE.BufferAttribute | undefined;
+      const dst = arrays[n]!;
+      const k = geo.getAttribute(n).itemSize;
+      // A part the light clump lacks stays zero.
+      if (!a) continue;
+      for (let j = 0; j < count; j++) {
+        const o = (vo + j) * k;
+        if (n === "position") {
+          v.fromBufferAttribute(a, j).applyMatrix4(m);
+          dst[o] = v.x;
+          dst[o + 1] = v.y;
+          dst[o + 2] = v.z;
+        } else if (n === "normal") {
+          v.fromBufferAttribute(a, j).applyMatrix3(nm).normalize();
+          dst[o] = v.x;
+          dst[o + 1] = v.y;
+          dst[o + 2] = v.z;
+        } else {
+          // Read as values (normalized integers come back 0–1).
+          dst[o] = a.getX(j);
+          if (k > 1) dst[o + 1] = a.getY(j);
+          if (k > 2) dst[o + 2] = a.getZ(j);
+          if (k > 3) dst[o + 3] = a.getW(j);
+          if (n === "color" && t) {
+            dst[o] = dst[o]! * t.r;
+            dst[o + 1] = dst[o + 1]! * t.g;
+            dst[o + 2] = dst[o + 2]! * t.b;
+          }
+        }
+      }
+    }
+    if (index && g.index) {
+      const src = g.index;
+      for (let j = 0; j < src.count; j++) index[io + j] = src.getX(j) + vo;
+      io += src.count;
+    }
+    vo += count;
+  }
+  for (const n of names) {
+    const a = geo.getAttribute(n);
+    out.setAttribute(n, new THREE.BufferAttribute(arrays[n]!, a.itemSize));
+  }
+  if (index) out.setIndex(new THREE.BufferAttribute(index, 1));
+  return out;
+}
+
 /** Grass for the path tracer around the render's camera (x, y): merged (each clump's
  * patch tint baked into its colours), turned y-up. */
 export function grassMeshesYUp(
@@ -929,22 +1040,8 @@ export function grassMeshesYUp(
     far: { geo: THREE.BufferGeometry; near: number } | null = null,
   ) => {
     if (!ms.length) return null;
-    const pieces = ms.map((m, i) => {
-      const e = m.elements;
-      const d = Math.hypot(e[12]! - camera.x, e[13]! - camera.y);
-      const g = far && d > far.near ? far.geo : geo;
-      const p = g.clone().applyMatrix4(toYUp.clone().multiply(m));
-      const t = tints?.[i];
-      if (t) {
-        const c = p.getAttribute("color");
-        for (let v = 0; v < c.count; v++)
-          c.setXYZ(v, c.getX(v) * t.r, c.getY(v) * t.g, c.getZ(v) * t.b);
-      }
-      return p;
-    });
-    const merged = mergeGeometries(pieces, false);
-    for (const p of pieces) p.dispose();
-    return merged;
+    const dist = ms.map((m) => Math.hypot(m.elements[12]! - camera.x, m.elements[13]! - camera.y));
+    return bakeClumps(geo, ms, dist, tints, far, toYUp);
   };
   const groups = byLook(surfaces);
   const grassy = groups.filter((l) => l.some((s) => s.grass)).length || 1;

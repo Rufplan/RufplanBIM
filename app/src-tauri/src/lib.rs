@@ -43,8 +43,53 @@ mod workset_cmds;
 
 use tauri::{Emitter, Manager, WindowEvent};
 
+/// Where panics are written: the app's local data folder (crash.log), or none.
+fn crash_log() -> Option<std::path::PathBuf> {
+    let base = std::env::var_os("LOCALAPPDATA")?;
+    Some(
+        std::path::Path::new(&base)
+            .join("io.rufplan.studio")
+            .join("crash.log"),
+    )
+}
+
+/// Records every panic (where, what, and a backtrace) in crash.log before the default
+/// handler runs: a panic in a command otherwise leaves no trace in a release build.
+fn log_panics() {
+    let default = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if let Some(path) = crash_log() {
+            let when = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_secs());
+            let thread = std::thread::current();
+            let entry = format!(
+                "---- {} (unix {when}) v{} thread {}
+{info}
+{}
+",
+                commands::today(),
+                env!("CARGO_PKG_VERSION"),
+                thread.name().unwrap_or("?"),
+                std::backtrace::Backtrace::force_capture(),
+            );
+            let _ = std::fs::create_dir_all(path.parent().unwrap_or(std::path::Path::new(".")));
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&path)
+            {
+                use std::io::Write;
+                let _ = f.write_all(entry.as_bytes());
+            }
+        }
+        default(info);
+    }));
+}
+
 /// Builds and runs the Tauri application until the last window closes.
 pub fn run() -> anyhow::Result<()> {
+    log_panics();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

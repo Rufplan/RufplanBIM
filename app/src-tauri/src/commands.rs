@@ -94,12 +94,16 @@ fn now_ms() -> i64 {
         .map_or(0, |d| d.as_millis() as i64)
 }
 
+/// The session. After a command panicked while holding it (logged in crash.log), it is
+/// taken back rather than refused: before, every later command failed with "unavailable
+/// after an earlier crash" and the app was dead until restarted, unsaved work with it.
 pub(crate) fn lock<'a>(
     state: &'a State<'_, SessionState>,
 ) -> CommandResult<MutexGuard<'a, Session>> {
-    state
-        .lock()
-        .map_err(|_| anyhow::anyhow!("project state is unavailable after an earlier crash").into())
+    Ok(state.lock().unwrap_or_else(|poisoned| {
+        state.clear_poison();
+        poisoned.into_inner()
+    }))
 }
 
 /// Updates the window title and returns the new state.
