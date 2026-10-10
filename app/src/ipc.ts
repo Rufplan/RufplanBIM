@@ -263,6 +263,8 @@ export interface AutoRender {
   overcast?: number;
   dof?: number;
   focus?: number;
+  /** Open the view live for this many seconds, logging memory, then quit (no render). */
+  live?: number;
   quit?: boolean;
 }
 

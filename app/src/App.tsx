@@ -157,12 +157,26 @@ export function App() {
         for (let i = 0; i < 100 && !useAppStore.getState().app; i++)
           await new Promise((r) => setTimeout(r, 100));
         const s = useAppStore.getState();
-        const v = s.app?.views.find((x) => x.name === auto.view);
+        const v = s.app?.views.find((x) =>
+          auto.view === "*3d" ? x.viewType === "ThreeD" : x.name === auto.view,
+        );
         if (!v) {
           s.setError(`Auto render: no view named ${auto.view}`);
           return;
         }
         s.openView(v.id);
+        if (auto.live) {
+          // The live view only (a development aid): its memory every few seconds, then quit.
+          const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+          for (let t = 0; t <= auto.live; t += 3) {
+            console.warn(
+              `Live: ${t} s, heap ${mem ? (mem.usedJSHeapSize / 1e6).toFixed(0) : "?"} MB`,
+            );
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+          await ipc.quitApp();
+          return;
+        }
         useAppStore.setState({ autoRender: auto });
         s.setUi({ viewDialog: "render" });
       })

@@ -558,9 +558,12 @@ function renderGrassMaterial() {
 /** Where other surfaces cover the ground (paving, slabs, decks): a 250 mm grid of the
  * lowest upward-facing surface over each cell. A clump is covered when something lies
  * from just under it to 1.5 m over it. */
-export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, far: number) {
+export function coverMask(blockers: ArrayLike<number>[], center: THREE.Vector3, reach: number) {
   const cell = 250;
-  const n = Math.ceil((2 * far) / cell);
+  // Within 300 m (a 2400-cell square, 46 MB): a site's far extent is never worth more,
+  // and a huge one asked for gigabytes.
+  const far = Number.isFinite(reach) ? Math.min(reach, 300_000) : 300_000;
+  const n = Math.max(1, Math.ceil((2 * far) / cell));
   const x0 = center.x - far;
   const y0 = center.y - far;
   // The lowest upward-facing surface (by its winding): a slab's top, not its underside, so

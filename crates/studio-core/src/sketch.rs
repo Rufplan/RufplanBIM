@@ -178,6 +178,14 @@ impl SketchCurve {
                 start,
                 sweep,
             } => {
+                // Once round at most (an arc entered in degrees, or a stray value, made
+                // millions of points).
+                let tau = std::f64::consts::TAU;
+                let sweep = if sweep.is_finite() {
+                    sweep.clamp(-tau, tau)
+                } else {
+                    0.0
+                };
                 let n = ((sweep.abs() / 5f64.to_radians()).ceil() as usize).max(2);
                 (0..=n)
                     .map(|i| polar(*center, *radius, start + sweep * i as f64 / n as f64))

@@ -709,6 +709,18 @@ mod tests {
             .collect();
         assert!(numbers.iter().any(|n| n.starts_with("A-1")), "{numbers:?}");
         assert!(r.dimensions > 0 && r.plants > 0 && r.furniture > 0, "{r:?}");
+        // Every mesh is finite and near the building: one stray coordinate sized the 3D
+        // view's ground grid past the page's memory.
+        for m in studio_views::meshes(&doc) {
+            for p in m.positions.chunks(3) {
+                assert!(
+                    p.iter().all(|v| v.is_finite() && v.abs() < 1_000_000.0),
+                    "{:?} {:?} at {p:?}",
+                    m.category,
+                    m.el
+                );
+            }
+        }
         // Building and sheets undo together.
         doc.undo().unwrap();
         assert_eq!(doc.undo_depth(), depth);

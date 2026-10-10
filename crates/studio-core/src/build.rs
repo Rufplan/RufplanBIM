@@ -169,7 +169,15 @@ pub fn create_roofs_by_footprint(
 
 /// Riser count, riser height and horizontal run (mm) of a stair climbing `rise` mm.
 pub fn stair_layout(rise: f64, tread: f64, max_riser: f64) -> (usize, f64, f64) {
-    let n = ((rise / max_riser) - 1e-9).ceil().max(1.0) as usize;
+    // A bad riser (zero, NaN, a file's stray value) or rise can't make millions of treads:
+    // at least 50 mm a riser, at most 400 risers (a 70 m climb).
+    let max_riser = if max_riser.is_finite() && max_riser >= 50.0 {
+        max_riser
+    } else {
+        50.0
+    };
+    let rise = if rise.is_finite() { rise } else { 0.0 };
+    let n = (((rise / max_riser) - 1e-9).ceil().clamp(1.0, 400.0)) as usize;
     let riser = rise / n as f64;
     // n risers need n - 1 treads; the last riser lands on the upper floor.
     (n, riser, tread * (n.saturating_sub(1)) as f64)
@@ -558,6 +566,13 @@ mod tests {
         assert_eq!(
             stair_layout(49.0 * MM_PER_IN, DEFAULT_TREAD, DEFAULT_MAX_RISER).0,
             7
+        ); // A bad riser or rise can't make millions of treads.
+        assert_eq!(stair_layout(3000.0, DEFAULT_TREAD, 0.0).0, 60);
+        assert_eq!(stair_layout(3000.0, DEFAULT_TREAD, f64::NAN).0, 60);
+        assert_eq!(stair_layout(1e12, DEFAULT_TREAD, DEFAULT_MAX_RISER).0, 400);
+        assert_eq!(
+            stair_layout(f64::INFINITY, DEFAULT_TREAD, DEFAULT_MAX_RISER).0,
+            1
         );
     }
 

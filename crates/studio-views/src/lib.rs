@@ -3889,15 +3889,102 @@ pub enum Finish {
     Stone,
 }
 
-/// Meshes for a 3D view, without what it hides (ADR-024).
+/// The most vertices (faces and edge lines) one element's 3D meshes may have, and a 3D
+/// view's in all. The largest real elements (a topography, a detailed in-place form) are a
+/// few hundred thousand.
+pub const MAX_ELEMENT_VERTICES: usize = 1_500_000;
+pub const MAX_VIEW_VERTICES: usize = 12_000_000;
+/// Beyond this (mm from the origin) a mesh is taken for a stray: 100 km.
+const STRAY_MM: f32 = 1e8;
+
+/// Why an element was left out of a 3D view by [`bounded_meshes`].
+#[derive(Debug, Clone, PartialEq)]
+pub enum LeftOut {
+    /// A coordinate that isn't finite or lies more than 100 km out.
+    Stray,
+    /// More vertices than [`MAX_ELEMENT_VERTICES`] (a bad value: millions of treads,
+    /// balusters or arc points).
+    TooLarge(usize),
+    /// Past [`MAX_VIEW_VERTICES`] for the whole view.
+    OverBudget(usize),
+}
+
+/// Meshes safe to send to a 3D view: an element whose meshes aren't finite, lie more than
+/// 100 km out or run past [`MAX_ELEMENT_VERTICES`] is left out, and past
+/// [`MAX_VIEW_VERTICES`] the largest go. One runaway element (a generated model's bad value)
+/// had made a mesh too large for the page, which ran out of memory (V8 OOM) on opening 3D.
+pub fn bounded_meshes(all: Vec<Mesh>) -> (Vec<Mesh>, Vec<(ElementId, Category, LeftOut)>) {
+    use std::collections::HashMap;
+    let verts = |m: &Mesh| (m.positions.len() + m.edges.len()) / 3;
+    let mut per: HashMap<ElementId, usize> = HashMap::new();
+    let mut stray: HashMap<ElementId, bool> = HashMap::new();
+    for m in &all {
+        *per.entry(m.el).or_default() += verts(m);
+        let bad = m
+            .positions
+            .iter()
+            .chain(&m.edges)
+            .any(|v| !v.is_finite() || v.abs() > STRAY_MM);
+        *stray.entry(m.el).or_default() |= bad;
+    }
+    let mut out_of: HashMap<ElementId, LeftOut> = HashMap::new();
+    for (&el, &n) in &per {
+        if stray[&el] {
+            out_of.insert(el, LeftOut::Stray);
+        } else if n > MAX_ELEMENT_VERTICES {
+            out_of.insert(el, LeftOut::TooLarge(n));
+        }
+    }
+    let mut total: usize = per
+        .iter()
+        .filter(|(el, _)| !out_of.contains_key(el))
+        .map(|(_, n)| n)
+        .sum();
+    if total > MAX_VIEW_VERTICES {
+        let mut big: Vec<(ElementId, usize)> = per
+            .iter()
+            .filter(|(el, _)| !out_of.contains_key(el))
+            .map(|(&el, &n)| (el, n))
+            .collect();
+        big.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        for (el, n) in big {
+            if total <= MAX_VIEW_VERTICES {
+                break;
+            }
+            out_of.insert(el, LeftOut::OverBudget(n));
+            total -= n;
+        }
+    }
+    let mut left: Vec<(ElementId, Category, LeftOut)> = vec![];
+    let mut kept = Vec::with_capacity(all.len());
+    for m in all {
+        match out_of.get(&m.el) {
+            Some(why) => {
+                if !left.iter().any(|(el, _, _)| *el == m.el) {
+                    left.push((m.el, m.category, why.clone()));
+                }
+            }
+            None => kept.push(m),
+        }
+    }
+    (kept, left)
+}
+
+/// Meshes for a 3D view, without what it hides (ADR-024), bounded ([`bounded_meshes`]).
 pub fn meshes_in_view(doc: &Document, view: Option<ElementId>) -> Vec<Mesh> {
     let all = meshes(doc);
-    let Some(v) = view.and_then(|v| doc.data(v).ok()) else {
-        return all;
+    let shown = match view.and_then(|v| doc.data(v).ok()) {
+        Some(v) => all
+            .into_iter()
+            .filter(|m| !studio_core::visibility::hidden_in(doc, v, m.el))
+            .collect(),
+        None => all,
     };
-    all.into_iter()
-        .filter(|m| !studio_core::visibility::hidden_in(doc, v, m.el))
-        .collect()
+    let (kept, left) = bounded_meshes(shown);
+    for (el, cat, why) in left {
+        eprintln!("3D view: left out {cat:?} {el:?}: {why:?}");
+    }
+    kept
 }
 
 /// Each element drawn in `view` with its category (for hiding and isolating by category).
@@ -7187,5 +7274,65 @@ mod keynote_draw_tests {
             .filter(|i| i.el == Some(t) && matches!(i.prim, crate::Prim::Fill { .. }))
             .count();
         assert!(lines >= 2 && fills >= 2, "{lines} lines, {fills} fills");
+    }
+}
+
+#[cfg(test)]
+mod bounded_tests {
+    use super::*;
+
+    fn mesh(el: ElementId, verts: usize, at: f32) -> Mesh {
+        Mesh {
+            el,
+            category: Category::Wall,
+            exterior: false,
+            color: None,
+            material: None,
+            level: None,
+            positions: vec![at; verts * 3],
+            edges: vec![],
+            glow: None,
+            finish: None,
+        }
+    }
+
+    // A runaway element (crash fix, 2026-10-09): left out of the 3D view, not sent on to run
+    // the page out of memory.
+    #[test]
+    fn a_3d_view_leaves_out_strays_and_runaway_elements() {
+        let (a, b, c, d) = (
+            ElementId::new(),
+            ElementId::new(),
+            ElementId::new(),
+            ElementId::new(),
+        );
+        let all = vec![
+            mesh(a, 300, 1000.0),
+            mesh(b, 30, f32::INFINITY),
+            mesh(c, 30, 5e9),
+            mesh(d, MAX_ELEMENT_VERTICES + 3, 10.0),
+            mesh(a, 300, 2000.0),
+        ];
+        let (kept, left) = bounded_meshes(all);
+        assert_eq!(kept.len(), 2);
+        assert!(kept.iter().all(|m| m.el == a));
+        let why = |el| left.iter().find(|x| x.0 == el).map(|x| x.2.clone());
+        assert_eq!(why(b), Some(LeftOut::Stray));
+        assert_eq!(why(c), Some(LeftOut::Stray));
+        assert_eq!(why(d), Some(LeftOut::TooLarge(MAX_ELEMENT_VERTICES + 3)));
+    }
+
+    #[test]
+    fn past_the_view_budget_the_largest_go() {
+        let n = MAX_ELEMENT_VERTICES - 1;
+        let ids: Vec<ElementId> = (0..10).map(|_| ElementId::new()).collect();
+        let mut all: Vec<Mesh> = ids.iter().map(|&el| mesh(el, n, 1.0)).collect();
+        let small = ElementId::new();
+        all.push(mesh(small, 10, 1.0));
+        let (kept, left) = bounded_meshes(all);
+        let total: usize = kept.iter().map(|m| m.positions.len() / 3).sum();
+        assert!(total <= MAX_VIEW_VERTICES);
+        assert!(kept.iter().any(|m| m.el == small));
+        assert!(left.iter().all(|x| matches!(x.2, LeftOut::OverBudget(_))));
     }
 }

@@ -322,7 +322,8 @@ fn rail_along(out: &mut RailSolid, a: Pt, za: f64, b: Pt, zb: f64, height: f64, 
         1.5 * IN,
     ));
     let spacing = 4.0 * IN;
-    let n = (len / spacing).floor() as usize;
+    // At most 10,000 balusters a run (a kilometre): a stray coordinate can't make millions.
+    let n = ((len / spacing).floor().clamp(0.0, 10_000.0)) as usize;
     let dir = b.sub(a).norm();
     let bal = 0.75 * IN;
     for k in 1..n {

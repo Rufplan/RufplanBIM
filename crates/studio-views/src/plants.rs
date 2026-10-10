@@ -393,7 +393,8 @@ fn colonize(spec: &PlantSpec, env: &Envelope, rng: &mut Rng) -> Skeleton {
         let mut p = sk.nodes[prev].p;
         let mut z = p[2];
         let mut wander = [0.0, 0.0, 0.0];
-        while z < trunk_top {
+        // Bounded: a stray height (1e12 mm) otherwise grew billions of nodes.
+        while z < trunk_top && sk.nodes.len() < 200_000 {
             wander = add(mul(wander, 0.7), mul([rng.sym(), rng.sym(), 0.0], 0.04));
             let d = norm(add(add([0.0, 0.0, 1.0], mul(out, lean)), wander));
             p = add(p, mul(d, step));
@@ -492,7 +493,7 @@ fn colonize(spec: &PlantSpec, env: &Envelope, rng: &mut Rng) -> Skeleton {
             let out = norm([sk.nodes[i].p[0], sk.nodes[i].p[1], 0.0]);
             let mut prev = i;
             let mut p = sk.nodes[i].p;
-            let n = (fall / step).ceil().max(2.0) as usize;
+            let n = (fall / step).ceil().clamp(2.0, 400.0) as usize;
             for s in 0..n {
                 let t = s as f64 / n as f64;
                 let d = norm(add(mul(out, 0.35 * (1.0 - t)), [0.0, 0.0, -1.0]));
@@ -557,7 +558,7 @@ fn whorled(spec: &PlantSpec, env: &Envelope, rng: &mut Rng) -> Skeleton {
             let pitch = 0.35 - droop * (1.0 - t) * 0.9;
             let mut p = sk.nodes[host].p;
             let mut from = host;
-            let n = (len / step).ceil().max(2.0) as usize;
+            let n = (len / step).ceil().clamp(2.0, 400.0) as usize;
             for s in 0..n {
                 let f = s as f64 / n as f64;
                 let d = norm(add(out, [0.0, 0.0, pitch - droop * f * 0.8]));
@@ -2148,7 +2149,7 @@ pub fn plan_symbol(
             let p = |x: f64, y: f64| Pt::new(at.x + x * c - y * s, at.y + x * s + y * c);
             // Scalloped long sides.
             let mut outline = vec![];
-            let n = ((lx * 2.0) / (ly * 0.9)).ceil().max(2.0) as usize;
+            let n = ((lx * 2.0) / (ly * 0.9)).ceil().clamp(2.0, 500.0) as usize;
             for k in 0..=n * 4 {
                 let t = k as f64 / (n * 4) as f64;
                 let bump = (t * n as f64 * std::f64::consts::PI).sin().abs() * ly * 0.12;

@@ -232,11 +232,51 @@ function drawBox(t: Three, b: SectionBox | null) {
   }
 }
 
+/** Beyond this (mm from the origin) a mesh is taken for a stray: 100 km. */
+const STRAY = 1e8;
+
+/** The model's extent, for framing the camera, the ground grid, the grass field and the
+ * sun's shadows: its meshes' boxes, leaving out any that aren't finite or lie more than
+ * 100 km out. One stray element (a bad coordinate from Generate, an import) otherwise sized
+ * the ground grid to millions of lines and ran the page out of memory (V8 OOM). */
+export function modelBox(group: THREE.Object3D): THREE.Box3 {
+  const box = new THREE.Box3();
+  const b = new THREE.Box3();
+  const strays: string[] = [];
+  group.updateWorldMatrix(true, true);
+  group.traverse((o) => {
+    const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+    if (!g || !g.getAttribute?.("position")) return;
+    const inst = o as THREE.InstancedMesh;
+    if (inst.isInstancedMesh) {
+      inst.computeBoundingBox();
+      b.copy(inst.boundingBox!).applyMatrix4(o.matrixWorld);
+    } else {
+      if (!g.boundingBox) g.computeBoundingBox();
+      b.copy(g.boundingBox!).applyMatrix4(o.matrixWorld);
+    }
+    if (b.isEmpty()) return;
+    const v = [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z];
+    if (v.some((x) => !Number.isFinite(x) || Math.abs(x) > STRAY)) {
+      strays.push(String(o.userData.category ?? o.type));
+      return;
+    }
+    box.union(b);
+  });
+  if (strays.length)
+    console.warn(
+      `3D view: left out of the model's extent (not finite or over 100 km out): ${strays.join(", ")}`,
+    );
+  return box;
+}
+
 /** The ground plane's grid (ADR-022): hairline Rufplan cyan, 4' squares with a stronger line
  * every 20', centered on the model. */
 export function groundGrid(center: THREE.Vector3, half: number, z: number): THREE.Group {
   const minor = 1219.2;
-  const n = Math.ceil(half / minor);
+  // At most about 300 m each way (250 squares): a huge or infinite extent can't make it
+  // millions of lines.
+  const n = Number.isFinite(half) ? Math.min(250, Math.max(1, Math.ceil(half / minor))) : 25;
   const cx = Math.round(center.x / (minor * 5)) * minor * 5;
   const cy = Math.round(center.y / (minor * 5)) * minor * 5;
   const lines = (major: boolean) => {
@@ -1902,7 +1942,7 @@ export function View3D({ view }: { view: ViewInfo }) {
         }
         drawBox(t, sectionBox);
         if (!t.fitted && meshes.length > 0) {
-          const box = new THREE.Box3().setFromObject(t.group);
+          const box = modelBox(t.group);
           const c = box.getCenter(new THREE.Vector3());
           const d = box.getSize(new THREE.Vector3()).length();
           t.camera.position.set(c.x - d * 0.95, c.y - d * 1.25, c.z + d * 0.8);
@@ -1915,7 +1955,7 @@ export function View3D({ view }: { view: ViewInfo }) {
         // The ground grid around the model, on the lowest level.
         for (const c of [...t.gridGroup.children]) t.gridGroup.remove(c);
         if (meshes.length > 0) {
-          const box = new THREE.Box3().setFromObject(t.group);
+          const box = modelBox(t.group);
           const c = box.getCenter(new THREE.Vector3());
           const half = box.getSize(new THREE.Vector3()).length() * 0.9 + 12000;
           const z0 = Math.min(0, ...(useAppStore.getState().app?.levelElevations ?? [0]));
@@ -2181,7 +2221,7 @@ export function View3D({ view }: { view: ViewInfo }) {
             cones,
           });
       }
-      const box = new THREE.Box3().setFromObject(t.group);
+      const box = modelBox(t.group);
       const center = box.isEmpty() ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
       const radius = box.isEmpty() ? 10_000 : box.getSize(new THREE.Vector3()).length() / 2;
       const base = baseGround ? byId.get(baseGround) : undefined;
@@ -2591,7 +2631,7 @@ function applyScene(t: Three, style: VisualStyle) {
     t.sun.shadow.map?.dispose();
     t.sun.shadow.map = null;
   }
-  const box = new THREE.Box3().setFromObject(t.group);
+  const box = modelBox(t.group);
   const hasSite = t.group.children.some((c) => c.userData.category === "Site");
   if (!box.isEmpty()) {
     const c = box.getCenter(new THREE.Vector3());
