@@ -3990,6 +3990,125 @@ button:disabled {
 .detail-library .mb-detail {
   width: 380px;
 }
+/* Doors and Windows: one sidebar group each, their types as tabs over the grid. */
+.detail-library .mb-filters {
+  width: 168px;
+  flex: none;
+  padding: 12px 12px 12px 16px;
+}
+.detail-library .mb-cat {
+  font-size: 14px;
+  line-height: 1.2;
+}
+.detail-library .mb-cat.active {
+  background: #eaf8fd;
+  font-weight: 700;
+}
+.dl-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.dl-subhead {
+  padding: 12px 16px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.dl-subtitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+.dl-subtitle strong {
+  font-size: 16px;
+}
+.dl-subtitle span {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+.dl-tabs {
+  display: flex;
+  flex-wrap: wrap;
+}
+.dl-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 7px 8px;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.dl-tab .mb-count {
+  margin-left: 0;
+  padding-left: 0;
+}
+.dl-tab.active {
+  font-weight: 700;
+  color: #1d1d1f;
+  border-bottom-color: var(--cyan);
+}
+.detail-library .dl-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 10px 12px;
+}
+.detail-library .dl-card {
+  padding: 5px;
+  border: 1px solid #e3e3e3;
+  box-shadow: none;
+}
+.detail-library .dl-card.active {
+  border: 2px solid var(--cyan);
+  padding: 4px;
+  box-shadow: none;
+}
+.detail-library .dl-card .mb-name {
+  font-size: 13px;
+  line-height: 1.25;
+}
+.detail-library .dl-scale {
+  font-size: 12px;
+  color: #8a8a8a;
+}
+.dl-empty {
+  grid-column: 1 / -1;
+  padding: 40px;
+  text-align: center;
+  color: #8a8a8a;
+  font-size: 14px;
+}
+/* Thin, quiet scrollbars in the library. */
+.detail-library * {
+  scrollbar-width: thin;
+  scrollbar-color: #cfcfcf transparent;
+}
+.detail-library ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.detail-library ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.detail-library ::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+.detail-library ::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+}
+.detail-library ::-webkit-scrollbar-button {
+  display: none;
+}
 
 /* The preview pane opens the Detail Viewer: click it or its View larger chip. */
 .dl-big {

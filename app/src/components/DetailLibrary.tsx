@@ -17,9 +17,35 @@ let library: Promise<DetailInfo[]> | null = null;
 export function reloadLibrary() {
   library = null;
 }
+/** The door and window details' categories ("Doors - Typical") fold into one sidebar
+ * group each, their types (Typical, Hinged Patio…) a row of tabs over the grid. */
+const GROUPED = ["Doors", "Windows"];
+
+/** A category's sidebar group and its type within it ("Doors", "Typical"). */
+export function groupOf(category: string): { group: string; sub: string | null } {
+  const g = GROUPED.find((p) => category.startsWith(`${p} - `));
+  return g ? { group: g, sub: category.slice(g.length + 3) } : { group: category, sub: null };
+}
+
+/** How a detail's category reads: "Doors › Typical". */
+export function categoryLabel(category: string): string {
+  const { group, sub } = groupOf(category);
+  return sub ? `${group} › ${sub}` : group;
+}
+
+/** Whether a detail is in sidebar group `c` ("All" holds everything). */
+function inCat(d: DetailInfo, c: string): boolean {
+  return c === "All" || groupOf(d.category).group === c;
+}
+
 export function DetailLibrary({ onClose }: { onClose: () => void }) {
   const [details, setDetails] = useState<DetailInfo[]>([]);
-  const [cat, setCat] = useState("All");
+  const [cat, setCatState] = useState("All");
+  const [sub, setSub] = useState("all");
+  const setCat = (c: string) => {
+    setCatState(c);
+    setSub("all");
+  };
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -37,18 +63,35 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
       },
     );
   }, []);
-  const cats = useMemo(() => ["All", ...new Set(details.map((d) => d.category))], [details]);
+  const cats = useMemo(
+    () => ["All", ...new Set(details.map((d) => groupOf(d.category).group))],
+    [details],
+  );
+  // The chosen group's types, in library order, with their counts.
+  const subs = useMemo(() => {
+    const out: [string, number][] = [];
+    for (const d of details) {
+      const g = groupOf(d.category);
+      if (g.group !== cat || !g.sub) continue;
+      const hit = out.find(([s]) => s === g.sub);
+      if (hit) hit[1] += 1;
+      else out.push([g.sub, 1]);
+    }
+    return out;
+  }, [details, cat]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return details.filter(
       (d) =>
-        (cat === "All" || d.category === cat) &&
+        inCat(d, cat) &&
+        (sub === "all" || groupOf(d.category).sub === sub) &&
         (!q ||
           `${d.name} ${d.description} ${d.category} ${d.source?.manufacturer ?? ""} ${d.source?.product ?? ""}`
             .toLowerCase()
             .includes(q)),
     );
-  }, [details, cat, query]);
+  }, [details, cat, sub, query]);
+  const catCount = (c: string) => details.filter((d) => inCat(d, c)).length;
   const chosen = details.find((d) => d.id === current) ?? null;
   const insert = async (id: string) => {
     if (await insertDetail(id)) onClose();
@@ -79,31 +122,60 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
                 onClick={() => setCat(c)}
               >
                 {c}
-                <span className="mb-count">
-                  {c === "All" ? details.length : details.filter((d) => d.category === c).length}
-                </span>
+                <span className="mb-count">{catCount(c)}</span>
               </button>
             ))}
           </nav>
-          <div className="mb-grid dl-grid" role="list" aria-label="Details">
-            {shown.map((d) => (
-              <button
-                key={d.id}
-                role="listitem"
-                className={`mb-card dl-card${current === d.id ? " active" : ""}`}
-                onClick={() => setCurrent(d.id)}
-                onDoubleClick={() => {
-                  setCurrent(d.id);
-                  setViewing(true);
-                }}
-                title="Double-click to view larger"
-              >
-                <Preview id={d.id} name={d.name} />
-                <span className="mb-name">{d.name}</span>
-                <span className="dl-scale">{d.scaleLabel}</span>
-              </button>
-            ))}
-            {details.length > 0 && shown.length === 0 && <p className="muted">No details match.</p>}
+          <div className="dl-main">
+            {subs.length > 0 && (
+              <div className="dl-subhead">
+                <div className="dl-subtitle">
+                  <strong>{cat}</strong>
+                  <span>{catCount(cat)} details</span>
+                </div>
+                <div className="dl-tabs" role="tablist" aria-label={`${cat} types`}>
+                  {[
+                    ["all", `All ${cat.toLowerCase()}`, catCount(cat)] as const,
+                    ...subs.map(([s, n]) => [s, s, n] as const),
+                  ].map(([key, label, n]) => (
+                    <button
+                      key={key}
+                      role="tab"
+                      aria-selected={sub === key}
+                      className={`dl-tab${sub === key ? " active" : ""}`}
+                      onClick={() => setSub(key)}
+                    >
+                      {label}
+                      <span className="mb-count">{n}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mb-grid dl-grid" role="list" aria-label="Details">
+              {shown.map((d) => (
+                <button
+                  key={d.id}
+                  role="listitem"
+                  className={`mb-card dl-card${current === d.id ? " active" : ""}`}
+                  onClick={() => setCurrent(d.id)}
+                  onDoubleClick={() => {
+                    setCurrent(d.id);
+                    setViewing(true);
+                  }}
+                  title="Double-click to view larger"
+                >
+                  <Preview id={d.id} name={d.name} />
+                  <span className="mb-name">{d.name}</span>
+                  <span className="dl-scale">{d.scaleLabel}</span>
+                </button>
+              ))}
+              {details.length > 0 && shown.length === 0 && (
+                <p className="dl-empty">
+                  {query.trim() ? `No details match “${query.trim()}”.` : "No details match."}
+                </p>
+              )}
+            </div>
           </div>
           <aside className="mb-detail dl-detail">
             {chosen ? (
@@ -133,7 +205,7 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
                 <p className="muted">{chosen.description}</p>
                 <dl className="dl-facts">
                   <dt>Category</dt>
-                  <dd>{chosen.category}</dd>
+                  <dd>{categoryLabel(chosen.category)}</dd>
                   <dt>Scale</dt>
                   <dd>{chosen.scaleLabel}</dd>
                   {chosen.source && (

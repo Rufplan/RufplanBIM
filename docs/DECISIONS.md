@@ -4508,3 +4508,11 @@ coursing along a line".
 - **Not stated in a source:** many manufacturers publish dimension strings without saying what they measure, and some publish frame or sash sightlines but not the split between them. Those sizes are drawn at typical values and listed under each detail ("not stated in the source, drawn at typical sizes: …").
 - **Checked:** `every_manufacturer_window_has_its_details_and_cites_its_source`, plus the library-wide drafting test (notes clear, leaders down, real components) and the preview test (over 40 items each).
 - **Considered, later:** mullion details and stacked units; bay windows; vinyl J-channel and stucco-key fins; the European systems' installation subframes (not published).
+
+## ADR-124 Detail Library: Doors and Windows as one group each, types as tabs — Accepted (2026-10-14)
+- **The owner's ask, with a design handoff:** the six door categories crowded the library's sidebar. Fold them into one Doors item, with the door types as tabs above the grid, and do the same for windows.
+- **The sidebar:** All, the general categories, then Doors and Windows, each with its count. A user's own categories follow as before.
+- **The tabs:** choosing Doors or Windows shows a heading ("Doors · 198 details") and a wrapping row of tabs: All doors, then Typical, Hinged Patio, Sliding & Folding, Entry, Commercial, Interior & Specialty. The windows show their own types the same way. Choosing another category resets the tab to All.
+- **The data didn't change:** details keep categories such as "Doors - Hinged Patio". The library reads them as group and type (`groupOf`, `categoryLabel` in components/DetailLibrary.tsx), and the preview pane shows "Doors › Hinged Patio".
+- **Layout and styling:** the handoff's layout: a 168px sidebar, a three-column grid of cards with a 2px cyan border on the selected one, and a 380px preview pane. An empty search reads "No details match “…”". Scrollbars in the library are thin (6px, grey thumb, cyan on hover).
+- **Not built:** the handoff's alternative, nesting the types under Doors in the sidebar.
