@@ -10,7 +10,7 @@ import { placeGroup } from "./Groups";
 function Section({
   title,
   children,
-  start = true,
+  start = false,
 }: {
   title: string;
   children: ReactNode;
@@ -233,27 +233,27 @@ export function ProjectBrowser() {
           )}
         </Section>
         <Section title="Families">
-          <Section title="Walls" start={false}>
+          <Section title="Walls">
             {app.wallTypes.map((t) =>
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
           </Section>
-          <Section title="Floors" start={false}>
+          <Section title="Floors">
             {app.floorTypes.map((t) =>
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
           </Section>
-          <Section title="Doors" start={false}>
+          <Section title="Doors">
             {app.doorTypes.map((t) =>
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
           </Section>
-          <Section title="Windows" start={false}>
+          <Section title="Windows">
             {app.windowTypes.map((t) =>
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
           </Section>
-          <Section title="Ceilings" start={false}>
+          <Section title="Ceilings">
             {app.ceilingTypes.map((t) =>
               item(t.id, t.name, () => select([t.id]), selection.includes(t.id)),
             )}
@@ -268,14 +268,14 @@ export function ProjectBrowser() {
               ["Elevation Marks", app.elevationMarkerTypes],
             ] as const
           ).map(([title, types]) => (
-            <Section key={title} title={title} start={false}>
+            <Section key={title} title={title}>
               {types.map((t) => item(t.id, t.name, () => select([t.id]), selection.includes(t.id)))}
             </Section>
           ))}
         </Section>
-        <Section title="Groups" start={false}>
+        <Section title="Groups">
           {(["Model", "Detail"] as const).map((kind) => (
-            <Section key={kind} title={kind} start={false}>
+            <Section key={kind} title={kind}>
               {app.groupTypes
                 .filter((t) => t.kind === kind)
                 .map((t) => (
@@ -303,7 +303,7 @@ export function ProjectBrowser() {
             </Section>
           ))}
         </Section>
-        <Section title="Materials" start={false}>
+        <Section title="Materials">
           {app.materials.map((m) =>
             item(m.id, m.name, () => select([m.id]), selection.includes(m.id)),
           )}
@@ -333,7 +333,7 @@ export function ProjectBrowser() {
               ),
             )}
           </Section>
-          <Section title="Levels" start={false}>
+          <Section title="Levels">
             {app.levels.map((l) =>
               item(l.id, l.name, () => select([l.id]), selection.includes(l.id)),
             )}

@@ -143,6 +143,7 @@ export function App() {
   // And the Specifications tab (ADR-085).
   const specsTab = useAppStore((s) => s.ribbonTab === "Specifications" && !s.app?.sketch);
   const tool = useAppStore((s) => s.tool);
+  const projectEpoch = useAppStore((s) => s.projectEpoch);
 
   useEffect(() => {
     ipc.appState().then(
@@ -342,7 +343,7 @@ export function App() {
             <>
               <OptionsBar />
               <div className={`main${tool === "paint" ? " painting" : ""}`}>
-                <ProjectBrowser />
+                <ProjectBrowser key={projectEpoch} />
                 <Workspace />
                 <PaintChip />
                 {!propsHidden && <PropertiesPanel />}

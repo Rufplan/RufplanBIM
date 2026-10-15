@@ -57,6 +57,8 @@ describe("detailing, materials and the section box (ADR-020)", () => {
     await userEvent.click(screen.getByRole("button", { name: /Materials/ }));
     await userEvent.click(screen.getByRole("button", { name: "Brick" }));
     expect(useAppStore.getState().selection).toEqual(["00000000-0000-7000-8000-000000000050"]);
+    // The browser's groups start collapsed: open Families.
+    await userEvent.click(screen.getByRole("button", { name: /^.Families$/ }));
     expect(screen.getByRole("button", { name: /Structural Columns/ })).toBeTruthy();
   });
 

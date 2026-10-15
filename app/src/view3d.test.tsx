@@ -66,6 +66,7 @@ describe("editing in 3D and the ground grid (ADR-022)", () => {
     await screen.findByRole("toolbar", { name: "Tools" });
     useAppStore.getState().setGrid3d(false);
     expect(useAppStore.getState().grid3d).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: /^.Families$/ }));
     await userEvent.click(screen.getByRole("button", { name: /Elevation Marks/ }));
     expect(screen.getByRole("button", { name: "Building Elevation" })).toBeTruthy();
   });

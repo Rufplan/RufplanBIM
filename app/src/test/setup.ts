@@ -2,6 +2,10 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { clearMocks } from "@tauri-apps/api/mocks";
+import { opening } from "../store";
+
+// Projects open in their first view here: jsdom has no WebGL for the 3D view.
+opening.threeD = false;
 
 // jsdom has no layout engine: stub what the canvas components rely on.
 class ResizeObserverStub {

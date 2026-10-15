@@ -32,6 +32,12 @@ const argsOf = (cmd: string) =>
 
 const browser = () => screen.getByRole("complementary", { name: "Project browser" });
 
+/** Opens the browser's groups by title, in order (they start collapsed). */
+async function openGroups(...titles: string[]) {
+  for (const t of titles)
+    await userEvent.click(within(browser()).getByRole("button", { name: `▸${t}` }));
+}
+
 describe("Ribbon tabs (ADR-074)", () => {
   it("shows Modify only on the Modify tab; View starts with New View, Sheets with New Sheet", async () => {
     await start();
@@ -63,6 +69,7 @@ describe("Ribbon tabs (ADR-074)", () => {
 describe("Project browser right-click (ADR-074)", () => {
   it("duplicates a view with detailing", async () => {
     await start();
+    await openGroups("Views", "Elevations");
     const item = within(browser()).getAllByRole("button", { name: "North" })[0]!;
     fireEvent.contextMenu(item);
     const menu = screen.getByRole("menu", { name: "North menu" });
@@ -83,6 +90,7 @@ describe("Project browser right-click (ADR-074)", () => {
       ],
     };
     useAppStore.getState().setApp(fake.state);
+    await openGroups("Sheets", "Architectural (A)");
     const item = await within(browser()).findByRole("button", { name: /A101 - Plans/ });
     fireEvent.contextMenu(item);
     await userEvent.click(screen.getByRole("menuitem", { name: /Duplicate Sheet/ }));
@@ -94,6 +102,7 @@ describe("Project browser right-click (ADR-074)", () => {
 
   it("renames a view", async () => {
     await start();
+    await openGroups("Views", "Elevations");
     fireEvent.contextMenu(within(browser()).getAllByRole("button", { name: "North" })[0]!);
     await userEvent.click(screen.getByRole("menuitem", { name: "Rename…" }));
     const dialog = screen.getByRole("dialog", { name: "Rename View" });

@@ -1140,21 +1140,21 @@ export function Ribbon() {
             <Group title="Create">
               <button
                 className="rb-btn"
-                onClick={() => setUi({ viewDialog: "draftingView" })}
-                disabled={!app}
-                title="Drafting View: a new 2D view for details, drawn with detail lines, filled regions and text at a scale"
-              >
-                {Icons.draftingView}
-                <span>Drafting View</span>
-              </button>
-              <button
-                className="rb-btn"
                 onClick={() => setUi({ viewDialog: "details" })}
                 disabled={!app}
                 title="Detail Library: typical construction details, each drawn at its usual scale; insert one as a drafting view to edit"
               >
                 {Icons.detailLibrary}
                 <span>Detail Library</span>
+              </button>
+              <button
+                className="rb-btn"
+                onClick={() => setUi({ viewDialog: "draftingView" })}
+                disabled={!app}
+                title="Drafting View: a new 2D view for details, drawn with detail lines, filled regions and text at a scale"
+              >
+                {Icons.draftingView}
+                <span>Drafting View</span>
               </button>
               <button
                 className="rb-btn"

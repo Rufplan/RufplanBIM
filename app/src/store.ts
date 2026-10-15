@@ -297,10 +297,16 @@ export interface Confirm {
 /** Which Rufplan dialog is open. */
 export type RufplanDialogMode = "account" | "link" | "publish";
 
+/** Where a project opens: its 3D view (the default), or its first view when off (the UI
+ * tests, which run without WebGL and start in a plan). */
+export const opening = { threeD: true };
+
 interface UiState {
   app: AppState | null;
   error: string | null;
   openViews: ElementId[];
+  /** Counts the projects opened, so per-project UI (the browser's groups) starts afresh. */
+  projectEpoch: number;
   /** An unattended render to run (ADR-095). */
   autoRender: import("./ipc").AutoRender | null;
   activeView: ElementId | null;
@@ -482,6 +488,7 @@ export const useAppStore = create<UiState>((set, get) => ({
   app: null,
   error: null,
   openViews: [],
+  projectEpoch: 0,
   autoRender: null,
   activeView: null,
   activeViewport: null,
@@ -647,10 +654,11 @@ export const useAppStore = create<UiState>((set, get) => ({
     }
     const exists = new Set(app.views.map((v) => v.id));
     let openViews = s.openViews.filter((v) => exists.has(v));
-    // A different project (or first load): open its first floor plan.
+    // A different project (or first load): open its 3D view, else its first view.
     const sameProject = !fresh && s.app !== null;
     if (!sameProject || openViews.length === 0) {
-      const first = app.views[0]?.id;
+      const threeD = opening.threeD ? app.views.find((v) => v.viewType === "ThreeD") : undefined;
+      const first = (threeD ?? app.views[0])?.id;
       openViews = first ? [first] : [];
     }
     const activeView =
@@ -670,7 +678,14 @@ export const useAppStore = create<UiState>((set, get) => ({
       sketchUi: { ...s.sketchUi, sel: s.sketchUi.sel.filter((i) => i < curves) },
       selection: sameProject && !app.sketch ? s.selection : [],
       // A different project opens on Architecture with its own standards.
-      ...(sameProject ? {} : { ribbonTab: "Architecture", standards: null, standardsPending: {} }),
+      ...(sameProject
+        ? {}
+        : {
+            ribbonTab: "Architecture",
+            standards: null,
+            standardsPending: {},
+            projectEpoch: s.projectEpoch + 1,
+          }),
       toolTypes: {
         wall: firstId(app.wallTypes, s.toolTypes.wall),
         floor: firstId(app.floorTypes, s.toolTypes.floor),

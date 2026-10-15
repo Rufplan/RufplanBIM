@@ -75,6 +75,7 @@ describe("Details tab (ADR-069)", () => {
     expect(activeViewInfo(useAppStore.getState())?.scale).toBe(4);
     expect(screen.queryByRole("dialog", { name: "Detail Library" })).toBeNull();
     // Listed under Drafting Views.
+    await userEvent.click(screen.getByRole("button", { name: /^.Views$/ }));
     expect(screen.getAllByText("Drafting Views").length).toBeGreaterThan(0);
   });
 
