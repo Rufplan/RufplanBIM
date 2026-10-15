@@ -453,7 +453,12 @@ fn detail_family(view_name: &str) -> (usize, usize) {
                 "Openings" => 1,
                 // Door and window heads, jambs and sills (ADR-122, ADR-123) go with the
                 // openings.
-                c if c.starts_with("Doors") || c.starts_with("Windows") => 1,
+                c if ["Doors", "Windows", "Curtain Wall"]
+                    .iter()
+                    .any(|p| c.starts_with(p)) =>
+                {
+                    1
+                }
                 "Roofs" => 2,
                 _ if ENVELOPE_IDS.contains(&d.id.as_str()) => 0,
                 _ => INTERIOR_FAMILY,

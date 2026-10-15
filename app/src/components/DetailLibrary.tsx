@@ -19,7 +19,7 @@ export function reloadLibrary() {
 }
 /** The door and window details' categories ("Doors - Typical") fold into one sidebar
  * group each, their types (Typical, Hinged Patio…) a row of tabs over the grid. */
-const GROUPED = ["Doors", "Windows"];
+const GROUPED = ["Doors", "Windows", "Curtain Wall"];
 
 /** A category's sidebar group and its type within it ("Doors", "Typical"). */
 export function groupOf(category: string): { group: string; sub: string | null } {

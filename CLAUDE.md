@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Curtain wall details (ADR-125): `doors/curtain.rs` (members in their own n/s terms, captured / SSG / unitized, slab edge with
+  safing, stack joint), `doors/curtain_catalog.rs` (42 systems / 259 details); sources in docs/CURTAIN_WALL_DETAILS.md.
 - Window details (ADR-123): `Op::Window(Win)` in the door engine, `doors/window_catalog.rs` (67 windows / 224 head, jamb, sill,
   meeting rail and interlock details), `doors/windows.rs` (sill, meeting rail); sources in docs/WINDOW_DETAILS.md.
 - Door details (ADR-122): studio-core `details::doors` (Door data in `doors/catalog.rs`, 57 doors / 198 head, jamb, sill and meeting details, typical and by

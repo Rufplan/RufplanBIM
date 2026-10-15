@@ -4516,3 +4516,27 @@ coursing along a line".
 - **The data didn't change:** details keep categories such as "Doors - Hinged Patio". The library reads them as group and type (`groupOf`, `categoryLabel` in components/DetailLibrary.tsx), and the preview pane shows "Doors › Hinged Patio".
 - **Layout and styling:** the handoff's layout: a 168px sidebar, a three-column grid of cards with a 2px cyan border on the selected one, and a 380px preview pane. An empty search reads "No details match “…”". Scrollbars in the library are thin (6px, grey thumb, cyan on hover).
 - **Not built:** the handoff's alternative, nesting the types under Doors in the sidebar.
+
+## ADR-125 Curtain wall details by manufacturer — Accepted (2026-10-14)
+- **The owner's ask:** "do the same thing you did for doors and windows for curtain wall details" (ADR-122, ADR-123), then push it all the way through GitHub.
+- **What's in the library:** 42 systems drawn as 259 details.
+  - **Typical (6):** captured, four-sided SSG, unitized, at a masonry opening, perimeter fire containment, perimeter flashing and air barrier.
+  - **Captured (19):** Kawneer 1600 WS1, 1600UT (and triple glazed), 1620, 1620UT and 1600 SS; YKK AP YCW 750 OG, 750 XT and YHC 300 OG; EFCO 5600 and XTherm 5600; Tubelite 400T, 400CW and 400TU; Wausau HP-Wall; Arcadia T500; Oldcastle Reliance and Reliance-TC; CRL-U.S. Aluminum 3250.
+  - **Structural Silicone (4):** Kawneer 1600 WS2 and 1620 SSG; YKK AP YCW 750 SSG and 750 XT SSG.
+  - **Unitized (6):** Kawneer 2500 UT and 2500 PG, YKK AP YUW 750 XT, Schüco UC 65, Reynaers CW 86-EF, WICONA WICTEC 50EL.
+  - **European (7):** Schüco FWS 50 and FWS 60, Reynaers CW 50 and CW 60, WICONA WICTEC 50, Aluprof MB-SR50N, RAICO THERM+.
+  - The full source register is in docs/CURTAIN_WALL_DETAILS.md.
+- **Each system's details:** head, sill and jamb at the perimeter; vertical mullion (plan); horizontal (section, with setting blocks and weeps); slab edge; and a stack joint for unitized systems.
+  - The slab edge shows the spandrel, back pan, spandrel insulation, T-bar stiffener, ASTM E2307 safing in the gap, smoke seal and slab anchor.
+- **A new engine, beside the door engine:** studio-core `details::doors::curtain` with `Cw` data in `curtain_catalog.rs`. It reuses the door engine's `fr`, slug and caption conventions.
+  - A member is drawn in its own terms: n through the wall with 0 at the glass's centre plane, s along the wall. It is then laid out as a plan (exterior up) or a section (exterior to the left).
+  - **Glazing:**
+    - Captured: pressure plate, isolator, cover cap and gaskets.
+    - Two-sided SSG: structurally glazed verticals, captured horizontals.
+    - Four-sided SSG: structural silicone and a weather seal.
+    - Unitized: split mullions with interlocking halves, and stack joints with dual gaskets.
+  - **Adjoining wall:** a steel stud and metal panel wall, or masonry. Either way, a 3/4" perimeter joint sealed both sides and a silicone transition membrane.
+- **Typical values:** where a source gives no figure, the detail uses a typical value and lists it under the drawing, as for doors and windows. Cover cap depths and glass bites are mostly in CAD only.
+- **The library:** "Curtain Wall - …" categories fold into one Curtain Wall group with type tabs (ADR-124). Sheet sets file them with Openings.
+- **Checked:** `every_system_has_its_details_and_cites_its_source` and `a_mullion_is_its_face_wide_and_its_depth_deep`, plus the library-wide drafting and preview tests.
+- **Considered, later:** corners (90° and 135°), entrances in curtain wall, vents, sunshades, and an inside-glazed variant.

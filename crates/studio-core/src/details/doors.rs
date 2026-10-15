@@ -15,6 +15,8 @@ use super::{DetailInfo, DetailSource, D};
 use crate::lines::LineStyle::{self, Beyond, Hidden, Medium, Thin, Wide};
 
 mod catalog;
+mod curtain;
+mod curtain_catalog;
 mod window_catalog;
 mod windows;
 
@@ -352,6 +354,7 @@ pub(super) fn items() -> Vec<(DetailInfo, Box<dyn Fn() -> D + Send + Sync>)> {
                 (info, draw)
             })
         })
+        .chain(curtain::items())
         .collect()
 }
 
