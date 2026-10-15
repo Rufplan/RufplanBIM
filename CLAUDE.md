@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Detail Viewer (ADR-121): components/DetailViewer.tsx (enlarged detail: zoom 50–800%, pan, browse, Insert), detailViewer.ts (zoomAt, fitSize,
+  step), DetailPreview.tsx (shared preview cache); the library's preview pane, View larger chip and card double-click open it.
 - Render engine round (ADR-118): app render/ptPatch.ts (shader edits: sky share + power/distance light picking, indirect clamp,
   diffuse transmission flag castShadow=2), post.ts `finish` (HDR: white balance, bloom, tone, backdrop, cos⁴ vignette, grade),
   atmosphere.ts (physical sky, sun colour), pathtrace `halfSafe` (0.4° sun), `SITE_DROP`, `cameraFor(.., twoPoint)`, sized fixtures; denoise.ts jittered albedo + variance pass.

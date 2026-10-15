@@ -4435,3 +4435,13 @@ coursing along a line".
   - Cinematic: AgX was flat and its mist milky. It uses ACES ("contrast") with fog from 25 m.
   - Interiors with any look: no mist, haze negligible.
 - **Considered, later:** volumetric light shafts (god rays) through the tracer itself; people and cars in scenes (the studios' storytelling); per-look sky photographs; LUT (.cube) import for a colourist's own grade; OIDN for the noise left in dim looks.
+
+## ADR-121 The Detail Viewer: a detail enlarged before inserting — Accepted (2026-10-14)
+- **The owner's ask, with a design handoff:** click a detail in the Detail Library and see it larger, to read before inserting.
+- **Entry points:** click the preview pane (zoom-in cursor), its "View larger" chip, or double-click a card. Double-click used to insert; Insert Detail stays in the pane and in the viewer's footer.
+- **The viewer** (components/DetailViewer.tsx, detailViewer.ts):
+  - It is a full-window overlay over the library: toolbar (name, scale, "n of m"), zoom − / % / +, Fit and 300%; a drafting-grid canvas; ‹ › to browse; a footer with the description, hints and Insert Detail.
+  - Zoom runs from 50% to 800%, with 100% as the drawing fitted. The wheel zooms toward the cursor, drag pans, and double-click zooms to 250% or back to fit. The keys `+ = - 0 ← → Esc` work everywhere except while typing.
+  - It browses the library's filtered list and shares its selection. Each detail opens fitted, because zoom is held per detail.
+- **The drawing:** the detail's own display list as SVG (DetailThumb, with its notes), fitted to the canvas, so it stays sharp at any zoom. The handoff's raster crops were only stand-ins. The preview cache is shared with the grid (components/DetailPreview.tsx).
+- **Styling:** the handoff's sizes and greys, with the app's own fonts, cyan and Insert Detail button, as the handoff says to match the product where they differ.

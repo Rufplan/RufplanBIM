@@ -15,10 +15,15 @@ export function DetailThumb({
   dl,
   label,
   text = false,
+  className = "dl-thumb",
+  size,
 }: {
   dl: DisplayList;
   label: string;
   text?: boolean;
+  className?: string;
+  /** Drawn at this size (px), as the enlarged viewer fits it; else by its class. */
+  size?: [number, number];
 }) {
   const [x0, y0, x1, y1] = dl.bounds;
   const w = x1 - x0;
@@ -28,7 +33,8 @@ export function DetailThumb({
   const pt = (p: [number, number]) => `${(p[0] - x0).toFixed(1)},${(y1 - p[1]).toFixed(1)}`;
   return (
     <svg
-      className="dl-thumb"
+      className={className}
+      style={size ? { width: size[0], height: size[1] } : undefined}
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="xMidYMid meet"
       role="img"

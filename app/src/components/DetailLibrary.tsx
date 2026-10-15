@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DetailInfo } from "../bindings/DetailInfo";
-import type { DisplayList } from "../bindings/DisplayList";
 import { errorMessage, ipc } from "../ipc";
 import { createDraftingView, insertDetail } from "../details";
 import { useAppStore } from "../store";
-import { DetailThumb } from "./DetailThumb";
+import { Preview } from "./DetailPreview";
+import { DetailViewer } from "./DetailViewer";
 
 // The Detail Library (ADR-069), laid out like the door and window libraries: categories,
 // a grid of drawn thumbnails, and the chosen detail larger with its scale. Insert makes a
-// drafting view of it at that scale.
+// drafting view of it at that scale. Its drawing opens larger in the Detail Viewer (click the
+// preview, View larger, or double-click a card) to read before inserting.
 
 let library: Promise<DetailInfo[]> | null = null;
 
@@ -16,41 +17,13 @@ let library: Promise<DetailInfo[]> | null = null;
 export function reloadLibrary() {
   library = null;
 }
-const previews = new Map<string, Promise<DisplayList>>();
-
-function preview(id: string) {
-  let p = previews.get(id);
-  if (!p) {
-    p = ipc.detailPreview(id);
-    p.catch(() => previews.delete(id));
-    previews.set(id, p);
-  }
-  return p;
-}
-
-function Preview({ id, name, big }: { id: string; name: string; big?: boolean }) {
-  const [dl, setDl] = useState<{ id: string; dl: DisplayList } | null>(null);
-  useEffect(() => {
-    let live = true;
-    preview(id).then(
-      (d) => live && setDl({ id, dl: d }),
-      () => {},
-    );
-    return () => {
-      live = false;
-    };
-  }, [id]);
-  if (!dl || dl.id !== id)
-    return <div className="dl-thumb dl-loading" role="img" aria-label={name} />;
-  return <DetailThumb dl={dl.dl} label={name} text={big} />;
-}
-
 export function DetailLibrary({ onClose }: { onClose: () => void }) {
   const [details, setDetails] = useState<DetailInfo[]>([]);
   const [cat, setCat] = useState("All");
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [viewing, setViewing] = useState(false);
   useEffect(() => {
     library ??= ipc.detailLibrary();
     library.then(
@@ -116,8 +89,11 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
                 role="listitem"
                 className={`mb-card dl-card${current === d.id ? " active" : ""}`}
                 onClick={() => setCurrent(d.id)}
-                onDoubleClick={() => void insert(d.id)}
-                title={d.description}
+                onDoubleClick={() => {
+                  setCurrent(d.id);
+                  setViewing(true);
+                }}
+                title="Double-click to view larger"
               >
                 <Preview id={d.id} name={d.name} />
                 <span className="mb-name">{d.name}</span>
@@ -129,9 +105,27 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
           <aside className="mb-detail dl-detail">
             {chosen ? (
               <>
-                <div className="dl-big">
+                <button
+                  className="dl-big"
+                  onClick={() => setViewing(true)}
+                  title="View larger"
+                  aria-label={`View ${chosen.name} larger`}
+                >
                   <Preview id={chosen.id} name={`${chosen.name} preview`} big />
-                </div>
+                  <span className="dl-larger" aria-hidden>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path d="M7 1h4v4M5 11H1V7M11 1L7 5M1 11l4-4" />
+                    </svg>
+                    View larger
+                  </span>
+                </button>
                 <h3>{chosen.name}</h3>
                 <p className="muted">{chosen.description}</p>
                 <dl className="dl-facts">
@@ -178,6 +172,15 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
           </aside>
         </div>
       </div>
+      {viewing && current && (
+        <DetailViewer
+          details={shown.some((d) => d.id === current) ? shown : details}
+          current={current}
+          onPick={setCurrent}
+          onClose={() => setViewing(false)}
+          onInsert={(id) => void insert(id)}
+        />
+      )}
     </div>
   );
 }

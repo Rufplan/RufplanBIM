@@ -78,6 +78,56 @@ describe("Details tab (ADR-069)", () => {
     expect(screen.getAllByText("Drafting Views").length).toBeGreaterThan(0);
   });
 
+  it("opens a detail larger to read before inserting: zoom, browse, insert", async () => {
+    await openDetailsTab();
+    await userEvent.click(screen.getByRole("button", { name: /Detail Library/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Detail Library" });
+    const grid = within(dialog).getByRole("list", { name: "Details" });
+    await within(grid).findByText("Thickened Slab Edge");
+    // The preview pane opens the viewer, with a View larger chip.
+    await userEvent.click(within(dialog).getByRole("button", { name: /^View .* larger$/ }));
+    let viewer = await screen.findByRole("dialog", { name: "Detail viewer" });
+    expect(within(viewer).getByText("Thickened Slab Edge")).toBeInTheDocument();
+    expect(within(viewer).getByText("1 of 3")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(viewer).getByRole("img", { name: /enlarged$/ }).tagName).toBe("svg"),
+    );
+    // Zoom: + by 1.4, the keys, Fit and 300%.
+    const level = () => within(viewer).getByLabelText("Zoom level").textContent;
+    expect(level()).toBe("100%");
+    await userEvent.click(within(viewer).getByRole("button", { name: "Zoom in" }));
+    expect(level()).toBe("140%");
+    await userEvent.keyboard("-");
+    expect(level()).toBe("100%");
+    await userEvent.click(within(viewer).getByRole("button", { name: "300%" }));
+    expect(level()).toBe("300%");
+    await userEvent.keyboard("0");
+    expect(level()).toBe("100%");
+    // → browses the filtered list (wrapping), sharing the library's selection; a new
+    // detail opens fitted.
+    await userEvent.click(within(viewer).getByRole("button", { name: "Zoom in" }));
+    await userEvent.keyboard("{ArrowRight}");
+    expect(within(viewer).getByText("2 of 3")).toBeInTheDocument();
+    expect(level()).toBe("100%");
+    await userEvent.click(within(viewer).getByRole("button", { name: "Previous detail" }));
+    await userEvent.click(within(viewer).getByRole("button", { name: "Previous detail" }));
+    expect(within(viewer).getByText("3 of 3")).toBeInTheDocument();
+    const third = within(viewer).getByText(/of 3/).previousSibling?.previousSibling?.textContent;
+    // Esc closes it; the library keeps the last viewed detail.
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Detail viewer" })).toBeNull();
+    expect(within(dialog).getByRole("heading", { name: third! })).toBeTruthy();
+    // Double-clicking a card opens the viewer on it; Insert Detail there inserts it.
+    await userEvent.dblClick(within(grid).getByText("Window Head - Wood Frame"));
+    viewer = await screen.findByRole("dialog", { name: "Detail viewer" });
+    expect(within(viewer).getByText("Window Head - Wood Frame")).toBeInTheDocument();
+    await userEvent.click(within(viewer).getByRole("button", { name: "Insert Detail" }));
+    expect(argsOf("detail_insert")[0]).toEqual({ id: "window-head" });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Detail Library" })).toBeNull(),
+    );
+  });
+
   it("makes an empty drafting view at a chosen scale", async () => {
     await openDetailsTab();
     await userEvent.click(screen.getByRole("button", { name: /Drafting View/ }));
