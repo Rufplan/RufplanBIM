@@ -451,8 +451,9 @@ fn detail_family(view_name: &str) -> (usize, usize) {
             let family = match d.category.as_str() {
                 "Foundations" | "Walls" => 0,
                 "Openings" => 1,
-                // Door heads, jambs and sills (ADR-122) go with the openings.
-                c if c.starts_with("Doors") => 1,
+                // Door and window heads, jambs and sills (ADR-122, ADR-123) go with the
+                // openings.
+                c if c.starts_with("Doors") || c.starts_with("Windows") => 1,
                 "Roofs" => 2,
                 _ if ENVELOPE_IDS.contains(&d.id.as_str()) => 0,
                 _ => INTERIOR_FAMILY,

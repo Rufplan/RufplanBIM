@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Window details (ADR-123): `Op::Window(Win)` in the door engine, `doors/window_catalog.rs` (67 windows / 224 head, jamb, sill,
+  meeting rail and interlock details), `doors/windows.rs` (sill, meeting rail); sources in docs/WINDOW_DETAILS.md.
 - Door details (ADR-122): studio-core `details::doors` (Door data in `doors/catalog.rs`, 57 doors / 198 head, jamb, sill and meeting details, typical and by
   manufacturer, redrawn from published dimensions); `DetailInfo.source`, `Drawing.captions`; sources in docs/DOOR_DETAILS.md.
 - Detail Viewer (ADR-121): components/DetailViewer.tsx (enlarged detail: zoom 50–800%, pan, browse, Insert), detailViewer.ts (zoomAt, fitSize,

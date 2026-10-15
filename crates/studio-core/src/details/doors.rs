@@ -15,6 +15,8 @@ use super::{DetailInfo, DetailSource, D};
 use crate::lines::LineStyle::{self, Beyond, Hidden, Medium, Thin, Wide};
 
 mod catalog;
+mod window_catalog;
+mod windows;
 
 pub(super) const TYPICAL: &str = "Doors - Typical";
 pub(super) const PATIO: &str = "Doors - Hinged Patio";
@@ -46,6 +48,26 @@ pub(super) enum Op {
     Barn,
     /// A sectional overhead (garage) door.
     Overhead,
+    /// A window (ADR-123).
+    Window(Win),
+}
+
+/// How a window opens.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) enum Win {
+    /// Hinged at a jamb (casement) or the head (awning), the sash swinging out.
+    Casement,
+    Awning,
+    /// Glass in a fixed sash, or set straight into the frame when the sash is 0 thick.
+    Fixed,
+    /// Two sashes in two tracks: both sliding (double) or the upper fixed (single).
+    Hung {
+        double: bool,
+    },
+    /// Two sashes side by side, one sliding past the other.
+    Slider,
+    /// The European inswing sash that tilts in at the top and turns on its side.
+    TiltTurn,
 }
 
 /// What the frame (and the leaf) is made of.
@@ -59,8 +81,14 @@ pub(super) enum Mat {
     Aluminum,
     /// Extruded aluminum without a thermal break.
     PlainAluminum,
-    /// Thermally broken or hot-rolled steel sections.
+    /// Thermally broken steel sections.
     Steel,
+    /// Solid hot-rolled steel sections.
+    SolidSteel,
+    /// Multi-chambered extruded vinyl (PVC).
+    Vinyl,
+    /// A wood-fiber composite (Andersen's Fibrex).
+    Composite,
 }
 
 /// The wall the door is set in.
@@ -163,6 +191,10 @@ pub(super) struct Door {
     pub meet_note: &'static str,
     /// Sizes the source doesn't state, drawn at typical values (upper case), "" if none.
     pub est: &'static str,
+    /// A hung window's meeting (check) rail height.
+    pub meet_rail: f64,
+    /// A window frame's sill thickness where it differs from the head and jambs (0: the same).
+    pub frame_sill: f64,
 }
 
 /// A door with typical proportions, for the catalog to fill in.
@@ -203,6 +235,8 @@ pub(super) const BASE: Door = Door {
     head_note: "",
     meet_note: "",
     est: "",
+    meet_rail: 1.5,
+    frame_sill: 0.0,
 };
 
 /// A detail of a door.
@@ -220,6 +254,7 @@ impl Door {
         let meets = match self.op {
             Op::Swing { pair, .. } | Op::Storefront { pair } => pair,
             Op::Slide { .. } | Op::Fold => true,
+            Op::Window(Win::Hung { .. } | Win::Slider) => true,
             _ => false,
         };
         let mut parts = vec![Part::Head, Part::Jamb, Part::Sill];
@@ -236,7 +271,8 @@ impl Door {
             (Part::Sill, Op::Interior | Op::Pocket | Op::Barn) => "Floor",
             (Part::Sill, Op::Storefront { .. } | Op::HollowMetal) => "Threshold",
             (Part::Sill, _) => "Sill",
-            (Part::Meet, Op::Slide { .. }) => "Interlock",
+            (Part::Meet, Op::Window(Win::Hung { .. })) => "Meeting Rail",
+            (Part::Meet, Op::Slide { .. } | Op::Window(Win::Slider)) => "Interlock",
             (Part::Meet, Op::Fold) => "Fold Joint",
             (Part::Meet, _) => "Meeting Stile",
         }
@@ -248,16 +284,50 @@ impl Door {
             _ => 4,
         }
     }
+
+    /// How its frame and sashes lie, in door terms: casements, awnings and fixed sashes
+    /// close against an interior stop like an outswing leaf, a tilt-turn against an
+    /// exterior one like an inswing leaf, and hung and sliding sashes run in two tracks.
+    fn shape(&self) -> Op {
+        match self.op {
+            Op::Window(Win::Casement | Win::Awning | Win::Fixed) => Op::Swing {
+                out: true,
+                pair: false,
+            },
+            Op::Window(Win::TiltTurn) => Op::Swing {
+                out: false,
+                pair: false,
+            },
+            Op::Window(Win::Hung { .. } | Win::Slider) => Op::Slide {
+                tracks: 2,
+                lift: false,
+            },
+            op => op,
+        }
+    }
+
+    fn is_window(&self) -> bool {
+        matches!(self.op, Op::Window(_))
+    }
 }
 
 /// Every door detail, with its drawing.
 pub(super) fn items() -> Vec<(DetailInfo, Box<dyn Fn() -> D + Send + Sync>)> {
     catalog::DOORS
         .iter()
+        .chain(window_catalog::WINDOWS)
+        .chain(window_catalog::METAL_WINDOWS)
+        .chain(window_catalog::HUNG_WINDOWS)
+        .chain(window_catalog::COMMERCIAL_WINDOWS)
+        .chain(window_catalog::CASEMENT_WINDOWS)
+        .chain(window_catalog::VINYL_WINDOWS)
         .flat_map(|door| {
             door.parts().into_iter().map(move |part| {
                 let what = door.part_name(part);
-                let plan = matches!(part, Part::Jamb | Part::Meet);
+                let plan = part == Part::Jamb
+                    || (part == Part::Meet
+                        && door.op != Op::Window(Win::Hung { double: true })
+                        && door.op != Op::Window(Win::Hung { double: false }));
                 let scale = door.scale(part);
                 let info = DetailInfo {
                     id: format!("{}-{}", door.id, slug(what)),
@@ -308,6 +378,7 @@ fn draw(door: &Door, part: Part) -> D {
     let mut d = D::new();
     let l = Lay::of(door);
     match (door.op, part) {
+        (Op::Window(_), _) => windows::draw(&mut d, door, &l, part),
         (Op::HollowMetal, _) => hollow_metal(&mut d, door, &l, part),
         (Op::Storefront { .. }, _) => storefront(&mut d, door, &l, part),
         (Op::Interior | Op::Pocket | Op::Barn, _) => interior(&mut d, door, &l, part),
@@ -362,6 +433,7 @@ fn source(d: &mut D, door: &Door) {
 /// Where things are through the wall (section x, exterior -x): the exterior finish face,
 /// the sheathing's outer face, the stud depth and the interior face; the frame's two faces;
 /// each leaf or panel's two faces, exterior first.
+#[derive(Clone)]
 struct Lay {
     xo: f64,
     xs: f64,
@@ -389,7 +461,7 @@ impl Lay {
         };
         let f1 = f0 + door.depth;
         let t = door.leaf;
-        let leaves = match door.op {
+        let leaves = match door.shape() {
             Op::Swing { out: false, .. } | Op::Pivot => {
                 let stop = ((door.depth - t) * 0.4).clamp(0.5, 1.5);
                 vec![(f0 + stop + 0.125, f0 + stop + 0.125 + t)]
@@ -543,7 +615,10 @@ fn mat_note(m: Mat) -> &'static str {
         Mat::Fiberglass => "FIBERGLASS",
         Mat::Aluminum => "THERMALLY BROKEN ALUMINUM",
         Mat::PlainAluminum => "ALUMINUM",
-        Mat::Steel => "STEEL",
+        Mat::Steel => "THERMALLY BROKEN STEEL",
+        Mat::SolidSteel => "HOT-ROLLED STEEL",
+        Mat::Vinyl => "VINYL",
+        Mat::Composite => "COMPOSITE",
     }
 }
 
@@ -553,6 +628,16 @@ fn member(t: &mut T, m: Mat, pts: &[(f64, f64)], x0: f64, y0: f64, x1: f64, y1: 
     match m {
         Mat::Wood | Mat::CladWood => t.cut(pts, Wood),
         Mat::Fiberglass => t.cut(pts, Gray),
+        Mat::SolidSteel => t.cut(pts, FillPattern::Steel),
+        Mat::Composite => t.cut(pts, Gray),
+        Mat::Vinyl => {
+            t.poly(pts, Wide);
+            let n = ((x1 - x0) / 0.75).floor().max(1.0) as usize;
+            for i in 1..n {
+                let x = x0 + (x1 - x0) * i as f64 / n as f64;
+                t.line(&[(x, y0 + 0.08), (x, y1 - 0.08)], Thin);
+            }
+        }
         Mat::Aluminum | Mat::Steel | Mat::PlainAluminum => {
             t.poly(pts, Wide);
             let w = if m == Mat::Steel { 0.1 } else { 0.08 };
@@ -578,7 +663,7 @@ fn frame(t: &mut T, door: &Door, l: &Lay, yt: f64) -> f64 {
     let yb = yt - j;
     let lip = 0.625;
     let (x0, x1) = l.leaves[0];
-    let pts: Vec<(f64, f64)> = match door.op {
+    let pts: Vec<(f64, f64)> = match door.shape() {
         Op::Swing { out: false, .. } | Op::Pivot => {
             let s = x0 - 0.125;
             vec![
@@ -605,7 +690,7 @@ fn frame(t: &mut T, door: &Door, l: &Lay, yt: f64) -> f64 {
     };
     member(t, door.mat, &pts, f0, yb, f1, yt);
     // A slider's guides between and outside its panels.
-    if let Op::Slide { .. } = door.op {
+    if let Op::Slide { .. } = door.shape() {
         let mut xs = vec![f0];
         for w in l.leaves.windows(2) {
             xs.push((w[0].1 + w[1].0) / 2.0 - 0.09);
@@ -627,7 +712,7 @@ fn frame(t: &mut T, door: &Door, l: &Lay, yt: f64) -> f64 {
             .filter(|p| p.0 == f0)
             .map(|p| p.1)
             .fold(yb, f64::min);
-        let end = match door.op {
+        let end = match door.shape() {
             Op::Swing { out: false, .. } | Op::Pivot => x0 - 0.125,
             _ => f0 + 0.75,
         };
@@ -646,6 +731,9 @@ fn frame(t: &mut T, door: &Door, l: &Lay, yt: f64) -> f64 {
 /// from a head): its rail `rail` high, then glass with its stops, or the leaf's core.
 #[allow(clippy::too_many_arguments)]
 fn leaf(t: &mut T, door: &Door, x0: f64, x1: f64, edge: f64, dir: f64, rail: f64, far: f64) {
+    if door.leaf <= 0.0 {
+        return direct_glaze(t, door, (x0 + x1) / 2.0, edge, dir, far);
+    }
     let r = edge + dir * rail;
     let (ya, yb) = (edge.min(r), edge.max(r));
     let rail_pts = [(x0, ya), (x1, ya), (x1, yb), (x0, yb)];
@@ -699,13 +787,46 @@ fn leaf(t: &mut T, door: &Door, x0: f64, x1: f64, edge: f64, dir: f64, rail: f64
     }
 }
 
+/// Glass set straight into a frame at `cx` (a direct-glazed or commercial fixed window):
+/// the frame's integral leg outside, a snap-in stop inside, a gasket each side.
+fn direct_glaze(t: &mut T, door: &Door, cx: f64, edge: f64, dir: f64, far: f64) {
+    let g = door.glass;
+    let (ga, gb) = (cx - g / 2.0, cx + g / 2.0);
+    let r = edge + dir * 0.75;
+    t.line(&[(ga, edge), (ga, far)], Medium);
+    t.line(&[(gb, edge), (gb, far)], Medium);
+    let (sa, sb) = (edge.min(edge + dir * 0.4), edge.max(edge + dir * 0.4));
+    t.region_rect(ga, sa, gb, sb, Gray);
+    let (ra, rb) = (edge.min(r), edge.max(r));
+    t.poly(
+        &[
+            (ga - 0.6, ra),
+            (ga - 0.125, ra),
+            (ga - 0.125, rb),
+            (ga - 0.6, rb),
+        ],
+        Wide,
+    );
+    t.poly(
+        &[
+            (gb + 0.125, ra),
+            (gb + 0.6, ra),
+            (gb + 0.6, rb),
+            (gb + 0.125, rb),
+        ],
+        Medium,
+    );
+    t.region_rect(ga - 0.125, ra, ga, rb, Solid);
+    t.region_rect(gb, ra, gb + 0.125, rb, Solid);
+}
+
 /// A head (or, turned, a jamb) of a framed door: wall, frame, leaves, trim and notes.
 fn framed_head_or_jamb(t: &mut T, door: &Door, l: &Lay, jamb: bool) {
     let yt = -0.375;
     let yb = frame(t, door, l, yt);
     let far = -14.0;
     for &(x0, x1) in &l.leaves {
-        let edge = match door.op {
+        let edge = match door.shape() {
             Op::Slide { .. } => yb - 0.125,
             Op::Fold => yb - 0.875,
             _ => yb - 0.125,
@@ -736,20 +857,28 @@ fn framed_head_or_jamb(t: &mut T, door: &Door, l: &Lay, jamb: bool) {
     }
     t.note(((l.f0 + l.f1) / 2.0, yt - door.jamb / 2.0), &frame_note);
     let rail = if jamb { door.stile } else { door.top_rail };
-    let leaf_name = match door.op {
+    let leaf_name = match door.shape() {
+        _ if door.is_window() => "SASH",
         Op::Slide { .. } | Op::Fold => "PANEL",
         _ => "LEAF",
     };
     let part = if jamb { "STILE" } else { "TOP RAIL" };
-    t.note(
-        ((x0 + x1) / 2.0, yb - 0.6 - rail / 2.0),
-        &format!(
-            "{}{} {leaf_name}, {} {part}",
-            leaf_label(door),
-            fr(door.leaf),
-            fr(rail)
-        ),
-    );
+    if door.leaf > 0.0 {
+        t.note(
+            ((x0 + x1) / 2.0, yb - 0.6 - rail / 2.0),
+            &format!(
+                "{}{} {leaf_name}, {} {part}",
+                leaf_label(door),
+                fr(door.leaf),
+                fr(rail)
+            ),
+        );
+    } else {
+        t.note(
+            ((x0 + x1) / 2.0, yb - 0.4),
+            "GLASS SET IN FRAME W/ GASKETS & SNAP-IN STOPS",
+        );
+    }
     if door.glass > 0.0 {
         let note = if door.glass_note.is_empty() {
             format!("{} INSULATING GLASS", fr(door.glass))
@@ -767,7 +896,15 @@ fn framed_head_or_jamb(t: &mut T, door: &Door, l: &Lay, jamb: bool) {
     if l.leaves.len() > 1 {
         t.note(
             (l.leaves[1].0, yb - 2.0),
-            &format!("{} TRACKS, PANELS {} DEEP", l.leaves.len(), fr(door.leaf)),
+            &if door.is_window() {
+                format!(
+                    "SASHES IN {} TRACKS, {} DEEP",
+                    l.leaves.len(),
+                    fr(door.leaf)
+                )
+            } else {
+                format!("{} TRACKS, PANELS {} DEEP", l.leaves.len(), fr(door.leaf))
+            },
         );
     }
     t.note(
@@ -783,7 +920,12 @@ fn framed_head_or_jamb(t: &mut T, door: &Door, l: &Lay, jamb: bool) {
 impl Door {
     fn frame_note_or(&self) -> String {
         if self.frame_note.is_empty() {
-            "DOOR FRAME".into()
+            if self.is_window() {
+                "WINDOW FRAME"
+            } else {
+                "DOOR FRAME"
+            }
+            .into()
         } else {
             self.frame_note.to_owned()
         }
@@ -935,6 +1077,23 @@ fn interior_trim(t: &mut T, door: &Door, l: &Lay, yb: f64) {
 }
 
 /// The head's wall: a header and plates, sheathing, gypsum; the opening below it.
+/// A steel stud wall's skins from `y0` to `y1` (head terms): gypsum sheathing, 1 1/2"
+/// continuous insulation and metal panel outside, gypsum inside.
+fn metal_panel_skin(t: &mut T, l: &Lay, y0: f64, y1: f64) {
+    t.sheet(-0.625, y0, 0.0, y1);
+    t.cut_rect(-2.125, y0, -0.625, y1, RigidInsulation);
+    t.rect(l.xo, y0 + 0.5, -2.125, y1, Medium);
+    t.gyp(l.wd, y0, l.xi, y1);
+    t.note(
+        ((l.xo - 2.125) / 2.0, y1 - 4.0),
+        "METAL PANEL ON 1-1/2\" CI",
+    );
+    t.note(
+        (-0.3, y1 - 6.0),
+        "5/8\" EXT. GYP. SHEATHING & AIR/WATER BARRIER",
+    );
+}
+
 fn head_wall(t: &mut T, door: &Door, l: &Lay) {
     let top = 14.0;
     match door.wall {
@@ -944,6 +1103,15 @@ fn head_wall(t: &mut T, door: &Door, l: &Lay) {
             t.comp("bar-5", (l.wd - 1.75, 1.5), (l.wd - 0.75, 1.5), false);
             t.comp("cmu-8", (l.wd, 7.625), (l.wd, top), false);
             t.note((l.wd / 2.0, 4.0), "CMU BOND BEAM LINTEL, (2) #5 CONT.");
+        }
+        Wall::MetalPanel => {
+            t.flashing(&[(0.0, 1.25), (0.0, 0.0), (l.wd, 0.0), (l.wd, 1.25)]);
+            t.comp("stud-6", (l.wd / 2.0, 1.25), (l.wd / 2.0, 2.25), false);
+            t.comp("stud-6", (l.wd / 2.0, 4.5), (l.wd / 2.0, 3.5), false);
+            metal_panel_skin(t, l, 0.75, top);
+            t.flashing(&[(-0.6, 0.75), (l.xo - 0.6, 0.45), (l.xo - 0.6, 0.0)]);
+            t.note((l.wd / 2.0, 0.0), "STEEL STUD BOX HEADER ON TRACK");
+            t.note((l.xo - 0.3, 0.45), "HEAD FLASHING W/ DRIP, END DAMS");
         }
         _ => {
             t.lumber(0.0, 0.0, 1.5, 9.25);
@@ -968,6 +1136,14 @@ fn jamb_wall(t: &mut T, door: &Door, l: &Lay) {
         Wall::Cmu => {
             t.cut_rect(0.0, 0.0, l.wd, end, Masonry);
             t.note((l.wd / 2.0, 5.0), "8\" CMU, GROUTED SOLID AT JAMB");
+        }
+        Wall::MetalPanel => {
+            t.comp("stud-6", (l.wd / 2.0, 0.0), (l.wd / 2.0, 1.0), false);
+            t.comp("stud-6", (l.wd / 2.0, 1.75), (l.wd / 2.0, 2.75), false);
+            t.batt((l.wd / 2.0, 3.5), (l.wd / 2.0, end), l.wd);
+            metal_panel_skin(t, l, 0.0, end);
+            t.seal("seal-12", (l.xo - 0.25, 0.5), (-1.0, 0.0));
+            t.note((l.wd / 2.0, 1.0), "DOUBLED STEEL STUDS AT JAMB");
         }
         _ => {
             t.lumber(0.0, 0.0, l.wd, 1.5);
@@ -1281,7 +1457,7 @@ fn meet(d: &mut D, door: &Door, l: &Lay) {
             d.line(&[(s, yb), (to, yb)], Medium);
         }
     };
-    match door.op {
+    match door.shape() {
         Op::Slide { .. } => {
             let (a, b) = (l.leaves[0], l.leaves[1.min(l.leaves.len() - 1)]);
             leaf_plan(d, a.0, a.1, 0.75, -span);
@@ -2374,6 +2550,43 @@ mod tests {
                 assert!(has(&format!("{}-interlock", door.id)), "{}", door.id);
             }
         }
+    }
+
+    #[test]
+    fn every_manufacturer_window_has_its_details_and_cites_its_source() {
+        let items = items();
+        let has = |id: String| items.iter().any(|(i, _)| i.id == id);
+        let windows = window_catalog::WINDOWS
+            .iter()
+            .chain(window_catalog::METAL_WINDOWS)
+            .chain(window_catalog::HUNG_WINDOWS)
+            .chain(window_catalog::COMMERCIAL_WINDOWS)
+            .chain(window_catalog::CASEMENT_WINDOWS)
+            .chain(window_catalog::VINYL_WINDOWS);
+        let mut n = 0;
+        for w in windows {
+            n += 1;
+            assert!(w.is_window(), "{}", w.id);
+            for part in ["head", "jamb", "sill"] {
+                assert!(has(format!("{}-{part}", w.id)), "{} has no {part}", w.id);
+            }
+            match w.op {
+                Op::Window(Win::Hung { .. }) => assert!(has(format!("{}-meeting-rail", w.id))),
+                Op::Window(Win::Slider) => assert!(has(format!("{}-interlock", w.id))),
+                _ => {}
+            }
+            if !w.maker.is_empty() {
+                assert!(w.url.starts_with("https://"), "{}", w.id);
+                assert!(!w.document.is_empty() && !w.product.is_empty(), "{}", w.id);
+            }
+            assert!(w.category.starts_with("Windows"), "{}", w.id);
+        }
+        assert!(n >= 60, "{n} windows");
+        // A hung window's head holds its upper sash only; its sill, the lower one.
+        let dh = window_catalog::HUNG_WINDOWS[0];
+        let l = Lay::of(&dh);
+        assert_eq!(l.leaves.len(), 2);
+        assert!(l.leaves[0].0 < l.leaves[1].0, "the upper sash runs outside");
     }
 
     #[test]

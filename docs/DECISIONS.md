@@ -4471,3 +4471,40 @@ coursing along a line".
   - Vinyl doors, and makers whose sections aren't readable (Kolbe, Milgard, Fleetwood, NanaWall, Andersen 400, Portella, Hope's).
   - Mullion and transom details.
   - Choosing a door's details from a placed door's type.
+
+## ADR-123 Window details by manufacturer: head, jamb, sill and meeting rail — Accepted (2026-10-14)
+- **The owner's ask:** "do the same thing you did for doors for windows" (ADR-122). That means researched head, jamb and sill details for high- to mid-quality windows and typical ones; every manufacturer's window with all its details, citing the document it came from; all editable in Rufplan.
+- **What's in the library:** 67 windows drawn as 224 details.
+  - **Typical (7):** brick veneer, stucco, double hung in lap siding, aluminum in CMU, aluminum in a steel-stud rainscreen wall, wood picture window, egress casement.
+  - **Casement & Awning (13):** Marvin Ultimate casement, awning and picture; Marvin Elevate; Andersen 400 and A-Series; Pella Reserve Traditional, Reserve Contemporary and Lifestyle; Sierra Pacific; Loewen; Weather Shield; Windsor.
+  - **Double Hung & Sliding (22):**
+    - Marvin Ultimate DH G2, Ultimate Glider, Elevate and Essential.
+    - Andersen 400 Woodwright, A-Series, 400 gliding, 100 single-hung and 100 gliding.
+    - Sierra Pacific Monument and all-wood; Kolbe Sterling; Loewen.
+    - Milgard Tuscany single hung and slider, Milgard C700; Simonton 5500.
+    - Pella 250, Impervia, Reserve and Lifestyle; JELD-WEN Siteline.
+  - **Aluminum & Steel (9):** Western 8670, 8660, 7670 and 7630; Marvin Modern casement and picture; Hope's Landmark175; Optimum RTS430; Arcadia T200E.
+  - **Tilt-Turn (5):** Schüco AWS 75 and AWS 90; Reynaers CS 77 and MasterLine 8; Brombal FARO 75.
+  - **Commercial (11):** Kawneer 8225TL, AA 4325, 8400TL and Trifab 451T punched window; YKK AP YOW 350 T and YES 45 TU; Tubelite T14000; OBE FG-3000; Graham GT6700; EFCO 325X; Winco 3250.
+  - The full source register is in docs/WINDOW_DETAILS.md.
+- **The same engine as the doors:** a window is a `Door` with `Op::Window(Win)` (Casement, Awning, Fixed, Hung, Slider, TiltTurn). `Door::shape` maps each window to how its frame and sashes lie, so the door head and jamb draw it:
+  - A casement, awning or fixed sash closes against an interior stop, like an outswing leaf.
+  - A tilt-turn sash closes against an exterior stop, like an inswing leaf.
+  - Hung and sliding sashes run in two tracks.
+- **New for windows:**
+  - **Sill** (`doors/windows.rs`), drawn in this order:
+    - A rough sill: 2x6, a steel-stud track, or CMU with a grouted course and a precast sill.
+    - A sill pan with a back dam, or for commercial walls an aluminum subsill.
+    - The frame's sloped sill with a nosing and drip.
+    - A stop or tracks per operation, and the sash's bottom rail.
+    - Outside: an exterior sill, a stucco casing bead, or a sloped brick rowlock on thru-wall flashing.
+    - Inside: a stool and apron, or a sill board for metal windows.
+  - **Meeting rail section** for hung windows: interlocked rails, the sash lock, and the jamb beyond.
+  - **Glass set straight in the frame** when the sash is 0 thick, used for commercial and picture windows.
+  - **New fields:** `Door.frame_sill` (a sill thicker than the head) and `Door.meet_rail`.
+  - **New materials:** vinyl, composite (Fibrex), solid hot-rolled steel, non-thermally-broken aluminum.
+  - **Steel-stud walls:** the head and jamb now get a box header on track, doubled studs, continuous insulation and metal panel (`metal_panel_skin`).
+  - **Sheet sets:** the "Windows - …" categories file with Openings.
+- **Not stated in a source:** many manufacturers publish dimension strings without saying what they measure, and some publish frame or sash sightlines but not the split between them. Those sizes are drawn at typical values and listed under each detail ("not stated in the source, drawn at typical sizes: …").
+- **Checked:** `every_manufacturer_window_has_its_details_and_cites_its_source`, plus the library-wide drafting test (notes clear, leaders down, real components) and the preview test (over 40 items each).
+- **Considered, later:** mullion details and stacked units; bay windows; vinyl J-channel and stucco-key fins; the European systems' installation subframes (not published).
