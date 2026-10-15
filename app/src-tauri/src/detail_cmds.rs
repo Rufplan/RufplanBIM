@@ -93,6 +93,7 @@ fn info(d: &SavedDetail) -> DetailInfo {
         scale_label: studio_core::ops::scale_label(d.scale),
         description: d.description.clone(),
         user: true,
+        source: None,
     }
 }
 

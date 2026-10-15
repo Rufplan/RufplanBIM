@@ -234,6 +234,18 @@ pub fn detail_preview(id: &str) -> Option<DisplayList> {
             None,
         );
     }
+    for (at, text) in &d.captions {
+        super::text_note(
+            &mut b,
+            None,
+            (*at, 0.0),
+            text,
+            details::TEXT_SIZE,
+            &[],
+            studio_core::text::TextAlign::Left,
+            None,
+        );
+    }
     let bounds = drafting_bounds(&b, 6.0);
     Some(DisplayList {
         view_type: ViewType::Drafting,
@@ -507,6 +519,98 @@ mod tests {
         studio_core::modify::move_elements(&mut doc, &[c], Pt::new(0.0, 50.0)).unwrap();
         let now = studio_core::ops::anchor_point(&doc, &anchor).unwrap();
         assert!(now.dist(corner.add(Pt::new(0.0, 50.0))) < 1e-6);
+    }
+
+    /// Dev aid: `DETAIL_SVG=dir DETAIL_IDS=door cargo test -p studio-views write_detail_svgs
+    /// -- --ignored` writes each library detail whose id contains DETAIL_IDS as an SVG.
+    #[test]
+    #[ignore]
+    fn write_detail_svgs() {
+        use crate::Prim;
+        let dir = std::path::PathBuf::from(std::env::var("DETAIL_SVG").unwrap());
+        let filter = std::env::var("DETAIL_IDS").unwrap_or_default();
+        std::fs::create_dir_all(&dir).unwrap();
+        for d in details::catalog().iter().filter(|d| d.id.contains(&filter)) {
+            let dl = detail_preview(&d.id).unwrap();
+            let [x0, y0, x1, y1] = dl.bounds;
+            let s = f64::from(dl.scale);
+            let px = |p: &[f64; 2]| format!("{:.2},{:.2}", p[0] - x0, y1 - p[1]);
+            let mut out = format!(
+                "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {:.1} {:.1}' width='{:.0}' height='{:.0}' style='background:#fff'>",
+                x1 - x0,
+                y1 - y0,
+                1400.0,
+                1400.0 * (y1 - y0) / (x1 - x0)
+            );
+            for it in &dl.items {
+                match &it.prim {
+                    Prim::Line {
+                        pts,
+                        closed,
+                        w,
+                        dash,
+                    } => {
+                        let pts: Vec<String> = pts.iter().map(px).collect();
+                        let tag = if *closed { "polygon" } else { "polyline" };
+                        let da = match dash {
+                            crate::Dash::Solid => String::new(),
+                            _ => format!(" stroke-dasharray='{:.1}'", s * 1.5),
+                        };
+                        out += &format!(
+                            "<{tag} points='{}' fill='none' stroke='#000' stroke-width='{:.2}'{da}/>",
+                            pts.join(" "),
+                            f64::from(*w) * 0.12 * s
+                        );
+                    }
+                    Prim::Fill { rings, fill } => {
+                        let c = match fill {
+                            crate::FillKind::Paper | crate::FillKind::Room => "#fff",
+                            crate::FillKind::Ink => "#000",
+                            _ => "#ccc",
+                        };
+                        let path: String = rings
+                            .iter()
+                            .map(|r| {
+                                let pts: Vec<String> = r.iter().map(px).collect();
+                                format!("M{}Z", pts.join("L"))
+                            })
+                            .collect();
+                        out += &format!("<path d='{path}' fill='{c}' fill-rule='evenodd'/>");
+                    }
+                    Prim::Circle { c, r, filled, .. } => {
+                        let p = px(c);
+                        let (cx, cy) = p.split_once(',').unwrap();
+                        let f = if *filled { "#000" } else { "none" };
+                        out += &format!(
+                            "<circle cx='{cx}' cy='{cy}' r='{r:.2}' fill='{f}' stroke='#000' stroke-width='{:.2}'/>",
+                            0.15 * s
+                        );
+                    }
+                    Prim::Text {
+                        at,
+                        text,
+                        size,
+                        anchor,
+                        ..
+                    } => {
+                        let p = px(at);
+                        let (x, y) = p.split_once(',').unwrap();
+                        let a = match anchor {
+                            crate::Anchor::Left => "start",
+                            crate::Anchor::Right => "end",
+                            crate::Anchor::Center => "middle",
+                        };
+                        let t = text.replace('&', "&amp;").replace('<', "&lt;");
+                        out += &format!(
+                            "<text x='{x}' y='{y}' font-size='{size:.1}' font-family='Arial' text-anchor='{a}'>{t}</text>"
+                        );
+                    }
+                    Prim::Image { .. } => {}
+                }
+            }
+            out += "</svg>";
+            std::fs::write(dir.join(format!("{}.svg", d.id)), out).unwrap();
+        }
     }
 
     #[test]

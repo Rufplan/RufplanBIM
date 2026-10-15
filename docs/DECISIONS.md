@@ -4445,3 +4445,29 @@ coursing along a line".
   - It browses the library's filtered list and shares its selection. Each detail opens fitted, because zoom is held per detail.
 - **The drawing:** the detail's own display list as SVG (DetailThumb, with its notes), fitted to the canvas, so it stays sharp at any zoom. The handoff's raster crops were only stand-ins. The preview cache is shared with the grid (components/DetailPreview.tsx).
 - **Styling:** the handoff's sizes and greys, with the app's own fonts, cyan and Insert Detail button, as the handoff says to match the product where they differ.
+
+## ADR-122 Door details by manufacturer: head, jamb and sill redrawn from published dimensions — Accepted (2026-10-14)
+- **The owner's ask:** research door head, jamb and sill details on the web for high- to mid-quality doors and typical ones. Every manufacturer door must have all its details and cite the detail and maker it came from, and all of it must be editable in Rufplan.
+- **What's in the library:** 57 doors drawn as 198 details:
+  - Typical (7): wood-frame/siding, brick veneer, stucco, accessible flush sill, hollow metal in a stud partition and in CMU, prehung interior.
+  - Hinged patio (11): Marvin Ultimate in/outswing and Elevate; Andersen A-Series in/outswing and E-Series; Pella Reserve Traditional in/out; Sierra Pacific; Weather Shield; Loewen.
+  - Sliding and folding (16): Marvin Modern and Ultimate multi-slide, lift-and-slide, sliding French and bi-fold; Western 7600 and 600; Pella Reserve multi-slide; Andersen MultiGlide and folding; Sierra Pacific lift & slide; LaCantina.
+  - Entry (9): Marvin Ultimate Inswing 2-1/4"; Therma-Tru Classic-Craft and public access; Pella fiberglass; Simpson; ProVia Signet and Embarq; JELD-WEN DF2415; Sierra Pacific pivot.
+  - Commercial (10): Steelcraft F16/F14, Republic MH, Ceco SU, Kawneer 190/350/500, YKK AP 35D/50T, Tubelite.
+  - Interior and specialty (4): FritsJurgens System M+ pivot, Johnson Hardware 1500 pocket, Emtek barn door, Clopay sectional garage.
+  - The full source register is docs/DOOR_DETAILS.md.
+- **Redrawn, not copied:** manufacturers' CAD is their copyright, and much of it sits behind registration. The details are drawn from the dimensions their manuals, guides, data sheets and product approvals publish, such as frame depth, jamb thickness, stile and rail sizes, glass, and sill height and depth. Research subagents read the PDFs and quoted each figure with its URL. Where a figure was inferred from a drawing label, it is marked.
+- **Cited on the drawing:** `DetailInfo.source` (`DetailSource`: manufacturer, product, document, url) is shown in the library pane with Copy link, and searching by maker or product finds it. Each detail carries captions, text with no leader under the drawing (`Drawing.captions`, `D::caption`): the document, the URL and "verify with the manufacturer". A fourth line, "not stated in the source, drawn at typical sizes: …" (`Door.est`), says exactly what was assumed. The captions insert as TextNotes, so they stay with the drafting view and its sheet.
+- **One engine, doors as data** (studio-core `details::doors`, `doors/catalog.rs`):
+  - A `Door` holds its op (swing in/out, pair, slide n tracks, lift, fold, pivot, storefront, hollow metal, interior, pocket, barn, overhead), material, wall (siding, stucco, brick, CMU, metal panel, partitions), floor (framed, slab, recessed slot, inside), mount (fin, brickmould, block), sizes and notes.
+  - The head is drawn in its own coordinates. The jamb is the same drawing turned into plan (`T`, a mirror, so components flip), so the two always agree.
+  - Sills have their own profile per op: an inswing cap under the leaf, an outswing stop inside it, stepped tracks with rollers, recessed slots.
+  - Hollow metal draws the SDI-111 profile: 2" face (4" head optional), 5/8" stop, 1-15/16" rabbet, 7/16"/1/2" backbends wrapping the wall. Storefront draws a tube frame, stiles and rails, glass in gaskets and the threshold.
+  - The library chains the typical details with the doors through one `items()` list.
+  - The categories are "Doors - …", and sheet sets file them with Openings (`detail_family`).
+- **Checked:** every detail passes the library's drafting test (notes clear of the drawing, leaders angled down, real components) and has a preview of more than 40 items. Tests: `inches_are_written_as_drafted`, `every_manufacturer_door_has_its_head_jamb_and_sill_and_cites_its_source`, `a_door_is_drawn_at_its_published_sizes`. Dev aid: `DETAIL_SVG=dir DETAIL_IDS=door cargo test -p studio-views write_detail_svgs -- --ignored`.
+- **Considered, later:**
+  - Opening source URLs in the browser. The opener capability is limited to rufplan.io, and widening it is a security choice for the owner.
+  - Vinyl doors, and makers whose sections aren't readable (Kolbe, Milgard, Fleetwood, NanaWall, Andersen 400, Portella, Hope's).
+  - Mullion and transom details.
+  - Choosing a door's details from a placed door's type.

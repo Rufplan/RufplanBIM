@@ -43,7 +43,10 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
     return details.filter(
       (d) =>
         (cat === "All" || d.category === cat) &&
-        (!q || `${d.name} ${d.description} ${d.category}`.toLowerCase().includes(q)),
+        (!q ||
+          `${d.name} ${d.description} ${d.category} ${d.source?.manufacturer ?? ""} ${d.source?.product ?? ""}`
+            .toLowerCase()
+            .includes(q)),
     );
   }, [details, cat, query]);
   const chosen = details.find((d) => d.id === current) ?? null;
@@ -133,7 +136,34 @@ export function DetailLibrary({ onClose }: { onClose: () => void }) {
                   <dd>{chosen.category}</dd>
                   <dt>Scale</dt>
                   <dd>{chosen.scaleLabel}</dd>
+                  {chosen.source && (
+                    <>
+                      <dt>Maker</dt>
+                      <dd>{chosen.source.manufacturer}</dd>
+                      <dt>Product</dt>
+                      <dd>{chosen.source.product}</dd>
+                      <dt>Source</dt>
+                      <dd>
+                        {chosen.source.document}
+                        <span className="dl-url">{chosen.source.url}</span>
+                        <button
+                          className="btn-outline dl-copy"
+                          onClick={() =>
+                            void navigator.clipboard?.writeText(chosen.source?.url ?? "")
+                          }
+                        >
+                          Copy link
+                        </button>
+                      </dd>
+                    </>
+                  )}
                 </dl>
+                {chosen.source && (
+                  <p className="muted">
+                    Redrawn from the maker's published dimensions; the source is noted on the
+                    detail. Check it against their current details before issuing.
+                  </p>
+                )}
                 <p className="muted">
                   Inserting makes a drafting view at this scale: every line, filled region and note
                   is yours to edit, and it goes on a sheet like any view.

@@ -7,6 +7,7 @@
 //! element to edit.
 
 pub mod components;
+mod doors;
 mod library;
 pub mod user;
 
@@ -92,6 +93,20 @@ pub struct DetailInfo {
     pub description: String,
     /// One you saved (ADR-073), which you can delete.
     pub user: bool,
+    /// Where a manufacturer's detail was redrawn from (ADR-122).
+    pub source: Option<DetailSource>,
+}
+
+/// A manufacturer detail's source: the product and the published drawing it follows.
+#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct DetailSource {
+    pub manufacturer: String,
+    pub product: String,
+    /// The published document the detail was redrawn from.
+    pub document: String,
+    pub url: String,
 }
 
 /// A line of a detail, in model mm.
@@ -135,6 +150,9 @@ pub struct Drawing {
     pub regions: Vec<(Vec<Pt>, FillPattern)>,
     pub components: Vec<DComp>,
     pub notes: Vec<Note>,
+    /// Text without a leader under the drawing (a manufacturer detail's source), its left
+    /// end at the point.
+    pub captions: Vec<(Pt, String)>,
 }
 
 impl Drawing {
@@ -169,6 +187,8 @@ pub(crate) struct D {
     pub d: Drawing,
     /// Notes as (target, text), placed beside the drawing once it's done.
     notes: Vec<((f64, f64), String)>,
+    /// Lines of text set under the drawing once it's done.
+    captions: Vec<String>,
 }
 
 pub(crate) fn p(x: f64, y: f64) -> Pt {
@@ -180,6 +200,7 @@ impl D {
         Self {
             d: Drawing::default(),
             notes: vec![],
+            captions: vec![],
         }
     }
     pub fn line(&mut self, pts: &[(f64, f64)], style: LineStyle) {
@@ -377,6 +398,10 @@ impl D {
     pub fn note(&mut self, to: (f64, f64), text: &str) {
         self.notes.push((to, text.to_owned()));
     }
+    /// A line of text under the drawing, without a leader.
+    pub fn caption(&mut self, text: &str) {
+        self.captions.push(text.to_owned());
+    }
 
     /// The drawing with its notes set out in columns either side of it, text `size` paper
     /// mm at 1:`scale`, leaders to their targets.
@@ -436,30 +461,57 @@ impl D {
                 });
             }
         }
+        // Captions under the drawing and its lowest note, from its left edge.
+        let bottom = self.d.notes.iter().map(|n| n.at.y - h).fold(lo.y, f64::min);
+        for (i, text) in self.captions.drain(..).enumerate() {
+            let y = bottom - gap - h - i as f64 * row;
+            self.d.captions.push((Pt::new(lo.x, y), text));
+        }
         self.d
     }
 }
 
+/// A detail of the library: a typical one drawn by hand, or a door detail drawn from its
+/// published dimensions (ADR-122).
+struct Item {
+    info: DetailInfo,
+    draw: Box<dyn Fn() -> D + Send + Sync>,
+}
+
+/// Every library detail: the typical ones, then the doors.
+fn items() -> &'static [Item] {
+    static ITEMS: std::sync::OnceLock<Vec<Item>> = std::sync::OnceLock::new();
+    ITEMS.get_or_init(|| {
+        let typical = library::DETAILS.iter().map(|d| Item {
+            info: DetailInfo {
+                id: d.id.into(),
+                name: d.name.into(),
+                category: d.category.into(),
+                scale: d.scale,
+                scale_label: crate::ops::scale_label(d.scale),
+                description: d.description.into(),
+                user: false,
+                source: None,
+            },
+            draw: Box::new(d.draw),
+        });
+        let doors = doors::items()
+            .into_iter()
+            .map(|(info, draw)| Item { info, draw });
+        typical.chain(doors).collect()
+    })
+}
+
 /// The library, grouped by category.
 pub fn catalog() -> Vec<DetailInfo> {
-    library::DETAILS
-        .iter()
-        .map(|d| DetailInfo {
-            id: d.id.into(),
-            name: d.name.into(),
-            category: d.category.into(),
-            scale: d.scale,
-            scale_label: crate::ops::scale_label(d.scale),
-            description: d.description.into(),
-            user: false,
-        })
-        .collect()
+    items().iter().map(|i| i.info.clone()).collect()
 }
 
 /// A detail's drawing (text size in paper mm).
 pub fn drawing(id: &str) -> Option<(u32, Drawing)> {
-    let d = library::DETAILS.iter().find(|d| d.id == id)?;
-    Some((d.scale, (d.draw)().finish(d.scale, TEXT_SIZE)))
+    let d = items().iter().find(|d| d.info.id == id)?;
+    let scale = d.info.scale;
+    Some((scale, (d.draw)().finish(scale, TEXT_SIZE)))
 }
 
 /// Text height of the library's notes, paper mm (3/32").
@@ -500,12 +552,13 @@ pub fn create_drafting_view(doc: &mut Document, name: &str, scale: u32) -> CoreR
 /// Inserts a library detail: a drafting view at its scale, drawn with detail lines, filled
 /// regions and text notes, one undo step.
 pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
-    let info = library::DETAILS
+    let info = &items()
         .iter()
-        .find(|d| d.id == id)
-        .ok_or_else(|| CoreError::Invalid("that detail isn't in the library".into()))?;
+        .find(|d| d.info.id == id)
+        .ok_or_else(|| CoreError::Invalid("that detail isn't in the library".into()))?
+        .info;
     let (scale, drawing) = drawing(id).ok_or_else(|| CoreError::Invalid("no detail".into()))?;
-    let name = unique_view_name(doc, info.name);
+    let name = unique_view_name(doc, &info.name);
     doc.transact(&format!("Insert Detail {}", info.name), |tx| {
         let view = tx.insert(ElementData::view(name, ViewKind::Drafting, scale));
         for (ring, pattern) in &drawing.regions {
@@ -561,6 +614,18 @@ pub fn insert(doc: &mut Document, id: &str) -> CoreResult<ElementId> {
                     arc: false,
                 }],
                 align: note.align,
+                width: None,
+                angle: 0.0,
+            });
+        }
+        for (at, text) in &drawing.captions {
+            tx.insert(ElementData::TextNote {
+                view,
+                at: *at,
+                text: text.clone(),
+                size: TEXT_SIZE,
+                leaders: vec![],
+                align: crate::text::TextAlign::Left,
                 width: None,
                 angle: 0.0,
             });

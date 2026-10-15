@@ -3960,6 +3960,19 @@ button:disabled {
 }
 .dl-facts dd {
   margin: 0;
+  min-width: 0;
+}
+.dl-url {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.dl-copy {
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
 }
 .mb-count {
   margin-left: auto;

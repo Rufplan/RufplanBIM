@@ -156,6 +156,8 @@ Read these before writing code:
 - Detail Level (ADR-067): studio-core `DetailLevel` (View `detail_level`, `for_scale`),
   `compound::core_boundaries`; studio-regen `WallSolid.core`; studio-views `Builder.detail`,
   `windows::shown_at`; components/DetailLevelToggle.tsx; shortcuts DC / DD / DF.
+- Door details (ADR-122): studio-core `details::doors` (Door data in `doors/catalog.rs`, 57 doors / 198 head, jamb, sill and meeting details, typical and by
+  manufacturer, redrawn from published dimensions); `DetailInfo.source`, `Drawing.captions`; sources in docs/DOOR_DETAILS.md.
 - Detail Viewer (ADR-121): components/DetailViewer.tsx (enlarged detail: zoom 50–800%, pan, browse, Insert), detailViewer.ts (zoomAt, fitSize,
   step), DetailPreview.tsx (shared preview cache); the library's preview pane, View larger chip and card double-click open it.
 - Render engine round (ADR-118): app render/ptPatch.ts (shader edits: sky share + power/distance light picking, indirect clamp,
@@ -355,4 +357,4 @@ Read these before writing code:
 - Sample IFC: `cargo test -p rufplan-studio write_sample_ifc -- --ignored`.
 - Review the sample PDF: `cargo test -p rufplan-studio write_sample_pdf -- --ignored`
   writes target/sample-drawing-set.pdf.
-- Last updated: 2026-10-04
+- Last updated: 2026-10-14
